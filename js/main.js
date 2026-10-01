@@ -45,7 +45,7 @@ async function doShare(surface) {
   const props = { surface, native: !!navigator.share, score: run ? run.score : undefined, stage: run ? run.stage + 1 : undefined };
   track('share_click', props);
   if (!navigator.share) { sh = { on: true, surface, text, url }; return; }       // desktop: pick a network
-  const blob = run ? await scoreCard(run.score, STAGES[run.stage].name, surface === 'stage_clear' ? stars : 0, name).catch(() => null) : null;
+  const blob = run ? await scoreCard({ score: run.score, stage: run.stage, stars: surface === 'stage_clear' ? stars : null, name, color: net.user ? net.user.color : null, best: surface === 'stage_clear' && run.score > 0 && run.score >= save.best[run.stage] }).catch(() => null) : null;
   const r = await shareText(text, url, blob);
   track('share_result', { surface, result: r, method: 'native' });
   if (r === 'copied') say('LINK COPIED! SEND IT TO A FRIEND', '#5CFF7A'); else if (r === 'failed') say('COULDN\'T SHARE', '#FF4D4D');

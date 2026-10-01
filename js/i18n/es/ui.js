@@ -104,4 +104,5 @@ I18N.add('es', {
   'Claude Ware: 100+ five-second microgames. Come play!': 'Claude Ware: más de 100 microjuegos de cinco segundos. ¡Ven a jugar!',
   'CHALLENGE YOUR FRIENDS': 'RETA A TUS AMIGOS', 'COPY LINK': 'COPIAR ENLACE', 'CLOSE': 'CERRAR', 'X / TWITTER': 'X / TWITTER',
   'CAN YOU BEAT IT?': '¿PUEDES SUPERARLO?',
+  'CAN YOU BEAT ME?': '¿PUEDES SUPERARME?', 'PLAY FREE': 'JUEGA GRATIS', 'SCORE': 'PUNTOS', 'NEW BEST!': '¡NUEVO RÉCORD!', 'GUEST': 'INVITADO',
 });

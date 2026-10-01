@@ -206,7 +206,7 @@ const BOSSES = {
       },
       draw(t) {
         bg('#14394d', '#1b4a63', t);
-        txt(t('COINS {got} / {need}', { got, need }), W / 2, 100, 32, '#FFE14D');
+        txt(window.t('COINS {got} / {need}', { got, need }), W / 2, 100, 32, '#FFE14D');
         for (const o of it) {
           if (o.bomb) { ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(o.x, o.y, 22, 0, 7); ctx.fill(); ctx.fillStyle = '#ff4d4d'; ctx.fillRect(o.x - 3, o.y - 34, 6, 12); }
           else { ctx.fillStyle = '#FFE14D'; ctx.strokeStyle = INK; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(o.x, o.y, 20, 0, 7); ctx.fill(); ctx.stroke(); }
@@ -243,7 +243,7 @@ const BOSSES = {
       },
       draw(t) {
         bg('#2d4d14', '#3a6319', t);
-        txt(t('BUGS {got} / {need}', { got, need }), W / 2, 100, 32, '#FFE14D');
+        txt(window.t('BUGS {got} / {need}', { got, need }), W / 2, 100, 32, '#FFE14D');
         for (const o of it) { if (o.bomb) { ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(o.x, o.y, 28, 0, 7); ctx.fill(); ctx.fillStyle = '#ff4d4d'; ctx.fillRect(o.x - 3, o.y - 42, 6, 14); } else drawBug(o.x, o.y, o.vx * .003, 1, now * 2); }
         vignette(.3);
       }
@@ -269,7 +269,7 @@ const BOSSES = {
       },
       draw(t) {
         bg('#4d3a14', '#634a19', t);
-        txt(t('BARRIERS {dist} / {goal}', { dist, goal }), W / 2, 100, 30, '#FFE14D');
+        txt(window.t('BARRIERS {dist} / {goal}', { dist, goal }), W / 2, 100, 30, '#FFE14D');
         ctx.fillStyle = INK; ctx.fillRect(0, 450, W, 150); ctx.fillStyle = '#7d5a22'; ctx.fillRect(0, 456, W, 144);
         for (const o of ob) { ctx.fillStyle = '#ff4d4d'; ctx.strokeStyle = INK; ctx.lineWidth = 4; ctx.fillRect(o.x, 450 - o.h, o.w, o.h); ctx.strokeRect(o.x, 450 - o.h, o.w, o.h); }
         shadow(160, 456, 28 - me.y / 20, 7); claude(160, 440 - me.y, 2.8, { mood: g.result === 'lose' ? 'sad' : g.result === 'win' ? 'happy' : null, run: g.result || me.y > 0 ? null : now * 2 });
@@ -298,7 +298,7 @@ const BOSSES = {
       },
       draw(t) {
         bg('#3d2a14', '#4d3a1c', t);
-        txt(t('MOLES {got} / {need}', { got, need }), W / 2, 100, 30, '#FFE14D'); txt(t('ESCAPED {esc} / 4', { esc }), W / 2, 140, 20, '#ff9a9a');
+        txt(window.t('MOLES {got} / {need}', { got, need }), W / 2, 100, 30, '#FFE14D'); txt(window.t('ESCAPED {esc} / 4', { esc }), W / 2, 140, 20, '#ff9a9a');
         for (let i = 0; i < 9; i++) { const c = cell(i); ctx.fillStyle = INK; ctx.beginPath(); ctx.ellipse(c.x, c.y + 28, 62, 20, 0, 0, 7); ctx.fill(); }
         for (const m of ms) { const c = cell(m.i); drawBug(c.x, c.y - (m.hit ? 0 : 6), 0, m.hit ? 1.2 : 1.5, now * 2); }
         vignette(.3);
@@ -354,7 +354,7 @@ const BOSSES = {
       },
       draw(t) {
         bg('#14324d', '#1b4263', t);
-        txt(t('ROUND {r} / 3', { r: Math.min(3, round + 1) }), W / 2, 110, 34, '#fff');
+        txt(window.t('ROUND {r} / 3', { r: Math.min(3, round + 1) }), W / 2, 110, 34, '#fff');
         box3(100, 280, 600, 60, '#0d1f27', 6, 5); ctx.fillStyle = '#4dff88'; ctx.fillRect(100 + 600 * (zc - zone / 2), 280, 600 * zone, 60);
         ctx.fillStyle = INK; ctx.fillRect(100 + 600 * x - 7, 262, 14, 96); ctx.fillStyle = '#fff'; ctx.fillRect(100 + 600 * x - 4, 266, 8, 88);
         claude(W / 2, 500, 3, { mood: g.result === 'lose' ? 'sad' : g.result === 'win' ? 'happy' : null, run: null });

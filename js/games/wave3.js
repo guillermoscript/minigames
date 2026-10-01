@@ -168,7 +168,7 @@ function gRps(sp) {
         const show = g.result && i === picked;
         const pop = show ? 1 + Math.sin(pk * Math.PI) * .1 : 1; ctx.save(); ctx.translate(200 + i * 220, 450); ctx.scale(pop, pop); ctx.translate(-200 - i * 220, -450);
         box3(100 + i * 220, 380, 200, 140, show ? (g.result === 'win' ? '#5CFF7A' : '#FF4D4D') : '#fff', 5, show ? 3 : 6);
-        icon(i, 200 + i * 220, 440, 32); txt((i + 1) + ' ' + t(names[i]), 200 + i * 220, 500, 22, INK); ctx.restore();
+        icon(i, 200 + i * 220, 440, 32); txt((i + 1) + ' ' + window.t(names[i]), 200 + i * 220, 500, 22, INK); ctx.restore();
       }
     }
   };

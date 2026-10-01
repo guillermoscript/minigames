@@ -84,6 +84,7 @@ function challengeLine() {
 
 /* ───────────── state ───────────── */
 let state = 'title', st = 0, mode = 'stage';
+const PRE = 2.4; let pre = 0;   // read-time: game frozen while the instruction is shown
 let stageIdx = 0, stage = STAGES[0], lives = 4, played = 0, score = 0, lastOut = null, stars = 0;
 let cur = null, curId = '', tt = 0, dur = 5, outcome = null, outT = 0, tickN = 0, recent = [], isBoss = false;
 let practiceId = 'swat', practiceSp = 1, menuPage = 0, practicePage = 0;
@@ -229,7 +230,7 @@ function beginGame() {
     recent.push(id); if (recent.length > Math.min(6, pool.length - 2)) recent.shift();
     s = speed(); cur = REGMAP[id].fn(s); curId = id; isBoss = false; dur = cur.dur / Math.sqrt(s); I18N.scope = I18N.scopeOf(curId);
   }
-  tt = 0; outcome = null; outT = 0; tickN = 0; state = 'play';
+  tt = 0; outcome = null; outT = 0; tickN = 0; pre = PRE; state = 'play';
 }
 function setOutcome(r) {
   outcome = r; outT = 0;
@@ -268,9 +269,10 @@ function update(dt) {
     const sx = W / 2 + (shownStars - 1) * 100; shownStars++;
     sfx.coin(); burst(sx, 265, '#FFE14D', 16, 300); ring(sx, 265, '#fff', 70, .45); if (shownStars === stars) sfx.sparkle();
   }
-  if (state === 'stagein') { if (st > 2.2) toInter(); }
-  else if (state === 'inter') { if (st > (mode === 'practice' ? .6 : 1.5)) beginGame(); }
+  if (state === 'stagein') { if (st > 3.4) toInter(); }
+  else if (state === 'inter') { if (st > (mode === 'practice' ? 1.4 : 2.2)) beginGame(); }
   else if (state === 'play') {
+    if (pre > 0) { pre -= dt; return; }
     if (!outcome) {
       tt += dt;
       const n = Math.floor(tt * 2);
@@ -491,10 +493,10 @@ function render() {
     ctx.restore();
     drawParts();
     if (!outcome) {
-      if (tt < .9) {
-        const k = Math.min(1, tt / .15);
+      if (pre > 0 || tt < .9) {
+        const el = pre > 0 ? PRE - pre : 0, k = Math.min(1, (pre > 0 ? el : tt) / .15);
         ctx.save(); ctx.translate(W / 2, H / 2 - 20); const sc = 1 + (1 - k) * .8; ctx.scale(sc, sc);
-        ctx.rotate(Math.sin(now * 12) * .03); ctx.globalAlpha = tt > .7 ? 1 - (tt - .7) / .2 : 1;
+        ctx.rotate(Math.sin(now * 12) * .03); ctx.globalAlpha = pre > 0 ? 1 : tt > .7 ? 1 - (tt - .7) / .2 : 1;
         txt(cur.cmd, 0, 0, 130, isBoss ? '#FF4D4D' : '#FFE14D', 'center', 760); txt(hintOf(cur), 0, 95, 34, '#fff', 'center', 760); ctx.restore();
       } else txt(hintOf(cur), W / 2, 36, 24, '#fff', 'center', 520);
     } else {
@@ -698,11 +700,11 @@ addEventListener('keydown', e => {
   }
   else if (state === 'over' && go && st > .4) startStage(stageIdx);
   else if (state === 'clear' && go && st > .5) afterClear();
-  if (state === 'play' && !outcome && cur.key) cur.key(e);
+  if (state === 'play' && !outcome && pre <= 0 && cur.key) cur.key(e);
 });
 addEventListener('keyup', e => {
   keys[e.code] = false;
-  if (state === 'play' && !outcome && cur.keyup) cur.keyup(e);
+  if (state === 'play' && !outcome && pre <= 0 && cur.keyup) cur.keyup(e);
 });
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
 
@@ -718,7 +720,7 @@ cv.addEventListener('pointerdown', e => {
   if (b) { sfx.click(); b.fn(); return; }
   if (sh.on) return;
   if (state === 'title') { chOpen ? acceptChallenge() : goMenu(); return; }
-  if (state === 'play' && !outcome) { sw = { x: p.x, y: p.y }; if (cur.move) cur.move(p); if (cur.down) cur.down(p); }
+  if (state === 'play' && !outcome && pre <= 0) { sw = { x: p.x, y: p.y }; if (cur.move) cur.move(p); if (cur.down) cur.down(p); }
 });
 cv.addEventListener('pointermove', e => {
   const p = pos(e); mouse = p; hp = p;
@@ -732,7 +734,7 @@ cv.addEventListener('pointermove', e => {
     }
   }
 });
-const endPtr = e => { pressing = false; if (e.pointerType === 'touch') hp = { x: -999, y: -999 }; if (state === 'play' && !outcome && cur.up) cur.up(pos(e)); sw = null; };
+const endPtr = e => { pressing = false; if (e.pointerType === 'touch') hp = { x: -999, y: -999 }; if (state === 'play' && !outcome && pre <= 0 && cur.up) cur.up(pos(e)); sw = null; };
 cv.addEventListener('pointerup', endPtr);
 cv.addEventListener('pointercancel', endPtr);
 cv.addEventListener('pointerleave', () => { hp = { x: -999, y: -999 }; pressing = false; });

@@ -103,9 +103,9 @@ function wiiZap(sp) {
 /* 3 ── DRAW!: quick-draw duel; fire only after the "!" (not before, not too late) */
 function wiiDraw(sp) {
   const lim = .55 / Math.pow(sp, .5), delay = 1.3 + Math.random() * 1.4;
-  let t = 0, tg = 0, st = 0, react = 0, endT = 0;
+  let tm = 0, tg = 0, st = 0, react = 0, endT = 0;
   const fire = () => {
-    if (g.result || t < .2) return;
+    if (g.result || tm < .2) return;
     if (!st) { st = 3; g.result = 'lose'; wiiBang(170, 330); }
     else if (st === 1) { react = tg; if (tg <= lim) { st = 2; g.result = 'win'; sfx.stamp(); sfx.zap(); shake(12, .3); burst(630, 330, '#FFE14D', 18, 340); ring(630, 330, '#fff', 120, .4); sfx.sparkle(); } else { st = 3; g.result = 'lose'; wiiBang(630, 330); } }
   };
@@ -113,8 +113,8 @@ function wiiDraw(sp) {
     cmd: 'DRAW!', hint: 'WAIT FOR THE "!" THEN CLICK / SPACE', thint: 'WAIT FOR "!", THEN TAP', dur: 4.6,
     key(e) { if (e.code === 'Space') fire(); }, down() { fire(); },
     update(dt) {
-      t += dt; if (g.result) { endT += dt; return; }
-      if (st === 0 && t > delay) { st = 1; tg = 0; sfx.coin(); sfx.hit(); shake(3, .12); ring(W / 2, 170, '#FFE14D', 100, .35); }
+      tm += dt; if (g.result) { endT += dt; return; }
+      if (st === 0 && tm > delay) { st = 1; tg = 0; sfx.coin(); sfx.hit(); shake(3, .12); ring(W / 2, 170, '#FFE14D', 100, .35); }
       if (st === 1) { tg += dt; if (tg > lim) { st = 3; g.result = 'lose'; wiiBang(170, 330); } }
     },
     draw(tt) {

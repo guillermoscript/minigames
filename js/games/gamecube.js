@@ -700,8 +700,8 @@ function gcGoalie(sp) {
         }
       }
     },
-    draw(t) {
-      bg('#3b1f6b', '#46257d', t);
+    draw(tm) {
+      bg('#3b1f6b', '#46257d', tm);
       const cols = ['rgba(255,77,158,.18)', 'rgba(77,184,255,.18)', 'rgba(255,225,77,.18)'];
       for (let i = 0; i < 3; i++) { ctx.fillStyle = cols[i]; ctx.beginPath(); ctx.moveTo(400, 0); ctx.lineTo(120 + i * 280 + Math.sin(now * 2 + i) * 60, 600); ctx.lineTo(260 + i * 280 + Math.sin(now * 2 + i) * 60, 600); ctx.fill(); }
       ctx.fillStyle = INK; ctx.fillRect(0, GYL + 22, W, 400); ctx.fillStyle = '#3fbf5f'; ctx.fillRect(0, GYL + 28, W, 400);
@@ -743,7 +743,7 @@ function gcGoalie(sp) {
       if (netRip > 0) { ctx.fillStyle = 'rgba(255,77,77,' + netRip * .35 + ')'; ctx.fillRect(GL, 160, GR - GL, GYL - 160); }
       if (lastT > 0) txt(lastR === 1 ? 'SAVE!' : 'GOAL!', 400, 200, 60, lastR === 1 ? '#5CFF7A' : '#ff4d4d');
       for (let i = 0; i < N; i++) circ(40 + i * 40, 60, 13, shots[i].res === 1 ? '#5CFF7A' : shots[i].res === 2 ? '#ff4d4d' : '#4a4558', 3);
-      txt(t('NEED {n}', { n: need }), 100, 100, 20, '#fff');
+      txt(window.t('NEED {n}', { n: need }), 100, 100, 20, '#fff');
     }
   };
   return g;

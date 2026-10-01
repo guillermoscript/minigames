@@ -110,13 +110,17 @@ function circ(x, y, r, fill, o = 4) {
   ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(x, y, r + o, 0, 7); ctx.fill();
   ctx.fillStyle = fill; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
 }
+if (document.fonts) document.fonts.load('700 20px Fredoka').catch(() => {});   // canvas won't trigger the webfont load by itself
 function txt(s, x, y, size, fill = '#fff', align = 'center', maxW = 0) {
   s = t(s);
-  ctx.font = `900 ${size}px "Arial Black", Impact, sans-serif`;
-  if (maxW) { const w = ctx.measureText(s).width; if (w > maxW) { size *= maxW / w; ctx.font = `900 ${size}px "Arial Black", Impact, sans-serif`; } }
+  const dark = fill === INK;   // dark label (buttons): lighter face + spacing, no outline (dark on dark = blob)
+  const face = sz => dark ? `700 ${sz}px Fredoka, "Helvetica Neue", Arial, sans-serif` : `900 ${sz}px "Arial Black", Impact, sans-serif`;
+  ctx.font = face(size); if ('letterSpacing' in ctx) ctx.letterSpacing = dark ? Math.max(.5, size / 24) + 'px' : '0px';
+  if (maxW) { const w = ctx.measureText(s).width; if (w > maxW) { size *= maxW / w; ctx.font = face(size); } }
   ctx.textAlign = align; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
-  ctx.lineWidth = size / 5; ctx.strokeStyle = INK; ctx.strokeText(s, x, y);
+  if (!dark) { ctx.lineWidth = size / 5; ctx.strokeStyle = INK; ctx.strokeText(s, x, y); }
   ctx.fillStyle = fill; ctx.fillText(s, x, y);
+  if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
 }
 function star(cx, cy, ro, ri, n, rot, fill, o = 4) {
   ctx.beginPath();

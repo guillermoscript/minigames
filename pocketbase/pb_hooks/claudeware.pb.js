@@ -17,6 +17,10 @@ onRecordAuthWithOAuth2Request((e) => { require(`${__hooks}/lib.js`).onOAuth2(e);
 onRecordCreateRequest((e) => { require(`${__hooks}/lib.js`).checkUser(e.record, true); e.next(); }, "users");
 onRecordUpdateRequest((e) => { require(`${__hooks}/lib.js`).checkUser(e.record, false); e.next(); }, "users");
 
+// shared challenge links: /c/<score>/<stage>[/<name>] serves a personalised link preview, then redirects into the game
+routerAdd("GET", "/c/{score}/{stage}", (e) => require(`${__hooks}/lib.js`).challengePage(e));
+routerAdd("GET", "/c/{score}/{stage}/{name}", (e) => require(`${__hooks}/lib.js`).challengePage(e));
+
 // Apply GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET to the users collection on every start.
 onBootstrap((e) => {
   e.next(); // DB + migrations are ready after this

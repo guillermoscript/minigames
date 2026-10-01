@@ -12,6 +12,14 @@ pocketbase/dev.sh          local dev launcher
 Dockerfile                 production image
 ```
 
+## Languages (i18n)
+
+English is the source language and the English text is the key: `txt('SPLAT!')`, `t('SCORE {n}', { n })`. `txt()`/`floatText()` translate automatically, so game code needs no changes for static strings. Languages: English, Spanish.
+- Dictionaries: `js/i18n/<lang>/ui.js` (menus, stages, errors, page meta) and one file per game file; game files register under a scope (`I18N.add('es', {...}, 'ds')`) so the same English word can translate differently per game family.
+- Language is picked from `?lang=xx`, then the saved choice, then the browser language; the title-screen button (or `G`) cycles languages.
+- **Add a language:** add it to `LANGS` in `js/i18n.js`, copy `js/i18n/es/` to `js/i18n/<code>/`, translate, and add the script tags in `index.html`. Open the game with `?i18n-debug` to log every untranslated string; `node test/i18n.test.js` checks placeholders, per-scope conflicts and coverage of every game's name/command/hint.
+- Translations are uppercase to match the canvas style. Avoid plurals; write "SCORE {n}".
+
 ## Local dev
 
 1. Download PocketBase (the binary is gitignored) into `pocketbase/`, matching your OS/arch from <https://github.com/pocketbase/pocketbase/releases> (pinned: v0.40.4), e.g. macOS arm64:
@@ -25,7 +33,7 @@ Dockerfile                 production image
    pocketbase/dev.sh            # http://127.0.0.1:8090  (admin UI: /_/)
    ```
    Google login needs credentials first, see "Google sign-in" below (`cp .env.example .env`, fill in; `dev.sh` loads `.env`). Without them the game works in guest mode.
-   `dev.sh` copies only `index.html`, `css/` and `js/` into `pocketbase/pb_public/` (so `research/`, `pocketbase/` etc. are never served) and starts PocketBase with data in `pocketbase/pb_data/`. Re-run it after editing the game files (`pocketbase/dev.sh sync` just refreshes the copy). Env: `HTTP=127.0.0.1:8091`, `DIR=/some/data/dir`.
+   `dev.sh` copies only `index.html`, `css/`, `img/` and `js/` into `pocketbase/pb_public/` (so `research/`, `pocketbase/` etc. are never served) and starts PocketBase with data in `pocketbase/pb_data/`. Re-run it after editing the game files (`pocketbase/dev.sh sync` just refreshes the copy). Env: `HTTP=127.0.0.1:8091`, `DIR=/some/data/dir`.
 3. Create the operator (superuser) account, once, for the admin UI:
    ```sh
    pocketbase/pocketbase superuser upsert you@example.com 'a-long-password' --dir=pocketbase/pb_data
@@ -45,6 +53,12 @@ Dockerfile                 production image
 - Healthcheck: `GET /api/health` (built into the image).
 - Behind the proxy, PocketBase reads the client IP from `X-Forwarded-For` (set in the migration under Settings > Application > User IP proxy headers) for rate limiting. If you expose the container directly (no proxy) clear that setting.
 - Build args: `PB_VERSION` (default 0.40.4); `TARGETARCH` is automatic.
+
+## Sharing and analytics
+
+- **Link previews**: `index.html` carries Open Graph / Twitter card tags (absolute URLs on `https://claudeware.guille.tech`; change them if the domain moves) and the 1200x630 card `img/og.png`.
+- **Challenge links**: after a run, SHARE sends `<site>/?c=<score>&s=<stage>&f=<name>` (native share sheet on phones, clipboard otherwise). Whoever opens it gets "NAME CHALLENGES YOU" on the title screen and is dropped into that stage.
+- **OpenPanel** (self-hosted at openpanel.guille.tech): client id and API URL are set in the `<meta name="openpanel-*">` tags in `index.html` (the client id is public). Blank them to disable tracking. Events (all sent via `track()` in `js/analytics.js`): `app_loaded`, `stage_start`, `microgame_end`, `stage_clear`, `game_over`, `stage_quit`, `practice_start`, `share_click`, `share_result`, `challenge_accept`, `challenge_beaten`, `sign_in`, `leaderboard_view`, `profile_view`. Screen views are automatic.
 
 ## Google sign-in
 

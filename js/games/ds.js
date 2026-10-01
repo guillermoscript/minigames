@@ -12,6 +12,8 @@ function dsInPoly(x, y, pts) {
 }
 const dsMood = g => g.result === 'lose' ? 'sad' : g.result === 'win' ? 'happy' : null;
 const dsRnd = (a, b) => a + Math.random() * (b - a);
+const dsWin = (x, y, n = 30) => { confetti(x, y, n); sfx.sparkle(); ring(x, y, '#FFE14D', 120); burst(x, y, '#5CFF7A', 12); floatText('NICE!', x, y - 30, '#5CFF7A', 40); };
+const dsLose = (x, y) => { sfx.miss(); shake(10, .3); if (x != null) { burst(x, y, '#ff4d4d', 12); ring(x, y, '#ff4d4d', 80); } };
 function dsBoom(x, y, r, t) {
   star(x, y, r, r * .55, 12, t * 3, '#FFE14D', 6); star(x, y, r * .62, r * .3, 10, -t * 4, '#ff7a2f', 4);
 }
@@ -25,7 +27,7 @@ function dsRamp(sp) {
     [380, 430, 470, 430], [380, 430, 380, 600], [470, 430, 470, 600],
     [cupX - 55, cupY, cupX - 40, cupY + 70], [cupX + 55, cupY, cupX + 40, cupY + 70], [cupX - 40, cupY + 70, cupX + 40, cupY + 70]
   ];
-  const release = () => { if (!ball.on) { ball.on = true; snd(520, .12, 'triangle', .06, 0, 300); } };
+  const release = () => { if (!ball.on) { ball.on = true; sfx.whoosh(false); sfx.click(); } };
   const g = {
     cmd: 'DRAW!', hint: 'DRAG TO DRAW A RAMP FOR THE BALL', thint: 'DRAW A RAMP WITH YOUR FINGER', dur: 4.8,
     down(p) { if (used >= INKMAX || g.result) return; cur = { pts: [{ x: p.x, y: p.y }] }; strokes.push(cur); drawing = true; },
@@ -36,7 +38,7 @@ function dsRamp(sp) {
       let q = p, dd = d;
       if (used + d > INKMAX) { const f = (INKMAX - used) / d; q = { x: l.x + (p.x - l.x) * f, y: l.y + (p.y - l.y) * f }; dd = INKMAX - used; }
       cur.pts.push({ x: q.x, y: q.y }); used += dd;
-      if (Math.random() < .3) snd(300 + used, .03, 'square', .02);
+      if (Math.random() < .3) sfx.blip((used / 40) | 0);
       if (used >= INKMAX - .01) { drawing = false; release(); }
     },
     up() { drawing = false; release(); },
@@ -58,20 +60,21 @@ function dsRamp(sp) {
           if (d < R && d > 1e-6) {
             const nx = ddx / d, ny = ddy / d; ball.x += nx * (R - d); ball.y += ny * (R - d);
             const vn = ball.vx * nx + ball.vy * ny;
-            if (vn < 0) { ball.vx -= 1.3 * vn * nx; ball.vy -= 1.3 * vn * ny; if (vn < -120 && Math.random() < .5) snd(260 + Math.random() * 100, .05, 'triangle', .04); }
+            if (vn < 0) { ball.vx -= 1.3 * vn * nx; ball.vy -= 1.3 * vn * ny; if (vn < -120) { if (Math.random() < .6) sfx.tick(); if (vn < -300) burst(ball.x, ball.y + ball.r, '#fff', 3, 120); } }
           }
         }
         ball.vx *= 1 - .15 * h;
       }
-      if (Math.abs(ball.x - cupX) < 42 && ball.y > cupY + 14 && ball.y < cupY + 70) { g.result = 'win'; snd(900, .2); confetti(cupX, cupY, 36); }
-      else if (ball.y > H + 40 || ball.x < -40 || ball.x > W + 40) { g.result = 'lose'; snd(110, .4, 'sawtooth', .12, 0, 40); }
+      if (Math.abs(ball.x - cupX) < 42 && ball.y > cupY + 14 && ball.y < cupY + 70) { g.result = 'win'; sfx.splat(); sfx.coin(); dsWin(cupX, cupY, 36); }
+      else if (ball.y > H + 40 || ball.x < -40 || ball.x > W + 40) { g.result = 'lose'; dsLose(Math.max(30, Math.min(W - 30, ball.x)), Math.min(H - 30, ball.y)); }
     },
     draw(t) {
       ctx.fillStyle = '#fbfaf0'; ctx.fillRect(0, 0, W, H);
       ctx.strokeStyle = '#a9d4f5'; ctx.lineWidth = 2;
       for (let y = 40; y < H; y += 32) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
       ctx.strokeStyle = '#ff9aa8'; ctx.beginPath(); ctx.moveTo(60, 0); ctx.lineTo(60, H); ctx.stroke();
-      box(380, 430, 90, 190, '#9a6a3c', 5);
+      shadow(cupX, cupY + 78, 56, 8, .22);
+      box3(380, 430, 90, 190, '#9a6a3c', 5, 6);
       ctx.fillStyle = '#7a5230'; ctx.fillRect(386, 440, 78, 8);
       // cup
       ctx.beginPath(); ctx.moveTo(cupX - 55, cupY); ctx.lineTo(cupX + 55, cupY); ctx.lineTo(cupX + 40, cupY + 70); ctx.lineTo(cupX - 40, cupY + 70); ctx.closePath();
@@ -84,12 +87,15 @@ function dsRamp(sp) {
       ctx.lineCap = 'butt';
       // ball
       const by = ball.on ? ball.y : 110 + Math.sin(t * 5) * 4;
-      circ(ball.x, by, ball.r, '#ff4d4d', 4);
+      const sq = ball.on ? Math.min(.25, Math.hypot(ball.vx, ball.vy) / 3500) : 0;
+      ctx.save(); ctx.translate(ball.x, by); ctx.scale(1 - sq, 1 + sq); ctx.translate(-ball.x, -by);
+      circ(ball.x, by, ball.r, '#ff4d4d', 4); ctx.fillStyle = 'rgba(255,255,255,.5)'; ctx.fillRect(ball.x - 10, by - 12, 5, 4);
       ctx.fillStyle = '#fff'; ctx.fillRect(ball.x - 9, by - 8, 7, 8); ctx.fillRect(ball.x + 2, by - 8, 7, 8);
       ctx.fillStyle = INK; ctx.fillRect(ball.x - 6, by - 5, 3, 4); ctx.fillRect(ball.x + 4, by - 5, 3, 4);
-      if (!ball.on) txt('v', ball.x, by + 36, 22, '#fff');
+      ctx.restore();
+      if (!ball.on) txt('v', ball.x, by + 36 + Math.sin(t * 8) * 3, 22, '#fff');
       // ink bar
-      box(30, 120, 22, 200, '#fff', 4); const f = 1 - used / INKMAX;
+      box3(30, 120, 22, 200, '#fff', 4, 4); const f = 1 - used / INKMAX;
       ctx.fillStyle = '#4DB8FF'; ctx.fillRect(30, 120 + 200 * (1 - f), 22, 200 * f);
       txt('INK', 41, 340, 16, '#fff');
     }
@@ -133,6 +139,7 @@ function dsCreep(sp) {
     }
     ctx.restore();
   };
+  let lx = 0, ly = 0;
   const g = {
     cmd: 'LOOK!', hint: 'FIND THE CREEP: LIGHT IT, CLICK IT', thint: 'FIND THE CREEP: TAP IT', dur: 5.5,
     down(p) {
@@ -140,12 +147,12 @@ function dsCreep(sp) {
       if (Math.hypot(p.x - mouse.x, p.y - mouse.y) > R + 20) return;
       for (const f of figs) {
         if (Math.hypot(p.x - f.x, p.y - (f.y - 45)) < 62) {
-          if (f.kind === 'creep') { g.result = 'win'; snd(900, .2); confetti(f.x, f.y - 60, 30); } else { g.result = 'lose'; snd(110, .4, 'sawtooth', .12, 0, 40); }
+          if (f.kind === 'creep') { g.result = 'win'; sfx.zap(); dsWin(f.x, f.y - 60); } else { g.result = 'lose'; dsLose(f.x, f.y - 50); }
           g.hit = f; return;
         }
       }
     },
-    update() {},
+    update() { if (!g.result && Math.hypot(mouse.x - lx, mouse.y - ly) > 60) { lx = mouse.x; ly = mouse.y; for (const f of figs) if (Math.hypot(mouse.x - f.x, mouse.y - (f.y - 45)) < 55) { sfx.blip(f.kind === 'creep' ? 7 : 0); } } },
     draw(t) {
       ctx.fillStyle = '#2a3b63'; ctx.fillRect(0, 0, W, H);
       ctx.fillStyle = '#1f2c4b'; ctx.fillRect(0, 190, W, 410);
@@ -153,9 +160,9 @@ function dsCreep(sp) {
       circ(690, 90, 34, '#FFF3B0', 4);
       ctx.fillStyle = INK; for (let x = 0; x < W; x += 40) ctx.fillRect(x, 215, 8, 70); ctx.fillRect(0, 232, W, 7);
       const order = figs.slice().sort((a, b) => a.y - b.y);
-      for (const f of order) drawFig(f);
+      for (const f of order) { shadow(f.x, f.y + 3, f.kind === 'bush' ? 50 : 36, 8, .3); drawFig(f); }
       if (g.result && g.hit) {
-        const f = g.hit; if (g.result === 'win') txt('GOTCHA!', f.x, f.y - 190, 36, '#5CFF7A'); else txt('NOPE!', f.x, f.y - 120, 36, '#ff4d4d');
+        const f = g.hit, pu = 1 + Math.sin(t * 14) * .06; if (g.result === 'win') txt('GOTCHA!', f.x, f.y - 190, 36 * pu, '#5CFF7A'); else txt('NOPE!', f.x, f.y - 120, 36 * pu, '#ff4d4d');
       }
       // darkness with a soft spotlight
       const mx = mouse.x, my = mouse.y;
@@ -169,7 +176,7 @@ function dsCreep(sp) {
           ctx.fillStyle = f.kind === 'cat' ? '#FFE14D' : '#fff';
           ctx.fillRect(f.x - 12, f.y + ey - 3, 6, 6); ctx.fillRect(f.x + 6, f.y + ey - 3, 6, 6);
         }
-        ctx.strokeStyle = 'rgba(255,240,150,.5)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(mx, my, R, 0, 7); ctx.stroke();
+        ctx.strokeStyle = 'rgba(255,240,150,.6)'; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(mx, my, R, 0, 7); ctx.stroke(); ctx.strokeStyle = INK; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(mx, my, R + 3, 0, 7); ctx.stroke();
       }
     }
   };
@@ -189,13 +196,13 @@ function dsFuse(sp) {
     }
     return { col: cols[i], slot: perm[i], pts, cut: -1 };
   });
-  const durA = 4.6 / Math.sqrt(sp); let clock = 0;
+  const durA = 4.6 / Math.sqrt(sp); let clock = 0, lastT = 99;
   const cutIt = w => {
     if (g.result || w.cut >= 0) return;
     let bi = 0, bd = 1e9; w.pts.forEach((q, i) => { const d = Math.abs(q.y - (g.cy || 400)); if (d < bd) { bd = d; bi = i; } });
-    w.cut = g.cy ? bi : 20; snd(900, .08, 'sawtooth', .08, 0, 300);
-    if (w === wires[want]) { g.result = 'win'; snd(700, .25, 'triangle', .08, .1, 1400); confetti(400, 250, 30); }
-    else { g.result = 'lose'; snd(100, .5, 'sawtooth', .14, .05, 30); }
+    w.cut = g.cy ? bi : 20; sfx.zap(); burst(w.pts[w.cut].x, w.pts[w.cut].y, '#FFE14D', 10);
+    if (w === wires[want]) { g.result = 'win'; sfx.coin(); dsWin(400, 250); }
+    else { g.result = 'lose'; sfx.stamp(); sfx.buzz(); dsLose(400, 190); shake(16, .5); }
   };
   const g = {
     cmd: 'CUT!', hint: 'CUT THE WIRE THE WORD SAYS: CLICK OR 1 2 3', thint: 'TAP THE WIRE THE WORD SAYS', dur: 4.6,
@@ -206,7 +213,7 @@ function dsFuse(sp) {
       if (best) cutIt(best);
     },
     key(e) { const m = /^Digit([123])$/.exec(e.code || ''); if (m && !g.result) { const w = wires.find(w => w.slot === +m[1] - 1); g.cy = 400; cutIt(w); } },
-    update(dt) { if (!g.result) clock += dt; },
+    update(dt) { if (!g.result) { clock += dt; const r = Math.max(0, durA - clock), c = Math.ceil(r); if (c !== lastT && c > 0) { lastT = c; if (c < durA) c <= 1 ? sfx.tickHi() : sfx.tick(); } } },
     draw(t) {
       const boom = g.result === 'lose', sh = boom ? Math.sin(t * 90) * 8 : 0;
       bg(boom ? '#ff9d6e' : '#B5E6A2', boom ? '#ff8a55' : '#a5d992', t);
@@ -222,8 +229,9 @@ function dsFuse(sp) {
         ctx.lineCap = 'butt';
         if (w.cut >= 0) { star(w.pts[w.cut].x, w.pts[w.cut].y, 20 + Math.sin(t * 40) * 4, 8, 6, t * 5, '#fff', 3); }
       }
-      for (let i = 0; i < 3; i++) { box(slots[i] - 20, 560, 40, 34, '#fff', 4); txt('' + (i + 1), slots[i], 578, 24, INK); }
+      for (let i = 0; i < 3; i++) { box3(slots[i] - 20, 560, 40, 34, '#fff', 4, 4); txt('' + (i + 1), slots[i], 578, 24, INK); }
       // bomb
+      shadow(400, 268, 90, 14, .25);
       circ(400, 170, 92, '#2d2a3a', 6); ctx.fillStyle = '#4a4560'; ctx.beginPath(); ctx.arc(368, 134, 26, 3.4, 5); ctx.lineWidth = 8; ctx.strokeStyle = '#4a4560'; ctx.stroke();
       box(380, 62, 40, 24, '#8e98a8', 4);
       ctx.strokeStyle = INK; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(400, 62); ctx.quadraticCurveTo(425, 30, 460, 44); ctx.stroke();
@@ -235,7 +243,7 @@ function dsFuse(sp) {
       ctx.restore();
       // sticky note
       ctx.save(); ctx.translate(135, 200); ctx.rotate(-.07);
-      box(-100, -75, 200, 150, '#fff6a8', 5); txt('CUT THE', 0, -40, 28, INK);
+      box3(-100, -75, 200, 150, '#fff6a8', 5, 7); txt('CUT THE', 0, -40, 28, INK);
       ctx.fillStyle = INK; ctx.fillRect(-70, -18, 140, 3);
       txt(names[want], 0, 22, 46, cols[inkI], 'center', 180); ctx.restore();
       if (boom) { dsBoom(400, 190, 150 + Math.sin(t * 30) * 12, t); txt('BOOM!', 400, 190, 60, '#fff'); }
@@ -260,21 +268,21 @@ function dsLoop(sp) {
   }
   let pts = [], pr = false, flash = 0, msg = '';
   const button = (x, y, col) => {
-    circ(x, y, 26, col, 4); circ(x, y, 18, col, 3);
+    shadow(x, y + 24, 24, 7, .3); circ(x, y, 26, col, 4); circ(x, y, 18, col, 3); ctx.fillStyle = 'rgba(255,255,255,.45)'; ctx.fillRect(x - 15, y - 17, 8, 4);
     ctx.fillStyle = INK; for (const o of [[-6, -6], [6, -6], [-6, 6], [6, 6]]) ctx.fillRect(x + o[0] - 2, y + o[1] - 2, 4, 4);
   };
   const g = {
     cmd: 'LOOP!', hint: 'CIRCLE ALL THE COLOURED BUTTONS', thint: 'DRAW A LOOP AROUND THE COLOURED BUTTONS', dur: 5.8,
-    down(p) { if (g.result) return; pr = true; pts = [{ x: p.x, y: p.y, t: now }]; },
-    move(p) { if (!pr || g.result) return; const l = pts[pts.length - 1]; if (Math.hypot(p.x - l.x, p.y - l.y) > 6) pts.push({ x: p.x, y: p.y, t: now }); },
+    down(p) { if (g.result) return; pr = true; pts = [{ x: p.x, y: p.y, t: now }]; sfx.click(); },
+    move(p) { if (!pr || g.result) return; const l = pts[pts.length - 1]; if (Math.hypot(p.x - l.x, p.y - l.y) > 6) { pts.push({ x: p.x, y: p.y, t: now }); if (pts.length % 6 === 0) sfx.tick(); } },
     up() {
       if (!pr || g.result) return; pr = false;
       if (pts.length < 8) { pts = []; return; }
       const a = pts[0], b = pts[pts.length - 1];
-      if (Math.hypot(a.x - b.x, a.y - b.y) > 90) { msg = 'CLOSE THE LOOP!'; flash = .7; return; }
+      if (Math.hypot(a.x - b.x, a.y - b.y) > 90) { msg = 'CLOSE THE LOOP!'; flash = .7; sfx.miss(); return; }
       const inn = o => dsInPoly(o.x, o.y, pts);
-      if (tg.every(inn) && !dc.some(inn)) { g.result = 'win'; snd(900, .2); confetti(C.x, C.y, 36); }
-      else { msg = dc.some(inn) ? 'NOT THE GREY ONES!' : 'GET THEM ALL!'; flash = .8; snd(150, .15, 'sawtooth', .07); pts.length = 0; }
+      if (tg.every(inn) && !dc.some(inn)) { g.result = 'win'; tg.forEach((o, i) => { sfx.blip(i * 3); burst(o.x, o.y, o.col, 8); }); dsWin(C.x, C.y, 36); }
+      else { msg = dc.some(inn) ? 'NOT THE GREY ONES!' : 'GET THEM ALL!'; flash = .8; sfx.buzz(); shake(5, .2); dc.filter(inn).forEach(o => burst(o.x, o.y, '#9a9aa5', 8)); pts.length = 0; }
     },
     update(dt) { flash = Math.max(0, flash - dt); },
     draw(t) {
@@ -290,8 +298,8 @@ function dsLoop(sp) {
         }
         ctx.lineCap = 'butt';
       }
-      if (flash > 0) txt(msg, W / 2, 110, 34, '#FFE14D');
-      if (g.result === 'win') { for (const o of tg) star(o.x, o.y - 40, 14, 6, 5, t * 3, '#FFE14D', 3); }
+      if (flash > 0) txt(msg, W / 2, 110, 34 * (1 + Math.min(.2, flash * .3)), '#FFE14D');
+      if (g.result === 'win') { for (const o of tg) star(o.x, o.y - 40 - Math.sin(t * 6 + o.x) * 4, 14, 6, 5, t * 3, '#FFE14D', 3); }
     }
   };
   return g;
@@ -303,7 +311,7 @@ function dsCage(sp) {
   let px = dsRnd(130, 670), dir = Math.random() < .5 ? -1 : 1, cy = 100, vy = 0, cut = false, landed = false, clang = 0, esc = 0;
   const g = {
     cmd: 'CUT!', hint: 'CLICK TO CUT THE ROPE WHEN IT IS UNDER', thint: 'TAP TO CUT THE ROPE', dur: 4.6,
-    down() { if (cut || g.result) return; cut = true; snd(700, .1, 'sawtooth', .07, 0, 200); },
+    down() { if (cut || g.result) return; cut = true; sfx.click(); sfx.whoosh(false); },
     key(e) { if (e.code === 'Space' || e.code === 'Enter') g.down(); },
     update(dt) {
       const gt = dt * k;
@@ -313,8 +321,9 @@ function dsCage(sp) {
         vy += 2600 * gt; cy += vy * gt;
         if (cy + CH >= GY) {
           cy = GY - CH; landed = true; clang = .5;
-          if (Math.abs(px - cx0) < CW / 2 - 28) { g.result = 'win'; snd(160, .3, 'square', .12, 0, 60); snd(900, .2, 'triangle', .07, .15); confetti(cx0, 400, 30); }
-          else { g.result = 'lose'; snd(160, .3, 'square', .12, 0, 60); snd(120, .4, 'sawtooth', .08, .2, 50); }
+          sfx.thud(); shake(12, .3); burst(cx0, GY, '#fff', 10, 200);
+          if (Math.abs(px - cx0) < CW / 2 - 28) { g.result = 'win'; sfx.coin(); dsWin(cx0, 400); }
+          else { g.result = 'lose'; sfx.miss(); burst(px, GY - 40, '#ff4d4d', 8); }
         }
       }
       clang = Math.max(0, clang - dt);
@@ -322,7 +331,9 @@ function dsCage(sp) {
     draw(t) {
       bg('#FFD59E', '#ffc98a', t);
       ctx.fillStyle = INK; ctx.fillRect(0, GY - 4, W, 120); ctx.fillStyle = '#7fcf5a'; ctx.fillRect(0, GY, W, 120);
-      box(60, 60, 680, 26, '#7a5230', 5);
+      box3(60, 60, 680, 26, '#7a5230', 5, 6);
+      shadow(px, GY + 4, 46, 8, .3);
+      if (!cut) shadow(cx0, GY + 4, CW / 2, 8, .12);
       // rope
       ctx.strokeStyle = INK; ctx.lineWidth = 12; ctx.beginPath(); ctx.moveTo(cx0, 86); ctx.lineTo(cx0, cut ? 100 : cy); ctx.stroke();
       ctx.strokeStyle = '#d9b27a'; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(cx0, 86); ctx.lineTo(cx0, cut ? 100 : cy); ctx.stroke();
@@ -342,6 +353,7 @@ function dsCage(sp) {
       if (g.result === 'lose') { pigDrawn(); } else if (!g.result) pigDrawn();
       // cage
       const cxA = cx0, top = cut ? cy : cy, wob = !cut ? Math.sin(t * 2) * 3 : 0;
+      if (cut && !landed) { ctx.fillStyle = 'rgba(255,255,255,.35)'; for (let i = 0; i < 3; i++) ctx.fillRect(cx0 - 60 + i * 60, cy - 30 - i * 10, 4, 28); }
       ctx.save(); ctx.translate(cxA + wob, 0);
       if (g.result === 'win') { ctx.restore(); pigDrawn(); ctx.save(); ctx.translate(cxA, 0); }
       ctx.fillStyle = 'rgba(0,0,0,0)';
@@ -351,7 +363,7 @@ function dsCage(sp) {
       ctx.fillStyle = '#c47b3d'; for (let i = 0; i <= 6; i++) ctx.fillRect(-CW / 2 + 6 + i * (CW - 12) / 6, top + 14, 4, CH - 20);
       circ(0, top - 4, 10, '#8e98a8', 3);
       ctx.restore();
-      if (clang > 0) { star(cx0, GY - 20, 90 + clang * 40, 50, 10, t * 2, '#FFE14D', 6); txt('CLANG!', cx0, GY - 20, 46, '#ff4d4d'); }
+      if (clang > 0) { star(cx0, GY - 20, 90 + clang * 40, 50, 10, t * 2, '#FFE14D', 6); txt('CLANG!', cx0, GY - 20, 46 * (1 + clang * .3), '#ff4d4d'); }
       if (!cut) { ctx.fillStyle = 'rgba(20,16,28,.18)'; ctx.fillRect(cx0 - CW / 2, GY - 6, CW, 6); }
     }
   };
@@ -363,7 +375,7 @@ function dsFan(sp) {
   const k = Math.sqrt(sp), GY = 500, padX = dsRnd(260, 540), R = 175;
   const side = padX > 400 ? -1 : 1;
   const ch = { x: Math.max(110, Math.min(690, padX + side * dsRnd(130, 230) * -1)), y: 130, vx: dsRnd(-25, 25), vy: 0 };
-  let px = mouse.x, py = mouse.y, spd = 0, spin = 0; const clouds = [[120, 130], [520, 100], [680, 220], [300, 260]];
+  let px = mouse.x, py = mouse.y, spd = 0, spin = 0, wt = 0; const clouds = [[120, 130], [520, 100], [680, 220], [300, 260]];
   const g = {
     cmd: 'BLOW!', hint: 'WAVE THE MOUSE TO FAN HIM ONTO THE PAD', thint: 'WAVE YOUR FINGER TO FAN HIM ONTO THE PAD', dur: 4.8,
     update(dt) {
@@ -378,17 +390,19 @@ function dsFan(sp) {
       ch.vx *= Math.exp(-1.5 * gt); ch.vx = Math.max(-340, Math.min(340, ch.vx));
       ch.vy += 420 * gt; ch.vy = Math.min(ch.vy, 100); ch.vy = Math.max(ch.vy, -120);
       ch.x += ch.vx * gt; ch.y += ch.vy * gt; spin += (ch.vx / 700 - spin) * Math.min(1, 6 * dt);
-      if (ch.x < 10 || ch.x > W - 10) { g.result = 'lose'; snd(110, .4, 'sawtooth', .12, 0, 40); }
+      if (spd > 900 && d < R && (wt -= dt) < 0) { wt = .12; sfx.whoosh(); burst(mx + (ch.x - mx) * .5, my + (cy - my) * .5, '#fff', 2, 120); }
+      if (ch.x < 10 || ch.x > W - 10) { g.result = 'lose'; dsLose(Math.max(40, Math.min(W - 40, ch.x)), ch.y - 40); }
       else if (ch.y >= GY) {
         ch.y = GY;
-        if (Math.abs(ch.x - padX) < 66) { g.result = 'win'; snd(900, .2); confetti(ch.x, GY - 40, 30); } else { g.result = 'lose'; snd(110, .4, 'sawtooth', .12, 0, 40); }
+        sfx.thud(); shake(8, .25); if (Math.abs(ch.x - padX) < 66) { g.result = 'win'; sfx.coin(); dsWin(ch.x, GY - 40); } else { g.result = 'lose'; dsLose(ch.x, GY - 20); }
       }
     },
     draw(t) {
       bg('#9BDDFF', '#8ed2f7', t);
       for (const c of clouds) { const x = (c[0] + t * 12) % 900 - 50; circ(x, c[1], 30, '#fff', 4); circ(x + 34, c[1] + 8, 24, '#fff', 4); circ(x - 32, c[1] + 10, 22, '#fff', 4); circ(x, c[1] + 12, 26, '#fff', 0); }
       ctx.fillStyle = INK; ctx.fillRect(0, GY + 6, W, 120); ctx.fillStyle = '#58c24a'; ctx.fillRect(0, GY + 10, W, 120);
-      box(padX - 70, GY + 4, 140, 10, '#FFE14D', 3);
+      box3(padX - 70, GY + 4, 140, 10, '#FFE14D', 3, 4);
+      shadow(ch.x, GY + 8, 40 * Math.max(.3, 1 - (GY - ch.y) / 450), 9, .25);
       ctx.strokeStyle = '#ff4d4d'; ctx.lineWidth = 9; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(padX - 28, GY + 40); ctx.lineTo(padX + 28, GY + 80); ctx.moveTo(padX + 28, GY + 40); ctx.lineTo(padX - 28, GY + 80); ctx.stroke(); ctx.lineCap = 'butt';
       // character
       ctx.save(); ctx.translate(ch.x, ch.y); ctx.rotate(spin * .5);
@@ -424,7 +438,7 @@ function dsPose(sp) {
   const me = { h: [[-45, 360], [45, 360]], f: [[-30, 465], [30, 465]] };
   const handles = [{ a: me.h[0], sh: [-28, 198], max: 175 }, { a: me.h[1], sh: [28, 198], max: 175 }, { a: me.f[0], sh: [-22, 335], max: 150 }, { a: me.f[1], sh: [22, 335], max: 150 }];
   const target = [T.h[0], T.h[1], T.f[0], T.f[1]];
-  let grab = -1, okT = 0; const match = i => Math.hypot(handles[i].a[0] - target[i][0], handles[i].a[1] - target[i][1]) < TOL;
+  let grab = -1, okT = 0; const was = [false, false, false, false]; const match = i => Math.hypot(handles[i].a[0] - target[i][0], handles[i].a[1] - target[i][1]) < TOL;
   const bone = (x0, y0, x1, y1) => {
     ctx.lineCap = 'round'; ctx.strokeStyle = INK; ctx.lineWidth = 17; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
     ctx.strokeStyle = '#fff'; ctx.lineWidth = 8; ctx.stroke(); ctx.lineCap = 'butt';
@@ -446,7 +460,7 @@ function dsPose(sp) {
     down(p) {
       if (g.result) return; let bi = -1, bd = 52;
       handles.forEach((h, i) => { const d = Math.hypot(p.x - (MX + h.a[0]), p.y - h.a[1]); if (d < bd) { bd = d; bi = i; } });
-      grab = bi; if (bi >= 0) snd(500, .04);
+      grab = bi; if (bi >= 0) { sfx.click(); burst(MX + handles[bi].a[0], handles[bi].a[1], '#FFE14D', 5, 140); }
     },
     move(p) {
       if (grab < 0 || g.result) return; const h = handles[grab];
@@ -454,15 +468,17 @@ function dsPose(sp) {
       if (d > h.max) { x = h.sh[0] + dx / d * h.max; y = h.sh[1] + dy / d * h.max; }
       if (grab >= 2) y = Math.max(380, Math.min(470, y)); else y = Math.max(40, Math.min(470, y));
       h.a[0] = x; h.a[1] = y;
+      if (match(grab) && !was[grab]) { was[grab] = true; sfx.pop(); ring(MX + x, y, '#5CFF7A', 50, .3); } else if (!match(grab)) was[grab] = false;
     },
     up() { grab = -1; },
     update(dt) {
       if (g.result) return;
-      if ([0, 1, 2, 3].every(match)) { okT += dt; if (okT > .15) { g.result = 'win'; snd(900, .2); confetti(MX, 250, 36); } } else okT = 0;
+      if ([0, 1, 2, 3].every(match)) { okT += dt; if (okT > .15) { g.result = 'win'; dsWin(MX, 250, 36); } } else okT = 0;
     },
     draw(t) {
       bg('#C9B8FF', '#bba8f8', t);
       ctx.fillStyle = INK; ctx.fillRect(40, 474, 320, 8); ctx.fillRect(440, 474, 320, 8);
+      shadow(TX, 482, 110, 10, .2); shadow(MX, 482, 110, 10, .2);
       txt('COPY THIS', TX, 100, 26, '#fff'); txt('YOU', MX, 100, 26, '#fff');
       skel(TX, T.h, T.f);
       // ghost targets on my side
@@ -470,8 +486,8 @@ function dsPose(sp) {
       target.forEach((q, i) => { ctx.beginPath(); ctx.arc(MX + q[0], q[1], TOL, 0, 7); ctx.stroke(); });
       ctx.setLineDash([]);
       skel(MX, me.h, me.f);
-      handles.forEach((h, i) => { const ok = match(i); circ(MX + h.a[0], h.a[1], 18 + (grab === i ? 4 : 0), ok ? '#5CFF7A' : '#FFE14D', 4); });
-      if (g.result === 'win') txt('PERFECT!', 400, 540, 40, '#5CFF7A');
+      handles.forEach((h, i) => { const ok = match(i); if (ok) { ctx.strokeStyle = '#5CFF7A'; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(MX + h.a[0], h.a[1], 26 + Math.sin(t * 10) * 2, 0, 7); ctx.stroke(); } circ(MX + h.a[0], h.a[1], 18 + (grab === i ? 4 : 0), ok ? '#5CFF7A' : '#FFE14D', 4); });
+      if (g.result === 'win') txt('PERFECT!', 400, 540, 40 * (1 + Math.sin(t * 12) * .05), '#5CFF7A');
     }
   };
   return g;
@@ -480,7 +496,7 @@ function dsPose(sp) {
 /* ── 8 ── SINKING FEELING: hold the bridge up while the car crosses (watch your grip) */
 function dsSink(sp) {
   const k = Math.sqrt(sp), BY = 330, X0 = 150, X1 = 650;
-  let cx = 95, s = -20, grip = 100, hold = false, fall = 0, tired = false;
+  let cx = 95, s = -20, grip = 100, hold = false, fall = 0, tired = false, wasH = false, wasT = false;
   const prof = x => Math.max(0, 1 - Math.pow((x - 400) / 250, 2));
   const by = x => BY + s * prof(x);
   const start = () => { hold = true; }, stop = () => { hold = false; };
@@ -496,17 +512,19 @@ function dsSink(sp) {
       s += (50 + 400 * w) * gt * (useHold ? 0 : 1);
       if (useHold) s -= (560 - 120 * (1 - grip / 100)) * gt * Math.max(.0, 1) * (1 - 0) * (1);
       s = Math.max(-60, Math.min(320, s));
-      if (hold && tired && Math.random() < .2) snd(130, .05, 'sawtooth', .04);
+      if (hold && tired && Math.random() < .2) sfx.buzz();
+      if (useHold && !wasH) { sfx.boing(); } wasH = useHold; if (tired && !wasT) { wasT = true; sfx.miss(); } if (!tired) wasT = false;
+      if (useHold && Math.random() < .25) burst(dsRnd(330, 470), by(400) + 30, '#fff', 1, 80);
       cx += 150 * gt;
-      if (cx > X0 && cx < X1 && s * prof(cx) > 105) { g.result = 'lose'; snd(110, .5, 'sawtooth', .12, 0, 40); }
-      else if (cx >= 690) { g.result = 'win'; snd(900, .2); confetti(cx, 280, 30); }
+      if (cx > X0 && cx < X1 && s * prof(cx) > 105) { g.result = 'lose'; sfx.splat(); sfx.whoosh(false); dsLose(cx, 330); }
+      else if (cx >= 690) { g.result = 'win'; sfx.coin(); dsWin(cx, 280); }
     },
     draw(t) {
       bg('#FFD1A3', '#ffc593', t);
       // lava
       ctx.fillStyle = INK; ctx.fillRect(0, 500, W, 110); ctx.fillStyle = '#ff6a2f'; ctx.fillRect(0, 508, W, 100);
       ctx.fillStyle = '#ffd23f'; for (let i = 0; i < 8; i++) { const x = (i * 113 + t * 30) % W; ctx.fillRect(x, 520 + Math.sin(t * 3 + i) * 8, 40, 8); }
-      box(-10, 330, 160, 280, '#9a6a3c', 5); box(650, 330, 160, 280, '#9a6a3c', 5);
+      box3(-10, 330, 160, 280, '#9a6a3c', 5, 5); box3(650, 330, 160, 280, '#9a6a3c', 5, 5);
       ctx.fillStyle = '#58c24a'; ctx.fillRect(-10, 322, 160, 12); ctx.fillRect(650, 322, 160, 12);
       // bridge
       const pts = []; for (let x = X0; x <= X1; x += 10) pts.push([x, by(x) - 8]);
@@ -523,13 +541,14 @@ function dsSink(sp) {
       // car
       let y = by(cx) - 20 + (g.result === 'lose' ? fall : 0);
       if (g.result === 'lose' && y > 560) y = 560;
+      if (g.result !== 'lose') shadow(cx, by(cx) + 4, 36, 6, .3);
       claude(cx, y - 14, 3.4, { mood: dsMood(g) });
       box(cx - 34, y - 24, 68, 22, '#4D7CFF', 4); box(cx - 20, y - 42, 38, 20, '#4D7CFF', 4);
       ctx.fillStyle = '#bfe6ff'; ctx.fillRect(cx - 14, y - 38, 12, 12); ctx.fillRect(cx + 2, y - 38, 12, 12);
       circ(cx - 20, y, 9, '#333', 3); circ(cx + 20, y, 9, '#333', 3);
       // grip meter
-      box(60, 70, 140, 20, '#fff', 4); ctx.fillStyle = grip > 25 ? '#5CFF7A' : '#ff4d4d'; ctx.fillRect(60, 70, 140 * grip / 100, 20);
-      txt(tired ? 'TIRED!' : 'GRIP', 130, 112, 20, '#fff');
+      box3(60, 70, 140, 20, '#fff', 4, 4); ctx.fillStyle = grip > 25 ? '#5CFF7A' : '#ff4d4d'; ctx.fillRect(60, 70, 140 * grip / 100, 20);
+      txt(tired ? 'TIRED!' : 'GRIP', 130 + (tired ? Math.sin(t * 40) * 3 : 0), 112, tired ? 24 : 20, tired ? '#ff4d4d' : '#fff');
     }
   };
   return g;
@@ -578,22 +597,22 @@ function dsScratch(sp) {
       if (done[i]) return;
       let tot = 0; for (let cy = -RAD; cy <= RAD; cy += CELL) for (let cxx = -RAD; cxx <= RAD; cxx += CELL) if (cxx * cxx + cy * cy <= RAD * RAD) tot++;
       if (cells[i].size > tot * .42) {
-        done[i] = true; snd(syms[i] === lucky ? 880 : 400, .1, 'triangle', .06);
+        done[i] = true; if (syms[i] === lucky) { sfx.coin(); ring(p[0], p[1], '#5CFF7A', 80); floatText('LUCKY!', p[0], p[1] - 50, '#5CFF7A', 30); } else { sfx.pop(); burst(p[0], p[1], '#aab3c2', 8); }
         if (fc) { fc.globalCompositeOperation = 'destination-out'; fc.beginPath(); fc.arc(p[0], p[1], RAD + 2, 0, 7); fc.fill(); fc.globalCompositeOperation = 'source-over'; }
-        if (syms[i] === lucky) confetti(p[0], p[1], 10);
+        if (syms[i] === lucky) confetti(p[0], p[1], 14);
       }
     });
-    if (pos.every((p, i) => !(syms[i] === lucky) || done[i])) { g.result = 'win'; snd(900, .2); }
+    if (pos.every((p, i) => !(syms[i] === lucky) || done[i])) { g.result = 'win'; dsWin(400, 300, 40); }
   };
   const g = {
     cmd: 'SCRATCH!', hint: 'SCRATCH FOR BOTH LUCKY SYMBOLS', thint: 'SCRATCH FOR BOTH LUCKY SYMBOLS', dur: 5.8,
     down(p) { if (g.result) return; pr = true; lp = { x: p.x, y: p.y }; scratch(lp, lp); },
-    move(p) { if (!pr || g.result) return; scratch(lp, p); lp = { x: p.x, y: p.y }; if (Math.random() < .2) snd(900 + Math.random() * 400, .02, 'sawtooth', .02); },
+    move(p) { if (!pr || g.result) return; scratch(lp, p); lp = { x: p.x, y: p.y }; if (Math.random() < .25) noise(.05, .025, 3000 + Math.random() * 2000, 6000, 'bandpass'); if (Math.random() < .3) burst(p.x, p.y, '#dfe4ea', 1, 110); },
     up() { pr = false; },
     update() {},
     draw(t) {
       bg('#FFB3C7', '#ffa3ba', t);
-      box(80, 100, 640, 480, '#ffe9a8', 7);
+      box3(80, 100, 640, 480, '#ffe9a8', 7, 8);
       box(140, 112, 520, 64, '#fff', 5); txt('LUCKY', 255, 144, 34, '#ff4d9e'); box(360, 118, 60, 52, '#fff', 3); sym(lucky, 390, 144, .55);
       txt('= WIN', 520, 144, 34, '#ff4d9e');
       pos.forEach((p, i) => { circ(p[0], p[1], RAD, '#fff', 5); sym(syms[i], p[0], p[1], 1); });
@@ -638,8 +657,8 @@ function dsFaces(sp) {
   for (const r of wrong) rows[r].idx = (tgt[r] + 1 + (Math.random() * (N - 1) | 0)) % N;
   let press = null;
   const cyc = (r, d) => {
-    if (g.result) return; const o = rows[r]; o.prev = o.idx; o.idx = (o.idx + d + N) % N; o.anim = 0; o.d = d; snd(400 + r * 120, .05, 'square', .05);
-    if (rows.every((q, i) => q.idx === tgt[i])) { g.result = 'win'; snd(900, .2); confetti(580, 300, 36); }
+    if (g.result) return; const o = rows[r]; o.prev = o.idx; o.idx = (o.idx + d + N) % N; o.anim = 0; o.d = d; sfx.blip(r * 3 + (o.idx === tgt[r] ? 7 : 0)); if (o.idx === tgt[r]) { ring(580, SY + r * RH + RH / 2, '#5CFF7A', 90, .35); sfx.pop(); }
+    if (rows.every((q, i) => q.idx === tgt[i])) { g.result = 'win'; dsWin(580, 300, 36); }
   };
   const rowAt = p => { for (let r = 0; r < 3; r++) if (p.x > 460 && p.x < 460 + RW && p.y > SY + r * RH && p.y < SY + (r + 1) * RH) return r; return -1; };
   const g = {
@@ -671,8 +690,8 @@ function dsFaces(sp) {
       }
       ctx.fillStyle = INK; ctx.fillRect(460, SY + RH - 2, RW, 4); ctx.fillRect(460, SY + RH * 2 - 2, RW, 4);
       for (let r = 0; r < 3; r++) txt('' + (r + 1), 722, SY + r * RH + RH / 2, 28, '#fff');
-      txt('=', 400, SY + RH * 1.5, 50, '#fff');
-      if (g.result === 'win') claude(400, 570, 6, { mood: 'happy' });
+      txt('=', 400, SY + RH * 1.5, 50 + (rows.every((q, i) => q.idx === tgt[i]) ? Math.sin(t * 12) * 4 : 0), '#fff');
+      if (g.result === 'win') { shadow(400, 572, 50, 8, .25); claude(400, 570 - Math.abs(Math.sin(t * 10)) * 14, 6, { mood: 'happy' }); }
     }
   };
   return g;
@@ -693,14 +712,15 @@ function dsTune(sp) {
       if (g.result) return;
       const kk = (keys.ArrowRight || keys.KeyD ? 1 : 0) - (keys.ArrowLeft || keys.KeyA ? 1 : 0);
       if (kk) d = Math.max(0, Math.min(1, d + kk * .45 * dt * Math.sqrt(sp)));
-      beep -= dt; if (beep <= 0) { beep = .12; snd(180 + clarity() * 900, .06, 'triangle', .03); }
-      if (Math.abs(d - spot) < .035) { hold += dt; if (hold > .45) { g.result = 'win'; snd(900, .2); confetti(400, 260, 30); } } else hold = Math.max(0, hold - dt);
+      beep -= dt; if (beep <= 0) { beep = .12; snd(180 + clarity() * 900, .06, 'triangle', .03); if (clarity() < .6) noise(.08, .03 * (1 - clarity()), 2000, 5000, 'bandpass'); }
+      if (Math.abs(d - spot) < .035) { hold += dt; if (hold > .45) { g.result = 'win'; sfx.coin(); dsWin(400, 260); } } else hold = Math.max(0, hold - dt);
     },
     draw(t) {
       bg('#FFC89B', '#ffba85', t);
       ctx.strokeStyle = INK; ctx.lineWidth = 8; ctx.beginPath(); ctx.moveTo(250, 110); ctx.lineTo(180, 40); ctx.moveTo(550, 110); ctx.lineTo(620, 50); ctx.stroke();
       circ(180, 40, 8, '#ff4d4d', 3); circ(620, 50, 8, '#ff4d4d', 3);
-      box(90, 110, 620, 440, '#c97b4a', 6);
+      box3(90, 110, 620, 440, '#c97b4a', 6, 8);
+      shadow(400, 556, 300, 14, .22);
       box(160, 140, 480, 290, INK, 5);
       const SXs = 180, SYs = 150, SWs = 440, SHs = 270, cl = g.result ? 1 : clarity();
       ctx.fillStyle = '#9BF6FF'; ctx.fillRect(SXs, SYs, SWs, SHs);
@@ -717,8 +737,8 @@ function dsTune(sp) {
       // dial
       box(120, 455, 560, 66, '#f4e2c4', 5);
       ctx.strokeStyle = INK; ctx.lineWidth = 3; for (let i = 0; i <= 20; i++) { const x = SX + i * SW / 20; ctx.beginPath(); ctx.moveTo(x, 470); ctx.lineTo(x, i % 5 ? 484 : 494); ctx.stroke(); }
-      const kx = SX + d * SW; box(kx - 7, 462, 14, 52, '#ff4d4d', 3);
-      txt('FM ' + (88 + d * 20).toFixed(1), 400, 530, 20, INK);
+      const kx = SX + d * SW; box3(kx - 7, 462, 14, 52, '#ff4d4d', 3, 3);
+      txt(window.t('FM {n}', { n: (88 + d * 20).toFixed(1) }), 400, 530, 20, INK);
       if (hold > 0 && !g.result) { ctx.fillStyle = '#5CFF7A'; ctx.fillRect(SXs, SYs + SHs - 8, SWs * Math.min(1, hold / .45), 8); }
     }
   };
@@ -734,7 +754,7 @@ function dsStrip(sp) {
     { id: 'mitts', r: { x: X - 10.5 * U, y: Y - 8.5 * U, w: 21 * U, h: 5 * U }, acc: 0, on: true, split: true },
     { id: 'boots', r: { x: X - 6 * U, y: Y - 3.2 * U, w: 12 * U, h: 4.2 * U }, acc: 0, on: true }
   ];
-  const fly = []; let pr = false, lp = null, clock = 0, left = 4;
+  const fly = []; let pr = false, lp = null, clock = 0, left = 4, warned = false, boomed = false;
   const drawL = (id, ox, oy) => {
     const x = X + ox, y = Y + oy;
     if (id === 'hat') { box(x - 6.6 * U, y - 12.4 * U, 13.2 * U, 3.4 * U, '#4DB8FF', 4); box(x - 5.4 * U, y - 14 * U, 10.8 * U, 2 * U, '#4DB8FF', 4); circ(x, y - 14.6 * U, 1.5 * U, '#fff', 4); ctx.fillStyle = '#fff'; for (let i = -2; i <= 2; i++) ctx.fillRect(x + i * 2 * U - 2, y - 12.2 * U, 4, 3 * U); }
@@ -744,9 +764,9 @@ function dsStrip(sp) {
   };
   const hit = (p, l) => dsPtIn(p.x, p.y, { x: l.r.x - 12, y: l.r.y - 12, w: l.r.w + 24, h: l.r.h + 24 });
   const strip = l => {
-    l.on = false; left--; snd(500 + left * 120, .1, 'triangle', .07, 0, 900);
+    l.on = false; left--; sfx.whoosh(); sfx.blip(3 * (4 - left)); burst(X, l.r.y + l.r.h / 2, '#fff', 8); floatText('+1', X + (l.r.w / 2), l.r.y, '#4DB8FF', 30);
     fly.push({ id: l.id, x: 0, y: 0, vx: (Math.random() < .5 ? -1 : 1) * dsRnd(300, 600), vy: -dsRnd(300, 500), r: 0 });
-    if (!left) { g.result = 'win'; snd(900, .2); confetti(X, 300, 36); }
+    if (!left) { g.result = 'win'; dsWin(X, 300, 36); }
   };
   const g = {
     cmd: 'STRIP!', hint: 'FLICK EVERY LAYER OFF THE CLAUDE', thint: 'SWIPE EVERY LAYER OFF', dur: 4.8,
@@ -759,20 +779,21 @@ function dsStrip(sp) {
     },
     up() { pr = false; },
     update(dt) {
-      if (!g.result) clock += dt;
+      if (!g.result) { clock += dt; if (clock / durA > .7 && !warned) { warned = true; sfx.buzz(); } if (clock >= durA && !boomed) { boomed = true; sfx.stamp(); shake(14, .4); } }
       for (const f of fly) { f.vy += 1500 * dt; f.x += f.vx * dt; f.y += f.vy * dt; f.r += f.vx * dt / 80; }
     },
     draw(t) {
       const heat = Math.min(1, clock / durA), cool = g.result === 'win';
       bg(cool ? '#9BE7FF' : heat > .7 ? '#ff7a4d' : '#FF9E5E', cool ? '#8ad9f5' : '#ff8f45', t);
       ctx.fillStyle = INK; ctx.fillRect(0, Y, W, 100); ctx.fillStyle = cool ? '#cfeeff' : '#f0d9a0'; ctx.fillRect(0, Y + 6, W, 100);
+      shadow(X, Y + 6, 7 * U, 12, .25);
       claude(X, Y, U, { col: heat > .55 && !cool ? '#e8452f' : OR, mood: cool ? 'happy' : null });
       for (const l of L) if (l.on) drawL(l.id, 0, 0);
       for (const f of fly) { ctx.save(); ctx.translate(X + f.x, Y + f.y); ctx.rotate(f.r); ctx.translate(-X, -Y); drawL(f.id, 0, 0); ctx.restore(); }
       if (!cool) for (let i = 0; i < 1 + heat * 5; i++) { const ph = (t * 1.4 + i * .37) % 1, sx = X + (i % 2 ? 1 : -1) * (30 + i * 12); ctx.fillStyle = '#7fd4ff'; ctx.beginPath(); ctx.arc(sx, Y - 9 * U + ph * 70, 6, 0, 7); ctx.fill(); }
       if (cool) for (let i = 0; i < 4; i++) star(150 + i * 140 + Math.sin(t * 3 + i) * 10, 150 + (i % 2) * 40, 18, 8, 6, t, '#fff', 3);
       // thermometer
-      box(690, 130, 34, 300, '#fff', 5); circ(707, 455, 30, '#fff', 5);
+      box3(690, 130, 34, 300, '#fff', 5, 5); circ(707, 455, 30, '#fff', 5);
       circ(707, 455, 22, '#ff4d4d', 0); const hh = 280 * (cool ? .1 : heat);
       ctx.fillStyle = '#ff4d4d'; ctx.fillRect(697, 428 - hh, 20, hh + 8);
       ctx.fillStyle = INK; for (let i = 0; i < 6; i++) ctx.fillRect(724, 140 + i * 48, 14, 4);

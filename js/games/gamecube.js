@@ -3,20 +3,20 @@
    Timelines run on "game seconds" (dt * sqrt(sp)) so they always fit inside dur (the engine uses dur / sqrt(sp)). */
 const gcClamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const gcMood = g => g.result === 'win' ? 'happy' : g.result === 'lose' ? 'sad' : null;
-const gcLose = g => { if (!g.result) { g.result = 'lose'; snd(110, .4, 'sawtooth', .1, 0, 40); } };
-const gcWin = g => { if (!g.result) { g.result = 'win'; snd(900, .15, 'square', .06, 0, 1400); } };
+const gcLose = g => { if (!g.result) { g.result = 'lose'; sfx.buzz(); shake(7, .25); } };
+const gcWin = g => { if (!g.result) { g.result = 'win'; sfx.coin(); } };
 
 /* ───────── 1 ── SOLE MAN: dodge the giant stomping foot ───────── */
 function gcSole(sp) {
   const k = Math.sqrt(sp), n = sp > 1.5 ? 3 : 2, gap = n === 2 ? 1.9 : 1.5;
-  const me = { x: 400, y: 450 }; let tx = 400, ty = 450, c = 0, shake = 0, squash = 0;
+  const me = { x: 400, y: 450 }; let tx = 400, ty = 450, c = 0, squash = 0;
   const stomps = [], rings = [];
-  for (let i = 0; i < n; i++) stomps.push({ s: .5 + i * gap, x: 0, y: 0, init: false, hit: false, thoom: 0 });
+  for (let i = 0; i < n; i++) stomps.push({ s: .5 + i * gap, x: 0, y: 0, init: false, hit: false, thoom: 0, w: false });
   const g = {
     cmd: 'MOVE!', hint: 'DODGE THE FOOT: MOUSE OR ARROWS', thint: 'DRAG TO DODGE THE FOOT', dur: 5, timeWin: true,
     move(p) { tx = p.x; ty = p.y; },
     update(dt) {
-      const ts = dt * k; shake = Math.max(0, shake - dt * 1.8); squash = g.result === 'lose' ? Math.min(1, squash + dt * 6) : 0;
+      const ts = dt * k; squash = g.result === 'lose' ? Math.min(1, squash + dt * 6) : 0;
       for (let i = rings.length - 1; i >= 0; i--) { rings[i].r += 380 * dt; rings[i].a -= dt * 1.6; if (rings[i].a <= 0) rings.splice(i, 1); }
       if (g.result) { for (const s of stomps) s.thoom = Math.max(0, s.thoom - dt); return; }
       c += ts;
@@ -29,16 +29,17 @@ function gcSole(sp) {
         if (u < 0) continue;
         if (!s.init) { s.init = true; s.x = gcClamp(me.x + (me.x < 400 ? 160 : -160), 80, 720); s.y = gcClamp(me.y - 70, 380, 520); }
         if (u < 1.1) { s.x += (me.x - s.x) * Math.min(1, 3.4 * ts); s.y += (me.y - s.y) * Math.min(1, 3.4 * ts); }
+        if (u >= 1.1 && !s.w) { s.w = true; sfx.whoosh(false); }
         if (u >= 1.55 && !s.hit) {
-          s.hit = true; shake = .45; s.thoom = .7; rings.push({ x: s.x, y: s.y, r: 20, a: 1 }); snd(70, .3, 'sawtooth', .12, 0, 30);
+          s.hit = true; shake(12, .35); s.thoom = .7; rings.push({ x: s.x, y: s.y, r: 20, a: 1 }); sfx.thud(); burst(s.x, s.y, '#f6ead0', 12, 220);
           const dx = (me.x - s.x) / 66, dy = (me.y - s.y) / 40;
-          if (dx * dx + dy * dy < 1) gcLose(g);
+          if (dx * dx + dy * dy < 1) { gcLose(g); sfx.splat(); floatText('SQUISH!', me.x, me.y - 60, '#ff4d6d', 40); }
         }
       }
     },
     draw(t) {
       bg('#9BE7FF', '#8bdcf5', t);
-      ctx.save(); if (shake > 0) ctx.translate((Math.random() - .5) * shake * 26, (Math.random() - .5) * shake * 26);
+      ctx.save();
       ctx.fillStyle = INK; ctx.fillRect(0, 326, W, H); ctx.fillStyle = '#8fd36a'; ctx.fillRect(0, 332, W, H);
       for (let i = 0; i < 12; i++) { ctx.fillStyle = '#7bc45a'; ctx.fillRect(30 + i * 70, 350 + (i * 37) % 180, 26, 8); }
       for (const s of stomps) {
@@ -48,6 +49,7 @@ function gcSole(sp) {
         ctx.strokeStyle = INK; ctx.lineWidth = 4; ctx.stroke();
       }
       for (const r of rings) { ctx.strokeStyle = 'rgba(255,255,255,' + Math.max(0, r.a) + ')'; ctx.lineWidth = 10; ctx.beginPath(); ctx.ellipse(r.x, r.y, r.r, r.r * .55, 0, 0, 7); ctx.stroke(); }
+      shadow(me.x, me.y + 6, 30 * (1 + squash * .5), 9, .3);
       ctx.save(); ctx.translate(me.x, me.y); ctx.scale(1 + squash * .5, 1 - squash * .75); claude(0, 0, 4.5, { mood: gcMood(g) }); ctx.restore();
       for (const s of stomps) {
         const u = c - s.s; if (!s.init) continue;
@@ -85,10 +87,10 @@ function gcRhino(sp) {
     key(e) { if (e.code === 'Space') g.cape(); }, down() { g.cape(); },
     cape() {
       if (g.result || cd > 0 || idx >= N || c < starts[idx]) return;
-      cd = .4; sw = .001; snd(600, .12, 'sawtooth', .05, 0, 200);
+      cd = .4; sw = .001; sfx.whoosh();
       const gp = gapOf();
       if (gp > 78) { gcLose(g); }
-      else { rh.swiped = true; hopT = .001; snd(900, .12, 'square', .06); if (idx === N - 1) gcWin(g); }
+      else { rh.swiped = true; hopT = .001; sfx.hit(); burst(CX - 60, GY - 60, '#e8232f', 12); ring(CX - 60, GY - 60, '#fff', 70); floatText(idx === N - 1 ? 'OLE!' : 'NICE!', CX, GY - 170, '#FFE14D', 38); if (idx === N - 1) gcWin(g); }
     },
     update(dt) {
       const ts = dt * k; c += ts; cd = Math.max(0, cd - ts);
@@ -98,7 +100,7 @@ function gcRhino(sp) {
         rh.x += vs[idx] * ts;
         if (Math.random() < .5) dust.push({ x: rh.x - 70, y: GY - 6, r: 10, a: .9 });
         if (!rh.swiped && !g.result && gapOf() <= -8) gcLose(g);
-        if (g.result === 'lose' && rh.x + 95 >= CX - 40 && !fling) { fling = .001; snd(100, .3, 'sawtooth', .1, 0, 50); }
+        if (g.result === 'lose' && rh.x + 95 >= CX - 40 && !fling) { fling = .001; sfx.thud(); sfx.boing(); shake(12, .35); burst(CX, GY - 40, '#fff', 16); }
         if (rh.x > W + 200) { idx++; rh.x = -190; rh.swiped = false; }
       }
       if (fling) fling += dt;
@@ -112,6 +114,7 @@ function gcRhino(sp) {
       if (run) {
         ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = 6;
         for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.moveTo(rh.x - 120 - i * 10, GY - 150 + i * 36); ctx.lineTo(rh.x - 200 - i * 10, GY - 150 + i * 36); ctx.stroke(); }
+        shadow(rh.x + 20, GY + 4, 110, 14, .3);
         const x = rh.x, y = GY - 8 + Math.sin(now * 30) * 3, lg = Math.sin(now * 30);
         for (let i = 0; i < 4; i++) { const lx = x - 60 + i * 38 + (i % 2 ? lg : -lg) * 12; box(lx, y - 40, 24, 40, '#6c7a96', 4); }
         box(x - 80, y - 118, 160, 84, '#8d99ae', 5);
@@ -123,6 +126,7 @@ function gcRhino(sp) {
         ctx.strokeStyle = INK; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(x + 86, y - 104); ctx.lineTo(x + 108, y - 96); ctx.stroke();
         ctx.strokeStyle = INK; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(x - 80, y - 90); ctx.lineTo(x - 98, y - 100 + lg * 6); ctx.stroke();
       }
+      if (!fling) shadow(CX, GY + 6, 46 - (hopT ? Math.sin(hopT * Math.PI) * 14 : 0), 10, .3);
       let cx = CX, cy = GY, rot = 0;
       if (fling) { cx += fling * 420; cy -= Math.sin(Math.min(1, fling * 1.1) * Math.PI) * 220 - 0; rot = fling * 9; }
       if (hopT) cy -= Math.sin(hopT * Math.PI) * 60;
@@ -151,14 +155,14 @@ function gcAlley(sp) {
   const g = {
     cmd: 'SHOOT!', hint: 'CLICK BANDITS, NOT CIVILIANS', thint: 'TAP BANDITS, NOT CIVILIANS', dur: 5.6,
     down(p) {
-      if (g.result) return; flashes.push({ x: p.x, y: p.y, a: 1 }); snd(260, .08, 'sawtooth', .08, 0, 90);
+      if (g.result) return; flashes.push({ x: p.x, y: p.y, a: 1 }); sfx.pop(); ring(p.x, p.y, '#fff', 30, .25);
       for (const q of T) {
         if (q.slot < 0 || q.hit || q.u < 0) continue;
         const pop = Math.min(1, q.u / .25), off = (1 - pop) * 170, lat = (q.r === 'C' && q.u > 1.5) ? Math.min(1, (q.u - 1.5) / .2) * 170 : 0;
         const cx = CXS[q.slot];
         if (Math.abs(p.x - cx) < 52 && p.y > WBOT - 150 + off + lat && p.y < WBOT && p.y > WTOP) {
-          q.hit = .001; snd(700, .1, 'square', .07, 0, 300);
-          if (q.r === 'C') { gcLose(g); } else if (++kills === 3) gcWin(g);
+          q.hit = .001; burst(p.x, p.y, q.r === 'B' ? '#FFE14D' : '#ff9fcd', 12);
+          if (q.r === 'C') { sfx.miss(); shake(8, .25); floatText('OOPS!', cx, 250, '#ff4d6d'); gcLose(g); } else { sfx.hit(); floatText('+1', cx, 250, '#FFE14D', 44); if (++kills === 3) gcWin(g); }
           return;
         }
       }
@@ -173,13 +177,13 @@ function gcAlley(sp) {
         if (q.slot < 0) {
           if (c >= q.s) {
             const free = [0, 1, 2].filter(s => !T.some(o => o.slot === s && o.u >= 0 && !o.hit && !o.gone));
-            if (free.length) { q.slot = free[Math.random() * free.length | 0]; q.u = 0; snd(520, .08, 'triangle', .06, 0, 800); }
+            if (free.length) { q.slot = free[Math.random() * free.length | 0]; q.u = 0; sfx.blip(q.r === 'B' ? 0 : 7); }
           }
           continue;
         }
         if (q.hit) continue;
         q.u += ts;
-        if (q.r === 'B' && q.u >= 1.1) { boom = .6; boomX = CXS[q.slot]; gcLose(g); snd(150, .2, 'sawtooth', .12, 0, 60); }
+        if (q.r === 'B' && q.u >= 1.1) { boom = .6; boomX = CXS[q.slot]; gcLose(g); sfx.zap(); shake(10, .3); burst(boomX, 300, '#FFE14D', 14); }
         if (q.r === 'C' && q.u > 1.75) { q.gone = true; q.u = -1; q.slot = 9; }
       }
     },
@@ -252,9 +256,9 @@ function gcPinball(sp) {
   const fl = [{ px: 272, py: 500, a: .5, dir: 1, on: false }, { px: 528, py: 500, a: .5, dir: -1, on: false }];
   const bumps = [{ x: 340, y: 230, r: 30, f: 0 }, { x: 460, y: 230, r: 30, f: 0 }, { x: 400, y: 330, r: 26, f: 0 }];
   const balls = []; let c = 0, spawned = 0, score = 0;
-  const spawn = () => { balls.push({ x: 380 + Math.random() * 40, y: 112, vx: (Math.random() - .5) * 260, vy: 80, r: 12, alive: true }); spawned++; snd(300, .12, 'triangle', .07, 0, 700); };
+  const spawn = () => { balls.push({ x: 380 + Math.random() * 40, y: 112, vx: (Math.random() - .5) * 260, vy: 80, r: 12, alive: true }); spawned++; sfx.whoosh(); };
   const tipOf = f => [f.px + f.dir * L * Math.cos(f.a), f.py + L * Math.sin(f.a)];
-  const setF = (i, v) => { fl[i].on = v; };
+  const setF = (i, v) => { if (v && !fl[i].on) sfx.click(); fl[i].on = v; };
   const g = {
     cmd: 'BOUNCE!', hint: '← → (OR A D) FLIP: KEEP A BALL IN PLAY', thint: 'TAP LEFT / RIGHT HALF', dur: 5, timeWin: true,
     key(e) { if (e.code === 'ArrowLeft' || e.code === 'KeyA' || e.code === 'KeyZ') setF(0, true); if (e.code === 'ArrowRight' || e.code === 'KeyD' || e.code === 'Slash') setF(1, true); if (e.code === 'Space') { setF(0, true); setF(1, true); } },
@@ -280,11 +284,11 @@ function gcPinball(sp) {
           fl.forEach((f, i) => { const t2 = tipOf(f); gcSegHit(b, f.px, f.py, t2[0], t2[1], 10, .35, (cx, cy) => [-om[i] * (cy - f.py), om[i] * (cx - f.px)]); });
           for (const bp of bumps) {
             const dx = b.x - bp.x, dy = b.y - bp.y, d = Math.hypot(dx, dy), R = b.r + bp.r;
-            if (d < R) { const nx = dx / (d || 1), ny = dy / (d || 1); b.x = bp.x + nx * R; b.y = bp.y + ny * R; const sp2 = Math.max(430, Math.hypot(b.vx, b.vy)); b.vx = nx * sp2; b.vy = ny * sp2; bp.f = 1; score++; snd(500 + Math.random() * 300, .06, 'square', .05); }
+            if (d < R) { const nx = dx / (d || 1), ny = dy / (d || 1); b.x = bp.x + nx * R; b.y = bp.y + ny * R; const sp2 = Math.max(430, Math.hypot(b.vx, b.vy)); b.vx = nx * sp2; b.vy = ny * sp2; bp.f = 1; score++; sfx.blip(5 + score % 5 * 2); burst(bp.x + nx * bp.r, bp.y + ny * bp.r, '#FFE14D', 6, 180); if (score % 5 === 0) floatText('+5', bp.x, bp.y - 40, '#fff', 30); }
           }
           const v = Math.hypot(b.vx, b.vy); if (v > 1000) { b.vx *= 1000 / v; b.vy *= 1000 / v; }
         }
-        if (b.y > 585) { b.alive = false; snd(160, .2, 'sawtooth', .06, 0, 70); }
+        if (b.y > 585) { b.alive = false; sfx.miss(); shake(4, .15); }
       }
       if (!g.result && spawned >= 2 && !balls.some(b => b.alive)) gcLose(g);
     },
@@ -302,7 +306,7 @@ function gcPinball(sp) {
         ctx.strokeStyle = INK; ctx.lineWidth = 30; ctx.beginPath(); ctx.moveTo(f.px, f.py); ctx.lineTo(t2[0], t2[1]); ctx.stroke();
         ctx.strokeStyle = OR; ctx.lineWidth = 18; ctx.stroke(); ctx.lineCap = 'butt'; circ(f.px, f.py, 7, '#fff', 3);
       });
-      for (const b of balls) if (b.alive) { circ(b.x, b.y, b.r, '#e6eefc', 4); ctx.fillStyle = '#fff'; ctx.fillRect(b.x - 6, b.y - 7, 5, 5); }
+      for (const b of balls) if (b.alive) { shadow(b.x + 5, b.y + 9, b.r, b.r * .4, .3); circ(b.x, b.y, b.r, '#e6eefc', 4); ctx.fillStyle = '#fff'; ctx.fillRect(b.x - 6, b.y - 7, 5, 5); }
       claude(70, 330, 6, { mood: gcMood(g) });
       txt('LEFT', 60, 470, 22, '#fff'); txt('RIGHT', 740, 470, 22, '#fff');
       box(30, 395, 80, 50, '#fff', 4); txt('' + score, 70, 421, 30, INK);
@@ -317,9 +321,9 @@ function gcBatter(sp) {
   let c = 0, swung = false, swT = 0, hit = false, flyT = 0, crowd = 0, miss = false;
   const zOf = () => (c - S) / T;
   const swing = () => {
-    if (swung || g.result || c < .15) return; swung = true; swT = .001; snd(300, .15, 'sawtooth', .06, 0, 120);
+    if (swung || g.result || c < .15) return; swung = true; swT = .001; sfx.whoosh();
     const z = zOf();
-    if (z >= .88 && z <= 1.02) { hit = true; crowd = 1; gcWin(g); snd(120, .12, 'square', .12, 0, 60); snd(900, .3, 'triangle', .07, .05, 1500); } else { miss = true; gcLose(g); }
+    if (z >= .88 && z <= 1.02) { hit = true; crowd = 1; gcWin(g); sfx.hit(); sfx.stamp(); sfx.sparkle(); shake(14, .35); burst(400, 470, '#FFE14D', 22, 340); ring(400, 470, '#fff', 120); floatText('NICE!', 400, 400, '#FFE14D', 50); } else { miss = true; gcLose(g); sfx.miss(); floatText('WHIFF', 330, 420, '#fff', 36); }
   };
   const g = {
     cmd: 'SWING!', hint: 'CLICK/SPACE WHEN THE BALL REACHES THE BAT', thint: 'TAP WHEN THE BALL HITS THE ZONE', dur: 4.2,
@@ -352,7 +356,7 @@ function gcBatter(sp) {
       }
       if (miss) txt('STRIKE!', 400, 120, 56, '#ff4d4d');
       // batter
-      claude(250, 540, 8, { mood: gcMood(g) });
+      shadow(250, 546, 60, 14, .3); claude(250, 540, 8, { mood: gcMood(g) });
       const sw = swT ? swT : 0, ang = swung ? -2.1 + sw * 3.2 : -2.1 + Math.sin(now * 3) * .08;
       ctx.save(); ctx.translate(290, 470); ctx.rotate(ang); ctx.lineCap = 'round';
       ctx.strokeStyle = INK; ctx.lineWidth = 24; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(140, 0); ctx.stroke();
@@ -372,8 +376,8 @@ function gcSnap(sp) {
   for (let i = 0; i < 4; i++) birds.push({ x: Math.random() * W, y: 90 + Math.random() * 360, v: (Math.random() < .5 ? -1 : 1) * (120 + Math.random() * 120) * (sp > 1 ? 1.1 : 1), ph: Math.random() * 6 });
   for (let i = 0; i < 5; i++) clouds.push({ x: Math.random() * W, y: 70 + Math.random() * 380, s: 36 + Math.random() * 30, v: 12 + Math.random() * 14 });
   const snap = () => {
-    if (shot || g.result) return; shot = 1; flash = 1; pol = .001; snd(1200, .05, 'square', .08); snd(300, .12, 'square', .06, .06);
-    if (c >= .15 && Math.abs(ufo.x - fx) < FW * .38 && Math.abs(ufo.y - fy) < FH * .38) gcWin(g); else gcLose(g);
+    if (shot || g.result) return; shot = 1; flash = 1; pol = .001; sfx.click(); noise(.12, .05, 3000, 800, 'highpass', .02);
+    if (c >= .15 && Math.abs(ufo.x - fx) < FW * .38 && Math.abs(ufo.y - fy) < FH * .38) { gcWin(g); sfx.sparkle(); burst(ufo.x, ufo.y, '#7cf7d4', 18); ring(ufo.x, ufo.y, '#fff', 100); floatText('PERFECT!', ufo.x, ufo.y - 50, '#7cf7d4', 40); } else { gcLose(g); sfx.miss(); }
   };
   const g = {
     cmd: 'SNAP!', hint: 'FRAME THE UFO, THEN CLICK', thint: 'MOVE FRAME, TAP ON THE UFO', dur: 5,
@@ -399,6 +403,7 @@ function gcSnap(sp) {
         const fl = Math.sin(now * 12 + b.ph) * 10; ctx.strokeStyle = INK; ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(b.x - 24, b.y - fl); ctx.lineTo(b.x, b.y + 6); ctx.lineTo(b.x + 24, b.y - fl); ctx.stroke(); ctx.lineCap = 'butt';
       }
       if (!shot || g.result) if (ufo.x > -100 && ufo.x < W + 100) {
+        shadow(ufo.x, ufo.y + 40, 40, 8, .12);
         ctx.save(); ctx.translate(ufo.x, ufo.y); ctx.rotate(Math.sin(now * 5) * .08);
         circ(0, -16, 22, '#7cf7d4', 4);
         ctx.fillStyle = INK; ctx.beginPath(); ctx.ellipse(0, 4, 56, 18, 0, 0, 7); ctx.fill(); ctx.fillStyle = '#b8c0d0'; ctx.beginPath(); ctx.ellipse(0, 4, 52, 14, 0, 0, 7); ctx.fill();
@@ -438,7 +443,7 @@ function gcTrap(sp) {
   const mouse2 = { x: 120 + Math.random() * 560, dir: Math.random() < .5 ? -1 : 1, v: 170, t: 0, pause: 0 };
   const cheese = { x: 140 + Math.random() * 520 };
   let c = 0, tx = 400, ty = TY0, vy = 0, fall = false, landed = false, snapT = 0, wig = 0;
-  const drop = () => { if (fall || g.result) return; fall = true; vy = 0; snd(600, .25, 'triangle', .06, 0, 200); };
+  const drop = () => { if (fall || g.result) return; fall = true; vy = 0; sfx.whoosh(false); };
   const g = {
     cmd: 'DROP!', hint: 'CLICK/SPACE TO DROP THE TRAP ON THE MOUSE', thint: 'TAP TO DROP THE TRAP', dur: 5.2,
     key(e) { if (e.code === 'Space') drop(); }, down() { drop(); },
@@ -452,7 +457,7 @@ function gcTrap(sp) {
         if (!fall) tx = 400 + 290 * Math.sin(c * om + ph);
         else {
           vy += 2600 * ts; ty += vy * ts;
-          if (ty >= FY - 38) { ty = FY - 38; landed = true; snapT = .001; snd(150, .15, 'square', .12, 0, 60); if (Math.abs(tx - m.x) < 66) gcWin(g); else gcLose(g); }
+          if (ty >= FY - 38) { ty = FY - 38; landed = true; snapT = .001; sfx.thud(); shake(11, .3); burst(tx, FY, '#f6ead0', 12, 240); if (Math.abs(tx - m.x) < 66) { gcWin(g); sfx.stamp(); floatText('GOTCHA!', tx, ty - 120, '#FFE14D', 40); } else { gcLose(g); sfx.boing(); floatText('MISSED', m.x, FY - 90, '#fff', 34); } }
         }
       }
       if (snapT) snapT += dt;
@@ -466,7 +471,8 @@ function gcTrap(sp) {
       ctx.fillStyle = INK; ctx.beginPath(); ctx.moveTo(cheese.x - 34, FY - 2); ctx.lineTo(cheese.x + 34, FY - 2); ctx.lineTo(cheese.x - 34, FY - 38); ctx.closePath(); ctx.lineWidth = 8; ctx.lineJoin = 'round'; ctx.strokeStyle = INK; ctx.stroke();
       ctx.fillStyle = '#FFD23F'; ctx.fill(); circ(cheese.x - 14, FY - 10, 5, '#f0b400', 1); circ(cheese.x + 8, FY - 8, 4, '#f0b400', 1);
       // mouse
-      const m = mouse2, f = m.dir;
+      const m = mouse2, f = m.dir, fk = gcClamp((ty - TY0) / (FY - TY0), 0, 1);
+      shadow(m.x, FY + 4, 34, 8, .25); shadow(cheese.x, FY + 2, 38, 8, .25); shadow(tx, FY + 6, 30 + 30 * fk, 6 + 6 * fk, .12 + .2 * fk);
       if (!(g.result === 'win' && snapT > 0)) {
         ctx.save(); ctx.translate(m.x, FY - 2); ctx.scale(f, 1);
         ctx.strokeStyle = INK; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(-26, -12); ctx.quadraticCurveTo(-50, -14 + Math.sin(wig * 9) * 8, -58, -34); ctx.stroke();
@@ -505,7 +511,7 @@ function gcDouse(sp) {
       for (let i = ps.length - 1; i >= 0; i--) {
         const p = ps[i]; p.vy += GRAV * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.l -= dt;
         let dead = p.l <= 0;
-        for (const f of fires) if (f.hp > 0 && Math.hypot(p.x - f.x, p.y - f.y) < 46) { f.hp -= .045; f.steam += 1; dead = true; if (f.hp <= 0) { f.hp = 0; snd(800, .2, 'triangle', .06, 0, 300); for (let j = 0; j < 8; j++) steam.push({ x: f.x + (Math.random() - .5) * 40, y: f.y, vy: -60 - Math.random() * 60, r: 14, a: 1 }); } break; }
+        for (const f of fires) if (f.hp > 0 && Math.hypot(p.x - f.x, p.y - f.y) < 46) { f.hp -= .045; f.steam += 1; dead = true; if (f.hp <= 0) { f.hp = 0; sfx.pop(); sfx.splat(); floatText('+1', f.x, f.y - 40, '#fff', 40); burst(f.x, f.y, '#4DB8FF', 12, 220); for (let j = 0; j < 8; j++) steam.push({ x: f.x + (Math.random() - .5) * 40, y: f.y, vy: -60 - Math.random() * 60, r: 14, a: 1 }); } break; }
         if (dead) { ps.splice(i, 1); }
       }
       for (let i = steam.length - 1; i >= 0; i--) { const s = steam[i]; s.y += s.vy * dt; s.r += dt * 30; s.a -= dt * 1.1; if (s.a <= 0) steam.splice(i, 1); }
@@ -517,7 +523,7 @@ function gcDouse(sp) {
           const T2 = TF * (.8 + Math.random() * .4);
           ps.push({ x: NZ.x, y: NZ.y, vx: dx / T2, vy: dy / T2 - .5 * GRAV * T2, l: T2 + .15 });
         }
-        if (Math.random() < .3) snd(500 + Math.random() * 300, .03, 'sawtooth', .02);
+        if (Math.random() < .25) noise(.06, .025, 2500, 5000, 'bandpass');
       }
       let alive = 0;
       for (const f of fires) { if (f.hp > 0) { alive++; f.hp = Math.min(1, f.hp + dt * .035 * Math.sqrt(sp)); } }
@@ -547,7 +553,8 @@ function gcDouse(sp) {
       }
       for (const s of steam) { ctx.globalAlpha = Math.max(0, s.a * .8); circ(s.x, s.y, s.r, '#fff', 0); } ctx.globalAlpha = 1;
       for (const p of ps) circ(p.x, p.y, 6, '#4DB8FF', 2);
-      box(380, 510, 40, 30, '#e8232f', 5); circ(400, 506, 12, '#9aa', 3);
+      for (const f of fires) if (f.hp > 0 && f.hp < 1 && Math.floor(now * 12) % 3 === 0) circ(f.x + Math.sin(now * 20 + f.x) * 30, f.y - 20 - (now * 90 + f.x) % 60, 4, '#fff', 0);
+      shadow(400, 546, 34, 8, .3); box(380, 510, 40, 30, '#e8232f', 5); circ(400, 506, 12, '#9aa', 3);
       claude(120, 500, 5, { mood: gcMood(g) });
       const cx = gcClamp(mouse.x, 120, 700), cy = gcClamp(mouse.y, 100, 450);
       ctx.strokeStyle = INK; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(cx, cy, 16, 0, 7); ctx.stroke(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.stroke();
@@ -572,7 +579,7 @@ function gcPutt(sp) {
     up(p) {
       if (!drag || shot || g.result) return; drag = false; px = p.x; py = p.y;
       const [dx, dy, d] = pullVec(); if (d < 22) return;
-      shot = true; ball.rolling = true; ball.vx = dx / d * d * 3.5; ball.vy = dy / d * d * 3.5; snd(250, .1, 'square', .08, 0, 120); snd(900, .05, 'triangle', .05, .02);
+      shot = true; ball.rolling = true; ball.vx = dx / d * d * 3.5; ball.vy = dy / d * d * 3.5; sfx.hit(); burst(ball.x, ball.y, '#fff', 6, 140);
     },
     update(dt) {
       const ts = dt * k; c += ts;
@@ -582,10 +589,10 @@ function gcPutt(sp) {
       const v = Math.hypot(ball.vx, ball.vy), dec = (230 + (inB ? 700 : 0)) * ts;
       if (v > 0) { const nv = Math.max(0, v - dec); ball.vx *= nv / v; ball.vy *= nv / v; }
       ball.x += ball.vx * ts; ball.y += ball.vy * ts;
-      if (ball.x < GX0 + 8) { ball.x = GX0 + 8; ball.vx = Math.abs(ball.vx) * .7; } if (ball.x > GX1 - 8) { ball.x = GX1 - 8; ball.vx = -Math.abs(ball.vx) * .7; }
-      if (ball.y < GY0 + 8) { ball.y = GY0 + 8; ball.vy = Math.abs(ball.vy) * .7; } if (ball.y > GY1 - 8) { ball.y = GY1 - 8; ball.vy = -Math.abs(ball.vy) * .7; }
+      if (ball.x < GX0 + 8) { ball.x = GX0 + 8; ball.vx = Math.abs(ball.vx) * .7; sfx.click(); } if (ball.x > GX1 - 8) { ball.x = GX1 - 8; ball.vx = -Math.abs(ball.vx) * .7; sfx.click(); }
+      if (ball.y < GY0 + 8) { ball.y = GY0 + 8; ball.vy = Math.abs(ball.vy) * .7; sfx.click(); } if (ball.y > GY1 - 8) { ball.y = GY1 - 8; ball.vy = -Math.abs(ball.vy) * .7; sfx.click(); }
       const hd = Math.hypot(ball.x - hole.x, ball.y - hole.y), sp2 = Math.hypot(ball.vx, ball.vy);
-      if (hd < hole.r && sp2 < 330) { ball.sunk = .001; ball.rolling = false; gcWin(g); snd(1000, .2, 'triangle', .07, .05, 1500); }
+      if (hd < hole.r && sp2 < 330) { ball.sunk = .001; ball.rolling = false; gcWin(g); sfx.sparkle(); burst(hole.x, hole.y, '#FFE14D', 20, 300); ring(hole.x, hole.y, '#fff', 80); floatText('HOLE!', hole.x, hole.y - 50, '#FFE14D', 44); }
       else if (sp2 < 6) { still += ts; if (still > .25) { ball.rolling = false; gcLose(g); } } else still = 0;
     },
     draw(t) {
@@ -639,8 +646,8 @@ function gcPark(sp) {
       const tv = drive ? 235 : dn ? -120 : 0; car.v += (tv - car.v) * Math.min(1, (tv ? 6 : 14) * ts);
       car.a += st * 2.3 * ts * (car.v / 235); car.x += Math.cos(car.a) * car.v * ts; car.y += Math.sin(car.a) * car.v * ts;
       car.y = Math.min(car.y, 560);
-      if (crash()) { gcLose(g); honk = .8; snd(90, .35, 'sawtooth', .12, 0, 40); return; }
-      if (!drive && !dn && Math.abs(car.v) < 14 && car.y < 330) { stop += ts; if (stop > .25 && !evalDone) { evalDone = true; if (inBay()) gcWin(g); else gcLose(g); } } else stop = 0;
+      if (crash()) { gcLose(g); honk = .8; sfx.thud(); shake(12, .35); burst(car.x, car.y, '#FFE14D', 14); return; }
+      if (!drive && !dn && Math.abs(car.v) < 14 && car.y < 330) { stop += ts; if (stop > .25 && !evalDone) { evalDone = true; if (inBay()) { gcWin(g); sfx.sparkle(); burst(car.x, car.y, '#5CFF7A', 18); ring(car.x, car.y, '#fff', 100); floatText('NICE!', car.x, car.y - 70, '#5CFF7A', 44); } else { gcLose(g); sfx.boing(); } } } else stop = 0;
     },
     draw(t) {
       bg('#8E94A8', '#858b9f', t);
@@ -655,6 +662,7 @@ function gcPark(sp) {
         }
       }
       ctx.save(); ctx.translate(car.x, car.y); ctx.rotate(car.a + Math.PI / 2);
+      ctx.fillStyle = 'rgba(20,16,28,.28)'; ctx.fillRect(-HW + 6, -HL + 7, HW * 2, HL * 2);
       box(-HW, -HL, HW * 2, HL * 2, g.result === 'lose' ? '#c14' : OR, 4); box(-HW + 6, -HL + 14, HW * 2 - 12, 16, '#bfe9ff', 2); box(-HW + 6, HL - 18, HW * 2 - 12, 10, '#7a3f2a', 2);
       ctx.fillStyle = '#FFE14D'; ctx.fillRect(-HW + 2, -HL - 2, 8, 6); ctx.fillRect(HW - 10, -HL - 2, 8, 6);
       ctx.restore();
@@ -681,10 +689,11 @@ function gcGoalie(sp) {
       if (g.result) return; c += ts;
       for (const s of shots) {
         const u = c - s.s; if (u < 0 || s.res) continue;
+        if (u >= .45 && !s.k) { s.k = 1; sfx.thud(); }
         if (u >= .45) {
           const f = (u - .45) / .6;
           if (f >= 1) {
-            if (Math.abs(gx - s.tgt) < 62) { s.res = 1; blocks++; lastR = 1; snd(700, .1, 'square', .08, 0, 400); } else { s.res = 2; netRip = 1; lastR = 2; snd(200, .2, 'sawtooth', .08, 0, 90); }
+            if (Math.abs(gx - s.tgt) < 62) { s.res = 1; blocks++; lastR = 1; sfx.hit(); burst(s.tgt, GYL - 10, '#5CFF7A', 14); ring(s.tgt, GYL - 10, '#fff', 70); floatText('+1', s.tgt, GYL - 60, '#5CFF7A', 40); } else { s.res = 2; netRip = 1; lastR = 2; sfx.miss(); shake(8, .25); burst(s.tgt, GYL - 40, '#fff', 10); }
             lastT = .8; done++; s.fx = s.tgt;
             if (blocks >= need) gcWin(g); else if (done - blocks > N - need) gcLose(g);
           }
@@ -707,6 +716,7 @@ function gcGoalie(sp) {
       for (let i = 0; i < 5; i++) { ctx.fillStyle = '#fff'; ctx.fillRect(388 + Math.sin(now * 3 + i * 1.3) * 14, 72 + (i * 7) % 24, 6, 6); }
       // goalie
       const lean = gcClamp((g.vx || 0) / 1400, -.5, .5);
+      shadow(gx, GYL + 34, 44, 10, .3);
       ctx.save(); ctx.translate(gx, GYL + 30); ctx.rotate(lean); claude(0, 0, 7, { mood: gcMood(g) });
       for (const [cx2, cy2, r, col] of [[-22, -66, 18, '#ff4d9e'], [0, -76, 22, '#b58cff'], [22, -66, 18, '#4DB8FF'], [0, -62, 16, '#ffd23f']]) circ(cx2, cy2, r, col, 3);
       ctx.restore();
@@ -733,7 +743,7 @@ function gcGoalie(sp) {
       if (netRip > 0) { ctx.fillStyle = 'rgba(255,77,77,' + netRip * .35 + ')'; ctx.fillRect(GL, 160, GR - GL, GYL - 160); }
       if (lastT > 0) txt(lastR === 1 ? 'SAVE!' : 'GOAL!', 400, 200, 60, lastR === 1 ? '#5CFF7A' : '#ff4d4d');
       for (let i = 0; i < N; i++) circ(40 + i * 40, 60, 13, shots[i].res === 1 ? '#5CFF7A' : shots[i].res === 2 ? '#ff4d4d' : '#4a4558', 3);
-      txt('NEED ' + need, 100, 100, 20, '#fff');
+      txt(t('NEED {n}', { n: need }), 100, 100, 20, '#fff');
     }
   };
   return g;
@@ -745,7 +755,7 @@ function gcNail(sp) {
   let c = 0, hits = 0, hT = -1, cool = 0, thumbX = 400, ouch = 0, dust = 0, bump = 0;
   const headY = () => PY - (3 - hits) * SEG - 6;
   const tpos = () => NX + 205 * Math.sin(c * om + ph) * (1 + .12 * hits);
-  const swing = () => { if (g.result || cool > 0 || hT >= 0) return; hT = 0; snd(300, .1, 'sawtooth', .05, 0, 150); };
+  const swing = () => { if (g.result || cool > 0 || hT >= 0) return; hT = 0; sfx.whoosh(false); };
   const g = {
     cmd: 'HAMMER!', hint: 'CLICK/SPACE WHEN THE THUMB IS CLEAR', thint: 'TAP WHEN THE THUMB IS CLEAR', dur: 6,
     key(e) { if (e.code === 'Space') swing(); }, down() { swing(); },
@@ -755,8 +765,8 @@ function gcNail(sp) {
         hT += ts;
         if (hT >= .1 && !g.hitDone) {
           g.hitDone = true;
-          if (Math.abs(thumbX - NX) < 78) { ouch = 1; gcLose(g); snd(80, .4, 'sawtooth', .12, 0, 400); }
-          else { hits++; dust = 1; bump = 1; snd(180, .08, 'square', .12, 0, 80); snd(1200, .06, 'triangle', .05, .02); if (hits >= 3) gcWin(g); }
+          if (Math.abs(thumbX - NX) < 78) { ouch = 1; gcLose(g); sfx.thud(); sfx.splat(); shake(12, .35); burst(thumbX, 330, '#ff5a5a', 14); ring(thumbX, 330, '#fff', 80); }
+          else { hits++; dust = 1; bump = 1; sfx.hit(); sfx.thud(); sfx.blip(hits * 3); shake(6, .2); burst(NX, headY(), '#FFE14D', 10); floatText('+1', NX + 70, headY() - 40, '#5CFF7A', 38); if (hits >= 3) gcWin(g); }
         }
         if (hT >= .35) { hT = -1; g.hitDone = false; cool = .12; }
       }
@@ -789,7 +799,7 @@ function gcNail(sp) {
       if (dust > 0) { star(NX, hy - 20, 50 * dust + 20, 14, 8, now * 4, '#FFE14D', 3); txt('BONK!', NX + 90, hy - 30, 34, '#fff'); }
       if (ouch > 0) txt('AAAH!', tx, 160, 56, '#ff3b3b');
       for (let i = 0; i < 3; i++) box(40 + i * 44, 40, 34, 14, i < hits ? '#5CFF7A' : '#4a4558', 3);
-      claude(110, PY - 4, 6, { mood: gcMood(g) });
+      shadow(110, PY + 4, 50, 10, .3); claude(110, PY - 4, 6, { mood: gcMood(g) });
     }
   };
   return g;

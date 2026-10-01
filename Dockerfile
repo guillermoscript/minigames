@@ -15,6 +15,7 @@ COPY pocketbase/pb_migrations /pb/pb_migrations
 COPY pocketbase/pb_hooks /pb/pb_hooks
 COPY index.html /pb/pb_public/index.html
 COPY css /pb/pb_public/css
+COPY img /pb/pb_public/img
 COPY js /pb/pb_public/js
 VOLUME /pb/pb_data
 EXPOSE 8090

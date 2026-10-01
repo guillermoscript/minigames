@@ -1,0 +1,28 @@
+'use strict';
+I18N.add('es', {
+  'MISS!': '¡FALLASTE!',
+  'PERFECT!': '¡PERFECTO!',
+  'STACK!': '¡APILA!',
+  'CLICK / SPACE TO DROP': 'CLIC / ESPACIO PARA SOLTAR',
+  'TAP TO DROP': 'TOCA PARA SOLTAR',
+  'Stack': 'Apilar',
+  'BOWL!': '¡LANZA!',
+  'DRAG BACK, RELEASE': 'ARRASTRA ATRÁS Y SUELTA',
+  'DRAG BACK, LET GO': 'ARRASTRA ATRÁS Y SUELTA',
+  'STRIKE!': '¡PLENO!',
+  '{n} PINS': '{n} PINOS',
+  'POWER': 'FUERZA',
+  '{n} DOWN': '{n} CAÍDOS',
+  'Bowl': 'Boliche',
+  'DIVE!': '¡BUCEA!',
+  'STEER THROUGH THE RINGS': 'PASA POR LOS AROS',
+  'DRAG TO STEER': 'ARRASTRA PARA GUIAR',
+  'MISSED!': '¡FALLASTE!',
+  'Dive': 'Buceo',
+  'SHOOT!': '¡LANZA!',
+  'FLICK UP TO SHOOT': 'DESLIZA ARRIBA PARA LANZAR',
+  'SWIPE UP TO SHOOT': 'DESLIZA ARRIBA PARA LANZAR',
+  'NICE!': '¡BIEN!',
+  'SWISH!': '¡LIMPIA!',
+  'Hoop': 'Aro'
+}, 'td');

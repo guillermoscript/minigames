@@ -1,0 +1,28 @@
+'use strict';
+I18N.add('es', {
+  'FLY!': '¡VUELA!',
+  'STEER THROUGH THE GAPS': 'PASA POR LOS HUECOS',
+  'DRAG TO STEER': 'ARRASTRA PARA GUIAR',
+  'CRASH!': '¡CHOQUE!',
+  'CLOSE!': '¡CERCA!',
+  'Fly': 'Volar',
+  'BONK!': '¡BONK!',
+  'WHACK!': '¡APLASTA!',
+  'POW!': '¡PAF!',
+  'SMASH!': '¡PUM!',
+  'CLICK THE MOLES AND BUGS': 'CLIC A TOPOS Y BICHOS',
+  'TAP THE MOLES': 'TOCA LOS TOPOS',
+  'Whack': 'Aplasta',
+  'ROLL!': '¡RUEDA!',
+  'TILT TO THE GOAL': 'INCLINA HASTA LA META',
+  'DRAG TO TILT': 'ARRASTRA PARA INCLINAR',
+  'PLOP!': '¡PLOP!',
+  'OOPS!': '¡UPS!',
+  'GOAL!': '¡META!',
+  'Roll': 'Rodar',
+  'CATCH!': '¡ATRAPA!',
+  'CATCH FRUIT, DODGE BUGS': 'ATRAPA FRUTA, EVITA BICHOS',
+  'DRAG TO MOVE': 'ARRASTRA PARA MOVER',
+  'BUG!': '¡BICHO!',
+  'Catch': 'Atrapar'
+}, 'td');

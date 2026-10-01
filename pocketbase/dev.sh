@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Local dev: copies ONLY the static game (index.html, css/, js/) into pocketbase/pb_public and serves it with PocketBase.
+# Local dev: copies ONLY the static game (index.html, css/, img/, js/) into pocketbase/pb_public and serves it with PocketBase.
 # Usage: pocketbase/dev.sh [extra pocketbase serve flags]   e.g. HTTP=127.0.0.1:8091 DIR=/tmp/pbtest pocketbase/dev.sh
 # Google login: export GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET (or put them in ../.env, auto-loaded) before running.
 # Re-run (or run `pocketbase/dev.sh sync`) after editing the game files to refresh the copy.
@@ -10,7 +10,7 @@ if [ -f "$ROOT/.env" ]; then set -a; . "$ROOT/.env"; set +a; fi
 sync_public() {
   rm -rf pb_public && mkdir -p pb_public
   cp "$ROOT/index.html" pb_public/
-  cp -R "$ROOT/css" "$ROOT/js" pb_public/
+  cp -R "$ROOT/css" "$ROOT/img" "$ROOT/js" pb_public/
 }
 sync_public
 [ "${1:-}" = "sync" ] && exit 0

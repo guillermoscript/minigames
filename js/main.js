@@ -488,15 +488,14 @@ function render() {
       const sp = 1 + scorePop * .3; ctx.save(); ctx.translate(W / 2, 572); ctx.scale(sp, sp); txt(t('SCORE {n}', { n: Math.round(shownScore) }), 0, 0, 24); ctx.restore();
     }
   } else if (state === 'play') {
-    ctx.save();
-    cur.draw(tt);
-    ctx.restore();
+    if (pre > 0) bg(isBoss ? '#3b0d14' : '#1b1b3a', isBoss ? '#5b1d2b' : '#26265a', now);   // instruction card first, game only after
+    else { ctx.save(); cur.draw(tt); ctx.restore(); }
     drawParts();
     if (!outcome) {
-      if (pre > 0 || tt < .9) {
-        const el = pre > 0 ? PRE - pre : 0, k = Math.min(1, (pre > 0 ? el : tt) / .15);
+      if (pre > 0) {
+        const k = Math.min(1, (PRE - pre) / .15);
         ctx.save(); ctx.translate(W / 2, H / 2 - 20); const sc = 1 + (1 - k) * .8; ctx.scale(sc, sc);
-        ctx.rotate(Math.sin(now * 12) * .03); ctx.globalAlpha = pre > 0 ? 1 : tt > .7 ? 1 - (tt - .7) / .2 : 1;
+        ctx.rotate(Math.sin(now * 12) * .03); 
         txt(cur.cmd, 0, 0, 130, isBoss ? '#FF4D4D' : '#FFE14D', 'center', 760); txt(hintOf(cur), 0, 95, 34, '#fff', 'center', 760); ctx.restore();
       } else txt(hintOf(cur), W / 2, 36, 24, '#fff', 'center', 520);
     } else {
@@ -514,7 +513,7 @@ function render() {
       ctx.save(); const sp = 1 + scorePop * .3; ctx.translate(W - 16, 62); ctx.scale(sp, sp); txt(String(Math.round(shownScore)), 0, 0, 22, '#FFE14D', 'right'); ctx.restore();
     } else txt('PRACTICE', W - 16, 30, 22, '#fff', 'right');
     button(W - 78, 80, 66, 30, mode === 'practice' ? 'EXIT' : 'MENU', exitPlay, { size: 15, fill: 'rgba(255,255,255,.85)' });
-    fuse();
+    if (pre <= 0) fuse();
   } else if (state === 'over') {
     bg('#3b0d14', '#4d1119', now);
     const gk = st < .14 ? 2.6 - 1.6 * easeOut(st / .14) : 1;

@@ -1,0 +1,15 @@
+.git
+.gitignore
+.DS_Store
+research
+Dockerfile
+.dockerignore
+pocketbase/pocketbase
+pocketbase/pb_data
+pocketbase/pb_public
+pocketbase/dev.sh
+pocketbase/*.zip
+.env
+.env.*
+!.env.example
+*.md

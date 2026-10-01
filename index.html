@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0b0b14">
+<title>Claude Ware</title>
+<meta name="description" content="Claude Ware: a fast-paced WarioWare-style game with 100+ five-second microgames, 10 stages and bosses. Play free in your browser, with optional profiles and global leaderboards.">
+<meta name="application-name" content="Claude Ware">
+<meta property="og:title" content="Claude Ware">
+<meta property="og:description" content="Fast 5-second microgames, 10 stages and bosses. Play free in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%237C4DFF'/%3E%3Cg stroke='%2314101c' stroke-width='2' fill='%23D97757'%3E%3Crect x='7' y='9' width='18' height='11'/%3E%3Crect x='4' y='12' width='3' height='4'/%3E%3Crect x='25' y='12' width='3' height='4'/%3E%3Crect x='9' y='20' width='2.5' height='5'/%3E%3Crect x='13.5' y='20' width='2.5' height='5'/%3E%3Crect x='17.5' y='20' width='2.5' height='5'/%3E%3Crect x='21' y='20' width='2.5' height='5'/%3E%3C/g%3E%3Cpath d='M11 12v4M21 12v4' stroke='%2314101c' stroke-width='2.5'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<canvas id="c" width="800" height="600"></canvas>
+<div id="ov" style="display:none">
+<input id="in-name" type="text" maxlength="16" placeholder="NEW NAME" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done" aria-label="New username">
+</div>
+<div id="rot">&#8635; Rotate your phone for a bigger screen</div>
+<script src="js/core.js"></script>
+<script src="js/games/wave1.js"></script>
+<script src="js/games/wave2.js"></script>
+<script src="js/games/wave3.js"></script>
+<script src="js/games/wave4.js"></script>
+<script src="js/games/wii.js"></script>
+<script src="js/games/gamecube.js"></script>
+<script src="js/games/ds.js"></script>
+<script src="js/games/switch.js"></script>
+<script src="js/games/bosses.js"></script>
+<script src="js/stages.js"></script>
+<script src="js/api.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

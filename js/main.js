@@ -707,11 +707,11 @@ addEventListener('keyup', e => {
 });
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
 
-// phones in landscape: go fullscreen so the browser bars stop eating the canvas.
-// Browsers only allow this from a user gesture (not from the rotation itself), so it runs on the next tap.
+// phones: go fullscreen so the browser bars stop eating the canvas once it's rotated to landscape.
+// Browsers only allow this from a user gesture (not from the rotation itself), so it runs on the first tap,
+// in either orientation, and rotating afterwards fills the screen right away.
 function goFull() {
   if (!TOUCH || document.fullscreenElement || document.webkitFullscreenElement) return;
-  if (!matchMedia('(orientation: landscape)').matches) return;
   const el = document.documentElement, rq = el.requestFullscreen || el.webkitRequestFullscreen;
   if (!rq) return;                                          // iPhone Safari: no element fullscreen (Add to Home Screen covers it)
   try { const p = rq.call(el, { navigationUI: 'hide' }); if (p && p.catch) p.catch(() => {}); } catch (_) {}

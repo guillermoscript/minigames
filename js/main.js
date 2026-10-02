@@ -84,7 +84,7 @@ function challengeLine() {
 
 /* ───────────── state ───────────── */
 let state = 'title', st = 0, mode = 'stage';
-const PRE = 1.8; let pre = 0;   // read-time: game frozen while the instruction is shown
+const PRE = 1.4; let pre = 0;   // read-time: game frozen while the instruction is shown
 let stageIdx = 0, stage = STAGES[0], lives = 4, played = 0, score = 0, lastOut = null, stars = 0;
 let cur = null, curId = '', tt = 0, dur = 5, outcome = null, outT = 0, tickN = 0, recent = [], isBoss = false;
 let practiceId = 'swat', practiceSp = 1, menuPage = 0, practicePage = 0;
@@ -269,8 +269,8 @@ function update(dt) {
     const sx = W / 2 + (shownStars - 1) * 100; shownStars++;
     sfx.coin(); burst(sx, 265, '#FFE14D', 16, 300); ring(sx, 265, '#fff', 70, .45); if (shownStars === stars) sfx.sparkle();
   }
-  if (state === 'stagein') { if (st > 2.8) toInter(); }
-  else if (state === 'inter') { if (st > (mode === 'practice' ? 1 : 1.8)) beginGame(); }
+  if (state === 'stagein') { if (st > 2.4) toInter(); }
+  else if (state === 'inter') { if (st > (mode === 'practice' ? .8 : 1.4)) beginGame(); }
   else if (state === 'play') {
     if (pre > 0) { pre -= dt; return; }
     if (!outcome) {

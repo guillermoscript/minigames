@@ -205,7 +205,7 @@
 
   /* ───────────── 3. DIVE ───────────── */
   reg3('td_dive', sp => {
-    const NEED = 3 + (sp > 1.4 ? 1 : 0) + (sp > 1.8 ? 1 : 0), RR = 2.1 - (sp - 1) * .25, SPD = 24 + 9 * (sp - 1), GAP = 22;
+    const NEED = 3 + (sp > 1.6 ? 1 : 0), RR = 2.7 - (sp - 1) * .2, SPD = 20 + 6 * (sp - 1), GAP = 20;
     const S = T3.scene({ bg: 0x6cc4ff, fog: [30, 95], cam: [0, 7, 11], look: [0, -6, 0], sun: [4, 20, 8] });
     S.sun.castShadow = false;
     const gnd = new THREE.Mesh(new THREE.PlaneGeometry(260, 260), T3.mat(0x7fd36b)); gnd.rotation.x = -Math.PI / 2; gnd.position.y = -100; S.scene.add(gnd);
@@ -224,11 +224,11 @@
       rings.push({ m, on: false, st: 0, x: 0, z: 0, y: -999, a: 0, mat: m.material });
     }
     let got = 0, tgt = { x: 0, z: 0 }, pos = { x: 0, z: 0 }, vx = 0, spawnT = 0, nextX = 0, nextZ = 0, camX = 0, shk = 0, first = true, lastRingMiss = 0;
-    const R = { x: 5.2, z: 3.6 }, kd = {};
+    const R = { x: 5.2, z: 2 }, kd = {};
     const spawnRing = () => {
       const r = rings.find(q => !q.on); if (!r) return;
-      nextX = cl(nextX + rnd(-6.5, 6.5), -R.x, R.x); nextZ = cl(nextZ + rnd(-4, 4), -R.z, R.z);
-      r.on = true; r.st = 0; r.x = nextX; r.z = nextZ; r.y = first ? -26 : -62; first = false; r.a = 0;
+      nextX = cl(nextX + rnd(-4.5, 4.5), -R.x, R.x); nextZ = cl(nextZ + rnd(-1.5, 1.5), -R.z, R.z); // depth is hard to read from above, so keep it gentle
+      r.on = true; r.st = 0; r.x = nextX; r.z = nextZ; r.y = first ? -22 : -40; first = false; r.a = 0;
       r.m.visible = true; r.m.scale.setScalar(1); r.mat.transparent = false; r.mat.opacity = 1; r.mat.color.setHex(0xffc93c);
     };
     const setT = p => { tgt.x = cl((p.x / W - .5) * 2 * R.x, -R.x, R.x); tgt.z = cl((p.y / H - .5) * 2 * R.z, -R.z, R.z); };
@@ -239,6 +239,8 @@
       update(dt, t) {
         if (kd.ArrowLeft || kd.KeyA) tgt.x = cl(tgt.x - 11 * dt, -R.x, R.x); if (kd.ArrowRight || kd.KeyD) tgt.x = cl(tgt.x + 11 * dt, -R.x, R.x);
         if (kd.ArrowUp || kd.KeyW) tgt.z = cl(tgt.z - 9 * dt, -R.z, R.z); if (kd.ArrowDown || kd.KeyS) tgt.z = cl(tgt.z + 9 * dt, -R.z, R.z);
+        const nr = rings.find(r => r.on && r.st === 0 && r.y > -10 && r.y < 0);
+        if (nr && !g.result && Math.hypot(tgt.x - nr.x, tgt.z - nr.z) < RR + 1.8) { const a = Math.min(1, dt * 4); tgt.x += (nr.x - tgt.x) * a; tgt.z += (nr.z - tgt.z) * a; }
         const px = pos.x, k = Math.min(1, dt * 7); pos.x += (tgt.x - pos.x) * k; pos.z += (tgt.z - pos.z) * k; vx = (pos.x - px) / Math.max(dt, .001);
         P.position.set(pos.x, 0, pos.z); P.rotation.z = cl(-vx * .05, -.6, .6); P.rotation.y = Math.sin(t * 2.2) * .12;
         const fl = Math.sin(t * 14);

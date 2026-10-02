@@ -79,17 +79,17 @@ function gcSole(sp) {
 /* ───────── 2 ── RAGING RHINO: whip the cape at the last moment ───────── */
 function gcRhino(sp) {
   const k = Math.sqrt(sp), two = sp > 1.5, CX = 590, GY = 470;
-  const starts = [.7, 3.1], vs = [290, 410], N = two ? 2 : 1;
+  const starts = [.7, 3.1], vs = [240, 320], N = two ? 2 : 1, ZONE = 160; // ZONE: how far out (px) the cape still counts
   let c = 0, idx = 0, sw = 0, cd = 0, fling = 0, hopT = 0; const rh = { x: -190, swiped: false, gone: false }; const dust = [];
   const gapOf = () => (CX - 40) - (rh.x + 95);
   const g = {
-    cmd: 'OLE!', hint: 'CLICK/SPACE WHEN THE RHINO IS CLOSE', thint: 'TAP WHEN THE RHINO IS CLOSE', dur: two ? 5.8 : 5,
+    cmd: 'OLE!', hint: 'CLICK/SPACE WHEN THE RHINO IS IN THE ZONE', thint: 'TAP WHEN THE RHINO IS IN THE ZONE', dur: two ? 5.8 : 5,
     key(e) { if (e.code === 'Space') g.cape(); }, down() { g.cape(); },
     cape() {
-      if (g.result || cd > 0 || idx >= N || c < starts[idx]) return;
-      cd = .4; sw = .001; sfx.whoosh();
+      if (g.result || cd > 0 || idx >= N || c < starts[idx] || rh.swiped) return;
+      cd = .3; sw = .001; sfx.whoosh();
       const gp = gapOf();
-      if (gp > 78) { gcLose(g); }
+      if (gp > ZONE) { sfx.miss(); floatText('TOO EARLY!', CX - 60, GY - 170, '#fff', 30); }   // early swish is free: just wait and try again
       else { rh.swiped = true; hopT = .001; sfx.hit(); burst(CX - 60, GY - 60, '#e8232f', 12); ring(CX - 60, GY - 60, '#fff', 70); floatText(idx === N - 1 ? 'OLE!' : 'NICE!', CX, GY - 170, '#FFE14D', 38); if (idx === N - 1) gcWin(g); }
     },
     update(dt) {
@@ -109,6 +109,10 @@ function gcRhino(sp) {
       bg('#FFD36B', '#ffc94d', t);
       ctx.fillStyle = INK; ctx.fillRect(0, GY - 4, W, 140); ctx.fillStyle = '#e8b866'; ctx.fillRect(0, GY, W, 140);
       const run = idx < N && c >= starts[idx], warn = idx < N && !run && c > starts[idx] - .55;
+      const inZone = run && !rh.swiped && !g.result && gapOf() <= ZONE;
+      ctx.globalAlpha = inZone ? .75 + Math.sin(now * 30) * .2 : .35; ctx.fillStyle = inZone ? '#FFE14D' : '#fff';
+      ctx.fillRect(CX - 40 - ZONE, GY + 8, ZONE, 26); ctx.globalAlpha = 1;
+      if (inZone) txt('NOW!', CX - 40 - ZONE / 2, GY + 80, 44, '#e8232f');
       if (warn) { txt('!', 70, 330 + Math.sin(now * 40) * 4, 90, '#ff3b3b'); }
       for (const d of dust) { ctx.globalAlpha = Math.max(0, d.a); circ(d.x, d.y, d.r, '#f6ead0', 3); } ctx.globalAlpha = 1;
       if (run) {

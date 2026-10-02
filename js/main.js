@@ -707,10 +707,21 @@ addEventListener('keyup', e => {
 });
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
 
+// phones in landscape: go fullscreen so the browser bars stop eating the canvas.
+// Browsers only allow this from a user gesture (not from the rotation itself), so it runs on the next tap.
+function goFull() {
+  if (!TOUCH || document.fullscreenElement || document.webkitFullscreenElement) return;
+  if (!matchMedia('(orientation: landscape)').matches) return;
+  const el = document.documentElement, rq = el.requestFullscreen || el.webkitRequestFullscreen;
+  if (!rq) return;                                          // iPhone Safari: no element fullscreen (Add to Home Screen covers it)
+  try { const p = rq.call(el, { navigationUI: 'hide' }); if (p && p.catch) p.catch(() => {}); } catch (_) {}
+}
+
 let sw = null;
 cv.addEventListener('contextmenu', e => e.preventDefault());
 cv.addEventListener('pointerdown', e => {
   e.preventDefault();
+  goFull();
   try { cv.setPointerCapture(e.pointerId); } catch (_) {}
   if (document.activeElement && document.activeElement.tagName === 'INPUT') document.activeElement.blur();
   interacted = true; pressing = true;

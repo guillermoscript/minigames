@@ -250,20 +250,21 @@ const BOSSES = {
     };
     return g;
   },
-  /* runner: jump over the barriers rushing at you */
+  /* runner: jump over the barriers rushing at you — survive the timer or clear the goal */
   stomp(sp, s) {
-    const me = { y: 0, vy: 0 }, ob = []; let spawn = .8, dist = 0; const goal = 12;
-    const jump = () => { if (!g.result && me.y === 0) { me.vy = 880; sfx.blip(6); } };
+    const k = Math.min(sp, 1.15), me = { y: 0, vy: 0 }, ob = []; let spawn = 1, dist = 0, buf = 0; const goal = 8;
+    const jump = () => { if (g.result) return; if (me.y === 0) { me.vy = 900; sfx.blip(6); } else buf = .18; };
     const g = {
-      cmd: 'BOSS!', hint: 'SPACE TO JUMP!', thint: 'TAP TO JUMP', dur: 10, boss: true,
+      cmd: 'BOSS!', hint: 'SPACE TO JUMP!', thint: 'TAP TO JUMP', dur: 10, boss: true, timeWin: true,
       key(e) { if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') jump(); }, down() { jump(); },
       update(dt) {
         if (g.result) return;
-        me.vy -= 2300 * dt; me.y = Math.max(0, me.y + me.vy * dt); if (me.y === 0) me.vy = 0;
-        spawn -= dt; if (spawn < 0) { spawn = (.8 + Math.random() * .6) / sp; ob.push({ x: 860, w: 36 + Math.random() * 20, h: 50 + Math.random() * 25 }); }
+        buf = Math.max(0, buf - dt);
+        me.vy -= 2300 * dt; me.y = Math.max(0, me.y + me.vy * dt); if (me.y === 0) { me.vy = 0; if (buf > 0) { buf = 0; me.vy = 900; sfx.blip(6); } }
+        spawn -= dt; if (spawn < 0) { spawn = (1.1 + Math.random() * .5) / k; ob.push({ x: 860, w: 30 + Math.random() * 14, h: 38 + Math.random() * 18 }); }
         for (let i = ob.length - 1; i >= 0; i--) {
-          const o = ob[i]; o.x -= 400 * sp * dt;
-          if (o.x < 160 + 24 && o.x + o.w > 160 - 24 && me.y < o.h - 6) { g.result = 'lose'; sfx.thud(); sfx.buzz(); shake(10, .35); burst(160, 440 - me.y, '#FF4D4D', 18); return; }
+          const o = ob[i]; o.x -= 380 * k * dt;
+          if (o.x < 160 + 14 && o.x + o.w > 160 - 14 && me.y < o.h - 14) { g.result = 'lose'; sfx.thud(); sfx.buzz(); shake(10, .35); burst(160, 440 - me.y, '#FF4D4D', 18); return; }
           if (o.x + o.w < 100) { ob.splice(i, 1); dist++; sfx.blip(dist); if (dist >= goal) { g.result = 'win'; confetti(W / 2, 300, 50); sfx.sparkle(); shake(10, .3); return; } }
         }
       },

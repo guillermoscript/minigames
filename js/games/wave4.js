@@ -145,7 +145,8 @@ function gFlap(sp) {
 /* 27 ── PONG: don't let the ball past you (mouse or ↑ ↓) */
 function gPong(sp) {
   const pad = { y: 300, h: 120 }; let target = 300, hits = 0;
-  const ball = { x: 420, y: 200 + Math.random() * 200, vx: -360 * sp, vy: (Math.random() < .5 ? -1 : 1) * (150 + Math.random() * 120) * sp, r: 16 };
+  const vMax = 360 * sp, ball = { x: 300, y: 200 + Math.random() * 200, vx: 230 * Math.sqrt(sp), vy: (Math.random() < .5 ? -1 : 1) * (100 + Math.random() * 80) * Math.sqrt(sp), r: 16 };
+  const faster = () => { ball.vx = Math.sign(ball.vx) * Math.min(vMax, Math.abs(ball.vx) * 1.12); };
   const g = {
     cmd: 'PONG!', hint: 'BLOCK THE BALL: MOUSE OR ↑ ↓', thint: 'DRAG UP AND DOWN', dur: 4.8, timeWin: true,
     move(p) { target = p.y; },
@@ -156,9 +157,9 @@ function gPong(sp) {
       ball.x += ball.vx * dt; ball.y += ball.vy * dt;
       if (ball.y < 76 + ball.r) { ball.y = 76 + ball.r; ball.vy = Math.abs(ball.vy); sfx.tick(); }
       if (ball.y > 524 - ball.r) { ball.y = 524 - ball.r; ball.vy = -Math.abs(ball.vy); sfx.tick(); }
-      if (ball.x > 750 - ball.r) { ball.x = 750 - ball.r; ball.vx = -Math.abs(ball.vx); sfx.blip(-5); burst(750, ball.y, '#ffd23f', 5, 160); }
+      if (ball.x > 750 - ball.r) { ball.x = 750 - ball.r; ball.vx = -Math.abs(ball.vx); faster(); sfx.blip(-5); burst(750, ball.y, '#ffd23f', 5, 160); }
       if (ball.vx < 0 && ball.x - ball.r <= 62 && ball.x > 30 && Math.abs(ball.y - pad.y) < pad.h / 2 + ball.r) {
-        ball.vx = Math.abs(ball.vx); ball.vy += (ball.y - pad.y) * 3; hits++; sfx.hit(); sfx.blip(hits * 2); shake(3, .1); burst(62, ball.y, OR, 8); ring(62, ball.y, '#fff', 50, .25); floatText('+1', 100, ball.y - 30, '#fff', 28);
+        ball.vx = Math.abs(ball.vx); faster(); ball.vy += (ball.y - pad.y) * 3; hits++; sfx.hit(); sfx.blip(hits * 2); shake(3, .1); burst(62, ball.y, OR, 8); ring(62, ball.y, '#fff', 50, .25); floatText('+1', 100, ball.y - 30, '#fff', 28);
       }
       if (ball.x < 0) { g.result = 'lose'; sfx.miss(); sfx.buzz(); shake(9, .3); burst(10, ball.y, '#FF4D4D', 14); }
     },

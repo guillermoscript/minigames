@@ -69,21 +69,22 @@ function swFreeze(sp) {
 /* ── 2 PICK: drop the swinging finger into the open nostril ── */
 function swPick(sp) {
   const rs = Math.sqrt(sp), ph = Math.random() * 6, o0 = Math.random() < .5 ? 0 : 1, NX = [355, 445], NY = 426;
-  let c = 0, fx = 400, fy = 110, drop = false, landed = false, sq = 0;
-  const open = () => (o0 + Math.floor(c * rs / .9)) % 2;
-  const go = () => { if (drop || g.result || c < .3) return; drop = true; sfx.whoosh(false); };
+  let c = 0, fx = 400, fy = 110, drop = false, landed = false, sq = 0, lock = -1, hit = false;
+  const open = () => lock >= 0 ? lock : (o0 + Math.floor(c * rs / 1.6)) % 2;
+  // the outcome is decided on the tap (hole frozen), so a last-second tap still counts; the fall is just the show
+  const go = () => { if (drop || g.result || c < .3) return; drop = true; lock = open(); hit = Math.abs(fx - NX[lock]) < 42; g.result = hit ? 'win' : 'lose'; sfx.whoosh(false); };
   const g = {
     cmd: 'PICK!', hint: 'CLICK / SPACE: DROP IN THE OPEN HOLE', thint: 'TAP TO DROP INTO THE OPEN HOLE', dur: 5,
     key(e) { if (e.code === 'Space' || e.code === 'ArrowDown') go(); }, down() { go(); },
     update(dt) {
       c += dt; sq = Math.max(0, sq - dt);
-      if (!drop) fx = 400 + Math.sin(c * 1.9 * rs + ph) * 255;
+      if (!drop) fx = 400 + Math.sin(c * 1.1 * rs + ph) * 190;
       else if (!landed) {
         fy += 1500 * dt;
         if (fy >= 412) {
           fy = 412; landed = true; sq = .5;
-          if (Math.abs(fx - NX[open()]) < 30) { g.result = 'win'; sfx.splat(); sfx.coin(); confetti(fx, 400, 20); burst(fx, 420, '#5CFF7A', 12); ring(fx, 420, '#fff', 80); floatText('+1', fx, 380, '#5CFF7A', 40); shake(6, .2); }
-          else { g.result = 'lose'; swLose(); burst(fx, 420, '#ff4d4d', 10); ring(fx, 420, '#ff4d4d', 70); }
+          if (hit) { sfx.splat(); sfx.coin(); confetti(fx, 400, 20); burst(fx, 420, '#5CFF7A', 12); ring(fx, 420, '#fff', 80); floatText('+1', fx, 380, '#5CFF7A', 40); shake(6, .2); }
+          else { swLose(); burst(fx, 420, '#ff4d4d', 10); ring(fx, 420, '#ff4d4d', 70); }
         }
       }
     },
@@ -422,7 +423,7 @@ function swSleep(sp) {
 
 /* ── 10 CONNECT: link the stars in order ── */
 function swStars(sp) {
-  const n = sp > 1.5 ? 6 : 5, pts = [];
+  const n = sp > 1.6 ? 5 : 4, pts = [];
   for (let tries = 0; pts.length < n && tries < 400; tries++) {
     const q = { x: 100 + Math.random() * 600, y: 140 + Math.random() * 360 };
     if (pts.every(p => Math.hypot(p.x - q.x, p.y - q.y) > (tries > 300 ? 90 : 160))) pts.push(q);
@@ -432,14 +433,14 @@ function swStars(sp) {
   const move = p => {
     cur = p; started = true; if (g.result || next >= n) return;
     for (let i = 0; i < n; i++) {
-      if (Math.hypot(p.x - pts[i].x, p.y - pts[i].y) < 36) {
+      if (Math.hypot(p.x - pts[i].x, p.y - pts[i].y) < 54) {
         if (i === next) { next++; sfx.blip(next * 2); burst(pts[i].x, pts[i].y, '#FFE14D', 8); ring(pts[i].x, pts[i].y, '#fff', 60, .3); if (next === n) { g.result = 'win'; sfx.coin(); sfx.sparkle(); confetti(400, 300, 30); floatText('NICE!', 400, 300, '#FFE14D', 54); } }
         else if (i > next) { if (wob <= 0) sfx.miss(); wob = .25; }
       }
     }
   };
   const g = {
-    cmd: 'CONNECT!', hint: 'MOUSE OVER THE STARS 1, 2, 3...', thint: 'DRAG THROUGH THE STARS IN ORDER', dur: 5.5,
+    cmd: 'CONNECT!', hint: 'MOUSE OVER THE STARS 1, 2, 3...', thint: 'DRAG THROUGH THE STARS IN ORDER', dur: 7,
     move, update(dt) { wob = Math.max(0, wob - dt); },
     draw(t) {
       bg('#1b1f4d', '#232963', t);

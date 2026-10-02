@@ -58,7 +58,7 @@
   reg('mm_rope', sp => {
     fx.length = 0;
     const rs = Math.sqrt(sp), w = 4.7 * rs, JD = .6, CX = 400, GY = 450;
-    let th = -2.3, jt = -1, passed = 0, blip = 0;
+    let th = -2.9, jt = -1, passed = 0, blip = 0, c = 0;
     const jump = () => { if (g.result || jt >= 0) return; jt = 0; beep(660, .07); beep(990, .06, .04, .04); };
     const jh = () => jt < 0 ? 0 : Math.sin(Math.PI * jt / JD) * 76;
     const ropeY = () => 360 + Math.cos(th) * 90;
@@ -68,7 +68,7 @@
       update(dt) {
         fxUpdate(dt);
         if (g.result) return;
-        th += w * dt;
+        c += dt; th += w * Math.min(1, .4 + c * rs * .4) * dt;   // ramps up to full speed over ~1.5s
         if (jt >= 0) { jt += dt; if (jt >= JD) { jt = -1; pix(CX, GY, 5, 1, 120); beep(220, .04, .04); } }
         if (ropeY() >= 438 && jh() < 18) {
           g.result = 'lose'; mLose(); shake(7, .25); pix(CX, GY - 20, 14, 0, 300); ptxt('TRIP!', CX, 300); return;

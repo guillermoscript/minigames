@@ -62,6 +62,14 @@ const ok=(c,m)=>{if(!c){console.log('FAIL',m);process.exitCode=1}else console.lo
  ok(limited===0&&passed===700,'700 sig requests in '+((Date.now()-t0)/1000).toFixed(1)+'s are not rate limited (own rule)');
  let lim2=0; for(let i=0;i<900;i++){const r=await fetch(B+'/api/party/sig',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:dcode,id:'a',key:dA.key,round:0,m:[{t:'p',d:i}]})}); if(r.status===429)lim2++; }
  ok(lim2>0,'sustained flooding past 1500/min is rate limited ('+lim2+' x 429)');
+ // ---- voice-chat signaling (/api/party/vsig): valid in any room state, only for members ----
+ const vs=(who,body)=>post('vsig',Object.assign({code:dcode,id:who.id,key:who.key},body));
+ ok((await vs(dA,{to:'*',k:'hello'})).s===200,'vsig hello accepted');
+ ok((await vs(dA,{to:dB.id,k:'offer',d:{type:'offer',sdp:'v=0'}})).s===200,'vsig offer to one player accepted');
+ ok((await vs(dA,{to:'*',k:'evil'})).s===400,'vsig unknown kind -> 400');
+ ok((await vs(dA,{to:'zz',k:'offer'})).s===400,'vsig unknown target -> 400');
+ ok((await vs({id:'a',key:'bad'},{to:'*',k:'hello'})).s===403,'vsig with a bad key -> 403');
+ ok((await vs(dA,{to:'*',k:'offer',d:'z'.repeat(5000)})).s===413,'vsig oversize -> 413');
  await post('leave',{code:dcode,id:'b',key:dB.key}); await post('leave',{code:dcode,id:'a',key:dA.key}); rA.cancel(); rB.cancel();
  process.exit(process.exitCode||0);
 })();

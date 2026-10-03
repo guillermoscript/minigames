@@ -37,7 +37,14 @@ function track() {
   };
 }
 /* shared wiring: partner messages go to g.msg(), 'end' from the judge is the verdict for the other role */
-function wire(g, D, judge, sp) {
+const DUINFO = {   // what each role does, in one short line (role 0, role 1): shown on the intro card so both players know who is who
+  du_catch: [['CATCHER', 'MOVE THE BASKET'], ['THROWER', 'DROP THE COINS']],
+  du_decode: [['READER', 'POINT AT THE SYMBOLS'], ['TYPIST', 'COPY THE FLASHES']],
+  du_crank: [['LEVER', 'HOLD THE GATE OPEN'], ['CRANKER', 'SPIN THE WHEEL']],
+  du_steer: [['STEERER', 'DODGE THE ROCKS'], ['BOOSTER', 'TAP TO GO FAST']],
+};
+function wire(g, D, judge, sp, id) {
+  g.roles = DUINFO[id].map(([label, short]) => ({ label, short }));
   g.role = D.role; g.judge = D.role === judge; g.limit = g.dur / Math.sqrt(sp) - END_SLACK;
   D.onMsg((t, d) => {
     if (t === 'end') { if (!g.judge && !g.result) { g.result = d === 'win' ? 'win' : 'lose'; (g.result === 'win' ? duWin : duLose)(400, 330); } }
@@ -50,14 +57,14 @@ const rolePick = (D, a, b) => D.role === 0 ? a : b;
 /* ═════════ 1 CATCH & THROW: P1 slides the basket, P2 drops coins (and bombs) from a swinging hand ═════════ */
 function duCatch(sp, D) {
   D = D || SOLO; const R = mkR();
-  const need = Math.round(5 + (sp - 1) * 5), vy = 400 + (sp - 1) * 120, FLOOR = 520, DY = 215, COOL = .42;
+  const need = Math.round(4 + (sp - 1) * 4), vy = 400 + (sp - 1) * 120, FLOOR = 520, DY = 215, COOL = .42;
   const bombs = Array.from({ length: 80 }, () => R() < .24), dsp = 1.2 + R() * .4, dph = R() * 6.28;
   const handX = c => 400 + 300 * Math.sin(dsp * (.9 + sp * .1) * c + dph);
   const items = [], bxT = track();
   let bx = 400, kx = 0, caught = 0, flash = 0, nid = 0, nIdx = 0, cool = 0, lastBx = -1;
   const catcher = D.role === 0, yOf = it => DY + (g.c - it.t0) * vy;
   const g = {
-    c: 0, dur: 11, pts: 0,
+    c: 0, dur: 14, pts: 0,
     cmd: catcher ? 'CATCH!' : 'THROW!', roleLabel: catcher ? 'CATCHER' : 'THROWER',
     hint: catcher ? 'MOVE THE MOUSE (OR ◄ ►) TO CATCH YOUR PARTNER\'S COINS - AVOID THE BOMBS' : 'CLICK / SPACE TO DROP THE COINS ONTO THE BASKET - NOT THE BOMBS!',
     thint: catcher ? 'DRAG TO CATCH YOUR PARTNER\'S COINS - AVOID THE BOMBS' : 'TAP TO DROP THE COINS ONTO THE BASKET - NOT THE BOMBS!',
@@ -116,7 +123,7 @@ function duCatch(sp, D) {
     keyup(e) { if (e.code === 'ArrowLeft' || e.code === 'KeyA') { if (kx < 0) kx = 0; } else if (e.code === 'ArrowRight' || e.code === 'KeyD') { if (kx > 0) kx = 0; } },
   };
   g.dbg = { caught: () => caught, bx: () => bx, items };
-  wire(g, D, 0, sp);
+  wire(g, D, 0, sp, 'du_catch');
   return g;
 }
 function ptBombAt(x, y, r) {
@@ -145,7 +152,7 @@ function duDecode(sp, D) {
   const pings = [];                                                              // typist: { s, c } flashes sent by the reader
   let at = 0, wrong = -1, wrongT = 0, lastPing = -9, pingGlow = -1, pingT = 0;
   const g = {
-    c: 0, dur: 12, pts: 0,
+    c: 0, dur: 15, pts: 0,
     cmd: reader ? 'READ!' : 'TYPE!', roleLabel: reader ? 'READER' : 'TYPIST',
     hint: reader ? 'FIND EACH NUMBER OF THE CODE ON THE PADS AND TAP THEM IN ORDER - YOUR PARTNER SEES THEM FLASH' : 'PRESS THE PADS THAT FLASH, IN ORDER (CLICK OR KEYS 1-6) - IF YOU SLIP, THE CODE STARTS OVER',
     thint: reader ? 'TAP THE PADS FOR EACH NUMBER, IN ORDER - YOUR PARTNER SEES THEM FLASH' : 'TAP THE PADS THAT FLASH, IN ORDER - IF YOU SLIP, THE CODE STARTS OVER',
@@ -194,20 +201,20 @@ function duDecode(sp, D) {
     },
   };
   g.dbg = { code };                                                              // read by test/duo.test.js (bots)
-  wire(g, D, 1, sp);
+  wire(g, D, 1, sp, 'du_decode');
   return g;
 }
 reg('du_decode', duDecode, 'DECODE'); REGMAP.du_decode.duo = true;
 
 /* ═════════ 3 LEVER & CRANK: P1 holds the gate open (but must let go when it sparks), P2 cranks to fill the bar ═════════ */
 function duCrank(sp, D) {
-  D = D || SOLO; const R = mkR(), lever = D.role === 0, TURNS = 3 + Math.round((sp - 1) * 2), CX = 400, CY = 380;
+  D = D || SOLO; const R = mkR(), lever = D.role === 0, TURNS = 2 + Math.round((sp - 1) * 2), CX = 400, CY = 380;
   const k = 1 / Math.sqrt(sp), sparks = Array.from({ length: 4 }, (_, i) => ({ a: (2.2 + i * 2.4 + R() * .4) * k, b: 0 })); sparks.forEach(s => { s.b = s.a + .7; });   // the schedule speeds up with the round
   const sparkAt = c => { for (const s of sparks) { if (c >= s.a && c < s.b) return 1; if (c >= s.a - .5 && c < s.a) return 2; } return 0; };   // 2 = warning, 1 = live
   let on = false, prog = 0, gate = 0, lvOn = false, sparkV = 0, sparkAge = 0, shocked = false, shockT = 0, lastLv = -1, lastSp = -1, lastPg = -1;
   let holding = false, lastAng = null, ang = 0, keyAlt = 0; const pgT = track();
   const g = {
-    c: 0, dur: 11, pts: 0,
+    c: 0, dur: 14, pts: 0,
     cmd: lever ? 'HOLD!' : 'CRANK!', roleLabel: lever ? 'LEVER' : 'CRANKER',
     hint: lever ? 'HOLD CLICK / SPACE TO KEEP THE GATE OPEN - LET GO WHEN IT SPARKS!' : 'DRAG IN CIRCLES (OR MASH SPACE) TO FILL THE BAR - IT ONLY WORKS WHILE THE GATE IS OPEN',
     thint: lever ? 'HOLD YOUR FINGER TO KEEP THE GATE OPEN - LET GO WHEN IT SPARKS!' : 'DRAG IN CIRCLES TO FILL THE BAR - IT ONLY WORKS WHILE THE GATE IS OPEN',
@@ -272,14 +279,14 @@ function duCrank(sp, D) {
     keyup(e) { if (lever && (e.code === 'Space' || e.code === 'Enter' || e.code === 'ArrowDown' || e.code === 'ArrowUp')) on = false; },
   };
   g.dbg = { sparks };
-  wire(g, D, 1, sp);
+  wire(g, D, 1, sp, 'du_crank');
   return g;
 }
 reg('du_crank', duCrank, 'LEVER & CRANK'); REGMAP.du_crank.duo = true;
 
 /* ═════════ 4 STEER & BOOST: P1 steers the ship around rocks, P2 mashes to boost it to the finish ═════════ */
 function duSteer(sp, D) {
-  D = D || SOLO; const R = mkR(), steer = D.role === 0, LEN = 2500, TS = Math.sqrt(sp), BASE = 115, YS = 470, ROCK = [];
+  D = D || SOLO; const R = mkR(), steer = D.role === 0, LEN = 2000, TS = Math.sqrt(sp), BASE = 115, YS = 470, ROCK = [];
   for (let p0 = 380; p0 < LEN - 160;) {
     const x = 100 + R() * 600, w = 110 + R() * 50, two = R() < .4, off = 300 + R() * 130, side = x < 400 ? 1 : -1, gap = 170 + R() * 80;
     ROCK.push({ p: p0, x, w }); if (two) ROCK.push({ p: p0 + 8, x: clamp(x + side * off, 90, 710), w: 100 }); p0 += gap;
@@ -287,7 +294,7 @@ function duSteer(sp, D) {
   const pT = track(), xT = track(), eT = track();
   let x = 400, p = 0, extra = 0, kx = 0, inv = 0, stun = 0, pend = 0, sendAt = 0, tapFx = 0, lastSh = '';
   const g = {
-    c: 0, dur: 12, pts: 0,
+    c: 0, dur: 15, pts: 0,
     cmd: steer ? 'STEER!' : 'BOOST!', roleLabel: steer ? 'STEERER' : 'BOOSTER',
     hint: steer ? 'MOVE THE MOUSE (OR ◄ ►) TO DODGE THE ROCKS - YOUR PARTNER MAKES YOU GO FAST' : 'CLICK / TAP / SPACE AS FAST AS YOU CAN TO BOOST YOUR PARTNER\'S SHIP',
     thint: steer ? 'DRAG TO DODGE THE ROCKS - YOUR PARTNER MAKES YOU GO FAST' : 'TAP AS FAST AS YOU CAN TO BOOST YOUR PARTNER\'S SHIP',
@@ -336,7 +343,7 @@ function duSteer(sp, D) {
     keyup(e) { if (e.code === 'ArrowLeft' || e.code === 'KeyA') { if (kx < 0) kx = 0; } else if (e.code === 'ArrowRight' || e.code === 'KeyD') { if (kx > 0) kx = 0; } },
   };
   g.dbg = { ROCK, pos: () => ({ p, x }) };
-  wire(g, D, 0, sp);
+  wire(g, D, 0, sp, 'du_steer');
   return g;
 }
 reg('du_steer', duSteer, 'STEER & BOOST'); REGMAP.du_steer.duo = true;

@@ -90,3 +90,16 @@ const dm = P.newRoom("MODE", "versus", 0); P.addPlayer(dm, { name: "A" }, rand);
 assert.equal(P.cleanCode(" ab-c1d9 "), "ABC1"); assert.match(P.makeCode(rand), /^[A-Z2-9]{4}$/);
 assert.equal(P.publicRoom(r).keys, undefined);
 console.log("party.test.js OK");
+
+// --- voice signaling: valid in the lobby too, any mode, only for players in the room ---
+{
+  const v = P.newRoom("VOIC", "versus", 0); const va = P.addPlayer(v, { name: "A" }, rand), vb = P.addPlayer(v, { name: "B" }, rand);
+  const m1 = P.vsigPayload(v, "a", "b", "offer", { sdp: "x" }); assert.deepEqual(m1, { from: "a", to: "b", k: "offer", d: { sdp: "x" } });
+  assert.equal(P.vsigPayload(v, "b", undefined, "hello").to, "*");
+  throwsStatus(() => P.vsigPayload(v, "a", "zz", "offer", {}), 400);
+  throwsStatus(() => P.vsigPayload(v, "a", "b", "evil", {}), 400);
+  throwsStatus(() => P.vsigPayload(v, "q", "b", "offer", {}), 403);
+  throwsStatus(() => P.vsigPayload(v, "a", "b", "offer", { sdp: "x".repeat(P.VSIG_MAX) }), 413);
+  v.players[1].left = true; throwsStatus(() => P.vsigPayload(v, "b", "a", "hello"), 403);
+}
+console.log("voice signaling OK");

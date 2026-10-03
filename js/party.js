@@ -59,12 +59,13 @@ function partyConnect() {
   party.es = es;
   es.addEventListener('PB_CONNECT', async ev => {
     try {
-      const r = await fetch(API_BASE + '/api/realtime', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clientId: ev.lastEventId, subscriptions: ['rooms/' + id, 'rooms/' + id + '/sig'] }) });
+      const r = await fetch(API_BASE + '/api/realtime', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clientId: ev.lastEventId, subscriptions: ['rooms/' + id, 'rooms/' + id + '/sig', 'rooms/' + id + '/vsig'] }) });
       party.sseOK = r.ok;
     } catch (e) { party.sseOK = false; }
   });
   es.addEventListener('rooms/' + id, ev => { try { const d = JSON.parse(ev.data); if (d.action === 'delete') roomGone(); else applyRoom(d.record); } catch (e) {} });
   es.addEventListener('rooms/' + id + '/sig', ev => { try { onSig(JSON.parse(ev.data)); } catch (e) {} });   // NB: PocketBase's SSE frames have no space after the colons
+  es.addEventListener('rooms/' + id + '/vsig', ev => { try { onVsig(JSON.parse(ev.data)); } catch (e) {} });
   es.onerror = () => { party.sseOK = false; };           // EventSource reconnects by itself and fires PB_CONNECT again
 }
 function partyDisconnect() { if (party.es) { try { party.es.close(); } catch (e) {} } party.es = null; party.sseOK = false; }
@@ -114,10 +115,10 @@ let PINVITE_USED = false;
 const inviteOpen = () => !!PINVITE && !PINVITE_USED;
 
 function partyCleanup() {
-  partyDisconnect(); party.sig = { q: [], buf: [], busy: false, last: 0, hbAt: 0, round: -1, handler: null, rx: 0, since: 0 }; party.room = null; party.you = null; party.pending = null; party.played = -1; saveSession();
+  voiceStop(false); partyDisconnect(); party.sig = { q: [], buf: [], busy: false, last: 0, hbAt: 0, round: -1, handler: null, rx: 0, since: 0 }; party.room = null; party.you = null; party.pending = null; party.played = -1; saveSession();
 }
 function partyLeave(to) {
-  if (party.room && party.you) pcall('leave', auth());
+  voiceStop(true); if (party.room && party.you) pcall('leave', auth());
   partyCleanup(); mode = 'stage'; parts.length = 0;
   if (to === 'menu') { party.view = 'menu'; party.msg = ''; state = 'party'; st = 0; } else goTitle();
 }
@@ -262,10 +263,11 @@ function drawParty() {
   const R = party.room, v = party.view;
   bg('#1f2a44', '#26335a', now);
   if (!R || v === 'menu' || v === 'joining') return drawPartyMenu();
-  if (v === 'lobby') return drawLobby(R);
-  if (v === 'between') return drawBetween(R);
-  if (v === 'end') return drawEnd(R);
-  drawWait(R);
+  if (v === 'lobby') drawLobby(R);
+  else if (v === 'between') drawBetween(R);
+  else if (v === 'end') drawEnd(R);
+  else drawWait(R);
+  voiceButton(W + OX - 164, 8, 150, 42);
 }
 
 function drawPartyMenu() {
@@ -299,6 +301,7 @@ function drawLobby(R) {
       txt(p.name, x + 86, y + 150, 20, p.color, 'center', 156);
       if (R.host === p.id) star(x + 22, y + 22, 16, 7, 5, -Math.PI / 2, '#FFE14D', 3);
       if (party.you && p.id === party.you.id) txt('YOU', x + 150, y + 20, 15, '#fff', 'center', 40);
+      voiceCardMarks(p, x, y);
     } else {
       claude(x + 86, y + 122, 6, { col: '#4a4558', mood: null }); txt('WAITING...', x + 86, y + 150, 17, '#8e8c9c', 'center', 156);
     }
@@ -386,16 +389,47 @@ function drawEnd(R) {
   }
 }
 
+/* DUO: who is who. The intro card (before the game starts) shows both players side by side with their role and one short line;
+   during play a coloured badge + a frame in YOUR colour keep reminding you which one you are. */
+const DUO_PRE = 3.6;
+function duoMeColor() { const m = me(); return m ? m.color : '#FFE14D'; }
+function duoBadge(pn) {
+  const c = duoMeColor();
+  ctx.save(); ctx.lineWidth = 8; ctx.strokeStyle = c; ctx.strokeRect(4, 4, W - 8, H - 8); ctx.restore();
+  box(10 - OX, 88, 250, 34, c, 3); txt(t('YOU: {role}', { role: t(cur.roleLabel) }), 20 - OX, 106, 20, INK, 'left', 232);
+  if (cur.roles && pn) txt(t('{name}: {role}', { name: pn.name.toUpperCase(), role: t(cur.roles[1 - cur.role].label) }), 14 - OX, 140, 15, '#fff', 'left', 240);
+}
+function drawDuoIntro(left) {   // left = seconds of the intro card still to go
+  const R = party.room, m = me(), pn = R.players.find(p => !p.left && p.id !== party.you.id); if (!m || !pn || !cur.roles) return;
+  const k = Math.min(1, (DUO_PRE - left) / .25), pulse = .5 + .5 * Math.sin(now * 8);
+  ctx.save(); ctx.globalAlpha = k;
+  txt('WIN OR LOSE TOGETHER!', W / 2, 62, 32, '#fff', 'center', 700);
+  [[m, cur.roles[cur.role], true, 40], [pn, cur.roles[1 - cur.role], false, 420]].forEach(([p, r, you, x]) => {
+    const y = 110, w = 340, h = 400;
+    box(x + 6, y + 8, w, h, 'rgba(0,0,0,.35)', 0); box(x, y, w, h, '#2b2845', 4);
+    ctx.lineWidth = you ? 8 + pulse * 4 : 5; ctx.strokeStyle = p.color; ctx.strokeRect(x, y, w, h);
+    box(x + 70, y + 14, w - 140, 34, you ? p.color : '#5a5670', 3); txt(you ? 'YOU' : 'YOUR FRIEND', x + w / 2, y + 40, 22, you ? INK : '#fff', 'center', w - 160);
+    claude(x + w / 2, y + 190 - (you ? pulse * 6 : 0), you ? 7 : 5.5, { col: p.color, mood: 'happy' });
+    txt(p.name.toUpperCase(), x + w / 2, y + 232, 26, p.color, 'center', w - 30);
+    txt(r.label, x + w / 2, y + 296, you ? 54 : 44, you ? '#FFE14D' : '#fff', 'center', w - 30);
+    txt(r.short, x + w / 2, y + 350, 22, '#fff', 'center', w - 30);
+  });
+  txt('+', W / 2, 330, 60, '#FFE14D');
+  ctx.fillStyle = '#FFE14D'; ctx.fillRect(40, 540, 720 * (1 - left / DUO_PRE), 10);
+  ctx.restore();
+}
 /* in-game overlay for a party round: who has finished (live) + round counter. Called by main.js render() while playing. */
 function drawPartyHud() {
   const R = party.room; if (!R) return;
   const act = R.players.filter(p => !p.left);
   ctx.fillStyle = 'rgba(20,16,28,.4)'; ctx.fillRect(10 - OX, 36, 22 + act.length * 44, 44);
-  act.forEach((p, i) => { const c = R.cur && R.cur[p.id]; claude(36 - OX + i * 44, 74, 1.6, { col: p.color }); if (c) statusDot(48 - OX + i * 44, 44, 9, c.r); });
+  act.forEach((p, i) => { const c = R.cur && R.cur[p.id]; claude(36 - OX + i * 44, 74, 1.6, { col: p.color }); if (c) statusDot(48 - OX + i * 44, 44, 9, c.r);
+    if (voice.on && talking(p.id === party.you.id ? 'me' : p.id)) { ctx.fillStyle = '#5CFF7A'; ctx.fillRect(18 - OX + i * 44, 78, 36, 4); } });
+  if (voice.on) txt(voice.muted ? 'MIC MUTED' : 'MIC ON', W + OX - 16, 84, 14, voice.muted ? '#FFE14D' : '#5CFF7A', 'right');
   txt(t('ROUND {n} / {total}', { n: R.round + 1, total: R.total }), W + OX - 16, 30, 22, '#fff', 'right');
   if (R.mode === 'duo') {
     const pn = act.find(p => p.id !== party.you.id);
-    if (pn && cur && cur.roleLabel) txt(cur.roleLabel, 10 - OX, 98, 18, '#FFE14D', 'left', 200);
+    if (pn && cur && cur.roleLabel) duoBadge(pn);
     if (duoAway() && state === 'play' && !outcome) { ctx.fillStyle = 'rgba(20,16,28,.6)'; ctx.fillRect(-OX, 280, VW, 70); txt(t('{name} IS AWAY', { name: pn ? pn.name.toUpperCase() : '?' }), W / 2, 315, 34, '#FFE14D', 'center', 760); }
   }
   if (R.mode !== 'versus') txt(t('LIVES {n}', { n: R.lives }), W + OX - 16, 60, 20, '#FF4D9E', 'right');

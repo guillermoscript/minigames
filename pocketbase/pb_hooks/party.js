@@ -7,7 +7,7 @@ const MAX_PLAYERS = 4;
 const ROUNDS = { versus: 6, team: 8, duo: 8 };
 const MODES = ["versus", "team", "duo"];
 const LIVES = 4;
-const PRE_MS = 1400;            // instruction card shown before each microgame (keep in sync with PRE in js/main.js)
+const PRE_MS = 1400, PRE_MS_DUO = 3600;            // instruction card shown before each microgame (keep in sync with PRE in js/main.js)
 const GRACE_MS = 8000;          // a silent player is counted as a loss this long after the round should have ended
 const BETWEEN_MS = 4000;        // results screen minimum time before the next round may start
 const AWARD = [100, 70, 50, 30];
@@ -19,10 +19,10 @@ const GAMES = {
   pt_memo: { dur: 8, pts: false },
   pt_grab: { dur: 7, pts: true },
   /* DUO games: two players, two roles, ONE shared verdict - keep in sync with js/games/du1.js */
-  du_catch: { dur: 11, pts: false, duo: true },
-  du_decode: { dur: 12, pts: false, duo: true },
-  du_crank: { dur: 11, pts: false, duo: true },
-  du_steer: { dur: 12, pts: false, duo: true },
+  du_catch: { dur: 14, pts: false, duo: true },
+  du_decode: { dur: 15, pts: false, duo: true },
+  du_crank: { dur: 14, pts: false, duo: true },
+  du_steer: { dur: 15, pts: false, duo: true },
 };
 const GAME_IDS = Object.keys(GAMES).filter((g) => !GAMES[g].duo);
 const DUO_IDS = Object.keys(GAMES).filter((g) => GAMES[g].duo);
@@ -114,7 +114,7 @@ function beginRound(room, now, rand) {
   room.state = "round"; room.roundAt = now; room.cur = {};
 }
 
-const roundMs = (room) => Math.round(GAMES[room.game].dur / Math.sqrt(room.sp) * 1000) + PRE_MS;
+const roundMs = (room) => Math.round(GAMES[room.game].dur / Math.sqrt(room.sp) * 1000) + (room.mode === "duo" ? PRE_MS_DUO : PRE_MS);
 
 function report(room, id, round, r, t, pts, now) {
   if (room.state !== "round" || round !== room.round) fail("Round is over", 409);
@@ -197,7 +197,20 @@ function sigPayload(room, id, round, m) {
   return { from: id, round, m: out };
 }
 
+/* voice chat signaling (WebRTC offer/answer/ICE): any room state, any mode, to one player (`to`) or everybody ('*'). Audio itself never touches the server. */
+const VSIG_MAX = 4096, VSIG_KINDS = ["hello", "here", "bye", "offer", "answer", "ice"];
+function vsigPayload(room, id, to, k, d) {
+  const p = player(room, id);
+  if (!p || p.left) fail("Not in this room", 403);
+  if (VSIG_KINDS.indexOf(k) < 0) fail("Bad message", 400);
+  to = String(to || "*");
+  if (to !== "*" && !player(room, to)) fail("Unknown player", 400);
+  const out = { from: id, to: to, k: k, d: d === undefined ? null : d };
+  if (JSON.stringify(out).length > VSIG_MAX) fail("Message too big", 413);
+  return out;
+}
+
 /* what clients may see (the record itself hides `keys`; this is for tests and logs) */
 const publicRoom = (room) => { const o = Object.assign({}, room); delete o.keys; return o; };
 
-module.exports = { fail, MAX_PLAYERS, ROUNDS, LIVES, AWARD, GAMES, GAME_IDS, DUO_IDS, MODES, roleOf, cleanMode, sigPayload, SIG_MAX, PartyError, cleanName, cleanCode, makeCode, active, newRoom, addPlayer, auth, leave, setMode, start, again, report, tick, advance, roundMs, publicRoom };
+module.exports = { fail, MAX_PLAYERS, ROUNDS, LIVES, AWARD, GAMES, GAME_IDS, DUO_IDS, MODES, roleOf, cleanMode, sigPayload, SIG_MAX, vsigPayload, VSIG_MAX, PartyError, cleanName, cleanCode, makeCode, active, newRoom, addPlayer, auth, leave, setMode, start, again, report, tick, advance, roundMs, publicRoom };

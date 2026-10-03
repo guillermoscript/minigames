@@ -76,8 +76,9 @@ function relay(e, body) {
     if (!rec) return e.json(404, { error: "Room not found" });
     const o = load(rec);
     P.auth(o, String(body.id || ""), String(body.key || ""));
-    const msg = P.sigPayload(o, String(body.id), body.round | 0, body.m);
-    const name = "rooms/" + rec.id + "/sig", data = JSON.stringify(msg);
+    const voice = body.voice === true;   // voice-chat signaling: its own topic, valid in every room state
+    const msg = voice ? P.vsigPayload(o, String(body.id), body.to, String(body.k || ""), body.d) : P.sigPayload(o, String(body.id), body.round | 0, body.m);
+    const name = "rooms/" + rec.id + (voice ? "/vsig" : "/sig"), data = JSON.stringify(msg);
     const clients = $app.subscriptionsBroker().clients();
     let n = 0;
     for (const cid in clients) {
@@ -94,7 +95,7 @@ function relay(e, body) {
 
 function handle(e, action) {
   const body = e.requestInfo().body || {};
-  if (action === "sig") return relay(e, body);
+  if (action === "sig" || action === "vsig") return relay(e, action === "vsig" ? Object.assign({}, body, { voice: true }) : body);
   let status = 200, out = null;
   $app.runInTransaction((tx) => {
     try { out = exec(tx, action, body, e.auth, Date.now()); }

@@ -86,7 +86,7 @@ function challengeLine() {
 
 /* ───────────── state ───────────── */
 let state = 'title', st = 0, mode = 'stage';
-const PRE = 1.4; let pre = 0;   // read-time: game frozen while the instruction is shown
+const PRE = 1.4; let pre = 0, preMax = PRE;   // read-time: game frozen while the instruction is shown
 let stageIdx = 0, stage = STAGES[0], lives = 4, played = 0, score = 0, lastOut = null, stars = 0;
 let cur = null, curId = '', tt = 0, dur = 5, outcome = null, outT = 0, tickN = 0, recent = [], isBoss = false;
 let practiceId = 'swat', practiceSp = 1, menuPage = 0, practicePage = 0;
@@ -292,7 +292,7 @@ function beginGame() {
     recent.push(id); if (recent.length > Math.min(6, pool.length - 2)) recent.shift();
     s = speed(); cur = REGMAP[id].fn(s); curId = id; isBoss = false; dur = cur.dur / Math.sqrt(s); I18N.scope = I18N.scopeOf(curId);
   }
-  tt = 0; outcome = null; outT = 0; tickN = 0; pre = PRE; state = 'play';
+  tt = 0; outcome = null; outT = 0; tickN = 0; preMax = mode === 'party' && party.room.mode === 'duo' ? DUO_PRE : PRE; pre = preMax; state = 'play';
 }
 function setOutcome(r) {
   outcome = r; outT = 0;
@@ -572,7 +572,8 @@ function render() {
     }
     drawParts();
     if (!outcome) {
-      if (pre > 0) {
+      if (pre > 0 && preMax === DUO_PRE) drawDuoIntro(pre);
+      else if (pre > 0) {
         const k = Math.min(1, (PRE - pre) / .15);
         ctx.save(); ctx.translate(W / 2, H / 2 - 20); const sc = 1 + (1 - k) * .8; ctx.scale(sc, sc);
         ctx.rotate(Math.sin(now * 12) * .03); 

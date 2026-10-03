@@ -24,14 +24,21 @@ async function voiceStart() {
   if (voice.on || voice.busy || !party.room) return;
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.RTCPeerConnection) { say('VOICE NOT SUPPORTED HERE', '#FF4D4D'); return; }
   voice.busy = true;
+  try { if (navigator.audioSession) navigator.audioSession.type = 'play-and-record'; } catch (e) {}   // iOS: keeps the mic alive while the game plays its own sounds
   let stream;
   try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false }); }
   catch (e) { voice.busy = false; say(e && e.name === 'NotAllowedError' ? 'MIC BLOCKED - ALLOW IT IN YOUR BROWSER' : 'NO MICROPHONE FOUND', '#FF4D4D'); return; }
   voice.busy = false;
   if (!party.room) { stream.getTracks().forEach(tr => tr.stop()); return; }          // left the room while the permission prompt was open
+  for (const id of Object.keys(voice.peers)) closePeer(id);      // listen-only peers have no mic track: rebuild them
   voice.stream = stream; voice.on = true; voiceSetMuted(false); watchLevel('me', stream);
+  stream.getAudioTracks().forEach(tr => { tr.onended = () => { if (voice.stream === stream) voiceRestart(); }; });
   vsend('*', 'hello');
   track('voice_on', { players: party.room.players.length });
+}
+async function voiceRestart() {            // the OS took the mic away (call, lock screen...): get it back
+  if (!voice.on || voice.busy) return;
+  const was = voice.muted; voiceStop(true); await voiceStart(); if (was && voice.on) voiceSetMuted(true);
 }
 function voiceStop(notify) {
   if (notify && party.room && voice.on) vsend('*', 'bye');
@@ -49,10 +56,15 @@ function watchLevel(id, stream) {
   } catch (e) {}
 }
 setInterval(() => {
-  if (!voice.on) return;
   const R = party.room;
+  if (!voice.on && !Object.keys(voice.peers).length) return;
   if (!R) { voiceStop(false); return; }
   for (const id of Object.keys(voice.peers)) { const p = R.players.find(q => q.id === id); if (!p || p.left) closePeer(id); }   // player left
+  if (voice.on && vnow() - (voice.helloAt || 0) > 3) {          // someone joined after I turned the mic on: introduce myself
+    voice.helloAt = vnow();
+    for (const p of R.players) if (!p.left && p.id !== party.you.id && !voice.peers[p.id]) vsend(p.id, 'hello');
+  }
+  for (const id of Object.keys(voice.peers)) { const a = voice.peers[id].audio; if (a && a.paused) { const go = a.play(); if (go && go.catch) go.catch(() => {}); } }   // phones pause it on game sounds / lock
   for (const id of Object.keys(voice.an)) {
     const a = voice.an[id]; a.an.getByteTimeDomainData(a.buf);
     let s = 0; for (let i = 0; i < a.buf.length; i++) { const v = (a.buf[i] - 128) / 128; s += v * v; }
@@ -70,7 +82,7 @@ function peerOf(id) {
   let p = voice.peers[id]; if (p) return p;
   const pc = new RTCPeerConnection({ iceServers: VOICE_ICE });
   p = voice.peers[id] = { pc, offered: false, pend: [], audio: null };
-  voice.stream.getTracks().forEach(tr => pc.addTrack(tr, voice.stream));
+  if (voice.stream) voice.stream.getTracks().forEach(tr => pc.addTrack(tr, voice.stream)); else pc.addTransceiver('audio', { direction: 'recvonly' });   // mic off: still hear the others
   pc.onicecandidate = e => { if (e.candidate) vsend(id, 'ice', e.candidate.toJSON ? e.candidate.toJSON() : e.candidate); };
   pc.ontrack = e => {
     if (p.audio) return;
@@ -89,7 +101,7 @@ async function flushIce(p) { for (const c of p.pend.splice(0)) { try { await p.p
 
 /* a setup message from another player (called by party.js for topic rooms/<id>/vsig) */
 async function onVsig(d) {
-  if (!voice.on || !d || !party.you || d.from === party.you.id || (d.to !== '*' && d.to !== party.you.id)) return;
+  if (!d || !party.you || !party.room || d.from === party.you.id || (d.to !== '*' && d.to !== party.you.id)) return;
   const X = d.from, mine = party.you.id;
   try {
     if (d.k === 'hello') { closePeer(X); vsend(X, 'here'); peerOf(X); if (mine < X) voiceOffer(X); }   // the smaller id always makes the offer: no glare
@@ -99,7 +111,7 @@ async function onVsig(d) {
       const p = peerOf(X); await p.pc.setRemoteDescription(d.d); await flushIce(p);
       const a = await p.pc.createAnswer(); await p.pc.setLocalDescription(a); vsend(X, 'answer', { type: a.type, sdp: a.sdp });
     } else if (d.k === 'answer' && d.d) { const p = voice.peers[X]; if (p && p.pc.signalingState === 'have-local-offer') { await p.pc.setRemoteDescription(d.d); await flushIce(p); } }
-    else if (d.k === 'ice' && d.d) { const p = voice.peers[X]; if (p) { if (p.pc.remoteDescription) await p.pc.addIceCandidate(d.d); else p.pend.push(d.d); } }
+    else if (d.k === 'ice' && d.d) { const p = peerOf(X); if (p.pc.remoteDescription) await p.pc.addIceCandidate(d.d); else p.pend.push(d.d); }
   } catch (e) {}
 }
 

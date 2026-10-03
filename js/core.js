@@ -28,9 +28,14 @@ function audio() {
     NOISEBUF = AC.createBuffer(1, AC.sampleRate, AC.sampleRate);
     const d = NOISEBUF.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   }
-  if (AC.state === 'suspended') AC.resume();
+  if (AC.state === 'suspended' && !document.hidden) AC.resume();
   return AC;
 }
+/* silence everything while the tab is in the background or the phone is locked; wake up again when it comes back */
+function audioHidden() { if (!AC) return; try { if (document.hidden) AC.suspend(); else if (AC.state === 'suspended') AC.resume(); } catch (e) {} }
+document.addEventListener('visibilitychange', audioHidden);
+addEventListener('pagehide', () => { if (AC) try { AC.suspend(); } catch (e) {} });
+addEventListener('pageshow', audioHidden);
 /* tone: freq f (optionally gliding to f2), duration d, waveform, volume v, start delay, optional detune-layer */
 function snd(f, d = .1, type = 'square', v = .06, delay = 0, f2, bus) {
   if (muted) return;

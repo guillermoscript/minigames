@@ -1,0 +1,39 @@
+'use strict';
+/* SE FUE LA LUZ — criollo. Keys are the English source strings; the Spanish is Venezuelan on purpose. */
+I18N.add('es', {
+  'FLIP IT!': '¡PRENDE!',
+  'CLICK / SPACE: FLIP THE SWITCH UNTIL THE LIGHT COMES BACK': 'CLIC / ESPACIO: DALE AL SWITCH HASTA QUE LLEGUE LA LUZ',
+  'TAP THE SWITCH FAST': 'TOCA RÁPIDO EL SWITCH',
+  'Light Switch': 'El Switch',
+  'HOLD IT SHUT!': '¡CIERRA LA NEVERA!',
+  'SPACE / CLICK FAST: KEEP THE FRIDGE CLOSED': 'ESPACIO / CLIC RÁPIDO: MANTÉN LA NEVERA CERRADA',
+  'TAP FAST TO KEEP IT SHUT': 'TOCA RÁPIDO PARA CERRARLA',
+  'Fridge': 'La Nevera',
+  'SWAT!': '¡MATA ESE ZANCUDO!',
+  'MOUSE: LIGHT THE ROOM · CLICK: SMACK THE ZANCUDO': 'MOUSE: ALUMBRA · CLIC: DALE CON LA CHANCLETA',
+  'DRAG TO LIGHT, LIFT TO SMACK': 'ARRASTRA PARA ALUMBRAR, TOCA PARA DARLE',
+  'Zancudo': 'El Zancudo',
+  'PLUG IT!': '¡ENCHUFA!',
+  'MOUSE: MOVE THE PLUG · CLICK: PLUG IN WHEN IT LINES UP': 'MOUSE: MUEVE EL ENCHUFE · CLIC: ENCHUFA CUANDO COINCIDA',
+  'DRAG THE PLUG, TAP TO PLUG IN': 'ARRASTRA EL ENCHUFE, TOCA PARA ENCHUFAR',
+  'Phone 3%': 'Celular al 3%',
+  'Arepa': 'La Arepa',
+  'SPACE / CLICK WHEN THE AREPA IS GOLDEN': 'ESPACIO / CLIC CUANDO LA AREPA ESTÉ DORADITA',
+  'TAP WHEN IT IS GOLDEN': 'TOCA CUANDO ESTÉ DORADITA',
+  'SHOUT!': '¡GRITA!',
+  'CLICK / SPACE THE INSTANT THE LIGHT COMES BACK': 'CLIC / ESPACIO EN CUANTO LLEGUE LA LUZ',
+  'TAP WHEN THE LIGHT COMES ON': 'TOCA CUANDO LLEGUE LA LUZ',
+  'Light Returns': '¡Llegó la Luz!',
+  'FLIP!': '¡VOLTEA!',
+  /* the criollo exclamations stay as they are in every language: they are the flavour */
+  '¡LLEGÓ!': '¡LLEGÓ!', '¡SE DESCONGELÓ!': '¡SE DESCONGELÓ!', '¡SALVADO!': '¡SALVADO!', '¡PLAF!': '¡PLAF!', '¡0%!': '¡0%!', '¡CARGANDO!': '¡CARGANDO!',
+  '¡DORADITA!': '¡DORADITA!', '¡CRUDA!': '¡CRUDA!', '¡CARBÓN!': '¡CARBÓN!', '¡MUY PRONTO!': '¡MUY PRONTO!', '¡TARDE!': '¡TARDE!',
+  '¿...?': '¿...?', '...': '...', '¡AL FIN!': '¡AL FIN!', '¡COÑO!': '¡COÑO!', '¡OTRA VEZ!': '¡OTRA VEZ!'
+}, 'ap');
+I18N.add('es', {
+  'MASH SPACE / CLICK TO RAISE THE BREAKER!': 'ESPACIO / CLIC SEGUIDO PARA SUBIR EL BREAKER',
+  'TAP FAST TO RAISE THE BREAKER!': 'TOCA RÁPIDO PARA SUBIR EL BREAKER',
+  'THE TRANSFORMER': 'EL TRANSFORMADOR',
+  'POWER OUT!': '¡SE FUE LA LUZ!',
+  'The light is gone. Again.': 'Se fue la luz. Otra vez.'
+});

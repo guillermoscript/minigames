@@ -37,5 +37,7 @@ const STAGES = [
   { name: 'SPORTS DAY', tag: 'Wind up. Release. Score!', col: '#FF7A3D', bg: ['#FFE3C9', '#ffd5b0'],
     pool: ['sd_hammer', 'sd_ski', 'sd_bowl', 'sd_curl', 'sd_hoops', 'sd_volley', 'sd_rope', 'sd_star'], n: 8, sp0: 1.3, boss: 'catch' },
   { name: 'LINES & LIGHT', tag: 'Steady hands. Bright ideas!', col: '#F2B600', bg: ['#FFF3C2', '#ffeaa0'],
-    pool: ['ln_sew', 'ln_road', 'ln_cable', 'ln_sign', 'ln_magna', 'ln_green', 'ln_plates', 'ln_edge'], n: 8, sp0: 1.3, boss: 'mash' }
+    pool: ['ln_sew', 'ln_road', 'ln_cable', 'ln_sign', 'ln_magna', 'ln_green', 'ln_plates', 'ln_edge'], n: 8, sp0: 1.3, boss: 'mash' },
+  { name: 'POWER OUT!', tag: 'The light is gone. Again.', col: '#FFCC00', bg: ['#1F3FA8', '#142B7A'],
+    pool: ['ap_switch', 'ap_fridge', 'ap_mosquito', 'ap_battery', 'ap_arepa', 'ap_grita'], n: 8, sp0: 1.2, boss: 'blackout', intro: 'ap' }
 ];

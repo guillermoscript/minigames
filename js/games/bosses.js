@@ -420,3 +420,4 @@ const BOSSES = {
     return g;
   }
 };
+if (typeof apBoss === 'function') BOSSES.blackout = apBoss;   // POWER OUT! boss, see js/games/ap1.js

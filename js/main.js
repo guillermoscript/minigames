@@ -331,7 +331,7 @@ function update(dt) {
     const sx = W / 2 + (shownStars - 1) * 100; shownStars++;
     sfx.coin(); burst(sx, 265, '#FFE14D', 16, 300); ring(sx, 265, '#fff', 70, .45); if (shownStars === stars) sfx.sparkle();
   }
-  if (state === 'stagein') { if (st > 2.4) toInter(); }
+  if (state === 'stagein') { if (st > (stage.intro === 'ap' ? 4.9 : 2.4)) toInter(); }
   else if (state === 'inter') { if (st > (mode === 'practice' ? .8 : 1.4)) beginGame(); }
   else if (state === 'play') {
     if (pre > 0) { pre -= dt; return; }
@@ -482,7 +482,8 @@ function render() {
       ctx.save(); ctx.translate(0, (1 - pop) * 40); ctx.globalAlpha = pop;
       hoverBox(x, y, 240, 155, locked ? '#5a5870' : s.bg[0], 5, 7);
       shadow(x + 62, y + 120, 36, 7, .25);
-      claude(x + 62, y + 118 - (locked ? 0 : Math.abs(Math.sin(now * 3 + i)) * 6), 5.2, { col: locked ? '#7a7890' : s.col, mood: locked ? null : undefined });
+      if (s.intro === 'ap' && !locked) AP.person(AP.CAST.chamo, { la: [2.4 + Math.sin(now * 9) * .2, .3], ra: [.12, .1], mouth: 'yell', talk: .8, wide: 1, bob: Math.abs(Math.sin(now * 8)) * -8 }, x + 62, y + 140, .44);   // Luisito, shouting
+      else claude(x + 62, y + 118 - (locked ? 0 : Math.abs(Math.sin(now * 3 + i)) * 6), 5.2, { col: locked ? '#7a7890' : s.col, mood: locked ? null : undefined });
       txt(t('STAGE {n}', { n: i + 1 }), x + 14, y + 20, 17, '#fff', 'left');
       const words = t(s.name).split(' ');
       txt(words[0], x + 160, y + 58, 26, locked ? '#aaa' : '#fff', 'center', 150);
@@ -526,6 +527,8 @@ function render() {
     });
   } else if (state === 'stagein' && stage.intro === 'mv') {
     mvIntro(st, stage, stageIdx);
+  } else if (state === 'stagein' && stage.intro === 'ap') {
+    apIntro(st, stage, stageIdx);
   } else if (state === 'stagein') {
     bg(stage.bg[0], stage.bg[1], now);
     const e1 = easeOut(st / .45), e2 = easeOut((st - .15) / .45), e3 = easeBack((st - .35) / .4);

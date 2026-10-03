@@ -126,7 +126,11 @@ function roomGone() {
   if (!party.room) return;
   partyCleanup(); mode = 'stage'; party.view = 'menu'; party.msg = 'ROOM CLOSED'; party.msgCol = '#FFE14D'; state = 'party'; st = 0;
 }
-addEventListener('pagehide', () => {
+/* pagehide also fires when a phone locks, switches app or freezes the tab: that must never kick the player out. Only a real tab close on a
+   computer, while still in the lobby, says goodbye; a silent player is closed out by the server's round tick instead. */
+const TOUCH = matchMedia('(pointer: coarse)').matches;
+addEventListener('pagehide', e => {
+  if (TOUCH || e.persisted || !party.room || party.room.state !== 'lobby') return;
   if (party.room && party.you) { try { navigator.sendBeacon(API_BASE + '/api/party/leave', new Blob([JSON.stringify(auth())], { type: 'application/json' })); } catch (e) {} }
 });
 

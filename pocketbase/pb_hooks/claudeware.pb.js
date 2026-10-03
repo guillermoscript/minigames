@@ -30,6 +30,13 @@ onBootstrap((e) => {
   } catch (err) { console.log("[claudeware] WARNING: could not sync Google OAuth2 settings: " + err); }
 });
 
+// Static game files (html/js/css/img): browsers and the CDN must revalidate on every load (cheap 304s), otherwise a deploy can look stale for hours.
+routerUse((e) => {
+  const p = e.request.url.path;
+  if (!p.startsWith("/api/") && !p.startsWith("/_/")) e.response.header().set("Cache-Control", "no-cache");
+  return e.next();
+});
+
 // PARTY mode (rooms with friends): every action is a POST that runs room logic in a transaction; clients watch the room via realtime.
 routerAdd("POST", "/api/party/{action}", (e) => require(`${__hooks}/party_routes.js`).handle(e, e.request.pathValue("action")));
 routerAdd("GET", "/r/{code}", (e) => require(`${__hooks}/party_routes.js`).invitePage(e));

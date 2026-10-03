@@ -271,6 +271,10 @@ function pos(e) {
 const TOUCH = (typeof window !== 'undefined' && 'ontouchstart' in window) || (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0);
 const REG = [], REGMAP = {};
 function reg(id, fn, name) { const o = { id, fn, name }; REG.push(o); REGMAP[id] = o; }
+/* seeded randomness for PARTY mode: every player builds the same microgame from the same room seed.
+   withSeed() only covers the constructor (Math.random is restored right after), so games draw their setup there. */
+function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function withSeed(seed, fn) { const orig = Math.random; Math.random = mulberry32(seed); try { return fn(); } finally { Math.random = orig; } }
 
 /* ───────────── shared helpers for microgames ───────────── */
 function segD(px, py, ax, ay, bx, by) {

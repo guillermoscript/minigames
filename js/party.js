@@ -1,0 +1,352 @@
+'use strict';
+/* PARTY mode: play microgames live with friends in a room (2-4 players, VERSUS or TEAM).
+   Server side lives in pocketbase/pb_hooks/party*.js: a room is one record, every action is a POST to /api/party/<action>, and the
+   room record is pushed to everyone through PocketBase realtime (SSE, with a slow poll as safety net).
+   This file = network + room state machine + the lobby / waiting / results / final screens. The microgame itself runs through the
+   normal game loop in main.js (mode === 'party'), built from the room's seed so everyone gets the same puzzle. */
+
+const PSESSION = 'claudeware-party-v1', GUEST_KEY = 'claudeware-guest';
+const PINVITE = (() => {                                   // ?r=ABCD (from /r/ABCD): offer to join on the title screen
+  try { const c = (new URLSearchParams(location.search).get('r') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4); return c.length === 4 ? c : null; } catch (e) { return null; }
+})();
+const NEXT_ROUND_S = 4.2;                                  // results stay up this long before anyone asks for the next round
+
+const party = {
+  view: 'menu',          // menu | joining | lobby | play | wait | between | end
+  room: null,            // latest room record from the server (never contains the secret keys)
+  you: null,             // { id, key }: my seat and its secret
+  busy: false, msg: '', msgCol: '#FF4D4D',
+  es: null, sseOK: false,
+  played: -1,            // round I have already started locally
+  pending: null,         // my result for the current round, until the server has it
+  seenAt: 0, lastPoll: 0, lastTick: 0, lastAdv: 0, lastRep: 0,
+  from: 'title',
+};
+const inCode = document.getElementById('in-code');
+if (inCode) inCode.addEventListener('input', () => { inCode.value = inCode.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4); });
+
+/* ───────────── identity + network ───────────── */
+function partyIdentity() {
+  if (net.user) return { name: net.user.username, color: net.user.color };
+  let g = null; try { g = JSON.parse(localStorage.getItem(GUEST_KEY)); } catch (e) {}
+  if (!g || !g.name) {
+    g = { name: 'GUEST ' + (1000 + Math.floor(Math.random() * 9000)), color: AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)] };
+    try { localStorage.setItem(GUEST_KEY, JSON.stringify(g)); } catch (e) {}
+  }
+  return g;
+}
+async function pcall(action, body) {
+  try {
+    const h = { 'Content-Type': 'application/json' }; if (net.token) h.Authorization = net.token;
+    const r = await fetch(API_BASE + '/api/party/' + action, { method: 'POST', headers: h, body: JSON.stringify(body || {}) });
+    let j = {}; try { j = await r.json(); } catch (e) {}
+    return { ok: r.ok, status: r.status, data: j };
+  } catch (e) { return { ok: false, status: 0, data: { error: 'Server unreachable' } }; }
+}
+const auth = () => ({ code: party.room.code, id: party.you.id, key: party.you.key });
+const me = () => party.room && party.you ? party.room.players.find(p => p.id === party.you.id) : null;
+const isHost = () => !!party.room && !!party.you && party.room.host === party.you.id;
+const pName = (R, id) => { const p = R.players.find(q => q.id === id); return p ? p.name : '?'; };
+const pColor = (R, id) => { const p = R.players.find(q => q.id === id); return p ? p.color : '#9a98ad'; };
+const saveSession = () => { try { party.room ? sessionStorage.setItem(PSESSION, JSON.stringify({ code: party.room.code, id: party.you.id, key: party.you.key })) : sessionStorage.removeItem(PSESSION); } catch (e) {} };
+const partyErr = r => r.status === 0 ? 'CAN\'T REACH SERVER' : r.status === 429 ? 'SLOW DOWN - TRY AGAIN IN A MOMENT' : String(r.data.error || 'ERROR').toUpperCase();
+
+function partyConnect() {
+  partyDisconnect();
+  const id = party.room.id; let es;
+  try { es = new EventSource(API_BASE + '/api/realtime'); } catch (e) { return; }
+  party.es = es;
+  es.addEventListener('PB_CONNECT', async ev => {
+    try {
+      const r = await fetch(API_BASE + '/api/realtime', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clientId: ev.lastEventId, subscriptions: ['rooms/' + id] }) });
+      party.sseOK = r.ok;
+    } catch (e) { party.sseOK = false; }
+  });
+  es.addEventListener('rooms/' + id, ev => { try { const d = JSON.parse(ev.data); if (d.action === 'delete') roomGone(); else applyRoom(d.record); } catch (e) {} });
+  es.onerror = () => { party.sseOK = false; };           // EventSource reconnects by itself and fires PB_CONNECT again
+}
+function partyDisconnect() { if (party.es) { try { party.es.close(); } catch (e) {} } party.es = null; party.sseOK = false; }
+async function partyPoll() {
+  party.lastPoll = now;
+  try {
+    const r = await fetch(API_BASE + '/api/collections/rooms/records/' + party.room.id);
+    if (r.status === 404) return roomGone();
+    if (r.ok) applyRoom(await r.json());
+  } catch (e) {}
+}
+
+/* ───────────── entering / leaving ───────────── */
+function goParty(from) {
+  party.from = from || state; party.view = 'menu'; party.msg = ''; party.busy = false;
+  if (party.room) { state = 'party'; st = 0; party.view = roomView(); return; }   // still in a room (e.g. came back to the title): resume it
+  state = 'party'; st = 0; mode = 'stage';
+}
+const roomView = () => { const R = party.room; return R.state === 'lobby' ? 'lobby' : R.state === 'between' ? 'between' : R.state === 'done' ? 'end' : (party.pending || party.played === R.round) && state === 'party' ? 'wait' : 'play'; };
+function enterRoom(r) {
+  party.busy = false;
+  if (!r.ok) { party.msg = partyErr(r); party.msgCol = '#FF4D4D'; party.view = 'menu'; state = 'party'; st = 0; return false; }
+  party.room = r.data.room; party.you = r.data.you; party.played = -1; party.pending = null; party.msg = '';
+  saveSession(); partyConnect(); state = 'party'; st = 0; mode = 'stage';
+  onRoom(party.room, null);
+  return true;
+}
+async function partyCreate() {
+  if (party.busy) return;
+  party.busy = true; party.msg = 'ONE MOMENT...'; party.msgCol = '#fff';
+  const idn = partyIdentity(), r = await pcall('create', { name: idn.name, color: idn.color, mode: 'versus' });
+  if (enterRoom(r)) track('party_create', { signed_in: !!net.user });
+}
+async function partyJoin(code) {
+  code = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
+  if (code.length !== 4) { party.msg = 'TYPE THE 4-LETTER ROOM CODE'; party.msgCol = '#FF4D4D'; return; }
+  if (party.busy) return;
+  party.busy = true; party.msg = 'ONE MOMENT...'; party.msgCol = '#fff'; if (state !== 'party') { state = 'party'; st = 0; }
+  let old = null; try { old = JSON.parse(sessionStorage.getItem(PSESSION)); } catch (e) {}
+  const idn = partyIdentity(), r = await pcall('join', { code, name: idn.name, color: idn.color, id: old && old.code === code ? old.id : undefined, key: old && old.code === code ? old.key : undefined });
+  if (enterRoom(r)) track('party_join', { signed_in: !!net.user, invited: code === PINVITE });
+}
+const joinTyped = () => partyJoin(inCode ? inCode.value : '');
+function joinInvite() { PINVITE_USED = true; partyJoin(PINVITE); }
+let PINVITE_USED = false;
+const inviteOpen = () => !!PINVITE && !PINVITE_USED;
+
+function partyCleanup() {
+  partyDisconnect(); party.room = null; party.you = null; party.pending = null; party.played = -1; saveSession();
+}
+function partyLeave(to) {
+  if (party.room && party.you) pcall('leave', auth());
+  partyCleanup(); mode = 'stage'; parts.length = 0;
+  if (to === 'menu') { party.view = 'menu'; party.msg = ''; state = 'party'; st = 0; } else goTitle();
+}
+function roomGone() {
+  if (!party.room) return;
+  partyCleanup(); mode = 'stage'; party.view = 'menu'; party.msg = 'ROOM CLOSED'; party.msgCol = '#FFE14D'; state = 'party'; st = 0;
+}
+addEventListener('pagehide', () => {
+  if (party.room && party.you) { try { navigator.sendBeacon(API_BASE + '/api/party/leave', new Blob([JSON.stringify(auth())], { type: 'application/json' })); } catch (e) {} }
+});
+
+/* ───────────── room state machine ───────────── */
+function applyRoom(R) {
+  if (!R || !party.room || R.id !== party.room.id) return;
+  const old = party.room;
+  if (old.updated && R.updated && R.updated < old.updated) return;   // stale (poll lost the race with a push)
+  party.room = R;
+  if (!me()) { roomGone(); return; }                                 // my seat is gone (e.g. dropped while offline)
+  onRoom(R, old);
+}
+function onRoom(R, old) {
+  const entered = !old || old.state !== R.state || old.round !== R.round;
+  if (R.state === 'lobby') {
+    party.played = -1; party.pending = null;
+    if (state === 'play' && mode === 'party') mode = 'stage';
+    party.view = 'lobby'; if (state !== 'party') { state = 'party'; st = 0; }
+  } else if (R.state === 'round') {
+    if (party.played !== R.round) startLocalRound(R);
+    else if (state === 'party') party.view = 'wait';
+  } else if (R.state === 'between') {
+    if (state === 'play' && mode === 'party') { state = 'party'; st = 0; }   // the round closed before I finished
+    if (entered) { party.seenAt = now; sfx.whoosh(true); }
+    party.view = 'between'; if (state !== 'party') { state = 'party'; st = 0; }
+  } else if (R.state === 'done') {
+    if (entered) { track('party_done', { mode: R.mode, players: R.players.length }); confetti(W / 2, 220, 70); jingleWin(); }
+    party.view = 'end'; if (state !== 'party') { state = 'party'; st = 0; }
+  }
+}
+function startLocalRound(R) {
+  party.played = R.round; party.pending = null;
+  if (!REGMAP[R.game]) { party.pending = { round: R.round, r: 'lose', t: 1, pts: 0 }; party.view = 'wait'; state = 'party'; sendReport(); return; }
+  mode = 'party'; stage = STAGES[0]; lastOut = null; parts.length = 0;
+  party.view = 'play'; jingleGo(); beginGame();
+}
+/* called by main.js when my microgame ends */
+function partyLocalDone(outcome) {
+  const R = party.room; if (!R) return;
+  party.pending = { round: R.round, r: outcome, t: +tt.toFixed(2), pts: Math.floor(cur.pts || 0) };
+  state = 'party'; st = 0; party.view = R.state === 'round' ? 'wait' : roomView();
+  sendReport();
+}
+async function sendReport() {
+  const p = party.pending; if (!p || !party.room) return;
+  party.lastRep = now;
+  const r = await pcall('report', Object.assign(auth(), p));
+  if (r.ok) { if (party.pending === p) party.pending = null; applyRoom(r.data.room); }
+  else if (r.status === 404) roomGone();
+  else if (r.status === 409 || r.status === 403) { if (party.pending === p) party.pending = null; partyPoll(); }   // round already over: just resync
+}
+/* runs every frame from main.js update(): timers for polling, ticking, auto-advance and report retries */
+function partyUpdate(dt) {
+  const R = party.room; if (!R) return;
+  if (now - party.lastPoll > (party.sseOK ? 12 : 3)) partyPoll();
+  if (party.pending && now - party.lastRep > 1.5) sendReport();
+  if (state !== 'party') return;
+  if (R.state === 'round' && !party.pending && now - party.lastTick > 2.5) {          // lets the server close a round a silent player never finished
+    party.lastTick = now; pcall('tick', { code: R.code }).then(r => { if (r.ok) applyRoom(r.data.room); });
+  }
+  if (R.state === 'between' && now - party.seenAt > NEXT_ROUND_S && now - party.lastAdv > 1.5) {
+    party.lastAdv = now; pcall('advance', Object.assign(auth(), { round: R.round })).then(r => { if (r.ok) applyRoom(r.data.room); });
+  }
+  if (party.view === 'end' && Math.random() < dt * 3 && st < 6) confetti(Math.random() * W, 80, 10);
+}
+async function partyAct(action, extra) {
+  const r = await pcall(action, Object.assign(auth(), extra || {}));
+  if (r.ok) { applyRoom(r.data.room); return true; }
+  if (r.status === 404) roomGone(); else say(partyErr(r), '#FF4D4D');
+  return false;
+}
+const partyStart = () => { if (isHost() && party.room.players.filter(p => !p.left).length >= 2) { track('party_start', { mode: party.room.mode, players: party.room.players.length }); partyAct('start'); } };
+const partyMode = () => partyAct('mode', { mode: party.room.mode === 'team' ? 'versus' : 'team' });
+const partyAgain = () => partyAct('again');
+async function partyInvite() {
+  const R = party.room, url = location.origin + '/r/' + R.code, text = t('Join my Claude Ware room! Code: {code}', { code: R.code });
+  track('share_click', { surface: 'party', native: !!navigator.share });
+  const r = await shareText(text, url);
+  if (r === 'copied') say('LINK COPIED! SEND IT TO YOUR FRIENDS', '#5CFF7A'); else if (r === 'failed') say('COULDN\'T SHARE', '#FF4D4D');
+}
+
+/* ───────────── drawing ───────────── */
+function statusDot(x, y, r, s) {
+  if (s === 'win') { circ(x, y, r, '#5CFF7A', 3); ctx.strokeStyle = INK; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(x - r * .5, y); ctx.lineTo(x - r * .1, y + r * .45); ctx.lineTo(x + r * .55, y - r * .4); ctx.stroke(); }
+  else if (s === 'lose') { circ(x, y, r, '#FF4D4D', 3); ctx.strokeStyle = INK; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(x - r * .4, y - r * .4); ctx.lineTo(x + r * .4, y + r * .4); ctx.moveTo(x + r * .4, y - r * .4); ctx.lineTo(x - r * .4, y + r * .4); ctx.stroke(); }
+  else { circ(x, y, r * (.7 + Math.sin(now * 8) * .08), '#6b6880', 3); }
+}
+const modeLabel = m => m === 'team' ? 'TEAM' : 'VERSUS';
+const modeBlurb = m => m === 'team' ? 'TEAMWORK: SHARED LIVES · EVERYONE NEEDS TO PULL THEIR WEIGHT' : 'EVERYONE PLAYS THE SAME GAME · FASTEST AND BEST TAKE THE POINTS';
+function mini(x, y, p, u) { claude(x, y, u, { col: p.color }); }
+
+function drawParty() {
+  const R = party.room, v = party.view;
+  bg('#1f2a44', '#26335a', now);
+  if (!R || v === 'menu' || v === 'joining') return drawPartyMenu();
+  if (v === 'lobby') return drawLobby(R);
+  if (v === 'between') return drawBetween(R);
+  if (v === 'end') return drawEnd(R);
+  drawWait(R);
+}
+
+function drawPartyMenu() {
+  txt('PLAY WITH FRIENDS', W / 2, 46, 44, '#FFE14D', 'center', 700);
+  button(14, 10, 130, 56, '◄ BACK', () => { goTitle(); }, { size: 22 });
+  txt('LIVE 5-SECOND MICROGAMES · 2-4 PLAYERS', W / 2, 108, 22, '#fff', 'center', 740);
+  button(200, 150, 400, 92, 'CREATE ROOM', partyCreate, { fill: '#5CFF7A', size: 36 });
+  txt('OR JOIN WITH A CODE', W / 2, 290, 24, '#fff');
+  button(480, 322, 120, 64, 'JOIN', joinTyped, { fill: '#4DB8FF', size: 28 });
+  const idn = partyIdentity();
+  txt(t('PLAYING AS {name}', { name: idn.name.toUpperCase() }), W / 2, 440, 24, idn.color, 'center', 740);
+  if (!net.user) txt('SIGN IN WITH GOOGLE (PROFILE) TO USE YOUR OWN NAME', W / 2, 474, 17, '#ddd', 'center', 740);
+  if (party.msg) txt(party.msg, W / 2, 528, 22, party.msgCol, 'center', 740);
+  claude(110, 410, 5, { col: idn.color, mood: 'happy' });
+}
+
+function drawLobby(R) {
+  txt('ROOM CODE', W / 2, 30, 20, '#ddd');
+  const pop = easeBack(st / .4);
+  ctx.save(); ctx.translate(W / 2, 92); ctx.scale(pop, pop); txt(R.code, 5, 6, 92, INK); txt(R.code, 0, 0, 92, '#FFE14D'); ctx.restore();
+  txt(location.host + '/r/' + R.code, W / 2, 152, 18, '#ddd', 'center', 740);
+  for (let i = 0; i < 4; i++) {
+    const p = R.players[i], x = 40 + i * 188, y = 186, k = easeOut((st - i * .06) / .3);
+    ctx.save(); ctx.translate(0, (1 - k) * 30); ctx.globalAlpha = k;
+    box3(x, y, 172, 178, p ? '#35406a' : '#2a3354', 4, 6);
+    if (p) {
+      shadow(x + 86, y + 124, 40, 8, .3);
+      claude(x + 86, y + 122 - Math.abs(Math.sin(now * 3 + i)) * 8, 6, { col: p.color, mood: 'happy' });
+      txt(p.name, x + 86, y + 150, 20, p.color, 'center', 156);
+      if (R.host === p.id) star(x + 22, y + 22, 16, 7, 5, -Math.PI / 2, '#FFE14D', 3);
+      if (party.you && p.id === party.you.id) txt('YOU', x + 150, y + 20, 15, '#fff', 'center', 40);
+    } else {
+      claude(x + 86, y + 122, 6, { col: '#4a4558', mood: null }); txt('WAITING...', x + 86, y + 150, 17, '#8e8c9c', 'center', 156);
+    }
+    ctx.restore();
+  }
+  if (isHost()) button(200, 380, 400, 54, t('MODE: {mode}', { mode: t(modeLabel(R.mode)) }), partyMode, { fill: R.mode === 'team' ? '#B49CFF' : '#FFE14D', size: 26 });
+  else txt(t('MODE: {mode}', { mode: t(modeLabel(R.mode)) }), W / 2, 408, 28, '#FFE14D');
+  txt(modeBlurb(R.mode), W / 2, 456, 16, '#ddd', 'center', 760);
+  button(40, 488, 230, 74, 'INVITE', partyInvite, { fill: '#4DB8FF', size: 30 });
+  const n = R.players.filter(p => !p.left).length;
+  if (isHost()) {
+    if (n >= 2) button(290, 488, 260, 74, 'START!', partyStart, { fill: '#5CFF7A', size: 36 });
+    else { box3(290, 488, 260, 74, '#9a98a8', 5, 5); txt('NEED 2+ PLAYERS', 420, 526, 22, '#fff', 'center', 240); }
+  } else txt(t('WAITING FOR {name} TO START', { name: pName(R, R.host).toUpperCase() }), 420, 526, 20, '#fff', 'center', 260);
+  button(570, 488, 190, 74, 'LEAVE', () => partyLeave('menu'), { fill: '#fff', size: 28 });
+}
+
+function drawWait(R) {
+  txt(t('ROUND {n} / {total}', { n: R.round + 1, total: R.total }), W / 2, 44, 36, '#FFE14D');
+  const my = R.cur && party.you && R.cur[party.you.id] || party.pending;
+  if (my) txt(my.r === 'win' ? 'YOU DID IT!' : 'NOT THIS TIME', W / 2, 120, 44, my.r === 'win' ? '#5CFF7A' : '#FF4D4D');
+  txt('WAITING FOR THE OTHERS...', W / 2, 190, 26, '#fff');
+  R.players.filter(p => !p.left).forEach((p, i) => {
+    const x = 120, y = 240 + i * 62, c = R.cur && R.cur[p.id];
+    box3(x, y, 560, 52, '#35406a', 3, 4); mini(x + 34, y + 48, p, 2.3);
+    txt(p.name, x + 74, y + 27, 22, p.color, 'left', 340); statusDot(x + 520, y + 26, 16, c ? c.r : null);
+  });
+  if (!TOUCH) txt('KEEP CALM - THE ROUND ENDS WHEN EVERYONE IS DONE', W / 2, 560, 16, '#ddd');
+  button(14, 10, 130, 44, 'LEAVE', () => partyLeave(), { size: 18, fill: 'rgba(255,255,255,.85)' });
+}
+
+function drawBetween(R) {
+  const L = R.last; if (!L) return;
+  txt(t('ROUND {n} / {total}', { n: L.round + 1, total: R.total }), W / 2, 36, 30, '#FFE14D');
+  const g = REGMAP[L.game]; I18N.scope = I18N.scopeOf(L.game); txt(g ? g.name : '', W / 2, 78, 22, '#fff'); I18N.scope = '';
+  let y0 = 118;
+  if (R.mode === 'team') {
+    txt(L.teamWin ? 'TEAM WIN!' : 'TEAM FAILED!', W / 2, 118, 54, L.teamWin ? '#5CFF7A' : '#FF4D4D');
+    for (let i = 0; i < 4; i++) claude(W / 2 - 108 + i * 72, 190, 2.6, i < R.lives ? { col: OR } : { col: '#4a4558', mood: 'sad' });
+    txt(t('TEAM SCORE {n}', { n: R.teamScore }), W / 2, 214, 24, '#FFE14D'); y0 = 240;
+  }
+  const rows = L.results.slice().sort((a, b) => b.award - a.award || (a.r === 'win' ? 0 : 1) - (b.r === 'win' ? 0 : 1) || a.t - b.t);
+  const rh = R.mode === 'team' ? 62 : 74;
+  rows.forEach((x, i) => {
+    const p = R.players.find(q => q.id === x.id); if (!p) return;
+    const y = y0 + i * rh, k = easeOut((st - i * .1) / .25);
+    ctx.save(); ctx.globalAlpha = k; ctx.translate((1 - k) * 60, 0);
+    box3(60, y, 680, rh - 10, x.award > 0 && i === 0 && R.mode === 'versus' ? '#5a4a2a' : '#35406a', 3, 4);
+    if (R.mode === 'versus') txt('#' + (i + 1), 92, y + (rh - 10) / 2, 26, '#fff', 'center', 60);
+    mini(150, y + rh - 14, p, 2.4);
+    txt(p.name, 190, y + (rh - 10) / 2, 22, p.color, 'left', 250);
+    statusDot(470, y + (rh - 10) / 2, 14, x.r);
+    txt(x.pts > 0 ? t('{n} PTS', { n: x.pts }) : x.r === 'win' ? x.t.toFixed(1) + 's' : '-', 540, y + (rh - 10) / 2, 20, '#ddd', 'center', 90);
+    if (R.mode === 'versus') { txt(x.award ? '+' + x.award : '', 618, y + (rh - 10) / 2, 26, '#FFE14D', 'center', 70); txt(String(p.score), 706, y + (rh - 10) / 2, 26, '#fff', 'right', 60); }
+    ctx.restore();
+  });
+  const left = Math.max(0, Math.ceil(NEXT_ROUND_S - (now - party.seenAt)));
+  txt(L.final ? t('FINAL RESULTS IN {n}', { n: left }) : t('NEXT ROUND IN {n}', { n: left }), W / 2, 566, 24, '#fff');
+  button(14, 10, 130, 44, 'LEAVE', () => partyLeave(), { size: 18, fill: 'rgba(255,255,255,.85)' });
+}
+
+function drawEnd(R) {
+  const team = R.mode === 'team', sorted = R.players.filter(p => !p.left).slice().sort((a, b) => b.score - a.score);
+  const cleared = team && R.lives > 0;
+  const head = team ? (cleared ? 'TEAM CLEARED!' : 'GAME OVER') : t('{name} WINS!', { name: sorted[0] ? sorted[0].name.toUpperCase() : '' });
+  const gk = st < .14 ? 2.6 - 1.6 * easeOut(st / .14) : 1;
+  ctx.save(); ctx.translate(W / 2, 80); ctx.rotate(-.04); ctx.scale(gk, gk); txt(head, 5, 6, 56, INK, 'center', 740); txt(head, 0, 0, 56, team && !cleared ? '#FF4D4D' : '#FFE14D', 'center', 740); ctx.restore();
+  if (team) txt(t('TEAM SCORE {n}', { n: R.teamScore }), W / 2, 140, 34, '#fff');
+  sorted.forEach((p, i) => {
+    const y = 170 + i * 74, k = easeOut((st - .3 - i * .12) / .3), top = !team && i === 0;
+    ctx.save(); ctx.globalAlpha = k; ctx.translate((1 - k) * 80, 0);
+    box3(110, y, 580, 64, top ? '#5a4a2a' : '#35406a', 3, 4);
+    if (!team) txt('#' + (i + 1), 146, y + 32, 28, '#fff', 'center', 60);
+    claude(220, y + 56 - (top ? Math.abs(Math.sin(now * 6)) * 12 : 0), 2.8, { col: p.color, mood: team ? (cleared ? 'happy' : 'sad') : (top ? 'happy' : null) });
+    txt(p.name, 262, y + 32, 24, p.color, 'left', 270);
+    if (!team) txt(String(p.score), 666, y + 32, 30, '#fff', 'right', 110);
+    else if (R.lives > 0) star(660, y + 32, 20, 9, 5, -Math.PI / 2, '#FFE14D', 3);
+    ctx.restore();
+  });
+  drawParts();
+  if (st > .6) {
+    if (isHost()) button(130, 500, 270, 70, 'PLAY AGAIN', partyAgain, { fill: '#5CFF7A', size: 30 });
+    else txt('WAITING FOR THE HOST...', 265, 535, 20, '#fff', 'center', 250);
+    button(420, 500, 250, 70, 'LEAVE', () => partyLeave(), { fill: '#fff', size: 30 });
+  }
+}
+
+/* in-game overlay for a party round: who has finished (live) + round counter. Called by main.js render() while playing. */
+function drawPartyHud() {
+  const R = party.room; if (!R) return;
+  const act = R.players.filter(p => !p.left);
+  ctx.fillStyle = 'rgba(20,16,28,.4)'; ctx.fillRect(10, 36, 22 + act.length * 44, 44);
+  act.forEach((p, i) => { const c = R.cur && R.cur[p.id]; claude(36 + i * 44, 74, 1.6, { col: p.color }); if (c) statusDot(48 + i * 44, 44, 9, c.r); });
+  txt(t('ROUND {n} / {total}', { n: R.round + 1, total: R.total }), W - 16, 30, 22, '#fff', 'right');
+  if (R.mode === 'team') txt(t('LIVES {n}', { n: R.lives }), W - 16, 60, 20, '#FF4D9E', 'right');
+  else { const m = me(); if (m) txt(String(m.score), W - 16, 60, 22, '#FFE14D', 'right'); }
+}

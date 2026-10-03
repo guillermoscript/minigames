@@ -68,6 +68,8 @@ function drawShareMenu() {
   button(130, 330, 540, 70, 'COPY LINK', shareCopy, { fill: '#B49CFF', size: 26 });
   button(250, 440, 300, 64, 'CLOSE', () => { sh.on = false; }, { size: 24 });
 }
+/* title tap / Enter: a room invite wins over a score challenge, which wins over the stage menu */
+function titleGo() { if (inviteOpen()) joinInvite(); else if (chOpen) acceptChallenge(); else goMenu(); }
 function acceptChallenge() {
   const i = Math.min(CH.stage, save.unlocked - 1);          // locked stage? start from the furthest one you can play
   chOpen = false; track('challenge_accept', { from: CH.from, target: CH.score, stage: CH.stage + 1, played: i + 1 });
@@ -233,7 +235,9 @@ function toInter() { state = 'inter'; st = 0; if (mode !== 'practice') jingleGo(
 function beginGame() {
   let s;
   if (mode === 'practice' && is3D(practiceId) && typeof THREE === 'undefined') { loadThree().then(() => { if (state === 'inter') beginGame(); }); st = -99; return; }   // still downloading: wait on the intro card
-  if (mode === 'practice') {
+  if (mode === 'party') {
+    const R = party.room; s = R.sp; cur = withSeed(R.seed, () => REGMAP[R.game].fn(s)); curId = R.game; isBoss = false; dur = cur.dur / Math.sqrt(s); I18N.scope = I18N.scopeOf(curId);
+  } else if (mode === 'practice') {
     s = practiceSp; cur = REGMAP[practiceId].fn(s); curId = practiceId; isBoss = false; dur = cur.dur / Math.sqrt(s); I18N.scope = I18N.scopeOf(curId);
   } else if (played >= stage.n) {
     s = stage.sp0 + Math.floor(stage.n / 2) * .1; cur = BOSSES[stage.boss](s, stage); curId = 'boss:' + stage.boss; isBoss = true; dur = cur.dur;
@@ -273,11 +277,11 @@ function toOver() {
   state = 'over'; st = 0; submitRun(0); sfx.thud(); shake(14, .45);
 }
 function afterClear() { if (stageIdx < STAGES.length - 1) startStage(stageIdx + 1); else goMenu(); }
-function exitPlay() { if (mode === 'stage') track('stage_quit', { stage: stageIdx + 1, microgames: played, score, lives_left: lives, in_state: state }); mode === 'practice' ? goPractice() : goMenu(); }
+function exitPlay() { if (mode === 'party') return partyLeave(); if (mode === 'stage') track('stage_quit', { stage: stageIdx + 1, microgames: played, score, lives_left: lives, in_state: state }); mode === 'practice' ? goPractice() : goMenu(); }
 
 /* ───────────── update ───────────── */
 function update(dt) {
-  updateParts(dt); st += dt; lifeT += dt; scorePop = Math.max(0, scorePop - dt * 3);
+  partyUpdate(dt); updateParts(dt); st += dt; lifeT += dt; scorePop = Math.max(0, scorePop - dt * 3);
   shownScore += (score - shownScore) * Math.min(1, dt * 7); if (Math.abs(score - shownScore) < .5) shownScore = score;
   if (state === 'clear' && shownStars < stars && st > .5 + shownStars * .45) {   // stars pop in one by one
     const sx = W / 2 + (shownStars - 1) * 100; shownStars++;
@@ -298,7 +302,8 @@ function update(dt) {
       else if (tt >= dur) { cur.result = cur.timeWin ? 'win' : 'lose'; setOutcome(cur.result); }
     } else if (outT > .95) {
       lastOut = outcome;
-      if (mode === 'practice') { state = 'inter'; st = 0; }
+      if (mode === 'party') partyLocalDone(outcome);
+      else if (mode === 'practice') { state = 'inter'; st = 0; }
       else if (isBoss) { if (outcome === 'win') clearStage(); else if (lives <= 0) toOver(); else toInter(); }
       else { played++; if (lives <= 0) toOver(); else toInter(); }
     }
@@ -352,12 +357,14 @@ function googleG(cx, cy, r, grey) {
   ctx.restore();
 }
 function placeInputs() {
-  const show = state === 'pview' && rn.on && !!net.user;
-  ov.style.display = show ? 'block' : 'none';
-  if (!show) return;
+  const showName = state === 'pview' && rn.on && !!net.user, showCode = state === 'party' && party.view === 'menu';
+  ov.style.display = showName || showCode ? 'block' : 'none';
+  inName.style.display = showName ? 'block' : 'none'; inCode.style.display = showCode ? 'block' : 'none';
+  if (!showName && !showCode) return;
   const r = cv.getBoundingClientRect(), k = r.width / VW;
   const put = (el, x, y, w, h) => { const s = el.style; s.left = r.left + (x + OX) * k + 'px'; s.top = r.top + y * k + 'px'; s.width = w * k + 'px'; s.height = h * k + 'px'; s.fontSize = h * k * .5 + 'px'; };
-  put(inName, 200, 262, 400, 52);
+  if (showName) put(inName, 200, 262, 400, 52);
+  else put(inCode, 200, 322, 260, 64);
 }
 function hintOf(g) {
   if (!TOUCH) return t(g.hint);
@@ -409,15 +416,17 @@ function render() {
     const jump = Math.abs(Math.sin(now * 4)) * 30;
     shadow(W / 2, 474, 90 - jump, 14 - jump * .2, .3);
     claude(W / 2, 470 - jump, 14, { mood: 'happy' });
-    if (chOpen) txt(t('{from} CHALLENGES YOU: BEAT {score} ON {stage}', { from: chFrom(), score: CH.score, stage: t(STAGES[CH.stage].name) }), W / 2, 505, 21, '#FFE14D', 'center', 760);
+    if (inviteOpen()) txt(t('A FRIEND INVITES YOU TO ROOM {code}', { code: PINVITE }), W / 2, 505, 21, '#5CFF7A', 'center', 760);
+    else if (chOpen) txt(t('{from} CHALLENGES YOU: BEAT {score} ON {stage}', { from: chFrom(), score: CH.score, stage: t(STAGES[CH.stage].name) }), W / 2, 505, 21, '#FFE14D', 'center', 760);
     else txt(t('{games} MICROGAMES · {stages} STAGES · MOUSE + KEYBOARD + TOUCH', { games: REG.length, stages: STAGES.length }), W / 2, 505, 19, '#fff', 'center', 760);
     ctx.save(); ctx.translate(W / 2, 558); const pl = 1 + Math.sin(now * 6) * .07; ctx.scale(pl, pl);
-    txt(chOpen ? (TOUCH ? 'TAP TO ACCEPT' : 'CLICK TO ACCEPT') : TOUCH ? 'TAP TO START' : 'CLICK OR PRESS ENTER', 0, 0, 34, '#5CFF7A', 'center', 700); ctx.restore();
+    txt(inviteOpen() ? (TOUCH ? 'TAP TO JOIN' : 'CLICK TO JOIN') : chOpen ? (TOUCH ? 'TAP TO ACCEPT' : 'CLICK TO ACCEPT') : TOUCH ? 'TAP TO START' : 'CLICK OR PRESS ENTER', 0, 0, 34, '#5CFF7A', 'center', 700); ctx.restore();
     txt(muted ? 'MUTED · M = SOUND' : 'M = MUTE', 20 - OX, 28, 18, '#fff', 'left');
     profileBtn(W + OX - 194, 12, 180, 52);
     button(14 - OX, 48, 140, 42, LANGS.find(l => l.code === I18N.lang).name, () => I18N.next(), { size: 18, fill: '#fff' });
     button(14 - OX, 536, 150, 50, 'INVITE', () => doShare('invite'), { size: 22, fill: '#4DB8FF' });
-    if (chOpen) button(W + OX - 164, 536, 150, 50, 'MENU ►', () => { chOpen = false; goMenu(); }, { size: 22 });
+    button(W + OX - 164, chOpen || inviteOpen() ? 478 : 536, 150, 50, 'FRIENDS', () => goParty('title'), { size: 22, fill: '#5CFF7A' });
+    if (chOpen || inviteOpen()) button(W + OX - 164, 536, 150, 50, 'MENU ►', () => { chOpen = false; PINVITE_USED = true; goMenu(); }, { size: 22 });
   } else if (state === 'menu') {
     bg('#2b2757', '#322d66', now);
     txt('SELECT STAGE', W / 2, 40, 44, '#FFE14D');
@@ -449,6 +458,8 @@ function render() {
     button(110, 455, 280, 74, 'PRACTICE', goPractice, { fill: '#5CFF7A' });
     button(410, 455, 280, 74, 'TITLE', goTitle, { fill: '#fff' });
     if (!TOUCH) txt('1-6 STAGE · ◄ ► PAGE · P PRACTICE · L RANKS · A PROFILE · ESC BACK', W / 2, 568, 18, '#fff');
+  } else if (state === 'party') {
+    drawParty();
   } else if (state === 'practice') {
     bg('#1f2a44', '#26335a', now);
     txt('PRACTICE', W / 2, 38, 44, '#FFE14D');
@@ -521,7 +532,7 @@ function render() {
         ctx.save(); ctx.translate(W / 2, H / 2 - 20); const sc = 1 + (1 - k) * .8; ctx.scale(sc, sc);
         ctx.rotate(Math.sin(now * 12) * .03); 
         txt(cur.cmd, 0, 0, 130, isBoss ? '#FF4D4D' : '#FFE14D', 'center', 760); txt(hintOf(cur), 0, 95, 34, '#fff', 'center', 760); ctx.restore();
-      } else txt(hintOf(cur), W / 2, 36, 24, '#fff', 'center', 520);
+      } else txt(hintOf(cur), W / 2, 36, 24, '#fff', 'center', mode === 'party' ? 400 : 520);
     } else {
       const win = outcome === 'win', sc = outT < .14 ? 2.6 - 1.6 * easeOut(outT / .14) : 1 + Math.max(0, .12 - (outT - .14)) * 1.2, lab = t(win ? 'NICE!' : 'FAIL!'), cc = win ? '#5CFF7A' : '#FF4D4D';
       ctx.save(); ctx.translate(W / 2, H / 2); ctx.rotate(-.1); ctx.scale(sc, sc); ctx.globalAlpha = Math.min(1, outT / .06);
@@ -535,8 +546,9 @@ function render() {
       livesRow(36 - OX, 66, 2.4, 40, col);
       txt(isBoss ? 'BOSS' : `${played + 1}/${stage.n}`, W + OX - 16, 30, 26, isBoss ? '#FF4D4D' : '#fff', 'right');
       ctx.save(); const sp = 1 + scorePop * .3; ctx.translate(W + OX - 16, 62); ctx.scale(sp, sp); txt(String(Math.round(shownScore)), 0, 0, 22, '#FFE14D', 'right'); ctx.restore();
-    } else txt('PRACTICE', W + OX - 16, 30, 22, '#fff', 'right');
-    button(W + OX - 78, 80, 66, 30, mode === 'practice' ? 'EXIT' : 'MENU', exitPlay, { size: 15, fill: 'rgba(255,255,255,.85)' });
+    } else if (mode === 'party') drawPartyHud();
+    else txt('PRACTICE', W + OX - 16, 30, 22, '#fff', 'right');
+    button(W + OX - 78, 80, 66, 30, mode === 'party' ? 'LEAVE' : mode === 'practice' ? 'EXIT' : 'MENU', exitPlay, { size: 15, fill: 'rgba(255,255,255,.85)' });
     if (pre <= 0) fuse();
   } else if (state === 'over') {
     bg('#3b0d14', '#4d1119', now);
@@ -686,6 +698,7 @@ function render() {
 /* ───────────── input events ───────────── */
 addEventListener('keydown', e => {
   if (e.target && e.target.tagName === 'INPUT') { // typing in a profile field: don't leak keys into the game
+    if (e.target.id === 'in-code') { if (e.code === 'Enter') { e.preventDefault(); joinTyped(); } else if (e.code === 'Escape') e.target.blur(); return; }
     if (e.code === 'Enter') { e.preventDefault(); doRename(); }
     else if (e.code === 'Escape') closeRename();
     return;
@@ -700,16 +713,20 @@ addEventListener('keydown', e => {
   if (e.code === 'Escape') {
     if (sh.on) { sh.on = false; return; }
     if (rn.on) { closeRename(); return; }
+    if (mode === 'party' && (state === 'play' || (state === 'party' && party.view !== 'menu' && party.view !== 'lobby'))) return;   // no accidental leaving mid-match
+    if (state === 'party') { party.view === 'lobby' ? partyLeave('menu') : goTitle(); return; }
     if (state === 'play' || state === 'inter' || state === 'stagein') exitPlay();
     else if (state === 'menu') goTitle(); else if (state === 'practice') goMenu();
     else if (state === 'profile' || state === 'board' || state === 'pview') back();
     return;
   }
-  if (state === 'title' && go) chOpen ? acceptChallenge() : goMenu();
+  if (state === 'title' && go) titleGo();
   else if (state === 'title' && e.code === 'KeyA') goProfile();
+  else if (state === 'title' && e.code === 'KeyF') goParty('title');
   else if (state === 'title' && e.code === 'KeyG') I18N.next();
   else if (state === 'board') { if (e.code === 'ArrowRight') setTab(lb.tab + 1); else if (e.code === 'ArrowLeft') setTab(lb.tab - 1); }
   else if (state === 'profile' && go) doGoogle();
+  else if (state === 'party' && go) { if (party.view === 'lobby') partyStart(); else if (party.view === 'end' && isHost() && st > .6) partyAgain(); }
   else if (state === 'menu') {
     const d = +e.key, mp = pageCount(STAGES.length, PER_MENU);
     if (d >= 1 && d <= 6 && menuPage * PER_MENU + d - 1 < STAGES.length) startStage(menuPage * PER_MENU + d - 1);
@@ -754,7 +771,7 @@ cv.addEventListener('pointerdown', e => {
   const b = btns.find(b => p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h);
   if (b) { sfx.click(); b.fn(); return; }
   if (sh.on) return;
-  if (state === 'title') { chOpen ? acceptChallenge() : goMenu(); return; }
+  if (state === 'title') { titleGo(); return; }
   if (state === 'play' && !outcome && pre <= 0) { const g = inGame(p); sw = { x: g.x, y: g.y }; if (cur.move) cur.move(g); if (cur.down) cur.down(g); }
 });
 cv.addEventListener('pointermove', e => {
@@ -779,7 +796,7 @@ function loop(ts) {
   const dt = Math.min(.05, (ts - lastTs) / 1000 || 0); lastTs = ts; now += dt; lastDt = dt;
   update(dt); updateFx(dt); syncMusic();
   if (state !== lastState) {                              // screen-change whoosh (not on every microgame)
-    if (['stagein', 'menu', 'practice', 'profile', 'board', 'pview'].includes(state) || (state === 'inter' && mode === 'stage')) sfx.whoosh(true);
+    if (['stagein', 'menu', 'practice', 'profile', 'board', 'pview', 'party'].includes(state) || (state === 'inter' && mode === 'stage')) sfx.whoosh(true);
     lastState = state;
   }
   ctx.setTransform(1, 0, 0, 1, OX, 0); ctx.save(); applyShake(dt); render(); drawFx(); if (sh.on) drawShareMenu(); ctx.restore();

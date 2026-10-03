@@ -269,7 +269,7 @@ function startStage(i) {
   if (i > save.unlocked - 1) return;
   runRank = null; attempts[i] = (attempts[i] || 0) + 1;
   track('stage_start', { stage: i + 1, stage_name: STAGES[i].name, attempt: attempts[i], unlocked: save.unlocked });
-  if (STAGES[i].pool.some(is3D)) loadThree();
+  if (poolOf(STAGES[i]).some(is3D)) loadThree();
   mode = 'stage'; stageIdx = i; stage = STAGES[i]; lives = 4; played = 0; score = 0; lastOut = null; recent = [];
   state = 'stagein'; st = 0; shownScore = 0; lifeT = 99; jingleGo();
 }

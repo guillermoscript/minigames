@@ -62,6 +62,30 @@ throwsStatus(() => P.again(m, "b"), 403); P.again(m, "a");
 assert.equal(m.state, "lobby"); assert.equal(m.players.length, 2); assert.equal(m.keys.c, undefined); assert.equal(m.players[0].score, 0); assert.equal(m.last, null);
 P.start(m, "a", 0, rand); assert.equal(m.state, "round");
 
+// --- DUO: exactly 2 players, rotating roles, one shared verdict, relay validation, partner leaving ---
+const d = P.newRoom("DUOO", "duo", 0); P.addPlayer(d, { name: "A" }, rand); P.addPlayer(d, { name: "B" }, rand); P.addPlayer(d, { name: "C" }, rand);
+throwsStatus(() => P.start(d, "a", 0, rand), 409);             // 3 players: not allowed
+P.leave(d, "c");
+P.start(d, "a", 0, rand); assert.equal(d.mode, "duo"); assert.equal(d.total, 8); assert.ok(P.DUO_IDS.includes(d.game));
+assert.equal(P.roleOf(d, "a"), 0); assert.equal(P.roleOf(d, "b"), 1);
+P.report(d, "a", 0, "win", 3, 0, 0); assert.equal(d.state, "round");
+P.report(d, "b", 0, "lose", 11, 0, 0);                         // partner timed out, judge won -> team wins
+assert.equal(d.last.teamWin, true); assert.ok(d.teamScore >= 200); assert.equal(d.lives, 4); assert.ok(d.last.results.every((x) => x.award === 100));
+P.advance(d, 0, 9000, rand); assert.equal(d.round, 1); assert.equal(P.roleOf(d, "a"), 1); assert.equal(P.roleOf(d, "b"), 0);   // roles swap
+for (const g of P.DUO_IDS) assert.ok(P.GAMES[g].roles === undefined || P.GAMES[g].roles === 2);
+const sg = P.sigPayload(d, "a", 1, [{ t: "bx", d: 120 }]); assert.equal(sg.from, "a"); assert.equal(sg.m[0].t, "bx");
+throwsStatus(() => P.sigPayload(d, "a", 0, [{ t: "bx", d: 1 }]), 409);                       // stale round
+throwsStatus(() => P.sigPayload(d, "a", 1, []), 400); throwsStatus(() => P.sigPayload(d, "a", 1, "x"), 400);
+throwsStatus(() => P.sigPayload(d, "a", 1, [{ t: "bx", d: "x".repeat(600) }]), 413);
+throwsStatus(() => P.sigPayload(d, "z", 1, [{ t: "bx" }]), 403);
+throwsStatus(() => P.sigPayload(m, "a", 0, [{ t: "bx" }]), 409);                             // non-DUO room
+P.report(d, "a", 1, "lose", 1, 0, 0); P.report(d, "b", 1, "lose", 1, 0, 0); assert.equal(d.last.teamWin, false); assert.equal(d.lives, 3);
+P.advance(d, 1, 99000, rand); P.leave(d, "b");                 // partner leaves mid-round
+assert.equal(d.state, "between"); assert.equal(d.last.teamWin, false); assert.equal(d.last.final, true);
+P.advance(d, 2, 999000, rand); assert.equal(d.state, "done");
+throwsStatus(() => P.sigPayload(d, "a", 2, [{ t: "bx" }]), 409);
+const dm = P.newRoom("MODE", "versus", 0); P.addPlayer(dm, { name: "A" }, rand); P.setMode(dm, "a", "duo"); assert.equal(dm.mode, "duo"); P.setMode(dm, "a", "bogus"); assert.equal(dm.mode, "versus");
+
 // --- helpers ---
 assert.equal(P.cleanCode(" ab-c1d9 "), "ABC1"); assert.match(P.makeCode(rand), /^[A-Z2-9]{4}$/);
 assert.equal(P.publicRoom(r).keys, undefined);

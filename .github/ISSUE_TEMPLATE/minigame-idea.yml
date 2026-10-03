@@ -1,0 +1,32 @@
+name: New minigame idea
+description: Suggest a five-second microgame you want to see in Claude Ware
+title: "[Minigame] "
+labels: ["minigame-idea"]
+body:
+  - type: input
+    id: cmd
+    attributes:
+      label: Command word
+      description: The big word shown at the start, like SWAT! or JUMP!
+      placeholder: "CATCH!"
+    validations:
+      required: true
+  - type: textarea
+    id: how
+    attributes:
+      label: How does it play?
+      description: What does the player see, what do they do, and how do they win or lose in about 5 seconds?
+    validations:
+      required: true
+  - type: dropdown
+    id: controls
+    attributes:
+      label: Controls
+      multiple: true
+      options: [Mouse / tap, Keyboard, Drag, Tilt-style (mouse movement)]
+  - type: checkboxes
+    id: build
+    attributes:
+      label: Want to build it?
+      options:
+        - label: I would like to build this myself and open a PR

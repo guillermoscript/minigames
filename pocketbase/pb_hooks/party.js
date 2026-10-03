@@ -4,7 +4,8 @@
    pushes the new record to everyone subscribed to it. Pure functions take `now` (ms) and `rand` so party.test.js can drive them. */
 
 const MAX_PLAYERS = 4;
-const ROUNDS = { versus: 6, team: 8 };
+const ROUNDS = { versus: 6, team: 8, duo: 8 };
+const MODES = ["versus", "team", "duo"];
 const LIVES = 4;
 const PRE_MS = 1400;            // instruction card shown before each microgame (keep in sync with PRE in js/main.js)
 const GRACE_MS = 8000;          // a silent player is counted as a loss this long after the round should have ended
@@ -17,8 +18,14 @@ const GAMES = {
   pt_sync: { dur: 5, pts: true },
   pt_memo: { dur: 8, pts: false },
   pt_grab: { dur: 7, pts: true },
+  /* DUO games: two players, two roles, ONE shared verdict - keep in sync with js/games/du1.js */
+  du_catch: { dur: 11, pts: false, duo: true },
+  du_decode: { dur: 12, pts: false, duo: true },
+  du_crank: { dur: 11, pts: false, duo: true },
+  du_steer: { dur: 12, pts: false, duo: true },
 };
-const GAME_IDS = Object.keys(GAMES);
+const GAME_IDS = Object.keys(GAMES).filter((g) => !GAMES[g].duo);
+const DUO_IDS = Object.keys(GAMES).filter((g) => GAMES[g].duo);
 const SLOTS = ["a", "b", "c", "d"];
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";   // no 0/O/1/I
 
@@ -31,9 +38,12 @@ const makeCode = (rand) => { let s = ""; for (let i = 0; i < 4; i++) s += CODE_C
 const makeKey = (rand) => { let s = ""; for (let i = 0; i < 16; i++) s += CODE_CHARS[Math.floor(rand() * CODE_CHARS.length)]; return s; };
 const active = (room) => room.players.filter((p) => !p.left);
 const player = (room, id) => room.players.find((p) => p.id === id);
+const cleanMode = (m) => (MODES.includes(m) ? m : "versus");
+/* DUO roles (0 or 1) rotate every round so both players get to play each one; js/party.js derives them with the same formula */
+const roleOf = (room, id) => { const i = room.players.filter((p) => !p.left).findIndex((p) => p.id === id); return i < 0 ? -1 : (i + room.round) % 2; };
 
 function newRoom(code, mode, now) {
-  return { code, mode: mode === "team" ? "team" : "versus", state: "lobby", round: 0, total: 0, players: [], keys: {}, host: "", game: "", seed: 0, sp: 1,
+  return { code, mode: cleanMode(mode), state: "lobby", round: 0, total: 0, players: [], keys: {}, host: "", game: "", seed: 0, sp: 1,
     roundAt: 0, betweenAt: 0, cur: {}, last: null, lives: LIVES, teamScore: 0, created: now };
 }
 
@@ -71,7 +81,10 @@ function leave(room, id) {
   const alive = active(room);
   if (!alive.length) return true;
   if (room.host === id || !player(room, room.host) || player(room, room.host).left) room.host = alive[0].id;
-  if (room.state === "round") maybeFinishRound(room, 0);
+  if (room.mode === "duo" && alive.length < 2 && (room.state === "round" || room.state === "between")) {   // the partner is gone: the team loses this round and the run ends
+    if (room.state === "round") { alive.forEach((p) => { if (!room.cur[p.id]) room.cur[p.id] = { r: "lose", t: 0, pts: 0 }; }); finishRound(room, 0); }
+    room.last.final = true;
+  } else if (room.state === "round") maybeFinishRound(room, 0);
   else if (room.state !== "done" && alive.length < 2 && room.state !== "lobby") endGame(room);
   return false;
 }
@@ -79,13 +92,14 @@ function leave(room, id) {
 function setMode(room, id, mode) {
   if (room.host !== id) fail("Only the host can do that", 403);
   if (room.state !== "lobby") fail("Game already started", 409);
-  room.mode = mode === "team" ? "team" : "versus";
+  room.mode = cleanMode(mode);
 }
 
 function start(room, id, now, rand) {
   if (room.host !== id) fail("Only the host can start", 403);
   if (room.state !== "lobby") fail("Game already started", 409);
   if (active(room).length < 2) fail("Need at least 2 players", 409);
+  if (room.mode === "duo" && active(room).length !== 2) fail("DUO needs exactly 2 players", 409);
   room.total = ROUNDS[room.mode];
   room.lives = LIVES; room.teamScore = 0; room.round = 0; room.last = null;
   room.players.forEach((p) => { p.score = 0; });
@@ -93,7 +107,7 @@ function start(room, id, now, rand) {
 }
 
 function beginRound(room, now, rand) {
-  const prev = room.game, pool = GAME_IDS.filter((g) => g !== prev);
+  const prev = room.game, ids = room.mode === "duo" ? DUO_IDS : GAME_IDS, pool = ids.filter((g) => g !== prev);
   room.game = pool[Math.floor(rand() * pool.length)];
   room.seed = 1 + Math.floor(rand() * 2147483646);
   room.sp = +(1 + room.round * 0.07).toFixed(2);
@@ -130,6 +144,10 @@ function finishRound(room, now) {
   let teamWin = null;
   if (room.mode === "versus") {
     winners.forEach((x, i) => { x.award = AWARD[Math.min(i, AWARD.length - 1)]; });
+  } else if (room.mode === "duo") {
+    teamWin = winners.length >= 1;                                 // one shared verdict: the judge of each game reports it, the partner may only have timed out
+    res.forEach((x) => { x.award = teamWin ? 100 : 0; });
+    if (teamWin) room.teamScore += 200 + Math.max(0, Math.round((g.dur - Math.min.apply(null, winners.map((w) => w.t))) * 10)); else room.lives--;
   } else {
     const need = act.length >= 3 ? act.length - 1 : act.length;
     teamWin = winners.length >= need;
@@ -139,7 +157,7 @@ function finishRound(room, now) {
     if (!teamWin) room.lives--;
   }
   res.forEach((x) => { const p = player(room, x.id); p.score += x.award; });
-  const final = room.round + 1 >= room.total || (room.mode === "team" && room.lives <= 0);
+  const final = room.round + 1 >= room.total || (room.mode !== "versus" && room.lives <= 0);
   room.last = { round: room.round, game: room.game, results: res, teamWin, final };
   room.state = "between"; room.betweenAt = now;
 }
@@ -166,7 +184,20 @@ function again(room, id) {
   Object.assign(room, { state: "lobby", round: 0, total: 0, game: "", seed: 0, sp: 1, cur: {}, last: null, lives: LIVES, teamScore: 0 });
 }
 
+const SIG_MAX = 512, SIG_COUNT = 10;
+/* DUO live relay: validates a batch of small input messages from one player and returns the payload to forward to the others.
+   Not stored anywhere (inputs never touch the room record). Dropped unless the room is in a round of a DUO game. */
+function sigPayload(room, id, round, m) {
+  if (room.mode !== "duo" || room.state !== "round" || round !== room.round) fail("Round is over", 409);
+  const p = player(room, id);
+  if (!p || p.left) fail("Not in this round", 403);
+  if (!Array.isArray(m) || !m.length || m.length > SIG_COUNT) fail("Bad message", 400);
+  const out = m.map((x) => ({ t: String((x && x.t) || "").slice(0, 12), d: x && x.d !== undefined ? x.d : null }));
+  if (JSON.stringify(out).length > SIG_MAX) fail("Message too big", 413);
+  return { from: id, round, m: out };
+}
+
 /* what clients may see (the record itself hides `keys`; this is for tests and logs) */
 const publicRoom = (room) => { const o = Object.assign({}, room); delete o.keys; return o; };
 
-module.exports = { fail, MAX_PLAYERS, ROUNDS, LIVES, AWARD, GAMES, GAME_IDS, PartyError, cleanName, cleanCode, makeCode, active, newRoom, addPlayer, auth, leave, setMode, start, again, report, tick, advance, roundMs, publicRoom };
+module.exports = { fail, MAX_PLAYERS, ROUNDS, LIVES, AWARD, GAMES, GAME_IDS, DUO_IDS, MODES, roleOf, cleanMode, sigPayload, SIG_MAX, PartyError, cleanName, cleanCode, makeCode, active, newRoom, addPlayer, auth, leave, setMode, start, again, report, tick, advance, roundMs, publicRoom };

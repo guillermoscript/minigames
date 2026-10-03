@@ -29,5 +29,13 @@ const STAGES = [
   { name: 'TWISTED!', tag: 'Tilt it. Spin it. Steer it!', col: '#FF9F1C', bg: ['#FFE5B4', '#ffd9a0'],
     pool: ['tw_tilt', 'tw_spin', 'tw_pour', 'tw_dial', 'tw_slide', 'tw_wheel', 'tw_coins', 'tw_skate'], n: 8, sp0: 1.3, boss: 'tug' },
   { name: 'MOVE IT!', tag: 'Strike a pose. Hit the beat!', col: '#E040FB', bg: ['#F3C6FF', '#ecb2fb'],
-    pool: ['mv_pose', 'mv_mirror', 'mv_beat', 'mv_swim', 'mv_punch', 'mv_wave', 'mv_clap', 'mv_balance'], n: 8, sp0: 1.3, boss: 'rhythm', intro: 'mv' }
+    pool: ['mv_pose', 'mv_mirror', 'mv_beat', 'mv_swim', 'mv_punch', 'mv_wave', 'mv_clap', 'mv_balance'], n: 8, sp0: 1.3, boss: 'rhythm', intro: 'mv' },
+  { name: 'BRAINY BUNCH', tag: 'Spot it. Weigh it. Match it!', col: '#4D8DFF', bg: ['#DDF0FF', '#c9e6ff'],
+    pool: ['bb_scale', 'bb_behind', 'bb_focus', 'bb_mutation', 'bb_profiler', 'bb_numbers', 'bb_statues', 'bb_buttons'], n: 8, sp0: 1.2, boss: 'simon' },
+  { name: 'CRITTER CLUB', tag: 'Herd it. Catch it. Scare it!', col: '#6CC24A', bg: ['#E6F7C8', '#d8f0b0'],
+    pool: ['cc_hare', 'cc_pig', 'cc_cat', 'cc_dog', 'cc_worm', 'cc_claw', 'cc_frog', 'cc_hen'], n: 8, sp0: 1.2, boss: 'mole' },
+  { name: 'SPORTS DAY', tag: 'Wind up. Release. Score!', col: '#FF7A3D', bg: ['#FFE3C9', '#ffd5b0'],
+    pool: ['sd_hammer', 'sd_ski', 'sd_bowl', 'sd_curl', 'sd_hoops', 'sd_volley', 'sd_rope', 'sd_star'], n: 8, sp0: 1.3, boss: 'catch' },
+  { name: 'LINES & LIGHT', tag: 'Steady hands. Bright ideas!', col: '#F2B600', bg: ['#FFF3C2', '#ffeaa0'],
+    pool: ['ln_sew', 'ln_road', 'ln_cable', 'ln_sign', 'ln_magna', 'ln_green', 'ln_plates', 'ln_edge'], n: 8, sp0: 1.3, boss: 'mash' }
 ];

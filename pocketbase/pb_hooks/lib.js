@@ -1,5 +1,5 @@
 /* Shared constants/helpers for Claude Ware hooks. Keep STAGE_MAX / SCORE_MAX in sync with the migration. */
-const STAGE_MAX = 9;          // highest stage index (10 stages)
+const STAGE_MAX = 29;         // highest stage index (30 stages of headroom; keep in sync with the migrations)
 const SCORE_MAX = 2000;       // per stage
 const WRITES_PER_MIN = 40;    // per-user score writes per minute
 const COLORS = ["#D97757", "#6EA8FE", "#7BD88F", "#F28CB1", "#B49CFF", "#FFD23F", "#FF6B4D", "#4DD0E1"];

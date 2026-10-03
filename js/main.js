@@ -128,7 +128,8 @@ const PER_TABS = 6;
 const inName = document.getElementById('in-name'), ov = document.getElementById('ov');
 
 const speed = () => stage.sp0 + Math.floor(played / 2) * .1;
-const poolOf = s => s.pool || REG.map(r => r.id);
+const poolOf = s => s.pool || REG.filter(r => !r.duo).map(r => r.id);
+const PREG = REG.filter(r => !r.duo);          // microgames you can play alone (DUO games need a partner, so no practice for them)
 
 function goProfile() {
   if (net.user) return openProfile(net.user.username);
@@ -236,7 +237,7 @@ function beginGame() {
   let s;
   if (mode === 'practice' && is3D(practiceId) && typeof THREE === 'undefined') { loadThree().then(() => { if (state === 'inter') beginGame(); }); st = -99; return; }   // still downloading: wait on the intro card
   if (mode === 'party') {
-    const R = party.room; s = R.sp; cur = withSeed(R.seed, () => REGMAP[R.game].fn(s)); curId = R.game; isBoss = false; dur = cur.dur / Math.sqrt(s); I18N.scope = I18N.scopeOf(curId);
+    const R = party.room; s = R.sp; const dc = R.mode === 'duo' ? duoCtx(R) : undefined; cur = withSeed(R.seed, () => REGMAP[R.game].fn(s, dc)); curId = R.game; isBoss = false; dur = cur.dur / Math.sqrt(s); I18N.scope = I18N.scopeOf(curId);
   } else if (mode === 'practice') {
     s = practiceSp; cur = REGMAP[practiceId].fn(s); curId = practiceId; isBoss = false; dur = cur.dur / Math.sqrt(s); I18N.scope = I18N.scopeOf(curId);
   } else if (played >= stage.n) {
@@ -418,7 +419,7 @@ function render() {
     claude(W / 2, 470 - jump, 14, { mood: 'happy' });
     if (inviteOpen()) txt(t('A FRIEND INVITES YOU TO ROOM {code}', { code: PINVITE }), W / 2, 505, 21, '#5CFF7A', 'center', 760);
     else if (chOpen) txt(t('{from} CHALLENGES YOU: BEAT {score} ON {stage}', { from: chFrom(), score: CH.score, stage: t(STAGES[CH.stage].name) }), W / 2, 505, 21, '#FFE14D', 'center', 760);
-    else txt(t('{games} MICROGAMES · {stages} STAGES · MOUSE + KEYBOARD + TOUCH', { games: REG.length, stages: STAGES.length }), W / 2, 505, 19, '#fff', 'center', 760);
+    else txt(t('{games} MICROGAMES · {stages} STAGES · MOUSE + KEYBOARD + TOUCH', { games: PREG.length, stages: STAGES.length }), W / 2, 505, 19, '#fff', 'center', 760);
     ctx.save(); ctx.translate(W / 2, 558); const pl = 1 + Math.sin(now * 6) * .07; ctx.scale(pl, pl);
     txt(inviteOpen() ? (TOUCH ? 'TAP TO JOIN' : 'CLICK TO JOIN') : chOpen ? (TOUCH ? 'TAP TO ACCEPT' : 'CLICK TO ACCEPT') : TOUCH ? 'TAP TO START' : 'CLICK OR PRESS ENTER', 0, 0, 34, '#5CFF7A', 'center', 700); ctx.restore();
     txt(muted ? 'MUTED · M = SOUND' : 'M = MUTE', 20 - OX, 28, 18, '#fff', 'left');
@@ -465,13 +466,13 @@ function render() {
     txt('PRACTICE', W / 2, 38, 44, '#FFE14D');
     button(14 - OX, 10, 130, 56, '◄ BACK', goMenu, { size: 22 });
     button(W + OX - 184, 10, 170, 56, t('SPEED x{n}', { n: practiceSp }), () => { practiceSp = practiceSp === 1 ? 1.5 : practiceSp === 1.5 ? 2 : 1; }, { size: 22, fill: '#FFE14D' });
-    const pp = pageCount(REG.length, PER_PRACTICE);
+    const pp = pageCount(PREG.length, PER_PRACTICE);
     if (pp > 1) {
       button(150, 10, 56, 56, '◄', () => { practicePage = (practicePage + pp - 1) % pp; }, { size: 24 });
       button(W - 250, 10, 56, 56, '►', () => { practicePage = (practicePage + 1) % pp; }, { size: 24 });
       txt(`${practicePage + 1}/${pp}`, W / 2 + 120, 38, 20, '#fff');
     }
-    REG.forEach((r, ri) => {
+    PREG.forEach((r, ri) => {
       if ((ri / PER_PRACTICE | 0) !== practicePage) return;
       const i = ri % PER_PRACTICE;
       const x = 26 + (i % 6) * 126, y = 92 + (i / 6 | 0) * 92;
@@ -735,7 +736,7 @@ addEventListener('keydown', e => {
     else if (e.code === 'KeyA') goProfile();
     else if (e.code === 'ArrowRight') menuPage = (menuPage + 1) % mp; else if (e.code === 'ArrowLeft') menuPage = (menuPage + mp - 1) % mp;
   } else if (state === 'practice') {
-    const pp = pageCount(REG.length, PER_PRACTICE);
+    const pp = pageCount(PREG.length, PER_PRACTICE);
     if (e.code === 'ArrowRight') practicePage = (practicePage + 1) % pp; else if (e.code === 'ArrowLeft') practicePage = (practicePage + pp - 1) % pp;
   }
   else if (state === 'over' && go && st > .4) startStage(stageIdx);

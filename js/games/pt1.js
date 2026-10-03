@@ -10,7 +10,7 @@ const PUR = '#7C4DFF', PUR2 = '#6a3de8', YEL = '#FFE14D', GRN = '#5CFF7A', RED =
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const mkR = () => mulberry32(Math.floor(Math.random() * 4294967296));   // Math.random is seeded while the constructor runs
 const ptMood = g => g.result === 'lose' ? 'sad' : g.result === 'win' ? 'happy' : null;
-const ptBg = t => { bg(PUR, PUR2, t); ctx.fillStyle = 'rgba(255,255,255,.06)'; for (let i = 0; i < 6; i++) ctx.fillRect(0, 60 + i * 100, W, 40); };
+const ptBg = t => { bg(PUR, PUR2, t); ctx.fillStyle = 'rgba(255,255,255,.06)'; for (let i = 0; i < 6; i++) ctx.fillRect(-OX, 60 + i * 100, VW, 40); };
 const ptWin = (x, y) => { sfx.coin(); sfx.sparkle(); confetti(x, y, 30); ring(x, y, '#fff', 110); };
 const ptLose = (x, y) => { sfx.miss(); sfx.thud(); shake(8, .25); burst(x, y, RED, 14); ring(x, y, RED, 80); };
 function ptNeed(g, cur) {                 // progress bar toward the goal, drawn near the top
@@ -37,7 +37,7 @@ function ptMash(sp) {
       circ(0, 14, 120, '#c43b6c', 5); circ(0, 0, 120, taps >= need ? GRN : PNK, 5);
       ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.beginPath(); ctx.ellipse(-36, -50, 52, 26, -.5, 0, 7); ctx.fill();
       txt(taps >= need ? 'GO ON!' : 'HIT!', 0, 4, 50, '#fff', 'center', 190); ctx.restore();
-      claude(66, 590, 4.5, { mood: ptMood(g) }); vignette(.22);
+      claude(66 - OX, 590, 4.5, { mood: ptMood(g) }); vignette(.22);
     },
     down() { g.tap(); },
     key(e) { if (e.repeat) return; if (e.code === 'KeyP' || e.code === 'KeyM' || e.code === 'Escape') return; g.tap(); },
@@ -76,7 +76,7 @@ function ptSync(sp) {
       ctx.fillStyle = INK; ctx.fillRect(nx - 9, Y - 60, 18, 120); ctx.fillStyle = stopAt >= 0 ? (g.result === 'win' ? '#fff' : RED) : YEL; ctx.fillRect(nx - 5, Y - 56, 10, 112);
       if (stopAt >= 0) txt(String(acc), 400, 440, 80, g.result === 'win' ? GRN : RED);
       else txt(TOUCH ? 'TAP!' : 'SPACE!', 400, 450, 64, '#fff');
-      claude(66, 590, 4.5, { mood: ptMood(g) }); vignette(.22);
+      claude(66 - OX, 590, 4.5, { mood: ptMood(g) }); vignette(.22);
     },
     down() { g.stop(); },
     key(e) { if (e.repeat) return; if (e.code === 'Space' || e.code === 'Enter' || e.code === 'ArrowDown') g.stop(); },
@@ -118,7 +118,7 @@ function ptMemo(sp) {
         if (on) { ctx.fillStyle = p.c; ctx.beginPath(); ctx.arc(p.x, p.y + 8, 52, 0, 7); ctx.fill(); }
         if (!TOUCH) txt(p.l, p.x, p.y + 4, 28, on ? INK : '#fff');
       });
-      claude(66, 590, 4.5, { mood: ptMood(g) }); vignette(.22);
+      claude(66 - OX, 590, 4.5, { mood: ptMood(g) }); vignette(.22);
     },
     down(p) { let b = -1, bd = 1e9; pads.forEach((q, i) => { const d = Math.hypot(p.x - q.x, p.y - q.y); if (d < 90 && d < bd) { bd = d; b = i; } }); if (b >= 0) g.press(b); },
     key(e) {
@@ -159,9 +159,9 @@ function ptGrab(sp) {
       ptBg(t); ptNeed(g, caught);
       txt(`${caught} / ${g.need}`, 400, 140, 44, '#fff');
       for (const it of items) { if (it.got) continue; const y = yOf(it); if (y < -30 || y > H + 30) continue; it.bomb ? ptBomb(it.x, y) : token(it.x, y, 22); }
-      ctx.fillStyle = INK; ctx.fillRect(0, FLOOR + 40, W, H);
+      ctx.fillStyle = INK; ctx.fillRect(-OX, FLOOR + 40, VW, H);
       box(bx - 60, FLOOR - 6, 120, 44, flash > 0 ? RED : '#FF9A4D', 4); ctx.fillStyle = 'rgba(255,255,255,.4)'; ctx.fillRect(bx - 60, FLOOR - 6, 120, 10);
-      claude(66, 590, 4.5, { mood: ptMood(g) }); vignette(.22);
+      claude(66 - OX, 590, 4.5, { mood: ptMood(g) }); vignette(.22);
     },
     move(p) { if (!g.result) bx = clamp(p.x, 60, 740); },
     down(p) { g.move(p); },

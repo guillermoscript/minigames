@@ -21,6 +21,7 @@ const party = {
   pending: null,         // my result for the current round, until the server has it
   seenAt: 0, lastPoll: 0, lastTick: 0, lastAdv: 0, lastRep: 0,
   from: 'title',
+  sig: { q: [], buf: [], busy: false, last: 0, hbAt: 0, round: -1, handler: null, rx: 0, since: 0 },   // DUO live relay state (see duoCtx)
 };
 const inCode = document.getElementById('in-code');
 if (inCode) inCode.addEventListener('input', () => { inCode.value = inCode.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4); });
@@ -58,11 +59,12 @@ function partyConnect() {
   party.es = es;
   es.addEventListener('PB_CONNECT', async ev => {
     try {
-      const r = await fetch(API_BASE + '/api/realtime', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clientId: ev.lastEventId, subscriptions: ['rooms/' + id] }) });
+      const r = await fetch(API_BASE + '/api/realtime', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clientId: ev.lastEventId, subscriptions: ['rooms/' + id, 'rooms/' + id + '/sig'] }) });
       party.sseOK = r.ok;
     } catch (e) { party.sseOK = false; }
   });
   es.addEventListener('rooms/' + id, ev => { try { const d = JSON.parse(ev.data); if (d.action === 'delete') roomGone(); else applyRoom(d.record); } catch (e) {} });
+  es.addEventListener('rooms/' + id + '/sig', ev => { try { onSig(JSON.parse(ev.data)); } catch (e) {} });   // NB: PocketBase's SSE frames have no space after the colons
   es.onerror = () => { party.sseOK = false; };           // EventSource reconnects by itself and fires PB_CONNECT again
 }
 function partyDisconnect() { if (party.es) { try { party.es.close(); } catch (e) {} } party.es = null; party.sseOK = false; }
@@ -111,7 +113,7 @@ let PINVITE_USED = false;
 const inviteOpen = () => !!PINVITE && !PINVITE_USED;
 
 function partyCleanup() {
-  partyDisconnect(); party.room = null; party.you = null; party.pending = null; party.played = -1; saveSession();
+  partyDisconnect(); party.sig = { q: [], buf: [], busy: false, last: 0, hbAt: 0, round: -1, handler: null, rx: 0, since: 0 }; party.room = null; party.you = null; party.pending = null; party.played = -1; saveSession();
 }
 function partyLeave(to) {
   if (party.room && party.you) pcall('leave', auth());
@@ -125,6 +127,44 @@ function roomGone() {
 addEventListener('pagehide', () => {
   if (party.room && party.you) { try { navigator.sendBeacon(API_BASE + '/api/party/leave', new Blob([JSON.stringify(auth())], { type: 'application/json' })); } catch (e) {} }
 });
+
+/* ───────────── DUO live relay ─────────────
+   Players of a DUO round exchange small input messages {t: type, d: data} through POST /api/party/sig; the server pushes them to the
+   other player over the realtime connection (topic rooms/<id>/sig). One request in flight at a time keeps the order, and a message
+   type sent with `latest` replaces an older queued one (positions), so slow links just send fewer, fresher updates. */
+const SIG_GAP = .1, SIG_HB = .5, SIG_AWAY = 2;
+function onSig(d) {
+  const S = party.sig, R = party.room; if (!R || !d || !d.m || d.from === (party.you && party.you.id)) return;
+  S.rx = now;
+  if (S.handler && d.round === S.round) { for (const m of d.m) if (m.t !== 'hb') S.handler(m.t, m.d); return; }
+  if (d.round < R.round) return;                                                  // late message from a finished round
+  for (const m of d.m) if (m.t !== 'hb') S.buf.push({ round: d.round, t: m.t, d: m.d });   // partner started first: keep it for my own constructor
+  if (S.buf.length > 80) S.buf.splice(0, S.buf.length - 80);
+}
+/* context handed to a DUO microgame: { role: 0|1, partner, send(type, data, latest), onMsg(fn(type, data)), away() } */
+function duoCtx(R) {
+  const S = party.sig, act = R.players.filter(p => !p.left), i = act.findIndex(p => p.id === party.you.id), pn = act.find(p => p.id !== party.you.id);
+  Object.assign(S, { q: [], busy: false, last: 0, hbAt: now, round: R.round, handler: null, rx: now, since: now });
+  S.buf = S.buf.filter(x => x.round === R.round);
+  return {
+    role: (i + R.round) % 2, roles: 2, partner: pn ? { name: pn.name, color: pn.color } : null,
+    send(type, data, latest) {
+      if (latest) { const k = S.q.findIndex(m => m.t === type); if (k >= 0) { S.q[k].d = data; return; } }
+      S.q.push({ t: type, d: data === undefined ? null : data });
+    },
+    onMsg(fn) { S.handler = fn; S.buf.splice(0).forEach(x => x.round === S.round && fn(x.t, x.d)); },
+  };
+}
+const duoAway = () => !!party.room && party.room.mode === 'duo' && party.sig.round === party.room.round && now - party.sig.since > SIG_AWAY && now - party.sig.rx > SIG_AWAY;
+async function sigFlush() {
+  const S = party.sig, R = party.room; if (!R || R.mode !== 'duo' || R.state !== 'round' || S.round !== R.round) { S.q.length = 0; return; }
+  if (now - S.hbAt > SIG_HB) { S.hbAt = now; if (!S.q.length) S.q.push({ t: 'hb', d: null }); }
+  if (S.busy || !S.q.length || now - S.last < SIG_GAP) return;
+  const m = []; let size = 0;
+  while (S.q.length && m.length < 10) { const n = JSON.stringify(S.q[0]).length; if (m.length && size + n > 440) break; size += n; m.push(S.q.shift()); }
+  S.busy = true; S.last = now;
+  try { const r = await pcall('sig', Object.assign(auth(), { round: R.round, m })); if (r.status === 404) roomGone(); } finally { S.busy = false; }
+}
 
 /* ───────────── room state machine ───────────── */
 function applyRoom(R) {
@@ -178,6 +218,7 @@ async function sendReport() {
 function partyUpdate(dt) {
   const R = party.room; if (!R) return;
   if (now - party.lastPoll > (party.sseOK ? 12 : 3)) partyPoll();
+  if (R.mode === 'duo' && state === 'play') sigFlush();
   if (party.pending && now - party.lastRep > 1.5) sendReport();
   if (state !== 'party') return;
   if (R.state === 'round' && !party.pending && now - party.lastTick > 2.5) {          // lets the server close a round a silent player never finished
@@ -194,8 +235,10 @@ async function partyAct(action, extra) {
   if (r.status === 404) roomGone(); else say(partyErr(r), '#FF4D4D');
   return false;
 }
-const partyStart = () => { if (isHost() && party.room.players.filter(p => !p.left).length >= 2) { track('party_start', { mode: party.room.mode, players: party.room.players.length }); partyAct('start'); } };
-const partyMode = () => partyAct('mode', { mode: party.room.mode === 'team' ? 'versus' : 'team' });
+const canStart = R => { const n = R.players.filter(p => !p.left).length; return R.mode === 'duo' ? n === 2 : n >= 2; };
+const partyStart = () => { if (isHost() && canStart(party.room)) { track('party_start', { mode: party.room.mode, players: party.room.players.length }); partyAct('start'); } };
+const MODE_NEXT = { versus: 'team', team: 'duo', duo: 'versus' };
+const partyMode = () => partyAct('mode', { mode: MODE_NEXT[party.room.mode] || 'versus' });
 const partyAgain = () => partyAct('again');
 async function partyInvite() {
   const R = party.room, url = location.origin + '/r/' + R.code, text = t('Join my Claude Ware room! Code: {code}', { code: R.code });
@@ -210,8 +253,8 @@ function statusDot(x, y, r, s) {
   else if (s === 'lose') { circ(x, y, r, '#FF4D4D', 3); ctx.strokeStyle = INK; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(x - r * .4, y - r * .4); ctx.lineTo(x + r * .4, y + r * .4); ctx.moveTo(x + r * .4, y - r * .4); ctx.lineTo(x - r * .4, y + r * .4); ctx.stroke(); }
   else { circ(x, y, r * (.7 + Math.sin(now * 8) * .08), '#6b6880', 3); }
 }
-const modeLabel = m => m === 'team' ? 'TEAM' : 'VERSUS';
-const modeBlurb = m => m === 'team' ? 'TEAMWORK: SHARED LIVES · EVERYONE NEEDS TO PULL THEIR WEIGHT' : 'EVERYONE PLAYS THE SAME GAME · FASTEST AND BEST TAKE THE POINTS';
+const modeLabel = m => m === 'team' ? 'TEAM' : m === 'duo' ? 'DUO' : 'VERSUS';
+const modeBlurb = m => m === 'duo' ? 'TWO PLAYERS · ONE GAME · DIFFERENT ROLES · WIN OR LOSE TOGETHER' : m === 'team' ? 'TEAMWORK: SHARED LIVES · EVERYONE NEEDS TO PULL THEIR WEIGHT' : 'EVERYONE PLAYS THE SAME GAME · FASTEST AND BEST TAKE THE POINTS';
 function mini(x, y, p, u) { claude(x, y, u, { col: p.color }); }
 
 function drawParty() {
@@ -258,14 +301,14 @@ function drawLobby(R) {
     }
     ctx.restore();
   }
-  if (isHost()) button(200, 380, 400, 54, t('MODE: {mode}', { mode: t(modeLabel(R.mode)) }), partyMode, { fill: R.mode === 'team' ? '#B49CFF' : '#FFE14D', size: 26 });
+  if (isHost()) button(200, 380, 400, 54, t('MODE: {mode}', { mode: t(modeLabel(R.mode)) }), partyMode, { fill: R.mode === 'team' ? '#B49CFF' : R.mode === 'duo' ? '#7BD88F' : '#FFE14D', size: 26 });
   else txt(t('MODE: {mode}', { mode: t(modeLabel(R.mode)) }), W / 2, 408, 28, '#FFE14D');
   txt(modeBlurb(R.mode), W / 2, 456, 16, '#ddd', 'center', 760);
   button(40, 488, 230, 74, 'INVITE', partyInvite, { fill: '#4DB8FF', size: 30 });
   const n = R.players.filter(p => !p.left).length;
   if (isHost()) {
-    if (n >= 2) button(290, 488, 260, 74, 'START!', partyStart, { fill: '#5CFF7A', size: 36 });
-    else { box3(290, 488, 260, 74, '#9a98a8', 5, 5); txt('NEED 2+ PLAYERS', 420, 526, 22, '#fff', 'center', 240); }
+    if (canStart(R)) button(290, 488, 260, 74, 'START!', partyStart, { fill: '#5CFF7A', size: 36 });
+    else { box3(290, 488, 260, 74, '#9a98a8', 5, 5); txt(R.mode === 'duo' ? 'DUO NEEDS EXACTLY 2' : 'NEED 2+ PLAYERS', 420, 526, 22, '#fff', 'center', 240); }
   } else txt(t('WAITING FOR {name} TO START', { name: pName(R, R.host).toUpperCase() }), 420, 526, 20, '#fff', 'center', 260);
   button(570, 488, 190, 74, 'LEAVE', () => partyLeave('menu'), { fill: '#fff', size: 28 });
 }
@@ -289,13 +332,13 @@ function drawBetween(R) {
   txt(t('ROUND {n} / {total}', { n: L.round + 1, total: R.total }), W / 2, 36, 30, '#FFE14D');
   const g = REGMAP[L.game]; I18N.scope = I18N.scopeOf(L.game); txt(g ? g.name : '', W / 2, 78, 22, '#fff'); I18N.scope = '';
   let y0 = 118;
-  if (R.mode === 'team') {
+  if (R.mode !== 'versus') {
     txt(L.teamWin ? 'TEAM WIN!' : 'TEAM FAILED!', W / 2, 118, 54, L.teamWin ? '#5CFF7A' : '#FF4D4D');
     for (let i = 0; i < 4; i++) claude(W / 2 - 108 + i * 72, 190, 2.6, i < R.lives ? { col: OR } : { col: '#4a4558', mood: 'sad' });
     txt(t('TEAM SCORE {n}', { n: R.teamScore }), W / 2, 214, 24, '#FFE14D'); y0 = 240;
   }
   const rows = L.results.slice().sort((a, b) => b.award - a.award || (a.r === 'win' ? 0 : 1) - (b.r === 'win' ? 0 : 1) || a.t - b.t);
-  const rh = R.mode === 'team' ? 62 : 74;
+  const rh = R.mode !== 'versus' ? 62 : 74;
   rows.forEach((x, i) => {
     const p = R.players.find(q => q.id === x.id); if (!p) return;
     const y = y0 + i * rh, k = easeOut((st - i * .1) / .25);
@@ -315,7 +358,7 @@ function drawBetween(R) {
 }
 
 function drawEnd(R) {
-  const team = R.mode === 'team', sorted = R.players.filter(p => !p.left).slice().sort((a, b) => b.score - a.score);
+  const team = R.mode !== 'versus', sorted = R.players.filter(p => !p.left).slice().sort((a, b) => b.score - a.score);
   const cleared = team && R.lives > 0;
   const head = team ? (cleared ? 'TEAM CLEARED!' : 'GAME OVER') : t('{name} WINS!', { name: sorted[0] ? sorted[0].name.toUpperCase() : '' });
   const gk = st < .14 ? 2.6 - 1.6 * easeOut(st / .14) : 1;
@@ -344,9 +387,14 @@ function drawEnd(R) {
 function drawPartyHud() {
   const R = party.room; if (!R) return;
   const act = R.players.filter(p => !p.left);
-  ctx.fillStyle = 'rgba(20,16,28,.4)'; ctx.fillRect(10, 36, 22 + act.length * 44, 44);
-  act.forEach((p, i) => { const c = R.cur && R.cur[p.id]; claude(36 + i * 44, 74, 1.6, { col: p.color }); if (c) statusDot(48 + i * 44, 44, 9, c.r); });
-  txt(t('ROUND {n} / {total}', { n: R.round + 1, total: R.total }), W - 16, 30, 22, '#fff', 'right');
-  if (R.mode === 'team') txt(t('LIVES {n}', { n: R.lives }), W - 16, 60, 20, '#FF4D9E', 'right');
-  else { const m = me(); if (m) txt(String(m.score), W - 16, 60, 22, '#FFE14D', 'right'); }
+  ctx.fillStyle = 'rgba(20,16,28,.4)'; ctx.fillRect(10 - OX, 36, 22 + act.length * 44, 44);
+  act.forEach((p, i) => { const c = R.cur && R.cur[p.id]; claude(36 - OX + i * 44, 74, 1.6, { col: p.color }); if (c) statusDot(48 - OX + i * 44, 44, 9, c.r); });
+  txt(t('ROUND {n} / {total}', { n: R.round + 1, total: R.total }), W + OX - 16, 30, 22, '#fff', 'right');
+  if (R.mode === 'duo') {
+    const pn = act.find(p => p.id !== party.you.id);
+    if (pn && cur && cur.roleLabel) txt(cur.roleLabel, 10 - OX, 98, 18, '#FFE14D', 'left', 200);
+    if (duoAway() && state === 'play' && !outcome) { ctx.fillStyle = 'rgba(20,16,28,.6)'; ctx.fillRect(-OX, 280, VW, 70); txt(t('{name} IS AWAY', { name: pn ? pn.name.toUpperCase() : '?' }), W / 2, 315, 34, '#FFE14D', 'center', 760); }
+  }
+  if (R.mode !== 'versus') txt(t('LIVES {n}', { n: R.lives }), W + OX - 16, 60, 20, '#FF4D9E', 'right');
+  else { const m = me(); if (m) txt(String(m.score), W + OX - 16, 60, 22, '#FFE14D', 'right'); }
 }

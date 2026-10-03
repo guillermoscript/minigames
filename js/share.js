@@ -19,6 +19,11 @@ function challengeUrl(score, stageIdx, name) {
 /* shareable 1080x1350 score card (4:5, for the phone share sheet / posting to stories and feeds).
    o: { score, stage (index), stars (0-3, or null after a game over), name, color (mascot), best (bool: new personal best) } */
 async function scoreCard(o) {
+  if (!o || typeof o !== 'object') {                // legacy positional call (score, stageName, stars, name) from a stale cached main.js
+    const [score, sname, stars, name] = arguments;
+    o = { score, stage: Math.max(0, STAGES.findIndex(x => x.name === sname)), stars: stars > 0 ? stars : null, name };
+  }
+  o = Object.assign({}, o, { score: +o.score || 0, stage: Number.isInteger(o.stage) ? o.stage : 0 });
   const W2 = 1080, H2 = 1350, INKC = '#14101c', S = STAGES[o.stage] || STAGES[0], FONT = '"Fredoka", "Arial Rounded MT Bold", "Arial Black", sans-serif';
   try { await Promise.race([document.fonts.load('700 40px Fredoka'), new Promise(r => setTimeout(r, 1500))]); } catch (e) {}
   const c = document.createElement('canvas'); c.width = W2; c.height = H2; const g = c.getContext('2d');

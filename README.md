@@ -1,119 +1,153 @@
+<div align="center">
+
+<img src="img/og.png" alt="Claude Ware: a WarioWare-style microgame game" width="640">
+
 # Claude Ware
 
-A WarioWare-style browser microgame collection: 10 stages of rapid-fire minigames, Google sign-in (optional, guests can play), per-stage and total leaderboards.
+**100+ five-second microgames. 14 stages. Bosses. Zero installs.**
+A WarioWare-style game that runs in your browser, on desktop and phone.
 
-The frontend is static (`index.html`, `css/`, `js/`). The backend is [PocketBase](https://pocketbase.io) (one Go binary + SQLite), which also serves the game itself, so everything is same-origin (`/api/...`). The old Node/Express server was removed.
+### [▶ Play now: claudeware.guille.tech](https://claudeware.guille.tech)
+
+[![Play](https://img.shields.io/badge/play-free%20in%20browser-7C4DFF?style=for-the-badge)](https://claudeware.guille.tech)
+[![Microgames](https://img.shields.io/badge/microgames-100%2B-D97757?style=for-the-badge)](#whats-inside)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-3DDC97?style=for-the-badge)](#add-your-own-minigame)
+
+</div>
+
+---
+
+## What is it?
+
+You get a few seconds per game and a one-word command: **SWAT!**, **JUMP!**, **TYPE!**. Figure out what to do and do it before the bomb goes off. Clear a stage, beat the boss, climb the leaderboard, then send your score to a friend and dare them to beat it.
+
+- **No download, no signup.** Open the link and play. Sign in with Google only if you want to save progress and appear on leaderboards.
+- **Phone and desktop.** Mouse, keyboard and touch controls for every game.
+- **Challenge links.** Share a score and your friend sees "NAME CHALLENGES YOU" and drops straight into the same stage.
+- **Practice mode.** Pick any microgame and replay it at any speed.
+- **English and Spanish**, with a simple path to add more languages.
+- **Tiny stack.** Vanilla JavaScript and `<canvas>`. No build step, no framework.
+
+## What's inside
+
+14 themed stages, each with its own host, microgame pool, speed curve and boss.
+
+| Stage | Vibe |
+|---|---|
+| Bug Hunt | Click it. Squash it. |
+| Keyboard Kingdom | Fingers on the keys! |
+| Reflex Rush | Faster. Then faster. |
+| Mouse Mayhem | Point, drag, scrub! |
+| Brain Break | Think fast! |
+| Mega Mix | Everything. At once. |
+| Wii Waggle | Smooth moves, Claude! |
+| Cube Party | Mega party game, mega fast! |
+| Touch Screen | Poke it. Draw it. Cut it. |
+| Get Together | Stay still. Pick. Run. Fry. |
+| 3D Dimension | Now with depth! |
+| Mega Microgame$ | Old-school. Four colours. Go! |
+| Twisted! | Tilt it. Spin it. Steer it! |
+| Move It! | Strike a pose. Hit the beat! |
+
+### Play with friends (PARTY)
+
+Create a room, share the 4-letter code (or the `/r/CODE` link) and play live. Three modes: **VERSUS** (same microgame, best takes the points), **TEAM** (shared lives) and **DUO**: two players inside *one* microgame with different roles (catch & throw, decode, lever & crank, steer & boost) who win or lose together. DUO needs the PocketBase backend (inputs are relayed live through `POST /api/party/sig`); tests: `node pocketbase/pb_hooks/party.test.js`, `node test/duo.test.js` (bots play both roles headlessly) and `PB=http://127.0.0.1:8090 node test/party.e2e.js` against a running server.
+
+## 💡 Want a minigame that isn't here yet?
+
+**This game grows with its players.** Every microgame is one small JavaScript function, so adding yours is a very approachable first contribution, even if you have never contributed to open source before.
+
+Two ways to help:
+
+1. **Suggest one.** [Open a "New minigame" issue](../../issues/new?template=minigame-idea.yml) with a command word (like `SWAT!`) and one sentence on how it plays. Good ideas get built, and you get credit.
+2. **Build one.** Follow the guide below and send a pull request.
+
+## Add your own minigame
+
+A microgame is a function that takes a speed multiplier and returns an object describing the game. Here is the whole shape (see `js/games/wave1.js` for real examples):
+
+```js
+function gHello(sp) {                     // sp = speed multiplier, grows as the stage goes on
+  const g = {
+    cmd: 'HELLO!',                        // the big command shown at the start
+    hint: 'CLICK THE BUTTON',             // controls hint (desktop)
+    thint: 'TAP THE BUTTON',              // optional: controls hint on touch devices
+    dur: 5,                               // seconds before time runs out
+    update(dt) { /* move things */ },
+    down(p) {                             // pointer pressed: p.x, p.y in 800x600 canvas space
+      g.result = 'win';                   // set 'win' or 'lose' to finish the game
+    },
+    draw(t) {                             // t = progress through the game
+      bg('#B8E05A', '#a8d046', t);        // helpers for drawing live in js/core.js
+    }
+  };
+  return g;
+}
+reg('hello', gHello, 'HELLO');            // register it: id, function, display name
+```
+
+Games can also use `key`, `up` and `move` handlers. Win by setting `g.result = 'win'`; if time runs out without a result, the player loses (set `timeWin: true` for "survive until the clock ends" games).
+
+### Steps
+
+1. **Fork** the repo and clone it.
+2. **Write your game** in a new file in `js/games/` (or add it to a themed file like `js/games/wave4.js`) and register it with `reg(...)`.
+3. **Add the script tag** to `index.html` after the other `js/games/*.js` tags (new files only).
+4. **Put it in a stage pool.** Add its id to a stage's `pool` array in `js/stages.js`. Every game is also available in Practice mode.
+5. **Add Spanish** (optional but appreciated) in `js/i18n/es/`. The English text is the key: `'HELLO!': '¡HOLA!'`. Run `node test/i18n.test.js` to check coverage.
+6. **Test it.** Serve the folder and play it:
+   ```sh
+   python3 -m http.server 8000      # then open http://localhost:8000
+   ```
+   Open **Practice** from the title screen and pick your game. Try it on a phone-sized window too.
+7. **Open a PR** with a short description, and a screen recording or GIF if you can.
+
+### What makes a good microgame
+
+- **Understandable in under a second.** One verb, one command word.
+- **Over in about 5 seconds.** Win or lose fast.
+- **Scales with `sp`.** Faster or harder at higher speed, but never unfair.
+- **Works on mouse, keyboard *and* touch** (or at least mouse and touch).
+- **Looks like the rest.** Thick outlines, flat bright colours, the helpers in `js/core.js`.
+- **Original.** No copyrighted characters, music or assets.
+
+Not sure where to start? Read one small game in `js/games/wave1.js`, change a number, refresh, and see what happens.
+
+## Other ways to contribute
+
+- 🐛 **Report a bug** with the browser, device and microgame name.
+- 🌍 **Translate** it: add a language in `js/i18n.js` and copy `js/i18n/es/`.
+- 🎨 **Polish** art, animation and sound effects of existing games.
+- ⭐ **Star the repo** and share your best score. It helps more people find the game.
+
+## Run it locally
+
+The game is static files, so any web server works:
+
+```sh
+git clone https://github.com/guillermoscript/minigames.git
+cd minigames
+python3 -m http.server 8000
+```
+
+Open <http://localhost:8000>. Guest play works from there. Accounts, leaderboards and cloud saves need the PocketBase backend, which is documented in [docs/SELF-HOSTING.md](docs/SELF-HOSTING.md) along with deployment, Google sign-in and the database rules.
+
+## Project layout
 
 ```
-index.html, css/, js/      the game (served by PocketBase as pb_public)
-pocketbase/pb_migrations/  schema, API rules, settings (applied automatically on start)
-pocketbase/pb_hooks/       server-side validation, rate limit, users.total, Google sign-up defaults
-pocketbase/dev.sh          local dev launcher
-Dockerfile                 production image
+index.html, css/, js/      the game
+js/games/                  all the microgames (one file per theme)
+js/stages.js               stages, pools, speed curves, bosses
+js/i18n/                   translations
+pocketbase/                optional backend: accounts and leaderboards
+docs/SELF-HOSTING.md       backend, deploy and ops docs
+test/                      node tests
 ```
 
-## Languages (i18n)
+---
 
-English is the source language and the English text is the key: `txt('SPLAT!')`, `t('SCORE {n}', { n })`. `txt()`/`floatText()` translate automatically, so game code needs no changes for static strings. Languages: English, Spanish.
-- Dictionaries: `js/i18n/<lang>/ui.js` (menus, stages, errors, page meta) and one file per game file; game files register under a scope (`I18N.add('es', {...}, 'ds')`) so the same English word can translate differently per game family.
-- Language is picked from `?lang=xx`, then the saved choice, then the browser language; the title-screen button (or `G`) cycles languages.
-- **Add a language:** add it to `LANGS` in `js/i18n.js`, copy `js/i18n/es/` to `js/i18n/<code>/`, translate, and add the script tags in `index.html`. Open the game with `?i18n-debug` to log every untranslated string; `node test/i18n.test.js` checks placeholders, per-scope conflicts and coverage of every game's name/command/hint.
-- Translations are uppercase to match the canvas style. Avoid plurals; write "SCORE {n}".
+<div align="center">
 
-## Local dev
+Made by [@guillermoscript](https://github.com/guillermoscript) and contributors. If you had fun, **star the repo** ⭐ and tell a friend.
 
-1. Download PocketBase (the binary is gitignored) into `pocketbase/`, matching your OS/arch from <https://github.com/pocketbase/pocketbase/releases> (pinned: v0.40.4), e.g. macOS arm64:
-   ```sh
-   cd pocketbase
-   curl -L -o pb.zip https://github.com/pocketbase/pocketbase/releases/download/v0.40.4/pocketbase_0.40.4_darwin_arm64.zip
-   unzip pb.zip pocketbase && rm pb.zip
-   ```
-2. Run:
-   ```sh
-   pocketbase/dev.sh            # http://127.0.0.1:8090  (admin UI: /_/)
-   ```
-   Google login needs credentials first, see "Google sign-in" below (`cp .env.example .env`, fill in; `dev.sh` loads `.env`). Without them the game works in guest mode.
-   `dev.sh` copies only `index.html`, `css/`, `img/` and `js/` into `pocketbase/pb_public/` (so `research/`, `pocketbase/` etc. are never served) and starts PocketBase with data in `pocketbase/pb_data/`. Re-run it after editing the game files (`pocketbase/dev.sh sync` just refreshes the copy). Env: `HTTP=127.0.0.1:8091`, `DIR=/some/data/dir`.
-3. Create the operator (superuser) account, once, for the admin UI:
-   ```sh
-   pocketbase/pocketbase superuser upsert you@example.com 'a-long-password' --dir=pocketbase/pb_data
-   ```
-   Never commit credentials.
-
-## Deploy (Dokploy)
-
-- Create an Application from this repo, build type **Dockerfile** (path `Dockerfile`, context `.`).
-- Container port **8090**; attach your domain (Traefik terminates TLS).
-- **Persistent volume: mount at `/pb/pb_data`** (Volumes/Mounts tab). Without it, all accounts and scores are lost on every redeploy.
-- First run: open a terminal in the container (or Dokploy "Execute command") and run
-  `/pb/pocketbase superuser upsert you@example.com 'strong-password'`, then sign in at `https://your-domain/_/`.
-  (Alternatively open the one-time installer link PocketBase prints in the logs.)
-- **Environment** (Environment tab): `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (optional if you configure Google in the admin UI), optional `ALLOWED_EMAIL_DOMAINS`. Redeploy/restart after changing them.
-- Domain: HTTPS on, container port 8090. Google requires the redirect URI `https://DOMAIN/api/oauth2-redirect`.
-- Healthcheck: `GET /api/health` (built into the image).
-- Behind the proxy, PocketBase reads the client IP from `X-Forwarded-For` (set in the migration under Settings > Application > User IP proxy headers) for rate limiting. If you expose the container directly (no proxy) clear that setting.
-- Build args: `PB_VERSION` (default 0.40.4); `TARGETARCH` is automatic.
-
-## Sharing and analytics
-
-- **Link previews**: `index.html` carries Open Graph / Twitter card tags (absolute URLs on `https://claudeware.guille.tech`; change them if the domain moves) and the 1200x630 card `img/og.png`.
-- **Challenge links**: after a run, SHARE sends `<site>/?c=<score>&s=<stage>&f=<name>` (native share sheet on phones, clipboard otherwise). Whoever opens it gets "NAME CHALLENGES YOU" on the title screen and is dropped into that stage.
-- **OpenPanel** (self-hosted at openpanel.guille.tech): client id and API URL are set in the `<meta name="openpanel-*">` tags in `index.html` (the client id is public). Blank them to disable tracking. Events (all sent via `track()` in `js/analytics.js`): `app_loaded`, `stage_start`, `microgame_end`, `stage_clear`, `game_over`, `stage_quit`, `practice_start`, `share_click`, `share_result`, `challenge_accept`, `challenge_beaten`, `sign_in`, `leaderboard_view`, `profile_view`. Screen views are automatic.
-
-## Google sign-in
-
-Accounts can ONLY be created through Google OAuth2 (`users.createRule = @request.context = "oauth2"`, password auth is disabled). Guests can still play without an account.
-
-### Google Cloud Console
-1. <https://console.cloud.google.com/> > create/select a project.
-2. APIs & Services > **OAuth consent screen** (Google Auth Platform > Branding): app name, support email, user type External, scopes `email` and `profile` (defaults), then publish the app to Production (in Testing mode only listed test users can sign in).
-3. APIs & Services > Credentials > Create credentials > **OAuth client ID** > application type **Web application**.
-4. **Authorized JavaScript origins**: `https://DOMAIN` (local dev: `http://127.0.0.1:8090`).
-5. **Authorized redirect URIs**: `https://DOMAIN/api/oauth2-redirect` (local dev: `http://127.0.0.1:8090/api/oauth2-redirect`). This is PocketBase's built-in redirect endpoint; no extra page is needed.
-6. Copy the Client ID and Client secret.
-
-### Giving PocketBase the credentials (pick one)
-- **Admin UI (simplest)**: `/_/` > Collections > `users` > gear icon > Options > OAuth2 > enable, add provider **Google**, paste client id/secret, save.
-- **Env vars**: `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. On every start the hook applies them to the `users` collection (enables OAuth2 with Google only); changing them + restarting is enough. If they are missing the log shows a warning and nothing is changed (a provider set in the admin UI stays).
-
-| Env var | Required | Meaning |
-|---|---|---|
-| `GOOGLE_CLIENT_ID` | for env-based setup | Google OAuth client id |
-| `GOOGLE_CLIENT_SECRET` | for env-based setup | Google OAuth client secret (never commit; see `.env.example`) |
-| `ALLOWED_EMAIL_DOMAINS` | no | Comma list (`school.edu,example.com`); only those email domains can sign in/up. Empty = anyone |
-
-New Google users get a username from their Google name (sanitised to `[A-Za-z0-9_-]{3,16}`, digits appended on collision, `player####` fallback), a random colour, `unlocked = 1`, `total = 0`. They can rename via `PATCH` on their record (same validation; max 5 renames/day). Email is stored but never public (`emailVisibility = false`).
-
-**Existing password users** are kept (data untouched) but can no longer log in with a password. To keep a legacy account, the person signs in with Google using the same email as the old record (PocketBase links an OAuth2 login to an existing record with the same email; this linking was not tested here); otherwise they start a new account.
-
-Frontend contract (PocketBase JS SDK): `pb.collection('users').authWithOAuth2({ provider: 'google' })` (popup via `/api/oauth2-redirect`), or manually `GET /api/collections/users/auth-methods` > `oauth2.providers[0].authURL` (+ `state`, `codeVerifier`; redirect URI is appended by the SDK) and then `POST /api/collections/users/auth-with-oauth2` with `{provider, code, codeVerifier, redirectURL}`. No CSP / COOP headers are set, so the popup and `window.opener` flow work.
-
-## Collections and rules
-
-| Collection | Type | Fields | list / view | create | update | delete |
-|---|---|---|---|---|---|---|
-| `users` | auth (Google OAuth2 only; password auth disabled; email never exposed) | `username` (3-16, `[A-Za-z0-9_-]`, unique), `color` (one of 8 palette hexes, default `#D97757`), `unlocked` (int >= 1, default 1), `stars` (json int[] per stage), `best` (json int[] per stage), `total` (int, server-maintained) | public | OAuth2 sign-up only (`@request.context = "oauth2"`) | `id = @request.auth.id && @request.body.total:isset = false` | none |
-| `scores` | base | `user` (relation, required, cascade delete), `stage` (int 0..9), `score` (int 0..2000), `stars` (int 0..3); unique index `(user, stage)`; index `(stage, score DESC)` | public | `@request.auth.id != "" && @request.body.user = @request.auth.id` | `user = @request.auth.id && @request.body.score >= score && @request.body.user:isset = false && @request.body.stage:isset = false` (scores only go up) | none |
-
-Hooks (`pocketbase/pb_hooks/`):
-- `scores` create/update: re-validates integers and ranges (rejects floats, stage > 9, score > 2000, stars > 3) and limits each user to 40 score writes per minute.
-- After a score is created/updated, `users.total` is recomputed as the sum of that user's scores (written server-side, clients can never set `total`).
-- `users` OAuth2 auth: Google only, optional email-domain allow-list, default username/colour on sign-up. `users` update: validates `stars` / `best`, username pattern and rename rate limit. On start: applies Google env credentials (see above).
-- Pure helpers are unit-tested: `node pocketbase/pb_hooks/lib.test.js`.
-
-Settings (migration): app name "Claude Ware"; built-in rate limits on (auth endpoints 20/min, creates 60/min, all API 600/min, per IP).
-
-Handy API calls: `GET /api/collections/users/auth-methods`, `POST /api/collections/users/auth-with-oauth2`, `GET /api/collections/scores/records?filter=stage=3&sort=-score&expand=user`, `GET /api/collections/users/records?sort=-total`.
-
-## Superuser and backups
-
-Create the operator account as described above (`superuser upsert`). 
-Backups: everything lives in `pb_data/` (SQLite + uploads). Stop the app (or use the admin UI: Settings > Backups) and copy the directory: `cp -R pb_data pb_data.bak`. Restore by putting it back at `/pb/pb_data`.
-
-## Changing the number of stages
-
-The stage count is 10 (indices 0..9). To change it, update all of:
-- `pocketbase/pb_migrations/1760000000_claudeware_schema.js`: `STAGE_MAX` (highest index) for fresh databases;
-- on an already-deployed database, edit the `scores.stage` max and the `users.unlocked` max in the admin UI (`/_/` > Collections), because migrations only run once;
-- `pocketbase/pb_hooks/lib.js`: `STAGE_MAX` (and `SCORE_MAX` if per-stage max score changes);
-- `js/stages.js` in the frontend.
+</div>

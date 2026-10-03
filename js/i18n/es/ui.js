@@ -5,13 +5,13 @@ I18N.addTouch('es', [[/\bHAZ CLIC\b/g, 'TOCA'], [/\bCLIC\b/g, 'TOCA'], [/\b(MOUS
 I18N.add('es', {
   /* page */
   'Claude Ware': 'Claude Ware',
-  'Claude Ware: a fast-paced WarioWare-style game with 100+ five-second microgames, 10 stages and bosses. Play free in your browser, with optional profiles and global leaderboards.':
-    'Claude Ware: un juego rápido estilo WarioWare con más de 100 microjuegos de cinco segundos, 10 etapas y jefes. Juega gratis en tu navegador, con perfiles opcionales y rankings globales.',
+  'Claude Ware: a fast-paced WarioWare-style game with 100+ five-second microgames, 18 stages and bosses. Play free in your browser, with optional profiles and global leaderboards.':
+    'Claude Ware: un juego rápido estilo WarioWare con más de 100 microjuegos de cinco segundos, 18 etapas y jefes. Juega gratis en tu navegador, con perfiles opcionales y rankings globales.',
   'Claude Ware: 100+ five-second microgames': 'Claude Ware: más de 100 microjuegos de cinco segundos',
-  'Fast 5-second microgames, 10 stages and bosses. Play free in your browser, then challenge your friends to beat your score.':
-    'Microjuegos de 5 segundos, 10 etapas y jefes. Juega gratis en tu navegador y reta a tus amigos a superar tu puntaje.',
-  'Fast 5-second microgames, 10 stages and bosses. Play free, then challenge your friends.':
-    'Microjuegos de 5 segundos, 10 etapas y jefes. Juega gratis y reta a tus amigos.',
+  'Fast 5-second microgames, 18 stages and bosses. Play free in your browser, then challenge your friends to beat your score.':
+    'Microjuegos de 5 segundos, 18 etapas y jefes. Juega gratis en tu navegador y reta a tus amigos a superar tu puntaje.',
+  'Fast 5-second microgames, 18 stages and bosses. Play free, then challenge your friends.':
+    'Microjuegos de 5 segundos, 18 etapas y jefes. Juega gratis y reta a tus amigos.',
   'Rotate your phone for a bigger screen': 'Gira tu teléfono para una pantalla más grande',
   'New username': 'Nuevo nombre de usuario',
   'NEW NAME': 'NUEVO NOMBRE',
@@ -30,6 +30,10 @@ I18N.add('es', {
   '3D DIMENSION': 'DIMENSIÓN 3D', 'Now with depth!': '¡Ahora con profundidad!',
   'MEGA MICROGAME$': 'MEGA MICROJUEGO$', 'Old-school. Four colours. Go!': 'Old school. Cuatro colores. ¡Vamos!',
   'TWISTED!': '¡RETORCIDO!', 'Tilt it. Spin it. Steer it!': '¡Inclina. Gira. Maneja!',
+  'BRAINY BUNCH': 'CEREBRITOS', 'Spot it. Weigh it. Match it!': '¡Búscalo, pésalo, empáralo!',
+  'CRITTER CLUB': 'CLUB DE BICHOS', 'Herd it. Catch it. Scare it!': '¡Arréalo, atrápalo, asústalo!',
+  'SPORTS DAY': 'DÍA DE DEPORTES', 'Wind up. Release. Score!': '¡Prepara, suelta, anota!',
+  'LINES & LIGHT': 'LÍNEAS Y LUZ', 'Steady hands. Bright ideas!': '¡Pulso firme, ideas brillantes!',
   'MOVE IT!': '¡MUÉVETE!', 'Strike a pose. Hit the beat!': '¡Pon la pose. Sigue el ritmo!',
 
   /* title / menus */

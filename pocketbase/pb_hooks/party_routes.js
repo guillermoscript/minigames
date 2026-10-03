@@ -67,8 +67,34 @@ function who(auth, body) {
   return { name: body.name, color: body.color };
 }
 
+/* DUO live relay: auth + validate against the room record, then push straight to the other players' realtime connections
+   (topic rooms/<id>/sig). No transaction and no write: this is the hot path (~8 requests/s per player). */
+function relay(e, body) {
+  try {
+    const code = P.cleanCode(body.code);
+    const rec = code.length === 4 ? findByCode($app, code) : null;
+    if (!rec) return e.json(404, { error: "Room not found" });
+    const o = load(rec);
+    P.auth(o, String(body.id || ""), String(body.key || ""));
+    const msg = P.sigPayload(o, String(body.id), body.round | 0, body.m);
+    const name = "rooms/" + rec.id + "/sig", data = JSON.stringify(msg);
+    const clients = $app.subscriptionsBroker().clients();
+    let n = 0;
+    for (const cid in clients) {
+      const c = clients[cid];
+      if (c.hasSubscription(name)) { c.send(new SubscriptionMessage({ name: name, data: data })); n++; }
+    }
+    return e.json(200, { ok: true, n: n });
+  } catch (err) {
+    if (err instanceof P.PartyError) return e.json(err.status, { error: err.message });
+    console.log("[party] sig: " + err);
+    return e.json(500, { error: "Server error" });
+  }
+}
+
 function handle(e, action) {
   const body = e.requestInfo().body || {};
+  if (action === "sig") return relay(e, body);
   let status = 200, out = null;
   $app.runInTransaction((tx) => {
     try { out = exec(tx, action, body, e.auth, Date.now()); }
@@ -106,4 +132,4 @@ function gc() {
   return old.length;
 }
 
-module.exports = { handle, invitePage, gc };
+module.exports = { handle, relay, invitePage, gc };

@@ -9,7 +9,7 @@ const BOSSES = {
     const g = {
       cmd: 'BOSS!', hint: 'SQUASH THE GIANT BUG', thint: 'TAP THE GIANT BUG', dur: 8, boss: true, wide: true,
       down(p) {
-        if (Math.hypot(p.x - b.x, p.y - b.y) < 100) {
+        if (Math.hypot(p.x - b.x, p.y - b.y) < 110) {
           hp--; flash = .12; sq = .2; confetti(p.x, p.y, 6); sfx.hit(); sfx.blip((max - hp) * 1.2); shake(5, .15);
           burst(p.x, p.y, '#FFE14D', 10); ring(p.x, p.y, '#fff', 60, .3); floatText('-1', p.x, p.y - 30, '#fff', 30);
           if (hp <= 0) { g.result = 'win'; confetti(b.x, b.y, 50); sfx.splat(); sfx.sparkle(); shake(14, .4); ring(b.x, b.y, '#FFE14D', 200, .6); burst(b.x, b.y, '#ff4d4d', 24, 380); }
@@ -18,7 +18,7 @@ const BOSSES = {
       update(dt) {
         flash = Math.max(0, flash - dt); sq = Math.max(0, sq - dt); hpv += (hp - hpv) * Math.min(1, 6 * dt);
         if (g.result) return;
-        const v = (130 + (max - hp) * 24) * sp;
+        const v = (110 + (max - hp) * 14) * Math.min(sp, 1.3);
         b.turn -= dt; if (b.turn < 0) { b.a += (Math.random() - .5) * 2.6; b.turn = .3 + Math.random() * .5; }
         b.x += Math.cos(b.a) * v * dt; b.y += Math.sin(b.a) * v * dt;
         if (b.x < 130 - OX) { b.x = 130 - OX; b.a = Math.PI - b.a } if (b.x > 670 + OX) { b.x = 670 + OX; b.a = Math.PI - b.a }
@@ -43,7 +43,7 @@ const BOSSES = {
   },
   /* a shooter: the boss drops bugs, you auto-fire back and slide to dodge */
   shoot(sp, s) {
-    const max = s.bossHp || 12; let hp = max, flash = 0, hpv = max, fire = 0, drop = 1;
+    const max = Math.min(s.bossHp || 12, 10); let hp = max, flash = 0, hpv = max, fire = 0, drop = 1.2;
     const me = { x: W / 2, tx: W / 2 }, bo = { x: W / 2, d: 1 }, shots = [], bombs = [];
     const g = {
       cmd: 'BOSS!', hint: 'SLIDE + AUTO-FIRE!', thint: 'DRAG TO MOVE', dur: 10, boss: true, wide: true,
@@ -56,16 +56,16 @@ const BOSSES = {
         bo.x += bo.d * (140 + (max - hp) * 12) * sp * dt;
         if (bo.x < 130 - OX) { bo.x = 130 - OX; bo.d = 1; } if (bo.x > 670 + OX) { bo.x = 670 + OX; bo.d = -1; }
         fire -= dt; if (fire < 0) { fire = .26; shots.push({ x: me.x, y: 470 }); sfx.blip(8); }
-        drop -= dt; if (drop < 0) { drop = Math.max(.35, .8 - (max - hp) * .03) / sp; bombs.push({ x: bo.x, y: 190, vx: (Math.random() - .5) * 140 }); }
+        drop -= dt; if (drop < 0) { drop = Math.max(.6, 1.1 - (max - hp) * .04) / Math.min(sp, 1.3); bombs.push({ x: bo.x, y: 190, vx: (Math.random() - .5) * 140 }); }
         for (let i = shots.length - 1; i >= 0; i--) {
           const b = shots[i]; b.y -= 620 * dt;
-          if (Math.abs(b.x - bo.x) < 70 && b.y < 190 && b.y > 120) {
+          if (Math.abs(b.x - bo.x) < 85 && b.y < 190 && b.y > 120) {
             shots.splice(i, 1); hp--; flash = .1; sfx.hit(); burst(b.x, 160, '#FFE14D', 6); shake(3, .1);
             if (hp <= 0) { g.result = 'win'; confetti(bo.x, 150, 50); sfx.splat(); sfx.sparkle(); shake(14, .4); ring(bo.x, 150, '#FFE14D', 200, .6); burst(bo.x, 150, '#ff4d4d', 24, 380); return; }
           } else if (b.y < 60) shots.splice(i, 1);
         }
         for (let i = bombs.length - 1; i >= 0; i--) {
-          const b = bombs[i]; b.y += (230 + (max - hp) * 8) * sp * dt; b.x += b.vx * dt;
+          const b = bombs[i]; b.y += (200 + (max - hp) * 6) * Math.min(sp, 1.3) * dt; b.x += b.vx * dt;
           if (Math.hypot(b.x - me.x, b.y - 485) < 40) { g.result = 'lose'; sfx.thud(); sfx.buzz(); shake(10, .35); confetti(me.x, 485, 20); burst(me.x, 485, '#FF4D4D', 18); ring(me.x, 485, '#fff', 90); return; }
           if (b.y > 560 || b.x < -OX - 40 || b.x > W + OX + 40) bombs.splice(i, 1);
         }
@@ -93,7 +93,7 @@ const BOSSES = {
     let v = .3, flash = 0, n = 0;
     const need = 1, drain = .3 + (s.bossMash || 0) * .02;
     const hit = () => {
-      if (g.result) return; v = Math.min(need, v + .075); flash = .08; n++; sfx.blip(n % 12); shake(2, .06);
+      if (g.result) return; v = Math.min(need, v + .09); flash = .08; n++; sfx.blip(n % 12); shake(2, .06);
       if (v >= need) { g.result = 'win'; confetti(W / 2, 300, 50); sfx.sparkle(); shake(12, .4); ring(W / 2, 300, '#FFE14D', 220, .6); }
     };
     const g = {
@@ -102,7 +102,7 @@ const BOSSES = {
       down() { hit(); },
       update(dt) {
         flash = Math.max(0, flash - dt); if (g.result) return;
-        v = Math.max(0, v - (drain + v * .35) * sp * dt);
+        v = Math.max(0, v - (drain + v * .25) * Math.min(sp, 1.3) * dt);
       },
       draw(t) {
         bg('#14323d', '#1b4452', t);
@@ -133,7 +133,7 @@ const BOSSES = {
       down(p) { pull(p.x < W / 2 ? -1 : 1); },
       update(dt) {
         flash = Math.max(0, flash - dt); if (g.result) return;
-        pos += (.16 + Math.max(0, pos) * .1) * sp * dt;
+        pos += (.14 + Math.max(0, pos) * .08) * Math.min(sp, 1.3) * dt;
         if (pos >= 1) { g.result = 'lose'; sfx.thud(); sfx.buzz(); shake(10, .35); }
       },
       draw(t) {
@@ -408,7 +408,7 @@ const BOSSES = {
   /* a long word to type */
   type(sp, s) {
     const g = gType(sp, s.bossWord || 'REFACTOR');
-    g.cmd = 'BOSS!'; g.hint = 'TYPE THE WORD!'; g.thint = 'TAP THE LETTERS'; g.dur = 9; g.boss = true;
+    g.cmd = 'BOSS!'; g.hint = 'TYPE THE WORD!'; g.thint = 'TAP THE LETTERS'; g.dur = 12; g.boss = true;
     const d = g.draw; g.draw = t => { d(t); vignette(.3); };
     return g;
   },

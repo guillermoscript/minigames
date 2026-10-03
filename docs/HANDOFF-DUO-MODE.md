@@ -1,5 +1,7 @@
 # Handoff: DUO mode (asymmetric co-op inside ONE microgame)
 
+> **STATUS: built (uncommitted).** Everything below the line was implemented: `sig` relay via the realtime broker (verified on PB v0.40.4, no fallback needed), roles derived as `(index + round) % 2` (`roleOf` in party.js, `duoCtx` in js/party.js), shared verdict = team wins if any player reports a win, DUO lobby mode, 4 games in `js/games/du1.js`, tests `party.test.js` + `test/duo.test.js` + `party.e2e.js`. Two headless browsers (Playwright's own Chromium, not the owner's Chrome) played 8 DUO rounds over the real server. Still not tried: touch emulation on a real phone and DevTools throttling by a human.
+
 Audience: the next agent. Read this top to bottom before touching code. Language of UI strings: English source + Spanish in `js/i18n/es/`.
 
 ## Goal

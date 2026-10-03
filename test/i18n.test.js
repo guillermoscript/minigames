@@ -7,7 +7,7 @@
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const root = path.join(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-const scripts = [...html.matchAll(/<script src="([^"]+)"/g)].map(m => m[1]).filter(s => !/vendor|analytics|api\.js|share\.js|party\.js|main\.js/.test(s));
+const scripts = [...html.matchAll(/<script src="([^"]+)"/g)].map(m => m[1].replace(/\?.*$/, '')).filter(s => !/vendor|analytics|api\.js|share\.js|party\.js|main\.js/.test(s));
 
 const stub = () => new Proxy(function () {}, { get: (t, k) => k === Symbol.toPrimitive ? () => 0 : k === 'length' ? 0 : stub(), apply: () => stub(), construct: () => stub(), set: () => true });
 const sandbox = { console, Math, Date, JSON, Array, Object, String, Number, Set, Map, Promise, setTimeout, clearTimeout, setInterval() {}, clearInterval() {}, requestAnimationFrame() {}, addEventListener() {}, performance: { now: () => 0 },
@@ -47,7 +47,14 @@ for (const { code } of sandbox.__LANGS) {
   sandbox.__STAGES.forEach(s => { add(s.name, ''); add(s.tag, ''); });
   for (const r of sandbox.__REG) {
     const sc = sandbox.__I18N.scopeOf(r.id); add(r.name, sc);
-    try { sandbox.__cur = r; const g = vm.runInContext('__cur.fn(1)', sandbox, { timeout: 300 }); [g.cmd, g.hint, g.thint].forEach(x => add(x, sc)); }
+    try {
+      sandbox.__cur = r;
+      for (const role of r.duo ? [0, 1] : [undefined]) {   // DUO games show different text per role
+        sandbox.__role = role;
+        const g = vm.runInContext('__cur.fn(1, __role === undefined ? undefined : { role: __role, roles: 2, partner: { name: "X", color: "#fff" }, send() {}, onMsg() {} })', sandbox, { timeout: 300 });
+        [g.cmd, g.hint, g.thint, g.roleLabel].forEach(x => add(x, sc));
+      }
+    }
     catch (e) { console.log('· could not build ' + r.id + ' in the sandbox (' + e.message + '); its strings are not covered here'); }
   }
   let miss = 0;

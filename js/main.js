@@ -468,6 +468,8 @@ function render() {
       I18N.scope = I18N.scopeOf(r.id); txt(r.name, x + 59, y + 41, 20, '#fff', 'center', 106); I18N.scope = ''; ctx.restore();
       btns.push({ x, y, w: 118, h: 82, fn: () => startPractice(r.id) });
     });
+  } else if (state === 'stagein' && stage.intro === 'mv') {
+    mvIntro(st, stage, stageIdx);
   } else if (state === 'stagein') {
     bg(stage.bg[0], stage.bg[1], now);
     const e1 = easeOut(st / .45), e2 = easeOut((st - .15) / .45), e3 = easeBack((st - .35) / .4);

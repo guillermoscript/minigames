@@ -8,6 +8,12 @@ const mvMood = (g) => g.result === 'lose' ? 'sad' : g.result === 'win' ? 'happy'
 const mvLose = () => { sfx.miss(); sfx.thud(); shake(8, .25); };
 const mvWin = (x, y) => { sfx.coin(); sfx.sparkle(); confetti(x, y, 36); ring(x, y, '#fff', 110); };
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const LK = { lx: 0, ly: 0 };   /* reused look-vector for the googly snacks (no per-frame allocs) */
+/* a row of dancing snacks; off shifts the row half a step, ko offsets which snack is which */
+function mvRow(y, t, w, s, off, ko, lx, ly) {
+  const step = 96, m = Math.ceil(OX / step); LK.lx = lx; LK.ly = ly;
+  for (let i = -m; i < 9 + m; i++) mvFoodie(30 + i * step + off + (i & 1) * 14, y + ((i & 1) ? 10 : 0), s, ((i + ko) % 6 + 12) % 6, t, w, LK);
+}
 
 /* chunky pixel spectator: x,y = feet, s = scale, arms: 0 down, 1 up, 2 together in front */
 function mvPerson(x, y, s, col, arms, hop) {
@@ -35,30 +41,33 @@ function mvPunch(sp) {
   const CX = 400, CY = 485;
   const dirs = []; let lastD = -1;
   for (let i = 0; i < N; i++) { let d; do { d = Math.floor(Math.random() * 3); } while (d === lastD); dirs.push(d); lastD = d; }
-  let c = 0, gapT = .45 / rs, idx = 0, cnt = 0, cur = null, fist = null, hurt = 0; const dead = [];
+  const KINDS = []; for (let i = 0; i < N; i++) KINDS.push([4, 0, 5, 1][(Math.floor(Math.random() * 4) + i) % 4]);
+  const ELX = [], ELY = []; for (let d = 0; d < 3; d++) { const dx = 400 - POS[d][0], dy = 485 - POS[d][1], l = Math.hypot(dx, dy); ELX.push(dx / l); ELY.push(dy / l); }
+  const SX = [95, -95, 135], SY = [-70, -70, -10], SHR = ['AAAH!', 'EEEK!', 'NOOO!'];
+  let c = 0, gapT = .45 / rs, idx = 0, cnt = 0, cur = null, fist = null, hurt = 0, slamT = 0, sorry = 0; const dead = [];
   const lose = (msg) => {
     if (g.result) return; g.result = 'lose'; mvLose(); hurt = .5;
-    floatText(msg, 400, 300, RED, 46); burst(CX, CY - 20, RED, 14);
+    floatText(msg, 400, 300, RED, 46); burst(CX, CY - 20, RED, 14); sorry = 1; snd(500, .5, 'sawtooth', .06, 0, 90); floatText('HA HA!', POS[cur ? cur.d : 2][0], POS[cur ? cur.d : 2][1] - 100, YEL, 34);
   };
   const punch = (d) => {
     if (g.result) return;
     fist = { d, t: 0 };
     if (!cur) { sfx.whoosh(); return; }
     if (d === cur.d) {
-      const p = POS[d]; dead.push({ d, t: 0 }); cnt++; idx++;
+      const p = POS[d]; dead.push({ d, t: 0, k: KINDS[idx] }); cnt++; idx++; snd(800, .35, 'sawtooth', .07, 0, 140); sfx.boing();
       sfx.hit(); sfx.thud(); shake(6, .18); burst(p[0], p[1], YEL, 16); ring(p[0], p[1], '#fff', 90);
       floatText(['POW!', 'BAM!', 'WHAM!', 'KO!'][Math.min(3, cnt - 1)], p[0], p[1] - 70, YEL, 40);
       cur = null; gapT = GAP;
-      if (cnt >= N) { g.result = 'win'; mvWin(400, 300); }
+      if (cnt >= N) { g.result = 'win'; mvWin(400, 300); slamT = .9; }
     } else lose('WRONG WAY!');
   };
   const KM = { ArrowLeft: L, KeyA: L, ArrowRight: R, KeyD: R, ArrowUp: U, KeyW: U };
   const g = {
-    wide: true, cmd: 'PUNCH!', hint: 'ARROWS: PUNCH THE ENEMY\'S SIDE', thint: 'TAP THE SIDE WHERE THEY POP UP', dur: 5.6,
+    wide: true, cmd: 'PUNCH THE SNACK!', hint: 'ARROWS: PUNCH THE ANGRY SNACK\'S SIDE', thint: 'TAP THE SIDE WHERE THEY POP UP', dur: 5.6,
     key(e) { if (!e.repeat && KM[e.code] != null) punch(KM[e.code]); },
     down(p) { const dx = p.x - 400; punch(Math.abs(dx) > 170 ? (dx < 0 ? L : R) : U); },
     update(dt) {
-      c += dt; hurt = Math.max(0, hurt - dt);
+      c += dt; hurt = Math.max(0, hurt - dt); slamT = Math.max(0, slamT - dt);
       if (fist) { fist.t += dt; if (fist.t > .25) fist = null; }
       for (let i = dead.length - 1; i >= 0; i--) { dead[i].t += dt; if (dead[i].t > .5) dead.splice(i, 1); }
       if (g.result) return;
@@ -71,36 +80,39 @@ function mvPunch(sp) {
       }
     },
     draw(t) {
-      bg(MAG, '#cb2c8b', t);
-      ctx.fillStyle = INK; ctx.fillRect(-OX, 524, VW, 80); ctx.fillStyle = PUR; ctx.fillRect(-OX, 532, VW, 70);
-      ctx.fillStyle = '#9560e8'; for (let i = -Math.ceil(OX / 110); i < (W + OX) / 110; i++) ctx.fillRect(i * 110 + 20, 560, 60, 8);
-      const drawEnemy = (d, k, a, ko) => {
-        const p = POS[d], sc = k, ex = p[0], ey = p[1];
-        ctx.save(); ctx.globalAlpha = a; ctx.translate(ex, ey); ctx.scale(sc, sc);
+      mvWarp(.6, t);
+      mvPsy(MAG, '#cb2c8b', t, .7);
+      mvBall(660, 80, 40, t);
+      mvTiles(524, t, 120);
+      const drawEnemy = (d, k, a, ko, kind) => {
+        const p = POS[d];
+        ctx.save(); ctx.globalAlpha = a; ctx.translate(p[0], p[1]); ctx.scale(k, k);
         if (ko) ctx.rotate(ko * (d === L ? -1 : 1));
-        shadow(0, 62, 62, 14, .3);
-        circ(0, 0, 56, PUR, 6);
-        ctx.fillStyle = TEAL; for (let i = -1; i <= 1; i++) { ctx.beginPath(); ctx.moveTo(i * 30 - 12, -52); ctx.lineTo(i * 30, -84); ctx.lineTo(i * 30 + 12, -52); ctx.fill(); ctx.strokeStyle = INK; ctx.lineWidth = 4; ctx.stroke(); }
-        circ(-20, -8, 14, '#fff', 4); circ(20, -8, 14, '#fff', 4);
-        ctx.fillStyle = INK; ctx.fillRect(-24, -10, 8, 8); ctx.fillRect(16, -10, 8, 8);
-        ctx.fillRect(-36, -30, 30, 7); ctx.fillRect(6, -30, 30, 7);
-        if (ko) { ctx.strokeStyle = INK; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(-26, 30); ctx.lineTo(26, 30); ctx.stroke(); }
-        else { ctx.fillStyle = INK; ctx.fillRect(-26, 22, 52, 22); ctx.fillStyle = '#fff'; ctx.fillRect(-20, 22, 10, 8); ctx.fillRect(10, 22, 10, 8); }
+        LK.lx = ELX[d]; LK.ly = ELY[d];
+        mvFoodie(0, 56, 1.75, kind, now, ko ? .3 : 2.6, LK);
+        if (ko) for (let i = 0; i < 3; i++) { const aa = now * 9 + i * 2.1; star(Math.cos(aa) * 40, -86 + Math.sin(aa) * 10, 11, 5, 5, aa, YEL, 3); }
         ctx.restore();
       };
       for (const dd of dead) {
         const u = dd.t / .5;
         ctx.save(); ctx.translate((dd.d === L ? -1 : dd.d === R ? 1 : 0) * u * 260, (dd.d === U ? -1 : 0) * u * 180 - 60 * Math.sin(u * 3));
-        drawEnemy(dd.d, 1, 1 - u, u * 8); ctx.restore();
+        drawEnemy(dd.d, 1, 1 - u, u * 8, dd.k); ctx.restore();
       }
       if (cur) {
         const k = clamp(cur.t / .12, 0, 1), sc = k < 1 ? 1.25 * k : 1 + Math.max(0, .25 * (1 - (cur.t - .12) / .1));
         const p = POS[cur.d];
-        drawEnemy(cur.d, sc, 1, 0);
+        drawEnemy(cur.d, sc, 1, 0, KINDS[idx]);
+        txt(SHR[idx % 3], p[0] + SX[cur.d] + Math.sin(now * 55) * 3, p[1] + SY[cur.d], 30, '#fff');
         const left = 1 - cur.t / WIN, blink = left < .35 && Math.sin(now * 40) > 0;
         const ax = CX + (p[0] - CX) * .55, ay = CY - 20 + (p[1] - (CY - 20)) * .55 - (cur.d === U ? 0 : 20);
         if (!blink) drawArrow(ax, ay, ARR[cur.d], 30, YEL);
         box3(p[0] - 50, p[1] + 78, 100, 14, '#fff', 3, 3); ctx.fillStyle = left < .35 ? RED : MINT; ctx.fillRect(p[0] - 50, p[1] + 78, 100 * left, 14);
+      }
+      if (g.result === 'win') {   // a tiny sock surrenders
+        const sx = CX + 140, sw = Math.sin(now * 10) * 8;
+        ctx.strokeStyle = INK; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(sx + 18, 470); ctx.lineTo(sx + 18, 410); ctx.stroke();
+        box(sx + 18, 410, 36 + sw, 20, '#fff', 3);
+        LK.lx = -1; LK.ly = 0; mvFoodie(sx, 528, .6, 3, now, 1.6, LK);
       }
       // Claude + fist
       const f = fist ? Math.sin(clamp(fist.t / .25, 0, 1) * Math.PI) : 0;
@@ -115,6 +127,8 @@ function mvPunch(sp) {
         if (f > .8) { star(tx, ty, 50, 24, 8, now * 4, YEL, 4); }
       }
       for (let i = 0; i < N; i++) { circ(300 + i * 67, 50, 16, i < cnt ? YEL : '#fff', 4); if (i < cnt) star(300 + i * 67, 50, 10, 4, 5, 0, '#fff', 0); }
+      mvSlam('WHAT?!', slamT / .9);
+      ctx.restore();
       vignette(.25);
     }
   };
@@ -125,18 +139,18 @@ reg('mv_punch', mvPunch, 'Punch!');
 /* 2 WAVE: wave the mouse (or alternate left/right) until the crowd cheers */
 function mvWave(sp) {
   const rs = Math.sqrt(sp), need = 8 + Math.round(sp - 1);
-  let meter = 0, c = 0, s = 1, ha = 0, lx = null, dir = 0, ext = 0, lastKey = '', hearts = [], flash = 0;
+  let meter = 0, c = 0, s = 1, ha = 0, lx = null, dir = 0, ext = 0, lastKey = '', hearts = [], flash = 0, winT = -1;
   const wave = () => {
     if (g.result) return;
     meter = Math.min(1, meter + 1 / need); s = -s; flash = .12;
-    sfx.blip(Math.round(meter * 14)); sfx.whoosh(s > 0);
+    sfx.blip(Math.round(meter * 14)); sfx.whoosh(s > 0); snd(260 + meter * 500, .09, 'square', .04, 0, 160 + meter * 700);
     const hx = 400 + 110 * Math.sin(s * .7) + 50, hy = 260 - 110 * Math.cos(s * .7);
     burst(hx, hy, '#fff', 4, 160);
     if (meter > .25 && Math.random() < .6) hearts.push({ x: 140 - OX + Math.random() * (520 + 2 * OX), y: 470, t: 0 });
-    if (meter >= 1) { g.result = 'win'; mvWin(400, 300); floatText('CHEERS!', 400, 170, YEL, 50); }
+    if (meter >= 1) { g.result = 'win'; mvWin(400, 300); floatText('CHEERS!', 400, 170, YEL, 50); sfx.boing(); winT = 0; }
   };
   const g = {
-    wide: true, cmd: 'WAVE!', hint: 'WAVE THE MOUSE (OR ALTERNATE LEFT / RIGHT)', thint: 'SWIPE LEFT AND RIGHT FAST', dur: 5,
+    wide: true, cmd: 'GREET THE SNACKS!', hint: 'WAVE THE MOUSE (OR ALTERNATE LEFT / RIGHT)', thint: 'SWIPE LEFT AND RIGHT FAST', dur: 5,
     key(e) {
       if (e.repeat) return;
       const k = (e.code === 'ArrowLeft' || e.code === 'KeyA') ? 'L' : (e.code === 'ArrowRight' || e.code === 'KeyD') ? 'R' : '';
@@ -151,22 +165,24 @@ function mvWave(sp) {
       else { if (ext >= 35) wave(); dir = nd; ext = Math.abs(dx); }
     },
     update(dt) {
-      c += dt; flash = Math.max(0, flash - dt);
+      c += dt; flash = Math.max(0, flash - dt); if (winT >= 0) winT += dt;
       ha += (s * .7 - ha) * Math.min(1, dt * 18);
       if (!g.result) meter = Math.max(0, meter - .06 * dt * sp);
       for (let i = hearts.length - 1; i >= 0; i--) { hearts[i].t += dt; if (hearts[i].t > 1) hearts.splice(i, 1); }
     },
     draw(t) {
-      bg(TEAL, '#27b0a3', t);
+      mvPsy(TEAL, '#27b0a3', t, .8);
+      mvBall(120, 80, 44, t);
       // stage
       ctx.fillStyle = INK; ctx.fillRect(-OX, 336, VW, 260); ctx.fillStyle = PUR; ctx.fillRect(-OX, 344, VW, 252);
       box3(120, 310, 560, 34, '#FF6FC4', 4, 6);
-      // crowd
-      const cols = [MAG, '#4DB8FF', YEL, MINT, '#fff', OR];
-      const { m, n } = mvCrowd();
-      for (let r = 0; r < 2; r++) for (let j = 0; j < n; j++) {
-        const i = j - m, x = 70 + i * 82 + (r ? 41 : 0), y = r ? 590 : 520, thr = (j + r * n) / (2 * n), up = meter > thr * .9 + .05;
-        mvPerson(x, y, 1.15, cols[(j + r * 2) % cols.length], up ? 1 : 0, up ? Math.abs(Math.sin(now * 9 + i)) * meter * 22 : 0);
+      // crowd of sentient snacks, going nuts as the cheer meter fills; they stare at the waving hand
+      const lk = Math.sin(ha);
+      mvRow(520, t, .3 + meter * 2.2, 1.15, 0, 0, lk, -.6);
+      mvRow(590, t, .3 + meter * 2.2, 1.15, 48, 3, lk, -.6);
+      if (winT >= 0) {   // one snack faints from pure joy
+        const u = Math.min(1, winT / .5), fx = 640, fy = 330 + u * 6;
+        ctx.save(); ctx.translate(fx, fy); ctx.rotate(u * 1.5); LK.lx = 0; LK.ly = 1; mvFoodie(0, 0, 1, 2, t, .2, LK); ctx.restore();
       }
       // Claude on stage
       shadow(400, 316, 80, 14, .3);
@@ -195,7 +211,7 @@ function mvClap(sp) {
   const D0 = .45, E0 = D0 + (pat[2] + 1.6) * b;
   const dem = pat.map(o => D0 + o * b), ech = pat.map(o => E0 + o * b);
   const BX = [300, 400, 500], hit = [false, false, false], demoDone = [false, false, false], lit = [false, false, false];
-  let c = 0, pulse = 0, mine = 0;
+  let c = 0, pulse = 0, mine = 0, slamT = 0;
   const clapFx = (me) => { pulse = .16; if (me) mine = .16; snd(me ? 520 : 330, .07, 'square', .06, 0, me ? 260 : 180); noise(.05, .06, 2500, 5000, 'highpass'); };
   const press = () => {
     if (g.result) return;
@@ -207,28 +223,28 @@ function mvClap(sp) {
       hit[bj] = true; lit[bj] = true; sfx.hit(); sfx.blip(bj * 3);
       const perf = bd < tol * .5; burst(BX[bj], 150, perf ? YEL : MINT, 10); ring(BX[bj], 150, '#fff', 60, .3);
       floatText(perf ? 'PERFECT' : 'GOOD', BX[bj], 215, perf ? YEL : MINT, 26);
-      if (hit.every(Boolean)) { g.result = 'win'; mvWin(400, 300); }
-    } else { g.result = 'lose'; mvLose(); floatText('OFF BEAT!', 400, 300, RED, 46); }
+      if (hit.every(Boolean)) { g.result = 'win'; mvWin(400, 300); sfx.boing(); }
+    } else { g.result = 'lose'; mvLose(); floatText('OFF BEAT!', 400, 300, RED, 46); slamT = .9; snd(600, .4, 'sawtooth', .06, 0, 100); }
   };
   const g = {
-    wide: true, cmd: 'CLAP!', hint: 'WATCH THE RHYTHM, THEN ECHO IT: SPACE / CLICK', thint: 'WATCH, THEN TAP THE BEATS', dur: 4.6,
+    wide: true, cmd: 'CLAP FOR SNACKS!', hint: 'WATCH THE RHYTHM, THEN ECHO IT: SPACE / CLICK', thint: 'WATCH, THEN TAP THE BEATS', dur: 4.6,
     key(e) { if (!e.repeat && e.code === 'Space') press(); },
     down() { press(); },
     update(dt) {
-      c += dt; pulse = Math.max(0, pulse - dt); mine = Math.max(0, mine - dt);
+      c += dt; pulse = Math.max(0, pulse - dt); mine = Math.max(0, mine - dt); slamT = Math.max(0, slamT - dt);
       if (g.result) return;
       for (let j = 0; j < 3; j++) if (!demoDone[j] && c >= dem[j]) { demoDone[j] = true; clapFx(false); }
-      for (let j = 0; j < 3; j++) if (!hit[j] && c > ech[j] + tol) { g.result = 'lose'; mvLose(); floatText('MISSED!', 400, 300, RED, 46); break; }
+      for (let j = 0; j < 3; j++) if (!hit[j] && c > ech[j] + tol) { g.result = 'lose'; mvLose(); floatText('MISSED!', 400, 300, RED, 46); slamT = .9; snd(600, .4, 'sawtooth', .06, 0, 100); break; }
     },
     draw(t) {
-      bg(PUR, '#6c36bd', t);
-      ctx.fillStyle = INK; ctx.fillRect(-OX, 380, VW, 230); ctx.fillStyle = MAG; ctx.fillRect(-OX, 388, VW, 220);
-      const cols = [TEAL, YEL, '#4DB8FF', MINT, OR, '#fff'];
-      const { m, n } = mvCrowd();
-      for (let r = 0; r < 2; r++) for (let j = 0; j < n; j++) {
-        const x = 70 + (j - m) * 82 + (r ? 41 : 0), y = r ? 470 : 420, cl = pulse > 0;
-        mvPerson(x, y, 1, cols[(j + r) % cols.length], cl ? 2 : 0, cl ? 6 : 0);
-      }
+      mvWarp(pulse > 0 ? 1.2 : .4, t);
+      mvPsy(PUR, '#6c36bd', t, .8);
+      mvBall(650, 70, 40, t);
+      mvTiles(380, t, 120);
+      // snacks clap along (arms flail on each clap)
+      const cw = pulse > 0 ? 2.6 : g.result === 'win' ? 2.2 : .5;
+      mvRow(430, t, cw, 1, 0, 0, 0, 1);
+      mvRow(500, t, cw, 1, 48, 2, 0, 1);
       // Claude clapping
       shadow(400, 590, 80, 14, .3);
       claude(400, 588, 9, { mood: mvMood(g) });
@@ -246,6 +262,8 @@ function mvClap(sp) {
         }
       }
       txt(echoing ? 'NOW!' : 'WATCH', 400, 80, 34, echoing ? YEL : '#fff');
+      mvSlam('WHAT?!', slamT / .9);
+      ctx.restore();
       vignette(.25);
     }
   };
@@ -260,7 +278,7 @@ function mvBalance(sp) {
   let a = (Math.random() < .5 ? -1 : 1) * .28, w = 0, c = 0, md = 0, fall = 0, warn = 0, lastDir = 0;
   const push = (d) => { if (g.result) return; w += d * 1.4; sfx.click(); burst(400 - d * -20, 470, '#fff', 3, 120); lastDir = d; };
   const g = {
-    get lean() { return a; }, wide: true, cmd: 'STAND!', hint: 'LEFT / RIGHT AGAINST THE LEAN', thint: 'TAP THE SIDE OPPOSITE THE LEAN', dur: 5, timeWin: true,
+    get lean() { return a; }, wide: true, cmd: 'STAND ON DONUT!', hint: 'LEFT / RIGHT AGAINST THE LEAN', thint: 'TAP THE SIDE OPPOSITE THE LEAN', dur: 5, timeWin: true,
     key(e) {
       if (e.repeat) return;
       if (e.code === 'ArrowLeft' || e.code === 'KeyA') push(-1);
@@ -279,19 +297,28 @@ function mvBalance(sp) {
       w += acc * dt; a += w * dt;
       if (Math.abs(a) > .75 && warn <= 0) { warn = .3; sfx.tick(); }
       if (Math.abs(a) >= 1) {
-        g.result = 'lose'; a = Math.sign(a) * 1; mvLose(); sfx.splat(); burst(400 + a * 120, 460, RED, 16); floatText('TIMBER!', 400, 250, RED, 50);
+        g.result = 'lose'; a = Math.sign(a) * 1; mvLose(); sfx.splat(); sfx.boing(); burst(400 + a * 120, 460, RED, 16); floatText('TIMBER!', 400, 250, RED, 50);
       }
     },
     draw(t) {
-      bg('#FF5CB8', '#f046a8', t);
-      // abyss + pillar
-      ctx.fillStyle = INK; ctx.fillRect(-OX, 500, VW, 100); ctx.fillStyle = '#3a1c70'; ctx.fillRect(-OX, 508, VW, 92);
-      ctx.fillStyle = TEAL; for (let i = -Math.ceil(OX / 100); i < (W + OX) / 100; i++) { const x = i * 100 + 10; ctx.beginPath(); ctx.moveTo(x, 600); ctx.lineTo(x + 30, 540); ctx.lineTo(x + 60, 600); ctx.fill(); ctx.strokeStyle = INK; ctx.lineWidth = 4; ctx.stroke(); }
-      box3(340, 470, 120, 130, TEAL, 5, 6); box(330, 462, 140, 20, '#7ff0e3', 5);
-      shadow(400, 482, 70, 12, .3);
+      mvPsy('#FF5CB8', '#f046a8', t, .8);
+      mvBall(700, 170, 38, t);
+      LK.lx = a; LK.ly = -.6; mvRow(500, t, .8, .75, 0, 1, a, -.6);
+      mvTiles(500, t, 110);
+      // giant rolling eyeball donut (Claude's unicycle)
+      const lost0 = g.result === 'lose', dx = lost0 ? fall * 380 * Math.sign(a || 1) : 0, rr = a * 3 + c * .6 + dx * .02;
+      shadow(400 + dx, 560, 110, 14, .3);
+      ctx.save(); ctx.translate(400 + dx, 560); ctx.rotate(rr);
+      circ(0, 0, 100, '#FF8FD0', 6); circ(0, 0, 38, '#2b0f5e', 4);
+      ctx.fillStyle = '#fff'; for (let i = 0; i < 9; i++) { const aa = i * .7; ctx.save(); ctx.translate(Math.cos(aa) * 68, Math.sin(aa) * 68); ctx.rotate(aa * 3); ctx.fillRect(-7, -2, 14, 5); ctx.restore(); }
+      ctx.restore();
+      mvEye(400 + dx, 560, 30, lost0 ? 0 : -a * 2, lost0 ? 1 : .6);
+      ctx.fillStyle = INK; ctx.fillRect(400 + dx - 20, 540 - (lost0 ? 0 : Math.abs(a) * 8), 40, 5);
+      // a lonely sock tumbles through the wind
+      { const sw = VW + 200, sxx = ((c * 140 + 100) % sw) - OX - 100; ctx.save(); ctx.translate(sxx, 230 + Math.sin(c * 3) * 30); ctx.rotate(c * 4); LK.lx = 0; LK.ly = 0; mvFoodie(0, 30, .55, 3, t, .2, LK); ctx.restore(); }
       const lost = g.result === 'lose';
       ctx.save();
-      ctx.translate(400, 462 + (lost ? fall * fall * 700 : 0)); ctx.rotate(a * .55 + (lost ? fall * 4 * Math.sign(a) : 0));
+      ctx.translate(400 + (lost ? fall * 380 * Math.sign(a || 1) : 0), 462 + (lost ? fall * fall * 700 : 0)); ctx.rotate(a * .55 + (lost ? fall * 4 * Math.sign(a) : 0));
       claude(0, 0, 8, { mood: mvMood(g) });
       // raised foot gag + flailing arms
       const fl = Math.sin(now * 12) * .3 * Math.min(1, Math.abs(a) * 2);

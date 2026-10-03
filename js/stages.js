@@ -29,5 +29,5 @@ const STAGES = [
   { name: 'TWISTED!', tag: 'Tilt it. Spin it. Steer it!', col: '#FF9F1C', bg: ['#FFE5B4', '#ffd9a0'],
     pool: ['tw_tilt', 'tw_spin', 'tw_pour', 'tw_dial', 'tw_slide', 'tw_wheel', 'tw_coins', 'tw_skate'], n: 8, sp0: 1.3, boss: 'tug' },
   { name: 'MOVE IT!', tag: 'Strike a pose. Hit the beat!', col: '#E040FB', bg: ['#F3C6FF', '#ecb2fb'],
-    pool: ['mv_pose', 'mv_mirror', 'mv_beat', 'mv_swim', 'mv_punch', 'mv_wave', 'mv_clap', 'mv_balance'], n: 8, sp0: 1.3, boss: 'rhythm' }
+    pool: ['mv_pose', 'mv_mirror', 'mv_beat', 'mv_swim', 'mv_punch', 'mv_wave', 'mv_clap', 'mv_balance'], n: 8, sp0: 1.3, boss: 'rhythm', intro: 'mv' }
 ];

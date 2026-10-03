@@ -151,33 +151,72 @@ const BOSSES = {
     };
     return g;
   },
-  /* rhythm: hit Space when the ring closes on the target; enough hits wins */
+  /* rhythm: FINAL BOSS of the cursed disco. Hit Space when the ring closes on the target; 6 of 8 notes win.
+     A giant DJ disco ball taunts, sheds tiles and gets more unhinged with every hit; on a win it falls off its pedestal and explodes into sandwiches. */
   rhythm(sp, s) {
-    const need = 6, beat = 1.05 / Math.sqrt(sp), notes = []; let hits = 0, miss = 0, flash = 0, fb = '', fbT = 0;
+    const need = 6, beat = 1.05 / Math.sqrt(sp), notes = []; let hits = 0, miss = 0, flash = 0, fb = '', fbT = 0, slam = '', slamT = 0, slamC = '#FFE14D', winAt = 0, boomed = false, kick = 0;
     for (let i = 0; i < 8; i++) notes.push({ t: 1.2 + i * beat, done: false });
     let clock = 0;
+    const tiles = []; for (let i = 0; i < 14; i++) tiles.push({ x: 0, y: 0, vx: 0, vy: 0, r: 0, vr: 0, c: 0, life: 0 });
+    let ti = 0;
+    const shed = n => { for (let i = 0; i < n; i++) { const o = tiles[ti++ % tiles.length]; o.x = 400 + (Math.random() - .5) * 90; o.y = 150 + (Math.random() - .3) * 60; o.vx = (Math.random() - .5) * 420; o.vy = -200 - Math.random() * 200; o.r = Math.random() * 6; o.vr = (Math.random() - .5) * 14; o.c = (Math.random() * 3) | 0; o.life = 1.6; } };
+    const SLAMS = ['WHAT?!', 'STOP IT!', 'NO WAY!', 'MY TILES!', 'HOW?!'], TAUNT = ['LOL', 'NOPE', 'SKILL ISSUE', 'OOF'];
     const hit = () => {
       if (g.result) return; const n = notes.find(n => !n.done && Math.abs(n.t - clock) < .3);
       if (!n) { miss++; sfx.miss(); fb = 'OOPS'; fbT = .4; return; }
-      n.done = true; hits++; const d = Math.abs(n.t - clock); fb = d < .1 ? 'PERFECT!' : 'GOOD'; fbT = .4; flash = .12; sfx.blip(hits * 2); ring(400, 360, '#FFE14D', 100, .3);
-      if (hits >= need) { g.result = 'win'; confetti(W / 2, 300, 50); sfx.sparkle(); shake(10, .3); }
+      n.done = true; hits++; const d = Math.abs(n.t - clock); fb = d < .1 ? 'PERFECT!' : 'GOOD'; fbT = .4; flash = .12; kick = .35; sfx.blip(hits * 2); ring(400, 360, '#FFE14D', 100, .3);
+      shed(2); sfx.boing(); slam = SLAMS[(hits - 1) % SLAMS.length]; slamT = hits < need ? .5 : 0; slamC = MVC[hits % 6];
+      if (hits >= need) { g.result = 'win'; winAt = now; confetti(W / 2, 300, 50); sfx.sparkle(); shake(10, .3); shed(14); }
     };
     const g = {
       cmd: 'BOSS!', hint: 'HIT SPACE ON THE BEAT!', thint: 'TAP ON THE BEAT', dur: 11, boss: true, wide: true,
       key(e) { if (e.code === 'Space' || e.code === 'Enter') hit(); },
       down() { hit(); },
       update(dt) {
-        clock += dt; flash = Math.max(0, flash - dt); fbT = Math.max(0, fbT - dt); if (g.result) return;
-        for (const n of notes) if (!n.done && clock - n.t > .3) { n.done = true; miss++; sfx.miss(); fb = 'MISS'; fbT = .4; }
+        clock += dt; flash = Math.max(0, flash - dt); fbT = Math.max(0, fbT - dt); slamT = Math.max(0, slamT - dt); kick = Math.max(0, kick - dt);
+        for (const o of tiles) if (o.life > 0) { o.life -= dt; o.vy += 900 * dt; o.x += o.vx * dt; o.y += o.vy * dt; o.r += o.vr * dt; }
+        if (g.result) return;
+        for (const n of notes) if (!n.done && clock - n.t > .3) { n.done = true; miss++; sfx.miss(); fb = 'MISS'; fbT = .4; slam = TAUNT[miss % 4]; slamT = .5; slamC = '#FF4D4D'; }
         if (miss > notes.length - need) { g.result = 'lose'; sfx.buzz(); shake(8, .3); }
       },
       draw(t) {
-        bg('#3a1457', Math.floor(clock / beat) % 2 ? '#4f1d73' : '#44186a', t);
-        txt('DANCE-OFF!', W / 2, 100, 34, '#fff'); txt(`${hits} / ${need}`, W / 2, 150, 26, '#FFE14D');
+        const k = hits / need, win = g.result === 'win', lose = g.result === 'lose', wt = win ? now - winAt : 0, B = clock / beat;
+        mvWarp(.4 + k * 1.6 + (lose ? 1 : 0), now);
+        mvPsy(Math.floor(B) % 2 ? '#3a1457' : '#4a1a70', Math.floor(B) % 2 ? '#6a1f9a' : '#7d2ab0', now, .5 + k * 1.1);
+        mvTiles(470, now, 100 + k * 80);
+        mvAudience(468, now, .6 + k * 1.4 + (win ? 1 : 0) + (lose ? -.5 : 0), .85, Math.sin(now * 2), -.3);
+        /* the boss: giant DJ disco ball on a pedestal */
+        let bx = 400 + Math.sin(now * (2 + k * 4)) * (6 + k * 26), by = 150 + Math.sin(now * 3) * 6 - kick * 40, br = 70 * (1 + Math.max(0, Math.sin(B * Math.PI * 2)) * .05 + kick * .4);
+        if (win) { const f = Math.min(wt, 1); by = 150 + 900 * f * f * .33 + 320 * f; bx += wt * 60; }
+        const alive = !win || by < 440;
+        if (!win) { ctx.fillStyle = INK; ctx.fillRect(bx - 34, 232, 68, 240); ctx.fillStyle = '#8a6ad8'; ctx.fillRect(bx - 28, 236, 56, 236); }
+        if (alive) {
+          ctx.save(); ctx.translate(bx, by); ctx.rotate((win ? wt * 12 : Math.sin(now * (3 + k * 5)) * .12 * (1 + k * 2))); ctx.translate(-bx, -by);
+          mvBall(bx, by, br, now * (1 + k * 3));
+          const ex = Math.sin(now * (3 + k * 6)) * (k > .5 ? 1 : .3), ey = .8 + Math.cos(now * 4) * (k > .5 ? 1 : 0);
+          mvEye(bx - br * .32, by + br * .05, br * .26, ex, ey); mvEye(bx + br * .32, by + br * .05, br * .26, -ex, ey);
+          if (k > .6) { const sw = Math.sin(now * 30) * br * .1; ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(bx - br * .32 + sw, by + br * .05, br * .09, 0, 7); ctx.arc(bx + br * .32 - sw, by + br * .05, br * .09, 0, 7); ctx.fill(); }
+          ctx.fillStyle = INK; ctx.beginPath(); const mo = lose ? br * .3 : (win ? br * .35 : Math.max(0, Math.sin(B * Math.PI * 2 + 1)) * br * .22 * (1 + k));
+          ctx.ellipse(bx, by + br * .55, br * .22, br * .05 + mo, 0, 0, 7); ctx.fill();
+          if (mo > br * .08) { ctx.fillStyle = '#FF3EA5'; ctx.fillRect(bx - br * .1, by + br * .55 + mo * .3, br * .2, mo * .6); }
+          ctx.restore();
+          /* DJ hot dog riding on top, headphones on */
+          if (!win) { mvFoodie(bx, by - br + 14, .55, 0, now, 1 + k * 2); ctx.strokeStyle = INK; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(bx, by - br - 22, 15, Math.PI, 0); ctx.stroke(); circ(bx - 15, by - br - 20, 6, '#FF3EA5', 3); circ(bx + 15, by - br - 20, 6, '#FF3EA5', 3); }
+        } else if (!boomed) {
+          boomed = true; sfx.splat(); sfx.boing(); shake(14, .5); confetti(bx, 440, 60); burst(bx, 440, '#F0B35A', 24, 420); ring(bx, 440, '#fff', 200, .5);
+        }
+        /* flying mirror tiles */
+        for (const o of tiles) if (o.life > 0) { ctx.save(); ctx.translate(o.x, o.y); ctx.rotate(o.r); ctx.fillStyle = o.c ? '#fff' : '#9fb0d6'; ctx.strokeStyle = INK; ctx.lineWidth = 3; ctx.fillRect(-8, -8, 16, 16); ctx.strokeRect(-8, -8, 16, 16); ctx.restore(); }
+        /* explosion of sandwiches */
+        if (win && boomed) { const e = wt - .75; if (e > 0) for (let i = 0; i < 6; i++) { const a = -1.2 - i * .5, v = 380 + i * 60, sx = bx + Math.cos(a) * v * e * (i & 1 ? -1 : 1), sy = 440 + Math.sin(a) * v * e + 700 * e * e;
+          ctx.save(); ctx.translate(sx, sy); ctx.rotate(e * (4 + i)); ctx.fillStyle = INK; ctx.fillRect(-27, -19, 54, 38); ctx.fillStyle = '#F0B35A'; ctx.fillRect(-23, -15, 46, 10); ctx.fillRect(-23, 5, 46, 10); ctx.fillStyle = '#5CFF7A'; ctx.fillRect(-25, -5, 50, 5); ctx.fillStyle = '#FF8FD0'; ctx.fillRect(-21, 0, 42, 5); ctx.restore(); } }
+        txt('DANCE-OFF!', W / 2, 40, 28, '#fff'); txt(`${hits} / ${need}`, W / 2, 262, 26, '#FFE14D');
         ctx.lineWidth = 8; ctx.strokeStyle = flash > 0 ? '#fff' : '#FFE14D'; ctx.beginPath(); ctx.arc(400, 360, 60, 0, 7); ctx.stroke();
         for (const n of notes) { const d = n.t - clock; if (n.done || d > .9 || d < -.3) continue; ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(400, 360, 60 + Math.max(0, d) * 220, 0, 7); ctx.stroke(); }
-        claude(400, 380 + Math.sin(clock * Math.PI / beat * 2) * 8, 3, { mood: g.result === 'lose' ? 'sad' : g.result === 'win' ? 'happy' : null, run: g.result ? null : now });
-        if (fbT > 0) txt(fb, 400, 230, 40, '#fff');
+        claude(400, 380 + Math.sin(clock * Math.PI / beat * 2) * 8, 3, { mood: lose ? 'sad' : win ? 'happy' : null, run: g.result ? null : now });
+        if (fbT > 0) txt(fb, 400, 300, 40, '#fff');
+        if (win && wt > .9) mvSlam('SANDWICHES?!', Math.max(.3, 1 - (wt - .9) * 1.5), '#5CFF7A', 330, 80); else mvSlam(slam, slamT * 2, slamC, 330, 90);
+        ctx.restore();
         vignette(.3);
       }
     };

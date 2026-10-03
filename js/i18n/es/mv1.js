@@ -29,4 +29,12 @@ I18N.add('es', {
   'FIRST!': '¡PRIMERO!',
   'TOO SLOW!': '¡MUY LENTO!',
   'FINISH': 'META',
+  'FEED THE WALL!': '¡ALIMENTA LA PARED!',
+  'COPY THE DOG!': '¡COPIA AL PERRITO!',
+  'OBEY THE BALL!': '¡OBEDECE A LA BOLA!',
+  'SOUP SWIM!': '¡NADA EN SOPA!',
+  'WHAT?!': '¡¿QUÉ?!',
+  'NOM!': '¡ÑAM!',
+  'QUACK!': '¡CUAC!',
+  'GLORP!': '¡GLUP!',
 }, 'mv');

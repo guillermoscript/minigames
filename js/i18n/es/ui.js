@@ -45,6 +45,7 @@ I18N.add('es', {
   'PRACTICE': 'PRÁCTICA', 'TITLE': 'INICIO', 'RANKS': 'RANKING', 'PROFILE': 'PERFIL',
   '1-6 STAGE · ◄ ► PAGE · P PRACTICE · L RANKS · A PROFILE · ESC BACK': '1-6 ETAPA · ◄ ► PÁGINA · P PRÁCTICA · L RANKING · A PERFIL · ESC VOLVER',
   '◄ BACK': '◄ VOLVER', 'SPEED x{n}': 'VELOCIDAD x{n}',
+  'CURSED DISCO. NO REFUNDS.': 'DISCO MALDITA. SIN REEMBOLSOS.',
   '{n} GAMES + BOSS': '{n} JUEGOS + JEFE', 'GAME {n} / {total}': 'JUEGO {n} / {total}',
 
   /* in game */

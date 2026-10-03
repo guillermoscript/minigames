@@ -96,6 +96,7 @@ console.log("party.test.js OK");
   const v = P.newRoom("VOIC", "versus", 0); const va = P.addPlayer(v, { name: "A" }, rand), vb = P.addPlayer(v, { name: "B" }, rand);
   const m1 = P.vsigPayload(v, "a", "b", "offer", { sdp: "x" }); assert.deepEqual(m1, { from: "a", to: "b", k: "offer", d: { sdp: "x" } });
   assert.equal(P.vsigPayload(v, "b", undefined, "hello").to, "*");
+  for (const k of ["dhello", "doffer", "danswer", "dice"]) assert.equal(P.vsigPayload(v, "a", "b", k, { s: "x" }).k, k);   // DUO direct-link setup
   throwsStatus(() => P.vsigPayload(v, "a", "zz", "offer", {}), 400);
   throwsStatus(() => P.vsigPayload(v, "a", "b", "evil", {}), 400);
   throwsStatus(() => P.vsigPayload(v, "q", "b", "offer", {}), 403);

@@ -65,7 +65,7 @@ function partyConnect() {
   });
   es.addEventListener('rooms/' + id, ev => { try { const d = JSON.parse(ev.data); if (d.action === 'delete') roomGone(); else applyRoom(d.record); } catch (e) {} });
   es.addEventListener('rooms/' + id + '/sig', ev => { try { onSig(JSON.parse(ev.data)); } catch (e) {} });   // NB: PocketBase's SSE frames have no space after the colons
-  es.addEventListener('rooms/' + id + '/vsig', ev => { try { onVsig(JSON.parse(ev.data)); } catch (e) {} });
+  es.addEventListener('rooms/' + id + '/vsig', ev => { try { { const d = JSON.parse(ev.data); onVsig(d); onLinkSig(d); } } catch (e) {} });
   es.onerror = () => { party.sseOK = false; };           // EventSource reconnects by itself and fires PB_CONNECT again
 }
 function partyDisconnect() { if (party.es) { try { party.es.close(); } catch (e) {} } party.es = null; party.sseOK = false; }
@@ -115,7 +115,7 @@ let PINVITE_USED = false;
 const inviteOpen = () => !!PINVITE && !PINVITE_USED;
 
 function partyCleanup() {
-  voiceStop(false); partyDisconnect(); party.sig = { q: [], buf: [], busy: false, last: 0, hbAt: 0, round: -1, handler: null, rx: 0, since: 0 }; party.room = null; party.you = null; party.pending = null; party.played = -1; saveSession();
+  voiceStop(false); linkClose(); link.tries = 0; link.tryFor = ''; partyDisconnect(); party.sig = { q: [], buf: [], busy: false, last: 0, hbAt: 0, round: -1, handler: null, rx: 0, since: 0 }; party.room = null; party.you = null; party.pending = null; party.played = -1; saveSession();
 }
 function partyLeave(to) {
   voiceStop(true); if (party.room && party.you) pcall('leave', auth());
@@ -138,9 +138,14 @@ const SIG_GAP = .1, SIG_HB = .5, SIG_AWAY = 2;
 function onSig(d) {
   const S = party.sig, R = party.room; if (!R || !d || !d.m || d.from === (party.you && party.you.id)) return;
   S.rx = now;
-  if (S.handler && d.round === S.round) { for (const m of d.m) if (m.t !== 'hb') S.handler(m.t, m.d); return; }
+  d = Object.assign({}, d, { m: d.m.filter(m => {                                // hb / ping / pong are ours, not the game's
+    if (m.t === 'ping') { S.q.unshift({ t: 'pong', d: m.d, l: true }); return false; }
+    if (m.t === 'pong') { gotPong(m.d, 'relay'); return false; }
+    return m.t !== 'hb';
+  }) });
+  if (S.handler && d.round === S.round) { for (const m of d.m) S.handler(m.t, m.d); return; }
   if (d.round < R.round) return;                                                  // late message from a finished round
-  for (const m of d.m) if (m.t !== 'hb') S.buf.push({ round: d.round, t: m.t, d: m.d });   // partner started first: keep it for my own constructor
+  for (const m of d.m) S.buf.push({ round: d.round, t: m.t, d: m.d });   // partner started first: keep it for my own constructor
   if (S.buf.length > 80) S.buf.splice(0, S.buf.length - 80);
 }
 /* context handed to a DUO microgame: { role: 0|1, partner, send(type, data, latest), onMsg(fn(type, data)), away() } */
@@ -151,8 +156,8 @@ function duoCtx(R) {
   return {
     role: (i + R.round) % 2, roles: 2, partner: pn ? { name: pn.name, color: pn.color } : null,
     send(type, data, latest) {
-      if (latest) { const k = S.q.findIndex(m => m.t === type); if (k >= 0) { S.q[k].d = data; return; } }
-      S.q.push({ t: type, d: data === undefined ? null : data });
+      if (latest) { const k = S.q.findIndex(m => m.t === type && m.l); if (k >= 0) { S.q[k].d = data; return; } }
+      S.q.push({ t: type, d: data === undefined ? null : data, l: !!latest });
     },
     onMsg(fn) { S.handler = fn; S.buf.splice(0).forEach(x => x.round === S.round && fn(x.t, x.d)); },
   };
@@ -160,10 +165,12 @@ function duoCtx(R) {
 const duoAway = () => !!party.room && party.room.mode === 'duo' && party.sig.round === party.room.round && now - party.sig.since > SIG_AWAY && now - party.sig.rx > SIG_AWAY;
 async function sigFlush() {
   const S = party.sig, R = party.room; if (!R || R.mode !== 'duo' || R.state !== 'round' || S.round !== R.round) { S.q.length = 0; return; }
-  if (now - S.hbAt > SIG_HB) { S.hbAt = now; if (!S.q.length) S.q.push({ t: 'hb', d: null }); }
+  if (now - S.hbAt > SIG_HB) { S.hbAt = now; if (!S.q.length) S.q.push({ t: 'hb', d: null, l: true }); }
+  const direct = linkUsable();                                                   // DataChannel to the partner: no HTTP round trip
+  if (direct) { if (!S.q.length || now - S.last < .03) return; S.last = now; linkSend(R.round, S.q.splice(0, 20)); return; }
   if (S.busy || !S.q.length || now - S.last < SIG_GAP) return;
   const m = []; let size = 0;
-  while (S.q.length && m.length < 10) { const n = JSON.stringify(S.q[0]).length; if (m.length && size + n > 440) break; size += n; m.push(S.q.shift()); }
+  while (S.q.length && m.length < 10) { const n = JSON.stringify(S.q[0]).length; if (m.length && size + n > 440) break; size += n; const it = S.q.shift(); m.push({ t: it.t, d: it.d }); }
   S.busy = true; S.last = now;
   try { const r = await pcall('sig', Object.assign(auth(), { round: R.round, m })); if (r.status === 404) roomGone(); } finally { S.busy = false; }
 }
@@ -291,6 +298,7 @@ function drawLobby(R) {
   const pop = easeBack(st / .4);
   ctx.save(); ctx.translate(W / 2, 92); ctx.scale(pop, pop); txt(R.code, 5, 6, 92, INK); txt(R.code, 0, 0, 92, '#FFE14D'); ctx.restore();
   txt(location.host + '/r/' + R.code, W / 2, 152, 18, '#ddd', 'center', 740);
+  if (R.mode === 'duo' && partnerOf(R)) txt(link.state === 'open' ? (linkLabel() ? t('DIRECT LINK READY · {label}', { label: linkLabel() }) : 'DIRECT LINK READY') : link.tries >= 4 ? 'USING THE SERVER RELAY' : 'CONNECTING DIRECTLY...', W / 2, 172, 14, link.state === 'open' ? '#5CFF7A' : '#FFE14D', 'center', 740);
   for (let i = 0; i < 4; i++) {
     const p = R.players[i], x = 40 + i * 188, y = 186, k = easeOut((st - i * .06) / .3);
     ctx.save(); ctx.translate(0, (1 - k) * 30); ctx.globalAlpha = k;
@@ -435,3 +443,4 @@ function drawPartyHud() {
   if (R.mode !== 'versus') txt(t('LIVES {n}', { n: R.lives }), W + OX - 16, 60, 20, '#FF4D9E', 'right');
   else { const m = me(); if (m) txt(String(m.score), W + OX - 16, 60, 22, '#FFE14D', 'right'); }
 }
+    if (linkLabel()) txt(linkLabel(), 14 - OX, 162, 13, link.via === 'p2p' ? '#5CFF7A' : '#ddd', 'left', 200);

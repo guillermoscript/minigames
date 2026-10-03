@@ -198,7 +198,7 @@ function sigPayload(room, id, round, m) {
 }
 
 /* voice chat signaling (WebRTC offer/answer/ICE): any room state, any mode, to one player (`to`) or everybody ('*'). Audio itself never touches the server. */
-const VSIG_MAX = 4096, VSIG_KINDS = ["hello", "here", "bye", "offer", "answer", "ice"];
+const VSIG_MAX = 4096, VSIG_KINDS = ["hello", "here", "bye", "offer", "answer", "ice", "dhello", "doffer", "danswer", "dice"];
 function vsigPayload(room, id, to, k, d) {
   const p = player(room, id);
   if (!p || p.left) fail("Not in this room", 403);

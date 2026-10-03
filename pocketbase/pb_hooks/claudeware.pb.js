@@ -33,4 +33,5 @@ onBootstrap((e) => {
 // PARTY mode (rooms with friends): every action is a POST that runs room logic in a transaction; clients watch the room via realtime.
 routerAdd("POST", "/api/party/{action}", (e) => require(`${__hooks}/party_routes.js`).handle(e, e.request.pathValue("action")));
 routerAdd("GET", "/r/{code}", (e) => require(`${__hooks}/party_routes.js`).invitePage(e));
+routerAdd("GET", "/r/{code}/og.png", (e) => require(`${__hooks}/party_routes.js`).ogImage(e));
 cronAdd("party_gc", "*/20 * * * *", () => { try { require(`${__hooks}/party_routes.js`).gc(); } catch (err) { console.log("[party] gc failed: " + err); } });

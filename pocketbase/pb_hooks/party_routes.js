@@ -112,16 +112,24 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&
 function invitePage(e) {
   const code = P.cleanCode(e.request.pathValue("code"));
   if (code.length !== 4) return e.redirect(302, "/");
-  const title = "Join my Claude Ware room: " + code, desc = "Play 5-second microgames with friends, live. Tap the link to join the room.";
-  const q = "/?r=" + code, url = SITE + "/r/" + code;
+  const title = "Join my Claude Ware room: " + code, desc = "Room code " + code + " - play 5-second microgames with friends, live. Tap the link to join!";
+  const q = "/?r=" + code, url = SITE + "/r/" + code, img = SITE + "/r/" + code + "/og.png";
   return e.html(200, '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>' + esc(title) + '</title>' +
     '<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="' + esc(desc) + '">' +
     '<meta property="og:site_name" content="Claude Ware"><meta property="og:type" content="website"><meta property="og:url" content="' + esc(url) + '">' +
     '<meta property="og:title" content="' + esc(title) + '"><meta property="og:description" content="' + esc(desc) + '">' +
-    '<meta property="og:image" content="' + SITE + '/img/og.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">' +
-    '<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="' + esc(title) + '"><meta name="twitter:description" content="' + esc(desc) + '"><meta name="twitter:image" content="' + SITE + '/img/og.png">' +
+    '<meta property="og:image" content="' + img + '"><meta property="og:image:type" content="image/png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">' +
+    '<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="' + esc(title) + '"><meta name="twitter:description" content="' + esc(desc) + '"><meta name="twitter:image" content="' + img + '">' +
     '<meta http-equiv="refresh" content="0;url=' + esc(q) + '"></head><body style="background:#6a3de8;color:#fff;font:700 20px sans-serif;text-align:center;padding-top:20vh"><a style="color:#FFE14D" href="' + esc(q) + '">Opening Claude Ware...</a>' +
     '<script>location.replace(' + JSON.stringify(q) + ')</script></body></html>');
+}
+
+/* /r/<code>/og.png: link-preview image with the room code in it (see ogimg.js). Cached by chat apps and the CDN. */
+function ogImage(e) {
+  const code = P.cleanCode(e.request.pathValue("code"));
+  if (code.length !== 4) return e.redirect(302, "/img/og.png");
+  e.response.header().set("Cache-Control", "public, max-age=86400");
+  return e.blob(200, "image/png", require(`${__hooks}/ogimg.js`).roomImage(code));
 }
 
 /* delete rooms nobody touched for 6 hours */
@@ -132,4 +140,4 @@ function gc() {
   return old.length;
 }
 
-module.exports = { handle, relay, invitePage, gc };
+module.exports = { handle, relay, invitePage, ogImage, gc };

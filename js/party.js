@@ -128,9 +128,9 @@ function roomGone() {
 }
 /* pagehide also fires when a phone locks, switches app or freezes the tab: that must never kick the player out. Only a real tab close on a
    computer, while still in the lobby, says goodbye; a silent player is closed out by the server's round tick instead. */
-const TOUCH = matchMedia('(pointer: coarse)').matches;
+const COARSE = matchMedia('(pointer: coarse)').matches;   // not TOUCH: core.js already declares that
 addEventListener('pagehide', e => {
-  if (TOUCH || e.persisted || !party.room || party.room.state !== 'lobby') return;
+  if (COARSE || e.persisted || !party.room || party.room.state !== 'lobby') return;
   if (party.room && party.you) { try { navigator.sendBeacon(API_BASE + '/api/party/leave', new Blob([JSON.stringify(auth())], { type: 'application/json' })); } catch (e) {} }
 });
 

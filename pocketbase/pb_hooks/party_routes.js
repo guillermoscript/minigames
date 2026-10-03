@@ -34,6 +34,7 @@ function exec(tx, action, body, auth, now) {
     if (!code) P.fail("Server is busy, try again soon", 503);
     const o = P.newRoom(code, body.mode, now); o.made = now;
     const me = P.addPlayer(o, who(auth, body), rand);
+    if (auth && auth.collection().name === "users") o.keys["u:" + me.id] = auth.id;
     const rec = new Record(tx.findCollectionByNameOrId("rooms"));
     rec.set("code", code); store(rec, o); tx.save(rec);
     return { room: view(rec, o), you: me };
@@ -45,7 +46,11 @@ function exec(tx, action, body, auth, now) {
   let extra = {};
   if (action === "join") {
     if (body.id && body.key && P.active(o).some((p) => p.id === body.id && o.keys[p.id] === body.key)) extra.you = { id: body.id, key: body.key }; // rejoin after reload
-    else extra.you = P.addPlayer(o, who(auth, body), rand);
+    else {
+      extra.you = P.addPlayer(o, who(auth, body), rand);
+      const uid = auth && auth.collection().name === "users" ? auth.id : "";
+      if (uid) { befriendRoom(tx, o, uid); o.keys["u:" + extra.you.id] = uid; }   // never shown to clients (keys are stripped)
+    }
   } else if (action === "tick") {
     P.tick(o, now);
   } else {
@@ -60,6 +65,21 @@ function exec(tx, action, body, auth, now) {
   }
   if (JSON.stringify(o) !== before) { store(rec, o); tx.save(rec); }
   return Object.assign({ room: view(rec, o) }, extra);
+}
+/* joining a room as a signed-in player makes you mutual friends with every other signed-in player already in it (best effort, capped like the client) */
+function befriendRoom(tx, o, uid) {
+  try {
+    const col = tx.findCollectionByNameOrId("friends");
+    const follow = (a, b) => {
+      try { tx.findFirstRecordByFilter("friends", "from = {:a} && to = {:b}", { a: a, b: b }); return; } catch (_) {}
+      if (tx.countRecords("friends", $dbx.hashExp({ from: a })) >= 200) return;
+      const r = new Record(col); r.set("from", a); r.set("to", b); tx.save(r);
+    };
+    for (const p of P.active(o)) {
+      const other = o.keys["u:" + p.id];
+      if (other && other !== uid) { follow(uid, other); follow(other, uid); }
+    }
+  } catch (err) { console.log("[party] befriend: " + err); }
 }
 /* signed-in players use their profile name + colour; guests send their own (sanitised in party.js) */
 function who(auth, body) {

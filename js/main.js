@@ -62,7 +62,7 @@ async function shareCopy() {
 }
 function drawShareMenu() {
   btns = [];
-  ctx.fillStyle = 'rgba(10,8,24,.82)'; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = 'rgba(10,8,24,.82)'; ctx.fillRect(-OX, 0, VW, H);
   txt('CHALLENGE YOUR FRIENDS', W / 2, 70, 44, '#FFE14D', 'center', 740);
   SHARE_TARGETS.forEach((tg, i) => button(130 + (i % 2) * 280, 130 + (i / 2 | 0) * 90, 260, 70, tg.label, () => shareVia(tg), { fill: tg.fill, size: 24 }));
   button(130, 330, 540, 70, 'COPY LINK', shareCopy, { fill: '#B49CFF', size: 26 });
@@ -341,8 +341,8 @@ function placeInputs() {
   const show = state === 'pview' && rn.on && !!net.user;
   ov.style.display = show ? 'block' : 'none';
   if (!show) return;
-  const r = cv.getBoundingClientRect(), k = r.width / W;
-  const put = (el, x, y, w, h) => { const s = el.style; s.left = r.left + x * k + 'px'; s.top = r.top + y * k + 'px'; s.width = w * k + 'px'; s.height = h * k + 'px'; s.fontSize = h * k * .5 + 'px'; };
+  const r = cv.getBoundingClientRect(), k = r.width / VW;
+  const put = (el, x, y, w, h) => { const s = el.style; s.left = r.left + (x + OX) * k + 'px'; s.top = r.top + y * k + 'px'; s.width = w * k + 'px'; s.height = h * k + 'px'; s.fontSize = h * k * .5 + 'px'; };
   put(inName, 200, 262, 400, 52);
 }
 function hintOf(g) {
@@ -364,8 +364,8 @@ function stars3(cx, cy, n, size, gap) { for (let i = 0; i < 3; i++) star(cx + (i
 function fuse() {
   const f = Math.min(1, tt / dur), left = dur - tt, danger = !outcome && left < 2;
   const col = f < .5 ? '#5CFF7A' : f < .75 ? '#FFE14D' : '#FF4D4D';
-  const x0 = 24, x1 = W - 70, sx = x0 + (x1 - x0) * f, y = H - 23 + (danger ? (Math.random() - .5) * 4 : 0);
-  ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.fillRect(0, H - 46, W, 46);
+  const x0 = 24 - OX, x1 = W + OX - 70, sx = x0 + (x1 - x0) * f, y = H - 23 + (danger ? (Math.random() - .5) * 4 : 0);
+  ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.fillRect(-OX, H - 46, VW, 46);
   ctx.fillStyle = INK; ctx.fillRect(x0 - 4, y - 10, x1 - x0 + 8, 20);
   ctx.fillStyle = '#3a3550'; ctx.fillRect(x0, y - 6, x1 - x0, 12);
   ctx.globalAlpha = danger && Math.sin(now * 26) > .4 ? .6 : 1;
@@ -373,9 +373,9 @@ function fuse() {
   ctx.fillStyle = 'rgba(255,255,255,.4)'; ctx.fillRect(sx, y - 6, x1 - sx, 3); ctx.globalAlpha = 1;
   if (!outcome) star(sx, y, 14 + Math.random() * 6, 5, 8, now * 10, '#FFB020', 3);
   const shk = f > .75 && !outcome ? (Math.random() - .5) * 5 : 0;
-  circ(W - 40 + shk, y, 19, f > .85 && Math.sin(now * 30) > 0 ? '#ff3b3b' : '#2b2b3a', 4);
-  ctx.fillStyle = '#fff'; ctx.fillRect(W - 48 + shk, y - 8, 6, 6);
-  if (danger) txt(Math.ceil(left) + '', W - 40, y - 34 - Math.abs(Math.sin(now * 10)) * 6, 30, '#FF4D4D');
+  circ(W + OX - 40 + shk, y, 19, f > .85 && Math.sin(now * 30) > 0 ? '#ff3b3b' : '#2b2b3a', 4);
+  ctx.fillStyle = '#fff'; ctx.fillRect(W + OX - 48 + shk, y - 8, 6, 6);
+  if (danger) txt(Math.ceil(left) + '', W + OX - 40, y - 34 - Math.abs(Math.sin(now * 10)) * 6, 30, '#FF4D4D');
 }
 
 /* ───────────── render ───────────── */
@@ -399,11 +399,11 @@ function render() {
     else txt(t('{games} MICROGAMES · {stages} STAGES · MOUSE + KEYBOARD + TOUCH', { games: REG.length, stages: STAGES.length }), W / 2, 505, 19, '#fff', 'center', 760);
     ctx.save(); ctx.translate(W / 2, 558); const pl = 1 + Math.sin(now * 6) * .07; ctx.scale(pl, pl);
     txt(chOpen ? (TOUCH ? 'TAP TO ACCEPT' : 'CLICK TO ACCEPT') : TOUCH ? 'TAP TO START' : 'CLICK OR PRESS ENTER', 0, 0, 34, '#5CFF7A', 'center', 700); ctx.restore();
-    txt(muted ? 'MUTED · M = SOUND' : 'M = MUTE', 20, 28, 18, '#fff', 'left');
-    profileBtn(W - 194, 12, 180, 52);
-    button(14, 48, 140, 42, LANGS.find(l => l.code === I18N.lang).name, () => I18N.next(), { size: 18, fill: '#fff' });
-    button(14, 536, 150, 50, 'INVITE', () => doShare('invite'), { size: 22, fill: '#4DB8FF' });
-    if (chOpen) button(W - 164, 536, 150, 50, 'MENU ►', () => { chOpen = false; goMenu(); }, { size: 22 });
+    txt(muted ? 'MUTED · M = SOUND' : 'M = MUTE', 20 - OX, 28, 18, '#fff', 'left');
+    profileBtn(W + OX - 194, 12, 180, 52);
+    button(14 - OX, 48, 140, 42, LANGS.find(l => l.code === I18N.lang).name, () => I18N.next(), { size: 18, fill: '#fff' });
+    button(14 - OX, 536, 150, 50, 'INVITE', () => doShare('invite'), { size: 22, fill: '#4DB8FF' });
+    if (chOpen) button(W + OX - 164, 536, 150, 50, 'MENU ►', () => { chOpen = false; goMenu(); }, { size: 22 });
   } else if (state === 'menu') {
     bg('#2b2757', '#322d66', now);
     txt('SELECT STAGE', W / 2, 40, 44, '#FFE14D');
@@ -430,16 +430,16 @@ function render() {
       button(706, 455, 74, 74, '►', () => { menuPage = (menuPage + 1) % mp; }, { size: 30, fill: '#FFE14D' });
       txt(t('PAGE {n}/{total}', { n: menuPage + 1, total: mp }), W / 2, 440, 18, '#fff');
     }
-    profileBtn(14, 10, 170, 56);
-    button(W - 184, 10, 170, 56, 'RANKS', () => goBoard(), { size: 22, fill: '#FFE14D' });
+    profileBtn(14 - OX, 10, 170, 56);
+    button(W + OX - 184, 10, 170, 56, 'RANKS', () => goBoard(), { size: 22, fill: '#FFE14D' });
     button(110, 455, 280, 74, 'PRACTICE', goPractice, { fill: '#5CFF7A' });
     button(410, 455, 280, 74, 'TITLE', goTitle, { fill: '#fff' });
     if (!TOUCH) txt('1-6 STAGE · ◄ ► PAGE · P PRACTICE · L RANKS · A PROFILE · ESC BACK', W / 2, 568, 18, '#fff');
   } else if (state === 'practice') {
     bg('#1f2a44', '#26335a', now);
     txt('PRACTICE', W / 2, 38, 44, '#FFE14D');
-    button(14, 10, 130, 56, '◄ BACK', goMenu, { size: 22 });
-    button(W - 184, 10, 170, 56, t('SPEED x{n}', { n: practiceSp }), () => { practiceSp = practiceSp === 1 ? 1.5 : practiceSp === 1.5 ? 2 : 1; }, { size: 22, fill: '#FFE14D' });
+    button(14 - OX, 10, 130, 56, '◄ BACK', goMenu, { size: 22 });
+    button(W + OX - 184, 10, 170, 56, t('SPEED x{n}', { n: practiceSp }), () => { practiceSp = practiceSp === 1 ? 1.5 : practiceSp === 1.5 ? 2 : 1; }, { size: 22, fill: '#FFE14D' });
     const pp = pageCount(REG.length, PER_PRACTICE);
     if (pp > 1) {
       button(150, 10, 56, 56, '◄', () => { practicePage = (practicePage + pp - 1) % pp; }, { size: 24 });
@@ -489,7 +489,15 @@ function render() {
     }
   } else if (state === 'play') {
     if (pre > 0) bg(isBoss ? '#3b0d14' : '#1b1b3a', isBoss ? '#5b1d2b' : '#26265a', now);   // instruction card first, game only after
-    else { ctx.save(); cur.draw(tt); ctx.restore(); }
+    else {
+      const framed = OX > 0 && !cur.wide;
+      if (framed) {                                      // wide screens: stage backdrop on the sides, game framed in the middle
+        if (mode === 'stage') bg(isBoss ? '#3b0d14' : stage.bg[0], isBoss ? '#5b1d2b' : stage.bg[1], now); else bg('#1f2a44', '#26335a', now);
+        ctx.fillStyle = INK; ctx.fillRect(W, 8, 10, H - 8);
+      }
+      if (cur.wide) cur.draw(tt); else { ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip(); cur.draw(tt); ctx.restore(); }
+      if (framed) { ctx.lineWidth = 6; ctx.strokeStyle = INK; ctx.strokeRect(-3, -3, W + 6, H + 6); }
+    }
     drawParts();
     if (!outcome) {
       if (pre > 0) {
@@ -507,12 +515,12 @@ function render() {
       txt(lab, 0, 4, 150, cc, 'center', tw - 30); ctx.restore();
     }
     if (mode === 'stage') {
-      ctx.fillStyle = 'rgba(20,16,28,.4)'; ctx.fillRect(10, 36, 176, 40); ctx.fillRect(W - 140, 10, 132, 66);
-      livesRow(36, 66, 2.4, 40, col);
-      txt(isBoss ? 'BOSS' : `${played + 1}/${stage.n}`, W - 16, 30, 26, isBoss ? '#FF4D4D' : '#fff', 'right');
-      ctx.save(); const sp = 1 + scorePop * .3; ctx.translate(W - 16, 62); ctx.scale(sp, sp); txt(String(Math.round(shownScore)), 0, 0, 22, '#FFE14D', 'right'); ctx.restore();
-    } else txt('PRACTICE', W - 16, 30, 22, '#fff', 'right');
-    button(W - 78, 80, 66, 30, mode === 'practice' ? 'EXIT' : 'MENU', exitPlay, { size: 15, fill: 'rgba(255,255,255,.85)' });
+      ctx.fillStyle = 'rgba(20,16,28,.4)'; ctx.fillRect(10 - OX, 36, 176, 40); ctx.fillRect(W + OX - 140, 10, 132, 66);
+      livesRow(36 - OX, 66, 2.4, 40, col);
+      txt(isBoss ? 'BOSS' : `${played + 1}/${stage.n}`, W + OX - 16, 30, 26, isBoss ? '#FF4D4D' : '#fff', 'right');
+      ctx.save(); const sp = 1 + scorePop * .3; ctx.translate(W + OX - 16, 62); ctx.scale(sp, sp); txt(String(Math.round(shownScore)), 0, 0, 22, '#FFE14D', 'right'); ctx.restore();
+    } else txt('PRACTICE', W + OX - 16, 30, 22, '#fff', 'right');
+    button(W + OX - 78, 80, 66, 30, mode === 'practice' ? 'EXIT' : 'MENU', exitPlay, { size: 15, fill: 'rgba(255,255,255,.85)' });
     if (pre <= 0) fuse();
   } else if (state === 'over') {
     bg('#3b0d14', '#4d1119', now);
@@ -557,7 +565,7 @@ function render() {
   } else if (state === 'profile') {
     bg('#2b2757', '#322d66', now);
     txt('PROFILE', W / 2, 40, 54, '#FFE14D');
-    button(14, 10, 130, 56, '◄ BACK', back, { size: 22 });
+    button(14 - OX, 10, 130, 56, '◄ BACK', back, { size: 22 });
     claude(W / 2, 205, 6, { mood: 'happy' });
     txt('SAVE YOUR PROGRESS · JOIN THE LEADERBOARDS', W / 2, 262, 22, '#fff', 'center', 740);
     const ok = pf.avail === 'yes' || pf.avail === 'loading', bx = 190, by = 298, bw = 420, bh = 84;
@@ -579,7 +587,7 @@ function render() {
     bg('#1f2a44', '#26335a', now);
     const n = STAGES.length + 1, tp = pageCount(n, PER_TABS), tot = lb.tab === STAGES.length, s = STAGES[lb.tab];
     txt('LEADERBOARD', W / 2, 38, 44, '#FFE14D');
-    button(14, 10, 130, 56, '◄ BACK', back, { size: 22 });
+    button(14 - OX, 10, 130, 56, '◄ BACK', back, { size: 22 });
     if (tp > 1) {
       button(56, 80, 56, 52, '◄', () => { lb.page = (lb.page + tp - 1) % tp; }, { size: 24, fill: '#FFE14D' });
       button(W - 112, 80, 56, 52, '►', () => { lb.page = (lb.page + 1) % tp; }, { size: 24, fill: '#FFE14D' });
@@ -610,11 +618,11 @@ function render() {
       txt(c.err, W / 2, 300, 30, '#FF4D4D', 'center', 740);
       button(300, 340, 200, 56, 'RETRY', () => loadBoard(lb.tab), { size: 24, fill: '#FFE14D' });
     } else txt('LOADING...', W / 2, 320, 36, '#fff');
-    if (!TOUCH) txt('◄ ► TAB · ESC BACK', W - 12, 584, 14, '#ddd', 'right');
-    if (!net.user && !c.err) button(W - 184, 10, 170, 56, 'PROFILE', goProfile, { size: 22, fill: '#5CFF7A' });
+    if (!TOUCH) txt('◄ ► TAB · ESC BACK', W + OX - 12, 584, 14, '#ddd', 'right');
+    if (!net.user && !c.err) button(W + OX - 184, 10, 170, 56, 'PROFILE', goProfile, { size: 22, fill: '#5CFF7A' });
   } else if (state === 'pview') {
     bg('#2b2757', '#322d66', now);
-    button(14, 10, 130, 56, '◄ BACK', back, { size: 22 });
+    button(14 - OX, 10, 130, 56, '◄ BACK', back, { size: 22 });
     const d = pv.data, me = net.user && pv.name === net.user.username;
     if (!d) {
       txt(pv.loading ? 'LOADING...' : pv.err, W / 2, 300, 36, pv.loading ? '#fff' : '#FF4D4D', 'center', 740);
@@ -642,7 +650,7 @@ function render() {
       }
     }
     if (rn.on && me) {
-      btns = []; ctx.fillStyle = 'rgba(10,8,24,.8)'; ctx.fillRect(0, 0, W, H);
+      btns = []; ctx.fillStyle = 'rgba(10,8,24,.8)'; ctx.fillRect(-OX, 0, VW, H);
       box(150, 150, 500, 300, '#2b2757', 6);
       txt('CHANGE NAME', W / 2, 195, 40, '#FFE14D');
       txt('3-16 LETTERS, NUMBERS, _ -', W / 2, 232, 17, '#ddd');
@@ -653,8 +661,8 @@ function render() {
   }
   vignette(state === 'play' ? .22 : .35);
   if (state !== 'play' && st < .3) {                    // slanted ink curtain wipes off to the right on every screen change
-    const x0 = easeOut(st / .3) * (W + 160);
-    ctx.fillStyle = INK; ctx.beginPath(); ctx.moveTo(x0, 0); ctx.lineTo(W + 200, 0); ctx.lineTo(W + 200, H); ctx.lineTo(x0 - 160, H); ctx.closePath(); ctx.fill();
+    const x0 = -OX + easeOut(st / .3) * (VW + 160), xr = W + OX + 200;
+    ctx.fillStyle = INK; ctx.beginPath(); ctx.moveTo(x0, 0); ctx.lineTo(xr, 0); ctx.lineTo(xr, H); ctx.lineTo(x0 - 160, H); ctx.closePath(); ctx.fill();
   }
   drawToast(lastDt); placeInputs();
 }
@@ -718,6 +726,7 @@ function goFull() {
 }
 
 let sw = null;
+const inGame = p => (cur && cur.wide) ? p : ({ ...p, x: Math.max(0, Math.min(W, p.x)) });   // classic games only see their own 800×600 area; g.wide games get the full screen (x from -OX to W+OX)
 cv.addEventListener('contextmenu', e => e.preventDefault());
 cv.addEventListener('pointerdown', e => {
   e.preventDefault();
@@ -725,15 +734,15 @@ cv.addEventListener('pointerdown', e => {
   try { cv.setPointerCapture(e.pointerId); } catch (_) {}
   if (document.activeElement && document.activeElement.tagName === 'INPUT') document.activeElement.blur();
   interacted = true; pressing = true;
-  const p = pos(e); mouse = p; hp = p;
+  const p = pos(e); mouse = inGame(p); hp = p;
   const b = btns.find(b => p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h);
   if (b) { sfx.click(); b.fn(); return; }
   if (sh.on) return;
   if (state === 'title') { chOpen ? acceptChallenge() : goMenu(); return; }
-  if (state === 'play' && !outcome && pre <= 0) { sw = { x: p.x, y: p.y }; if (cur.move) cur.move(p); if (cur.down) cur.down(p); }
+  if (state === 'play' && !outcome && pre <= 0) { const g = inGame(p); sw = { x: g.x, y: g.y }; if (cur.move) cur.move(g); if (cur.down) cur.down(g); }
 });
 cv.addEventListener('pointermove', e => {
-  const p = pos(e); mouse = p; hp = p;
+  const raw = pos(e), p = inGame(raw); mouse = p; hp = raw;
   if (state !== 'play' || outcome) return;
   if (cur.move) cur.move(p);
   if (sw && cur.swipe) {
@@ -744,7 +753,7 @@ cv.addEventListener('pointermove', e => {
     }
   }
 });
-const endPtr = e => { pressing = false; if (e.pointerType === 'touch') hp = { x: -999, y: -999 }; if (state === 'play' && !outcome && pre <= 0 && cur.up) cur.up(pos(e)); sw = null; };
+const endPtr = e => { pressing = false; if (e.pointerType === 'touch') hp = { x: -999, y: -999 }; if (state === 'play' && !outcome && pre <= 0 && cur.up) cur.up(inGame(pos(e))); sw = null; };
 cv.addEventListener('pointerup', endPtr);
 cv.addEventListener('pointercancel', endPtr);
 cv.addEventListener('pointerleave', () => { hp = { x: -999, y: -999 }; pressing = false; });
@@ -757,7 +766,7 @@ function loop(ts) {
     if (['stagein', 'menu', 'practice', 'profile', 'board', 'pview'].includes(state) || (state === 'inter' && mode === 'stage')) sfx.whoosh(true);
     lastState = state;
   }
-  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.save(); applyShake(dt); render(); drawFx(); if (sh.on) drawShareMenu(); ctx.restore();
+  ctx.setTransform(1, 0, 0, 1, OX, 0); ctx.save(); applyShake(dt); render(); drawFx(); if (sh.on) drawShareMenu(); ctx.restore();
   const hb = btns.find(b => hovered(b.x, b.y, b.w, b.h)), hk = hb ? hb.x + ',' + hb.y : '';
   if (hk !== hoverKey) { hoverKey = hk; if (hk && state !== 'play') sfx.tick(); }
   requestAnimationFrame(loop);

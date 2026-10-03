@@ -6,7 +6,7 @@ function gWhack(sp) {
   const moles = []; let clock = 0, next = .1, hits = 0;
   const rise = m => { const a = clock - m.t; return m.dead ? 0 : Math.max(0, Math.min(1, a / .15, (m.life - a) / .15)); };
   const g = {
-    cmd: 'WHACK!', hint: 'HIT 3 BUGS', thint: 'TAP 3 BUGS', dur: 5,
+    wide: true, cmd: 'WHACK!', hint: 'HIT 3 BUGS', thint: 'TAP 3 BUGS', dur: 5,
     down(p) {
       for (const m of moles) {
         const h = holes[m.h];
@@ -34,7 +34,7 @@ function gWhack(sp) {
         const e = 1 + Math.sin(r * Math.PI) * .12 * (r < 1 ? 1 : 0); ctx.translate(h.x, h.y + 70 - r * 90); ctx.scale(1 / e, e); drawBug(0, 0, 0, 1.1, now); ctx.restore();
       }
       for (const h of holes) { ctx.beginPath(); ctx.ellipse(h.x, h.y + 2, 66, 20, 0, 0, Math.PI); ctx.fillStyle = '#7a5230'; ctx.fill(); ctx.lineWidth = 5; ctx.strokeStyle = INK; ctx.stroke(); }
-      for (let k = 0; k < 3; k++) circ(W - 100 + k * 36, 90, 12, k < hits ? '#e8433a' : '#c99a64', 3);
+      for (let k = 0; k < 3; k++) circ(W + OX - 100 + k * 36, 90, 12, k < hits ? '#e8433a' : '#c99a64', 3);
       vignette(.2);
     }
   };
@@ -43,11 +43,11 @@ function gWhack(sp) {
 
 /* 14 ── DRAG: carry the token into the bin, avoid the guard (mouse drag) */
 function gDrag(sp) {
-  const sy = 140 + Math.random() * 300, tok = { x: 120, y: sy, drag: false };
-  const bin = { x: 690, y: 140 + Math.random() * 300, r: sp > 1.5 ? 50 : 66 };
+  const sy = 140 + Math.random() * 300, sx = 120 - OX * .8, tok = { x: sx, y: sy, drag: false };
+  const bin = { x: 690 + OX * .8, y: 140 + Math.random() * 300, r: sp > 1.5 ? 50 : 66 };
   let gy = 120, gv = 260 * sp;
   const g = {
-    cmd: 'DRAG!', hint: 'DRAG THE TOKEN INTO THE BIN', thint: 'DRAG THE TOKEN INTO THE BIN', dur: 5.5,
+    wide: true, cmd: 'DRAG!', hint: 'DRAG THE TOKEN INTO THE BIN', thint: 'DRAG THE TOKEN INTO THE BIN', dur: 5.5,
     down(p) { if (Math.hypot(p.x - tok.x, p.y - tok.y) < 48) { tok.drag = true; sfx.click(); ring(tok.x, tok.y, '#fff', 44, .25); } },
     up() { tok.drag = false; },
     move(p) {
@@ -58,7 +58,7 @@ function gDrag(sp) {
     update(dt) {
       if (g.result) return;
       gy += gv * dt; if (gy > 470) { gy = 470; gv = -gv; } if (gy < 100) { gy = 100; gv = -gv; }
-      if (Math.hypot(tok.x - 400, tok.y - gy) < 62) { tok.x = 120; tok.y = sy; tok.drag = false; sfx.buzz(); sfx.zap(); shake(7, .25); burst(tok.x, tok.y, '#FF4D4D', 14); ring(tok.x, tok.y, '#FF4D4D', 80); }
+      if (Math.hypot(tok.x - 400, tok.y - gy) < 62) { tok.x = sx; tok.y = sy; tok.drag = false; sfx.buzz(); sfx.zap(); shake(7, .25); burst(tok.x, tok.y, '#FF4D4D', 14); ring(tok.x, tok.y, '#FF4D4D', 80); }
     },
     draw(t) {
       bg('#8EE3EF', '#7ed7e4', t);
@@ -74,16 +74,16 @@ function gDrag(sp) {
 /* 15 ── RACE: alternate ← → (or A D) to outrun the bug */
 function gRace(sp) {
   let me = 0, rival = 0, last = '', shk = 0, clock = 0;
-  const rate = 100 / (5 * .88 / Math.sqrt(sp));
+  const rate = 100 / (5 * .88 / Math.sqrt(sp)), x0 = 80 - OX, kx = (620 + OX * 2) / 100, fx = 724 + OX;
   const g = {
-    cmd: 'RACE!', hint: 'ALTERNATE LEFT AND RIGHT', thint: 'TAP LEFT / RIGHT SIDE', dur: 5,
+    wide: true, cmd: 'RACE!', hint: 'ALTERNATE LEFT AND RIGHT', thint: 'TAP LEFT / RIGHT SIDE', dur: 5,
     down(p) { g.key({ code: p.x < W / 2 ? 'ArrowLeft' : 'ArrowRight' }); },
     key(e) {
       const k = (e.code === 'ArrowLeft' || e.code === 'KeyA') ? 'L' : (e.code === 'ArrowRight' || e.code === 'KeyD') ? 'R' : '';
       if (!k) return;
       if (k === last) { shk = .15; sfx.miss(); return; }
-      last = k; me += 5; sfx.blip(me / 8); burst(80 + Math.min(me, 100) * 6.2 - 30, 330, '#d9a066', 3, 140);
-      if (me >= 100) { g.result = 'win'; sfx.coin(); sfx.sparkle(); shake(5, .2); floatText('WINNER!', 400, 250, '#fff', 48); confetti(724, 240, 30); }
+      last = k; me += 5; sfx.blip(me / 8); burst(x0 + Math.min(me, 100) * kx - 30, 330, '#d9a066', 3, 140);
+      if (me >= 100) { g.result = 'win'; sfx.coin(); sfx.sparkle(); shake(5, .2); floatText('WINNER!', 400, 250, '#fff', 48); confetti(fx, 240, 30); }
     },
     update(dt) {
       clock += dt; shk = Math.max(0, shk - dt);
@@ -92,13 +92,13 @@ function gRace(sp) {
     },
     draw(t) {
       bg('#FFD166', '#ffc54d', t);
-      for (const ly of [150, 330]) { ctx.fillStyle = INK; ctx.fillRect(0, ly - 4, W, 188); ctx.fillStyle = '#d9a066'; ctx.fillRect(0, ly, W, 180); }
-      for (let r = 0; r < 12; r++) for (let c = 0; c < 2; c++) { ctx.fillStyle = (r + c) % 2 ? '#fff' : INK; ctx.fillRect(724 + c * 16, 150 + r * 15, 16, 15); ctx.fillRect(724 + c * 16, 330 + r * 15, 16, 15); }
-      const mx = 80 + Math.min(me, 100) * 6.2 + Math.sin(now * 80) * shk * 20, rx = 80 + Math.min(rival, 100) * 6.2;
+      for (const ly of [150, 330]) { ctx.fillStyle = INK; ctx.fillRect(-OX, ly - 4, VW, 188); ctx.fillStyle = '#d9a066'; ctx.fillRect(-OX, ly, VW, 180); }
+      for (let r = 0; r < 12; r++) for (let c = 0; c < 2; c++) { ctx.fillStyle = (r + c) % 2 ? '#fff' : INK; ctx.fillRect(fx + c * 16, 150 + r * 15, 16, 15); ctx.fillRect(fx + c * 16, 330 + r * 15, 16, 15); }
+      const mx = x0 + Math.min(me, 100) * kx + Math.sin(now * 80) * shk * 20, rx = x0 + Math.min(rival, 100) * kx;
       shadow(mx, 372, 46, 12); shadow(rx, 450, 40, 10);
       claude(mx, 300, 8, { run: g.result ? null : now, mood: g.result === 'win' ? 'happy' : g.result === 'lose' ? 'sad' : null });
       drawBug(rx, 420, Math.PI / 2, 1.3, now);
-      txt('YOU', 50, 175, 24); txt('BUG', 50, 355, 24);
+      txt('YOU', 50 - OX, 175, 24); txt('BUG', 50 - OX, 355, 24);
     }
   };
   return g;
@@ -114,7 +114,7 @@ function gReflex(sp) {
     else { rt = (clock - goAt) * 1000 | 0; g.result = 'win'; sfx.hit(); sfx.coin(); burst(W / 2, 330, '#5CFF7A', 16); ring(W / 2, 330, '#5CFF7A', 100); floatText(rt < 300 ? 'FAST!' : 'NICE!', W / 2 - 220, 230, '#fff'); }
   };
   const g = {
-    cmd: 'WAIT!', hint: 'PRESS ONLY AT GREEN', thint: 'TAP ONLY AT GREEN', dur: 4,
+    wide: true, cmd: 'WAIT!', hint: 'PRESS ONLY AT GREEN', thint: 'TAP ONLY AT GREEN', dur: 4,
     key() { press(); }, down() { press(); },
     update(dt) {
       if (g.result) return;
@@ -157,7 +157,7 @@ function gRps(sp) {
     if (g.result === 'win') { sfx.hit(); sfx.coin(); burst(200 + c * 220, 440, '#5CFF7A', 14); floatText('NICE!', 400, 320, '#fff'); } else { sfx.buzz(); shake(6, .22); burst(200 + c * 220, 440, '#FF4D4D', 10); }
   };
   const g = {
-    cmd: 'BEAT IT!', hint: 'PICK WHAT BEATS IT', thint: 'TAP WHAT BEATS IT', dur: 4.5,
+    wide: true, cmd: 'BEAT IT!', hint: 'PICK WHAT BEATS IT', thint: 'TAP WHAT BEATS IT', dur: 4.5,
     key(e) { const v = +e.key; if (v >= 1 && v <= 3) choose(v - 1); },
     down(p) { const i = Math.floor((p.x - 100) / 220); if (i >= 0 && i < 3 && p.x - 100 - i * 220 <= 200 && p.y > 380 && p.y < 520) choose(i); },
     update(dt) { pk = Math.min(1, pk + dt * 5); },
@@ -188,7 +188,7 @@ function gMath(sp) {
     if (g.result === 'win') { sfx.hit(); sfx.coin(); burst(200 + i * 220, 405, '#5CFF7A', 14); ring(200 + i * 220, 405, '#fff', 90); floatText('NICE!', 400, 260, '#fff'); } else { sfx.buzz(); shake(6, .22); burst(200 + i * 220, 405, '#FF4D4D', 10); }
   };
   const g = {
-    cmd: 'SOLVE!', hint: 'PICK THE ANSWER (1 2 3)', thint: 'TAP THE ANSWER', dur: 5,
+    wide: true, cmd: 'SOLVE!', hint: 'PICK THE ANSWER (1 2 3)', thint: 'TAP THE ANSWER', dur: 5,
     key(e) { const v = +e.key; if (v >= 1 && v <= 3) choose(v - 1); },
     down(p) { const i = Math.floor((p.x - 100) / 220); if (i >= 0 && i < 3 && p.x - 100 - i * 220 <= 200 && p.y > 340 && p.y < 470) choose(i); },
     update(dt) { pk = Math.min(1, pk + dt * 5); },
@@ -211,11 +211,11 @@ function gMath(sp) {
 function gSort(sp) {
   const n = sp > 1.5 ? 6 : 5;
   const cells = shuffle([...Array(12).keys()]).slice(0, n);
-  const balls = cells.map((c, i) => ({ v: i + 1, x: (c % 4) * 200 + 100 + (Math.random() - .5) * 40, y: 160 + (c / 4 | 0) * 135 + (Math.random() - .5) * 30, done: false, sh: 0, pk: 1 }));
+  const balls = cells.map((c, i) => ({ v: i + 1, x: 100 - OX + (c % 4) * (VW - 200) / 3 + (Math.random() - .5) * 40, y: 160 + (c / 4 | 0) * 135 + (Math.random() - .5) * 30, done: false, sh: 0, pk: 1 }));
   shuffle(balls); let next = 1;
   const cols = ['#ff6b6b', '#4DB8FF', '#ffd23f', '#9be564', '#c792ea', '#ff9f43'];
   const g = {
-    cmd: 'SORT!', hint: 'CLICK 1, 2, 3... IN ORDER', thint: 'TAP 1, 2, 3... IN ORDER', dur: 5,
+    wide: true, cmd: 'SORT!', hint: 'CLICK 1, 2, 3... IN ORDER', thint: 'TAP 1, 2, 3... IN ORDER', dur: 5,
     down(p) {
       for (const b of balls) if (!b.done && Math.hypot(p.x - b.x, p.y - b.y) < 44) {
         if (b.v === next) { b.done = true; b.pk = 0; next++; sfx.pop(); sfx.blip(next * 2); burst(b.x, b.y, cols[b.v - 1], 8); floatText('+1', b.x, b.y - 40, '#fff', 30); if (next > n) { g.result = 'win'; sfx.coin(); sfx.sparkle(); ring(b.x, b.y, '#fff', 100); } }
@@ -238,7 +238,7 @@ function gSort(sp) {
 
 /* 20 ── FIND IT: the cup shuffle (mouse) */
 function gShell(sp) {
-  const xs = [200, 400, 600], cups = xs.map(x => ({ x, from: x, to: x, lift: 0 }));
+  const gap = 200 + OX * .6, xs = [W / 2 - gap, W / 2, W / 2 + gap], cups = xs.map(x => ({ x, from: x, to: x, lift: 0 }));
   const hid = Math.random() * 3 | 0, swaps = 4 + (sp > 1.4) * 2 + (sp > 1.8), sd = .4 / sp;
   let phase = 'show', clock = 0, done = 0, sw = null, swT = 0, picked = -1;
   const startSwap = () => {
@@ -246,7 +246,7 @@ function gShell(sp) {
     sw = { a, b }; swT = 0; cups[a].from = cups[a].x; cups[a].to = cups[b].x; cups[b].from = cups[b].x; cups[b].to = cups[a].x;
   };
   const g = {
-    cmd: 'FIND IT!', hint: 'FIND CLAUDE', dur: 6.5,
+    wide: true, cmd: 'FIND IT!', hint: 'FIND CLAUDE', dur: 6.5,
     down(p) {
       if (phase !== 'pick' || g.result) return;
       cups.forEach((c, i) => { if (Math.abs(p.x - c.x) < 66 && p.y > 250 && p.y < 400) { picked = i; g.result = i === hid ? 'win' : 'lose'; if (g.result === 'win') { sfx.coin(); sfx.sparkle(); burst(c.x, 340, '#FFE14D', 16); ring(c.x, 340, '#fff', 90); floatText('NICE!', c.x, 230, '#fff'); } else { sfx.buzz(); shake(6, .22); } } });
@@ -266,7 +266,7 @@ function gShell(sp) {
     },
     draw(t) {
       bg('#6C5CE7', '#5e4ed8', t);
-      ctx.fillStyle = INK; ctx.fillRect(0, 384, W, 10); ctx.fillStyle = '#4b3fb3'; ctx.fillRect(0, 394, W, 206);
+      ctx.fillStyle = INK; ctx.fillRect(-OX, 384, VW, 10); ctx.fillStyle = '#4b3fb3'; ctx.fillRect(-OX, 394, VW, 206);
       for (const c of cups) shadow(c.x, 386, 62 - c.lift * 10, 14, .3 - c.lift * .12);
       claude(cups[hid].x, 380, 5.5, { mood: g.result === 'win' ? 'happy' : g.result === 'lose' ? 'sad' : null });
       for (const c of cups) {
@@ -286,7 +286,7 @@ function gScrub(sp) {
   const dirt = Array.from({ length: cols * rows }, () => 1);
   let prev = null;
   const g = {
-    cmd: 'SCRUB!', hint: 'RUB THE MOUSE ALL OVER', thint: 'RUB YOUR FINGER ALL OVER', dur: 5.5,
+    wide: true, cmd: 'SCRUB!', hint: 'RUB THE MOUSE ALL OVER', thint: 'RUB YOUR FINGER ALL OVER', dur: 5.5,
     move(p) {
       if (g.result) { prev = p; return; }
       if (prev) {
@@ -320,23 +320,23 @@ function gScrub(sp) {
 /* 22 ── DODGE: survive the bouncing bugs (mouse or arrows / WASD) */
 function gDodge(sp, extra = 0) {
   const me = { x: W / 2, y: H / 2, tx: W / 2, ty: H / 2 };
-  const n = 5 + (sp > 1.5) + extra;
+  const n = 5 + (sp > 1.5) + extra + Math.round(OX / 200), L = -OX + 30, R = W + OX - 30;
   const balls = Array.from({ length: n }, () => {
     const a = Math.random() * 6.28, left = Math.random() < .5;
-    return { x: left ? 70 : 730, y: 110 + Math.random() * 380, vx: Math.cos(a) * 250 * sp, vy: Math.sin(a) * 250 * sp, r: 24 };
+    return { x: left ? L + 40 : R - 40, y: 110 + Math.random() * 380, vx: Math.cos(a) * 250 * sp, vy: Math.sin(a) * 250 * sp, r: 24 };
   });
   const g = {
-    cmd: 'DODGE!', hint: 'MOUSE OR ARROWS', thint: 'DRAG TO DODGE', dur: 5, timeWin: true,
+    wide: true, cmd: 'DODGE!', hint: 'MOUSE OR ARROWS', thint: 'DRAG TO DODGE', dur: 5, timeWin: true,
     move(p) { me.tx = p.x; me.ty = p.y; },
     update(dt) {
       if (g.result) return;
       if (keys.ArrowLeft || keys.KeyA) me.tx -= 700 * dt; if (keys.ArrowRight || keys.KeyD) me.tx += 700 * dt;
       if (keys.ArrowUp || keys.KeyW) me.ty -= 700 * dt; if (keys.ArrowDown || keys.KeyS) me.ty += 700 * dt;
-      me.tx = Math.max(50, Math.min(750, me.tx)); me.ty = Math.max(90, Math.min(500, me.ty));
+      me.tx = Math.max(L + 20, Math.min(R - 20, me.tx)); me.ty = Math.max(90, Math.min(500, me.ty));
       me.x += (me.tx - me.x) * Math.min(1, 16 * dt); me.y += (me.ty - me.y) * Math.min(1, 16 * dt);
       for (const b of balls) {
         b.x += b.vx * dt; b.y += b.vy * dt;
-        if (b.x < 30 || b.x > 770) { b.vx = -b.vx; b.x = Math.max(30, Math.min(770, b.x)); b.w = .15; if (Math.random() < .3) sfx.blip(-12); }
+        if (b.x < L || b.x > R) { b.vx = -b.vx; b.x = Math.max(L, Math.min(R, b.x)); b.w = .15; if (Math.random() < .3) sfx.blip(-12); }
         if (b.y < 70 || b.y > 520) { b.vy = -b.vy; b.y = Math.max(70, Math.min(520, b.y)); b.w = .15; if (Math.random() < .3) sfx.blip(-12); }
         if (b.w > 0) b.w -= dt;
         if (Math.hypot(b.x - me.x, b.y - me.y) < b.r + 24) { g.result = 'lose'; sfx.thud(); sfx.buzz(); shake(10, .35); confetti(me.x, me.y, 20); burst(me.x, me.y, '#FF4D4D', 18); ring(me.x, me.y, '#fff', 90); }
@@ -344,7 +344,7 @@ function gDodge(sp, extra = 0) {
     },
     draw(t) {
       bg('#2b2757', '#322d66', t);
-      ctx.strokeStyle = INK; ctx.lineWidth = 10; ctx.strokeRect(20, 60, 760, 470); ctx.strokeStyle = '#fff'; ctx.lineWidth = 4; ctx.strokeRect(20, 60, 760, 470);
+      ctx.strokeStyle = INK; ctx.lineWidth = 10; ctx.strokeRect(L - 10, 60, VW - 40, 470); ctx.strokeStyle = '#fff'; ctx.lineWidth = 4; ctx.strokeRect(L - 10, 60, VW - 40, 470);
       for (const b of balls) { shadow(b.x + 4, b.y + 28, 22, 7); drawBug(b.x, b.y, Math.atan2(b.vy, b.vx) + Math.PI / 2, .8 * (1 + (b.w > 0 ? b.w : 0)), now); }
       shadow(me.x, me.y + 38, 24, 7);
       claude(me.x, me.y + 16, 3.4, { mood: g.result === 'lose' ? 'sad' : g.result === 'win' ? 'happy' : null, run: g.result ? null : now });

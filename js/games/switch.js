@@ -26,7 +26,7 @@ function swFreeze(sp) {
   let honk = false;
   const bust = () => { if (!g.result && c > .35) { g.result = 'lose'; swLose(); burst(400, 520, '#fff', 14); floatText('MOVED!', 400, 440, '#ff4d4d', 40); } };
   const g = {
-    cmd: 'FREEZE!', hint: 'DON\'T MOVE THE MOUSE OR KEYS', thint: 'DON\'T TOUCH THE SCREEN', dur: 4, timeWin: true,
+    wide: true, cmd: 'FREEZE!', hint: 'DON\'T MOVE THE MOUSE OR KEYS', thint: 'DON\'T TOUCH THE SCREEN', dur: 4, timeWin: true,
     move(p) {
       if (g.result) return;
       if (c < .35) { ax = p.x; ay = p.y; return; }
@@ -41,8 +41,8 @@ function swFreeze(sp) {
     },
     draw(t) {
       bg('#9BE7FF', '#8adcf5', t);
-      ctx.fillStyle = '#7ad16b'; ctx.fillRect(0, 250, W, 350);
-      swPoly([[375, 250], [425, 250], [800, 600], [0, 600]], '#555', 5);
+      ctx.fillStyle = '#7ad16b'; ctx.fillRect(-OX, 250, VW, 350 + OX);
+      swPoly([[375, 250], [425, 250], [800 + OX, 600 + OX * .933], [-OX, 600 + OX * .933]], '#555', 5);
       ctx.fillStyle = '#FFE14D';
       for (let i = 0; i < 6; i++) { const k = ((i + (c * 1.2) % 1) / 6), y = 255 + k * k * 340, w = 3 + k * 16; ctx.fillRect(400 - w / 2, y, w, 8 + k * 40); }
       const k = Math.min(1, c / (D * .92)), s = .12 + 1.15 * k * k;
@@ -59,8 +59,8 @@ function swFreeze(sp) {
       }
       shadow(400, 594, 50, 10, .3); claude(400, 592 + (g.result === 'lose' ? 30 : 0), 6, { mood: swSad(g) });
       if (k > .5 && !g.result) { ctx.fillStyle = '#4DB8FF'; ctx.beginPath(); ctx.arc(440, 540 + (now * 60 % 20), 6, 0, 7); ctx.fill(); }
-      box3(20, 20, 200, 26, '#fff', 4, 4); ctx.fillStyle = swMix('#5CFF7A', '#ff4d4d', dev / lim); ctx.fillRect(20, 20, 200 * Math.min(1, dev / lim), 26);
-      txt('JITTER', 120, 33, 18, '#fff'); vignette(.2 + k * .25);
+      const jx = 20 - OX; box3(jx, 20, 200, 26, '#fff', 4, 4); ctx.fillStyle = swMix('#5CFF7A', '#ff4d4d', dev / lim); ctx.fillRect(jx, 20, 200 * Math.min(1, dev / lim), 26);
+      txt('JITTER', jx + 100, 33, 18, '#fff'); vignette(.2 + k * .25);
     }
   };
   return g;
@@ -74,7 +74,7 @@ function swPick(sp) {
   // the outcome is decided on the tap (hole frozen), so a last-second tap still counts; the fall is just the show
   const go = () => { if (drop || g.result || c < .3) return; drop = true; lock = open(); hit = Math.abs(fx - NX[lock]) < 42; g.result = hit ? 'win' : 'lose'; sfx.whoosh(false); };
   const g = {
-    cmd: 'PICK!', hint: 'CLICK / SPACE: DROP IN THE OPEN HOLE', thint: 'TAP TO DROP INTO THE OPEN HOLE', dur: 5,
+    wide: true, cmd: 'PICK!', hint: 'CLICK / SPACE: DROP IN THE OPEN HOLE', thint: 'TAP TO DROP INTO THE OPEN HOLE', dur: 5,
     key(e) { if (e.code === 'Space' || e.code === 'ArrowDown') go(); }, down() { go(); },
     update(dt) {
       c += dt; sq = Math.max(0, sq - dt);
@@ -126,7 +126,7 @@ function swRun(sp) {
   let gap = 310, v = 0, c = 0, off = 0, taps = 0;
   const mash = () => { if (g.result) return; v += 58; taps++; sfx.blip((taps % 2) * 4 - 6); burst(520 + Math.random() * 30, 520, '#e8dcff', 3, 120); };
   const g = {
-    cmd: 'RUN!', hint: 'MASH SPACE / ARROWS / CLICK', thint: 'TAP AS FAST AS YOU CAN', dur: 5, timeWin: true,
+    wide: true, cmd: 'RUN!', hint: 'MASH SPACE / ARROWS / CLICK', thint: 'TAP AS FAST AS YOU CAN', dur: 5, timeWin: true,
     key(e) { if (!e.repeat && (e.code === 'Space' || /^(Arrow|Key)/.test(e.code))) mash(); }, down() { mash(); },
     update(dt) {
       if (g.result) return;
@@ -140,9 +140,10 @@ function swRun(sp) {
       bg('#FFB3D9', '#ff9fcd', t);
       const sh = gap < 140 ? Math.sin(now * 60) * (140 - gap) * .06 : 0;
       ctx.save(); ctx.translate(sh, -sh * .5);
-      ctx.fillStyle = INK; ctx.fillRect(0, 516, W, 90); ctx.fillStyle = '#9b6bd1'; ctx.fillRect(0, 524, W, 80);
-      ctx.fillStyle = '#b48be3'; for (let i = 0; i < 12; i++) ctx.fillRect(((i * 120 - off) % 1440 + 1440) % 1440 - 100, 560, 60, 10);
-      for (let i = 0; i < 4; i++) { const x = ((i * 300 - off * .5) % 1200 + 1200) % 1200 - 200; box(x, 380, 30, 140, '#7a5230', 4); circ(x + 15, 360, 50, '#5CC24A', 5); }
+      ctx.fillStyle = INK; ctx.fillRect(-OX - 30, 516, VW + 60, 90); ctx.fillStyle = '#9b6bd1'; ctx.fillRect(-OX - 30, 524, VW + 60, 80);
+      const pd = Math.ceil((VW + 160) / 120) * 120, pt = Math.ceil((VW + 200) / 300) * 300;
+      ctx.fillStyle = '#b48be3'; for (let i = 0; i < pd / 120; i++) ctx.fillRect(((i * 120 - off) % pd + pd) % pd - OX - 80, 560, 60, 10);
+      for (let i = 0; i < pt / 300; i++) { const x = ((i * 300 - off * .5) % pt + pt) % pt - OX - 100; box(x, 380, 30, 140, '#7a5230', 4); circ(x + 15, 360, 50, '#5CC24A', 5); }
       const hx = 570, mx = hx - gap - 100;
       shadow(mx, 522, 110, 20, .3); shadow(hx, 520, 55, 11, .3);
       circ(mx, 400, 120, '#8a4dff', 6);
@@ -176,7 +177,7 @@ function swWanted(sp) {
   const cells = people.map((tr, i) => ({ tr, x: 380 + (i % 3) * 150, y: 230 + Math.floor(i / 3) * 190, ph: Math.random() * 6 }));
   let flash = 0, pick = -1;
   const g = {
-    cmd: 'ARREST!', hint: 'CLICK THE SUSPECT FROM THE POSTER', thint: 'TAP THE SUSPECT FROM THE POSTER', dur: 5,
+    wide: true, cmd: 'ARREST!', hint: 'CLICK THE SUSPECT FROM THE POSTER', thint: 'TAP THE SUSPECT FROM THE POSTER', dur: 5,
     down(p) {
       if (g.result) return;
       const i = cells.findIndex(c => Math.abs(p.x - c.x) < 70 && Math.abs(p.y - c.y) < 85); if (i < 0) return;
@@ -196,7 +197,7 @@ function swWanted(sp) {
         for (let k = 0; k < 4; k++) { ctx.fillStyle = INK; ctx.fillRect(-65, -80 + k * 40, 10, 3); }
         swFaceDraw(0, 0, 1.15, c.tr); ctx.restore();
       });
-      if (flash > 0) { ctx.fillStyle = 'rgba(255,255,255,' + flash * 3 + ')'; ctx.fillRect(0, 0, W, H); }
+      if (flash > 0) { ctx.fillStyle = 'rgba(255,255,255,' + flash * 3 + ')'; ctx.fillRect(-OX, 0, VW, H); }
     }
   };
   return g;
@@ -213,7 +214,7 @@ function swFry(sp) {
   };
   const col = k => k < .6 ? swMix('#F4E3B1', '#E3A02B', k / .6) : swMix('#E3A02B', '#3b2412', (k - .6) / .3);
   const g = {
-    cmd: 'FRY!', hint: 'HOLD SPACE / MOUSE, RELEASE ON GOLD', thint: 'HOLD, RELEASE ON GOLD', dur: 5,
+    wide: true, cmd: 'FRY!', hint: 'HOLD SPACE / MOUSE, RELEASE ON GOLD', thint: 'HOLD, RELEASE ON GOLD', dur: 5,
     key(e) { if (e.code === 'Space') start(); }, keyup(e) { if (e.code === 'Space') end(); }, down() { start(); }, up() { end(); },
     update(dt) {
       c += dt; by += ((hold ? 340 : 130) - by) * Math.min(1, 9 * dt);
@@ -255,7 +256,7 @@ function swFill(sp) {
     if (f >= B0 && f <= B1) { g.result = 'win'; sfx.coin(); sfx.sparkle(); confetti(560, 400, 20); ring(560, 440, '#5CFF7A', 120); floatText('+1', 560, 360, '#5CFF7A', 44); } else { g.result = 'lose'; swLose(); }
   };
   const g = {
-    cmd: 'FILL!', hint: 'HOLD SPACE / MOUSE, RELEASE IN GREEN', thint: 'HOLD, RELEASE IN GREEN', dur: 5,
+    wide: true, cmd: 'FILL!', hint: 'HOLD SPACE / MOUSE, RELEASE IN GREEN', thint: 'HOLD, RELEASE IN GREEN', dur: 5,
     key(e) { if (e.code === 'Space') start(); }, keyup(e) { if (e.code === 'Space') end(); }, down() { start(); }, up() { end(); },
     update(dt) {
       c += dt;
@@ -267,7 +268,7 @@ function swFill(sp) {
     },
     draw(t) {
       bg('#C3F584', '#b4ea6e', t);
-      ctx.fillStyle = INK; ctx.fillRect(0, 516, W, 90); ctx.fillStyle = '#888'; ctx.fillRect(0, 524, W, 80);
+      ctx.fillStyle = INK; ctx.fillRect(-OX, 516, VW, 90); ctx.fillStyle = '#888'; ctx.fillRect(-OX, 524, VW, 80);
       shadow(135, 524, 90, 12, .3); shadow(565, 540, 150, 14, .3);
       box3(60, 190, 150, 330, '#E8433A', 6, 6); box(80, 215, 110, 60, '#222', 4); txt(((f * 12) | 0) + '.' + ((f * 120) % 10 | 0) + 'L', 135, 246, 28, '#5CFF7A');
       box(100, 300, 70, 40, '#fff', 4);
@@ -293,10 +294,10 @@ function swFill(sp) {
 
 /* ── 7 DUCK: crouch under UFOs ── */
 function swLimbo(sp) {
-  const sq = [0, 1, 0, 0].map((d, i) => ({ x: 900 + i * 330, decoy: d, ph: Math.random() * 6, pass: false }));
+  const sq = [0, 1, 0, 0].map((d, i) => ({ x: Math.max(900, W + OX + 80) + i * (330 - OX * .25), decoy: d, ph: Math.random() * 6, pass: false }));
   let crouch = 0, tgt = 0, held = false, c = 0;
   const g = {
-    cmd: 'DUCK!', hint: 'HOLD ↓ / SPACE / MOUSE TO CROUCH', thint: 'HOLD TO CROUCH, RELEASE TO STAND', dur: 5, timeWin: true,
+    wide: true, cmd: 'DUCK!', hint: 'HOLD ↓ / SPACE / MOUSE TO CROUCH', thint: 'HOLD TO CROUCH, RELEASE TO STAND', dur: 5, timeWin: true,
     key(e) { if (e.code === 'ArrowDown' || e.code === 'KeyS' || e.code === 'Space') { if (!held) sfx.whoosh(false); held = true; } },
     keyup(e) { if (e.code === 'ArrowDown' || e.code === 'KeyS' || e.code === 'Space') held = false; },
     down() { if (!held) sfx.whoosh(false); held = true; }, up() { held = false; },
@@ -311,9 +312,9 @@ function swLimbo(sp) {
     },
     draw(t) {
       bg('#FFB347', '#ffa733', t);
-      ctx.fillStyle = '#4DB8FF'; ctx.fillRect(0, 400, W, 80); ctx.fillStyle = '#fff'; for (let i = 0; i < 8; i++) ctx.fillRect(i * 110 + Math.sin(now * 2 + i) * 10, 415 + (i % 2) * 20, 50, 6);
-      ctx.fillStyle = INK; ctx.fillRect(0, 470, W, 140); ctx.fillStyle = '#F4D9A0'; ctx.fillRect(0, 476, W, 130);
-      for (const x of [60, 740]) { box(x - 6, 300, 12, 180, '#7a5230', 4); circ(x, 290, 14, '#ff6b2b', 3); }
+      ctx.fillStyle = '#4DB8FF'; ctx.fillRect(-OX, 400, VW, 80); ctx.fillStyle = '#fff'; for (let i = 0; i < Math.ceil(VW / 110); i++) ctx.fillRect(i * 110 - OX + Math.sin(now * 2 + i) * 10, 415 + (i % 2) * 20, 50, 6);
+      ctx.fillStyle = INK; ctx.fillRect(-OX, 470, VW, 140); ctx.fillStyle = '#F4D9A0'; ctx.fillRect(-OX, 476, VW, 130);
+      for (const x of [60 - OX, 740 + OX]) { box(x - 6, 300, 12, 180, '#7a5230', 4); circ(x, 290, 14, '#ff6b2b', 3); }
       for (const u of sq) {
         const y = u.decoy ? 190 : 360, bob = Math.sin(now * 4 + u.ph) * 4;
         if (!u.decoy) { swPoly([[u.x - 20, y + 18], [u.x + 20, y + 18], [u.x + 48, 420], [u.x - 48, 420]], 'rgba(120,255,160,.45)', 0); ctx.strokeStyle = INK; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(u.x - 20, y + 18); ctx.lineTo(u.x - 48, 420); ctx.moveTo(u.x + 20, y + 18); ctx.lineTo(u.x + 48, 420); ctx.stroke(); }
@@ -330,12 +331,12 @@ function swLimbo(sp) {
 /* ── 8 STEER: broom through a scrolling night canyon ── */
 function swSteer(sp) {
   const ph = Math.random() * 6, spd = 300 * sp; let s = 0, py = 300, tgt = 300, vy = 0, sp8 = 0;
-  const cen = w => 300 + Math.min(1, w / 500) * (95 * Math.sin(w * .0075 + ph) + 40 * Math.sin(w * .017 + ph * 2));
-  const hh = w => 205 - Math.min(1, w / 700) * (75 + 10 * Math.min(sp, 2));
+  const cen = w => 300 + Math.min(1, Math.max(0, w) / 500) * (95 * Math.sin(w * .0075 + ph) + 40 * Math.sin(w * .017 + ph * 2));
+  const hh = w => 205 - Math.min(1, Math.max(0, w) / 700) * (75 + 10 * Math.min(sp, 2));
   const top = w => cen(w) - hh(w) + (Math.sin(w * .05) + 1) * 7;
   const bot = w => cen(w) + hh(w) - Math.abs(Math.sin(w * .045)) * 24;
   const g = {
-    cmd: 'STEER!', hint: 'MOUSE UP/DOWN OR ↑ ↓ TO FLY', thint: 'DRAG UP AND DOWN', dur: 4.5, timeWin: true,
+    wide: true, cmd: 'STEER!', hint: 'MOUSE UP/DOWN OR ↑ ↓ TO FLY', thint: 'DRAG UP AND DOWN', dur: 4.5, timeWin: true,
     move(p) { tgt = p.y; },
     update(dt) {
       if (g.result) return;
@@ -349,12 +350,12 @@ function swSteer(sp) {
     draw(t) {
       bg('#2a1a5e', '#33236e', t);
       ctx.fillStyle = 'rgba(255,243,176,.12)'; ctx.beginPath(); ctx.arc(580, 170, 140, 0, 7); ctx.fill(); circ(580, 170, 100, '#FFF3B0', 6); circ(550, 140, 18, '#f0dc86', 0); circ(610, 200, 26, '#f0dc86', 0); circ(620, 120, 10, '#f0dc86', 0);
-      ctx.beginPath(); ctx.moveTo(0, 0);
-      for (let x = 0; x <= W; x += 8) ctx.lineTo(x, top(s + x));
-      ctx.lineTo(W, 0); ctx.closePath(); ctx.fillStyle = '#C9B6FF'; ctx.fill(); ctx.strokeStyle = INK; ctx.lineWidth = 6; ctx.lineJoin = 'round'; ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(0, H);
-      for (let x = 0; x <= W; x += 8) ctx.lineTo(x, bot(s + x));
-      ctx.lineTo(W, H); ctx.closePath(); ctx.fillStyle = '#1c4a32'; ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-OX - 10, 0);
+      for (let x = -OX - 10; x <= W + OX + 10; x += 8) ctx.lineTo(x, top(s + x));
+      ctx.lineTo(W + OX + 10, 0); ctx.closePath(); ctx.fillStyle = '#C9B6FF'; ctx.fill(); ctx.strokeStyle = INK; ctx.lineWidth = 6; ctx.lineJoin = 'round'; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-OX - 10, H);
+      for (let x = -OX - 10; x <= W + OX + 10; x += 8) ctx.lineTo(x, bot(s + x));
+      ctx.lineTo(W + OX + 10, H); ctx.closePath(); ctx.fillStyle = '#1c4a32'; ctx.fill(); ctx.stroke();
       ctx.save(); ctx.translate(170, py); ctx.rotate(Math.max(-.4, Math.min(.4, vy / 1200)));
       ctx.strokeStyle = INK; ctx.lineWidth = 14; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-50, 8); ctx.lineTo(50, 8); ctx.stroke();
       ctx.strokeStyle = '#b5793a'; ctx.lineWidth = 8; ctx.stroke(); ctx.lineCap = 'butt';
@@ -377,7 +378,7 @@ function swSleep(sp) {
   if (sp > 1.5) items.push({ k: 'phone', x: 680, y: 480, r: 48, on: true });
   let z = 1, c = 0, rt = 0;
   const g = {
-    cmd: 'SHHH!', hint: 'CLICK EVERY NOISY THING', thint: 'TAP EVERY NOISY THING', dur: 5,
+    wide: true, cmd: 'SHHH!', hint: 'CLICK EVERY NOISY THING', thint: 'TAP EVERY NOISY THING', dur: 5,
     down(p) {
       if (g.result) return;
       let best = null, bd = 1e9;
@@ -390,13 +391,13 @@ function swSleep(sp) {
       c += dt; if (g.result) return;
       const n = items.filter(o => o.on).length; z -= n * .14 * sp * dt;
       if (n && (rt -= dt) < 0) { rt = .45; snd(1800, .04, 'square', .015); snd(1500, .04, 'square', .015, .08); }
-      const f = items[2]; if (f.on) { f.a += (Math.random() - .5) * 8 * dt; f.x += Math.cos(f.a + c * 3) * 190 * dt; f.y += Math.sin(f.a * 1.3 + c * 4) * 150 * dt; f.x = Math.max(250, Math.min(550, f.x)); f.y = Math.max(110, Math.min(280, f.y)); }
+      const f = items[2]; if (f.on) { f.a += (Math.random() - .5) * 8 * dt; f.x += Math.cos(f.a + c * 3) * 190 * dt; f.y += Math.sin(f.a * 1.3 + c * 4) * 150 * dt; f.x = Math.max(250 - OX * .5, Math.min(550 + OX * .5, f.x)); f.y = Math.max(110, Math.min(280, f.y)); }
       if (z <= 0) { z = 0; g.result = 'lose'; swLose(); sfx.buzz(); floatText('WOKE UP!', 400, 200, '#ff4d4d', 44); }
     },
     draw(t) {
       bg('#2B2D6E', '#33377d', t);
       circ(690, 90, 40, '#FFF3B0', 5);
-      box(0, 470, W, 140, '#6b4a2e', 6);
+      box(-OX - 10, 470, VW + 20, 140, '#6b4a2e', 6);
       shadow(400, 488, 190, 14, .25); shadow(690, 474, 50, 8, .25);
       const lamp = items[1], al = items[0], fl = items[2], ph = items[3];
       if (lamp.on) { ctx.fillStyle = 'rgba(255,225,77,.22)'; ctx.beginPath(); ctx.moveTo(660, 330); ctx.lineTo(760, 330); ctx.lineTo(850, 600); ctx.lineTo(480, 600); ctx.fill(); }
@@ -425,7 +426,7 @@ function swSleep(sp) {
 function swStars(sp) {
   const n = sp > 1.6 ? 5 : 4, pts = [];
   for (let tries = 0; pts.length < n && tries < 400; tries++) {
-    const q = { x: 100 + Math.random() * 600, y: 140 + Math.random() * 360 };
+    const q = { x: 100 - OX * .7 + Math.random() * (600 + OX * 1.4), y: 140 + Math.random() * 360 };
     if (pts.every(p => Math.hypot(p.x - q.x, p.y - q.y) > (tries > 300 ? 90 : 160))) pts.push(q);
   }
   while (pts.length < n) pts.push({ x: 100 + pts.length * 100, y: 300 });
@@ -440,11 +441,11 @@ function swStars(sp) {
     }
   };
   const g = {
-    cmd: 'CONNECT!', hint: 'MOUSE OVER THE STARS 1, 2, 3...', thint: 'DRAG THROUGH THE STARS IN ORDER', dur: 7,
+    wide: true, cmd: 'CONNECT!', hint: 'MOUSE OVER THE STARS 1, 2, 3...', thint: 'DRAG THROUGH THE STARS IN ORDER', dur: 7,
     move, update(dt) { wob = Math.max(0, wob - dt); },
     draw(t) {
       bg('#1b1f4d', '#232963', t);
-      for (let i = 0; i < 30; i++) { ctx.fillStyle = 'rgba(255,255,255,' + (.4 + .4 * Math.sin(now * 3 + i)) + ')'; ctx.fillRect((i * 97) % W, (i * 53) % H, 3, 3); }
+      for (let i = 0, ns = Math.round(30 * VW / W); i < ns; i++) { ctx.fillStyle = 'rgba(255,255,255,' + (.4 + .4 * Math.sin(now * 3 + i)) + ')'; ctx.fillRect((i * 97) % VW - OX, (i * 53) % H, 3, 3); }
       ctx.lineCap = 'round'; ctx.lineJoin = 'round';
       const path = () => { ctx.beginPath(); for (let i = 0; i < next; i++) ctx.lineTo(pts[i].x, pts[i].y); if (g.result === 'win') ctx.closePath(); };
       if (next > 0) {
@@ -470,7 +471,7 @@ function swDraw(sp) {
   let c = 0, slash = 0, early = false;
   const phase = () => c < t1 ? 0 : c < t1 + fakeLen ? 1 : c < t2 ? 0 : 2;
   const g = {
-    cmd: 'DRAW!', hint: 'CLICK ONLY WHEN YOU SEE "!"', thint: 'TAP ONLY WHEN YOU SEE "!"', dur: 5,
+    wide: true, cmd: 'DRAW!', hint: 'CLICK ONLY WHEN YOU SEE "!"', thint: 'TAP ONLY WHEN YOU SEE "!"', dur: 5,
     key(e) { if (e.code === 'Space') fire(); }, down() { fire(); },
     update(dt) {
       if (g.result) { slash = Math.max(0, slash - dt); return; }
@@ -488,7 +489,7 @@ function swDraw(sp) {
   g.draw = function (t) {
     bg('#FFB347', '#ffa733', t);
     circ(400, 330, 90, '#FF7A3D', 0);
-    ctx.fillStyle = INK; ctx.fillRect(0, 470, W, 140); ctx.fillStyle = '#D9A066'; ctx.fillRect(0, 476, W, 130);
+    ctx.fillStyle = INK; ctx.fillRect(-OX, 470, VW, 140); ctx.fillStyle = '#D9A066'; ctx.fillRect(-OX, 476, VW, 130);
     box(110, 330, 20, 140, '#4a9a3a', 4); box(670, 360, 20, 110, '#4a9a3a', 4);
     const ph = phase(), lose = g.result === 'lose', won = g.result === 'win';
     shadow(220, 472, 55, 10, .3); shadow(580, 472, 60, 10, .3); claude(220, 470, 9, { mood: swSad(g) });
@@ -509,11 +510,11 @@ function swDraw(sp) {
 
 /* ── 12 PROTECT: shoot down meteors before they hit the flowers ── */
 function swProtect(sp) {
-  const rs = Math.sqrt(sp), nm = sp > 1.5 ? 5 : 4, sp1 = (sp > 1.5 ? .6 : .75) / rs, fall = 1.7 / rs, fl = [0, 1, 2, 3, 4].map(i => ({ x: 120 + i * 140, hurt: false }));
-  const mets = []; for (let i = 0; i < nm; i++) { const tx = fl[(Math.random() * 5) | 0].x; mets.push({ at: (.4 + i * sp1 * 1) , sx: tx + (Math.random() - .5) * 500, tx, alive: true, x: 0, y: -50, hit: false }); }
+  const rs = Math.sqrt(sp), nm = sp > 1.5 ? 5 : 4, sp1 = (sp > 1.5 ? .6 : .75) / rs, fall = 1.7 / rs, nf = 5 + 2 * Math.floor(OX / 140), fl = Array.from({ length: nf }, (_, i) => ({ x: 400 + (i - (nf - 1) / 2) * 140, hurt: false }));
+  const mets = []; for (let i = 0; i < nm; i++) { const tx = fl[(Math.random() * nf) | 0].x; mets.push({ at: (.4 + i * sp1 * 1) , sx: tx + (Math.random() - .5) * 500, tx, alive: true, x: 0, y: -50, hit: false }); }
   let c = 0, killed = 0;
   const g = {
-    cmd: 'PROTECT!', hint: 'CLICK THE METEORS', thint: 'TAP THE METEORS', dur: 5, timeWin: true,
+    wide: true, cmd: 'PROTECT!', hint: 'CLICK THE METEORS', thint: 'TAP THE METEORS', dur: 5, timeWin: true,
     down(p) {
       if (g.result) return;
       let b = null, bd = 1e9;
@@ -531,7 +532,7 @@ function swProtect(sp) {
     },
     draw(t) {
       bg('#FFD6E8', '#ffc9e0', t);
-      ctx.fillStyle = INK; ctx.fillRect(0, 524, W, 90); ctx.fillStyle = '#9be37f'; ctx.fillRect(0, 530, W, 80);
+      ctx.fillStyle = INK; ctx.fillRect(-OX, 524, VW, 90); ctx.fillStyle = '#9be37f'; ctx.fillRect(-OX, 530, VW, 80);
       for (const f of fl) {
         const dy = f.hurt ? 14 : 0; shadow(f.x, 540, 34, 7, .25);
         ctx.strokeStyle = INK; ctx.lineWidth = 10; ctx.beginPath(); ctx.moveTo(f.x, 540); ctx.lineTo(f.x, 470 + dy); ctx.stroke();

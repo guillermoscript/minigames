@@ -6,7 +6,7 @@ function gStop(sp) {
   let ph = Math.random() * 2, stopped = false, lq = Math.floor(ph);
   const pos = () => 100 + 600 * Math.abs(((ph % 2) + 2) % 2 - 1);
   const g = {
-    cmd: 'STOP!', hint: 'STOP IN THE GREEN', thint: 'TAP TO STOP', dur: 5,
+    cmd: 'STOP!', hint: 'STOP IN THE GREEN', thint: 'TAP TO STOP', dur: 5, wide: true,
     stop() {
       if (stopped) return; stopped = true;
       const p = pos(); g.result = p >= zx && p <= zx + zw ? 'win' : 'lose';
@@ -37,7 +37,7 @@ function gDont(sp) {
   const taunts = ['PRESS ME!', 'DO IT!', 'CLICK!', 'SPACE!!!', 'JUST ONCE!', 'GO ON...'];
   const fail = () => { if (g.result) return; g.result = 'lose'; sfx.buzz(); sfx.thud(); shake(10, .3); burst(W / 2, 382, '#ee3b3b', 16); floatText('OOPS!', W / 2, 250, '#FF4D4D', 44); };
   const g = {
-    cmd: "DON'T!", hint: "DON'T TOUCH ANYTHING", dur: 4, timeWin: true,
+    cmd: "DON'T!", hint: "DON'T TOUCH ANYTHING", dur: 4, timeWin: true, wide: true,
     key() { fail(); }, down() { fail(); },
     update() {},
     draw(t) {
@@ -69,7 +69,7 @@ function gCount(sp) {
     const bx = x0 + (v - 1) * step + bw / 2;
     if (v === n) { sfx.coin(); sfx.sparkle(); burst(bx, by, '#5CFF7A', 14); ring(bx, by + 40, '#fff', 90); floatText('YES!', bx, by - 30, '#5CFF7A', 38); } else { sfx.buzz(); shake(6, .2); burst(bx, by, '#FF4D4D', 8); } };
   const g = {
-    cmd: 'COUNT!', hint: 'HOW MANY CLAUDES?', thint: 'TAP THE NUMBER', dur: 5,
+    cmd: 'COUNT!', hint: 'HOW MANY CLAUDES?', thint: 'TAP THE NUMBER', dur: 5, wide: true,
     key(e) { const v = +e.key; if (v >= 1 && v <= 8) choose(v); },
     down(p) { const i = Math.floor((p.x - x0) / step); if (i >= 0 && i < 8 && p.x - x0 - i * step <= bw && p.y > by && p.y < by + 80) choose(i + 1); },
     update(dt) { clock += dt; pts.forEach(p => { if (!p.s && clock >= p.at) { p.s = 1; sfx.pop(); } }); },
@@ -95,12 +95,12 @@ function gSlice(sp) {
   const kinds = ['f', 'f', 'f', 'f', 'b', 'b'].sort(() => Math.random() - .5);
   const cols = ['#ff4d4d', '#9be564', '#ffd23f', '#ff8c42'];
   const items = kinds.map((k, i) => {
-    const x = 160 + Math.random() * 480;
+    const x = 160 - OX + Math.random() * (480 + 2 * OX);
     return { k, x, y: 560, vx: (W / 2 - x) * .45 + (Math.random() - .5) * 120, vy: -(930 + Math.random() * 80), at: .2 + i * .5 / sp, c: cols[i % 4] };
   });
   const trail = []; let prev = null, clock = 0, sliced = 0;
   const g = {
-    cmd: 'SLICE!', hint: 'SWIPE FRUIT, NOT BOMBS', thint: 'SWIPE THE FRUIT', dur: 5,
+    cmd: 'SLICE!', hint: 'SWIPE FRUIT, NOT BOMBS', thint: 'SWIPE THE FRUIT', dur: 5, wide: true,
     move(p) {
       if (!prev) prev = p;
       trail.push({ x: p.x, y: p.y, l: .25 });
@@ -150,7 +150,7 @@ function gSlice(sp) {
         }
         ctx.lineCap = 'butt';
       }
-      for (let k = 0; k < 3; k++) circ(W - 100 + k * 36, 90, 12, k < sliced ? '#ffd23f' : '#1c5c38', 3);
+      for (let k = 0; k < 3; k++) circ(W + OX - 100 + k * 36, 90, 12, k < sliced ? '#ffd23f' : '#1c5c38', 3);
     }
   };
   return g;
@@ -162,7 +162,7 @@ function gCopy(sp) {
   const map = { ArrowUp: 0, KeyW: 0, ArrowRight: 1, KeyD: 1, ArrowDown: 2, KeyS: 2, ArrowLeft: 3, KeyA: 3 };
   let i = 0, shk = 0;
   const g = {
-    cmd: 'COPY!', swipe: true, hint: 'PRESS THE ARROWS IN ORDER', thint: 'SWIPE THE ARROWS', dur: 5,
+    cmd: 'COPY!', swipe: true, hint: 'PRESS THE ARROWS IN ORDER', thint: 'SWIPE THE ARROWS', dur: 5, wide: true,
     key(e) {
       if (!(e.code in map)) return;
       if (g.result) return;
@@ -198,7 +198,7 @@ function gSteady(sp) {
   let started = false;
   const end = pts[pts.length - 1];
   const g = {
-    cmd: 'STEADY!', hint: 'ENTER AT GO. DO NOT TOUCH THE WALLS', thint: 'TOUCH GO, THEN DRAG', dur: 6,
+    cmd: 'STEADY!', hint: 'ENTER AT GO. DO NOT TOUCH THE WALLS', thint: 'TOUCH GO, THEN DRAG', dur: 6, wide: true,
     move(p) {
       if (g.result) return;
       if (!started) { if (Math.hypot(p.x - pts[0].x, p.y - pts[0].y) < hw) { started = true; sfx.click(); sfx.blip(5); ring(pts[0].x, pts[0].y, '#5CFF7A', 80); } return; }

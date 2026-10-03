@@ -20,6 +20,8 @@ function mvPerson(x, y, s, col, arms, hop) {
   else if (arms === 2) { box(x - 5 * s, y - 28 * s, 10 * s, 10 * s, '#FFCBA4', 3); }
   else { box(x - 19 * s, y - 28 * s, 7 * s, 20 * s, '#FFCBA4', 3); box(x + 12 * s, y - 28 * s, 7 * s, 20 * s, '#FFCBA4', 3); }
 }
+/* crowd columns (spacing 82) covering the whole screen: returns {m, n} = extra columns each side, total per row */
+function mvCrowd() { const m = Math.ceil(OX / 82); return { m, n: 9 + 2 * m }; }
 function mvMeter(x, y, w, v, col, label) {
   box3(x, y, w, 26, '#fff', 4, 4); ctx.fillStyle = col; ctx.fillRect(x, y, w * clamp(v, 0, 1), 26);
   txt(label, x + w / 2, y + 13, 18, '#fff');
@@ -52,7 +54,7 @@ function mvPunch(sp) {
   };
   const KM = { ArrowLeft: L, KeyA: L, ArrowRight: R, KeyD: R, ArrowUp: U, KeyW: U };
   const g = {
-    cmd: 'PUNCH!', hint: 'ARROWS: PUNCH THE ENEMY\'S SIDE', thint: 'TAP THE SIDE WHERE THEY POP UP', dur: 5.6,
+    wide: true, cmd: 'PUNCH!', hint: 'ARROWS: PUNCH THE ENEMY\'S SIDE', thint: 'TAP THE SIDE WHERE THEY POP UP', dur: 5.6,
     key(e) { if (!e.repeat && KM[e.code] != null) punch(KM[e.code]); },
     down(p) { const dx = p.x - 400; punch(Math.abs(dx) > 170 ? (dx < 0 ? L : R) : U); },
     update(dt) {
@@ -70,8 +72,8 @@ function mvPunch(sp) {
     },
     draw(t) {
       bg(MAG, '#cb2c8b', t);
-      ctx.fillStyle = INK; ctx.fillRect(0, 524, W, 80); ctx.fillStyle = PUR; ctx.fillRect(0, 532, W, 70);
-      ctx.fillStyle = '#9560e8'; for (let i = 0; i < 8; i++) ctx.fillRect(i * 110 + 20, 560, 60, 8);
+      ctx.fillStyle = INK; ctx.fillRect(-OX, 524, VW, 80); ctx.fillStyle = PUR; ctx.fillRect(-OX, 532, VW, 70);
+      ctx.fillStyle = '#9560e8'; for (let i = -Math.ceil(OX / 110); i < (W + OX) / 110; i++) ctx.fillRect(i * 110 + 20, 560, 60, 8);
       const drawEnemy = (d, k, a, ko) => {
         const p = POS[d], sc = k, ex = p[0], ey = p[1];
         ctx.save(); ctx.globalAlpha = a; ctx.translate(ex, ey); ctx.scale(sc, sc);
@@ -130,11 +132,11 @@ function mvWave(sp) {
     sfx.blip(Math.round(meter * 14)); sfx.whoosh(s > 0);
     const hx = 400 + 110 * Math.sin(s * .7) + 50, hy = 260 - 110 * Math.cos(s * .7);
     burst(hx, hy, '#fff', 4, 160);
-    if (meter > .25 && Math.random() < .6) hearts.push({ x: 140 + Math.random() * 520, y: 470, t: 0 });
+    if (meter > .25 && Math.random() < .6) hearts.push({ x: 140 - OX + Math.random() * (520 + 2 * OX), y: 470, t: 0 });
     if (meter >= 1) { g.result = 'win'; mvWin(400, 300); floatText('CHEERS!', 400, 170, YEL, 50); }
   };
   const g = {
-    cmd: 'WAVE!', hint: 'WAVE THE MOUSE (OR ALTERNATE LEFT / RIGHT)', thint: 'SWIPE LEFT AND RIGHT FAST', dur: 5,
+    wide: true, cmd: 'WAVE!', hint: 'WAVE THE MOUSE (OR ALTERNATE LEFT / RIGHT)', thint: 'SWIPE LEFT AND RIGHT FAST', dur: 5,
     key(e) {
       if (e.repeat) return;
       const k = (e.code === 'ArrowLeft' || e.code === 'KeyA') ? 'L' : (e.code === 'ArrowRight' || e.code === 'KeyD') ? 'R' : '';
@@ -157,13 +159,14 @@ function mvWave(sp) {
     draw(t) {
       bg(TEAL, '#27b0a3', t);
       // stage
-      ctx.fillStyle = INK; ctx.fillRect(0, 336, W, 260); ctx.fillStyle = PUR; ctx.fillRect(0, 344, W, 252);
+      ctx.fillStyle = INK; ctx.fillRect(-OX, 336, VW, 260); ctx.fillStyle = PUR; ctx.fillRect(-OX, 344, VW, 252);
       box3(120, 310, 560, 34, '#FF6FC4', 4, 6);
       // crowd
       const cols = [MAG, '#4DB8FF', YEL, MINT, '#fff', OR];
-      for (let r = 0; r < 2; r++) for (let i = 0; i < 9; i++) {
-        const x = 70 + i * 82 + (r ? 41 : 0), y = r ? 590 : 520, thr = (i + r * 9) / 18, up = meter > thr * .9 + .05;
-        mvPerson(x, y, 1.15, cols[(i + r * 2) % cols.length], up ? 1 : 0, up ? Math.abs(Math.sin(now * 9 + i)) * meter * 22 : 0);
+      const { m, n } = mvCrowd();
+      for (let r = 0; r < 2; r++) for (let j = 0; j < n; j++) {
+        const i = j - m, x = 70 + i * 82 + (r ? 41 : 0), y = r ? 590 : 520, thr = (j + r * n) / (2 * n), up = meter > thr * .9 + .05;
+        mvPerson(x, y, 1.15, cols[(j + r * 2) % cols.length], up ? 1 : 0, up ? Math.abs(Math.sin(now * 9 + i)) * meter * 22 : 0);
       }
       // Claude on stage
       shadow(400, 316, 80, 14, .3);
@@ -208,7 +211,7 @@ function mvClap(sp) {
     } else { g.result = 'lose'; mvLose(); floatText('OFF BEAT!', 400, 300, RED, 46); }
   };
   const g = {
-    cmd: 'CLAP!', hint: 'WATCH THE RHYTHM, THEN ECHO IT: SPACE / CLICK', thint: 'WATCH, THEN TAP THE BEATS', dur: 4.6,
+    wide: true, cmd: 'CLAP!', hint: 'WATCH THE RHYTHM, THEN ECHO IT: SPACE / CLICK', thint: 'WATCH, THEN TAP THE BEATS', dur: 4.6,
     key(e) { if (!e.repeat && e.code === 'Space') press(); },
     down() { press(); },
     update(dt) {
@@ -219,11 +222,12 @@ function mvClap(sp) {
     },
     draw(t) {
       bg(PUR, '#6c36bd', t);
-      ctx.fillStyle = INK; ctx.fillRect(0, 380, W, 230); ctx.fillStyle = MAG; ctx.fillRect(0, 388, W, 220);
+      ctx.fillStyle = INK; ctx.fillRect(-OX, 380, VW, 230); ctx.fillStyle = MAG; ctx.fillRect(-OX, 388, VW, 220);
       const cols = [TEAL, YEL, '#4DB8FF', MINT, OR, '#fff'];
-      for (let r = 0; r < 2; r++) for (let i = 0; i < 9; i++) {
-        const x = 70 + i * 82 + (r ? 41 : 0), y = r ? 470 : 420, cl = pulse > 0;
-        mvPerson(x, y, 1, cols[(i + r) % cols.length], cl ? 2 : 0, cl ? 6 : 0);
+      const { m, n } = mvCrowd();
+      for (let r = 0; r < 2; r++) for (let j = 0; j < n; j++) {
+        const x = 70 + (j - m) * 82 + (r ? 41 : 0), y = r ? 470 : 420, cl = pulse > 0;
+        mvPerson(x, y, 1, cols[(j + r) % cols.length], cl ? 2 : 0, cl ? 6 : 0);
       }
       // Claude clapping
       shadow(400, 590, 80, 14, .3);
@@ -256,7 +260,7 @@ function mvBalance(sp) {
   let a = (Math.random() < .5 ? -1 : 1) * .28, w = 0, c = 0, md = 0, fall = 0, warn = 0, lastDir = 0;
   const push = (d) => { if (g.result) return; w += d * 1.4; sfx.click(); burst(400 - d * -20, 470, '#fff', 3, 120); lastDir = d; };
   const g = {
-    get lean() { return a; }, cmd: 'STAND!', hint: 'LEFT / RIGHT AGAINST THE LEAN', thint: 'TAP THE SIDE OPPOSITE THE LEAN', dur: 5, timeWin: true,
+    get lean() { return a; }, wide: true, cmd: 'STAND!', hint: 'LEFT / RIGHT AGAINST THE LEAN', thint: 'TAP THE SIDE OPPOSITE THE LEAN', dur: 5, timeWin: true,
     key(e) {
       if (e.repeat) return;
       if (e.code === 'ArrowLeft' || e.code === 'KeyA') push(-1);
@@ -281,8 +285,8 @@ function mvBalance(sp) {
     draw(t) {
       bg('#FF5CB8', '#f046a8', t);
       // abyss + pillar
-      ctx.fillStyle = INK; ctx.fillRect(0, 500, W, 100); ctx.fillStyle = '#3a1c70'; ctx.fillRect(0, 508, W, 92);
-      ctx.fillStyle = TEAL; for (let i = 0; i < 9; i++) { const x = i * 100 + 10; ctx.beginPath(); ctx.moveTo(x, 600); ctx.lineTo(x + 30, 540); ctx.lineTo(x + 60, 600); ctx.fill(); ctx.strokeStyle = INK; ctx.lineWidth = 4; ctx.stroke(); }
+      ctx.fillStyle = INK; ctx.fillRect(-OX, 500, VW, 100); ctx.fillStyle = '#3a1c70'; ctx.fillRect(-OX, 508, VW, 92);
+      ctx.fillStyle = TEAL; for (let i = -Math.ceil(OX / 100); i < (W + OX) / 100; i++) { const x = i * 100 + 10; ctx.beginPath(); ctx.moveTo(x, 600); ctx.lineTo(x + 30, 540); ctx.lineTo(x + 60, 600); ctx.fill(); ctx.strokeStyle = INK; ctx.lineWidth = 4; ctx.stroke(); }
       box3(340, 470, 120, 130, TEAL, 5, 6); box(330, 462, 140, 20, '#7ff0e3', 5);
       shadow(400, 482, 70, 12, .3);
       const lost = g.result === 'lose';
@@ -296,7 +300,7 @@ function mvBalance(sp) {
       if (!lost && Math.abs(a) > .6) { ctx.fillStyle = '#4DB8FF'; ctx.beginPath(); ctx.arc(400 + a * 100, 340 + (now * 70 % 20), 6, 0, 7); ctx.fill(); }
       // wind streaks
       ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 4; ctx.lineCap = 'round';
-      for (let i = 0; i < 4; i++) { const x = (now * 200 * (i % 2 ? 1 : -1) + i * 230) % 900 - 50, y = 200 + i * 55; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 46, y); ctx.stroke(); }
+      for (let i = 0; i < 4 + Math.floor(OX / 150); i++) { const sw = VW + 100, x = ((now * 200 * (i % 2 ? 1 : -1) + i * 230) % sw + sw) % sw - OX - 50, y = 200 + (i % 4) * 55; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 46, y); ctx.stroke(); }
       ctx.lineCap = 'butt';
       // sway meter
       const mx = 150, mw = 500, my = 60;

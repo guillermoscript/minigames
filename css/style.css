@@ -4,11 +4,8 @@ html, body {
   -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none;
   overscroll-behavior: none;
 }
-canvas {
-  width: min(100vw, calc(100vh * 4 / 3));
-  width: min(100vw, calc(100dvh * 4 / 3));
-  aspect-ratio: 4 / 3; display: block; cursor: crosshair; touch-action: none;
-}
+/* size is set by fitScreen() in js/core.js (it widens to the screen's shape) */
+canvas { display: block; cursor: crosshair; touch-action: none; }
 #rot {
   display: none; position: fixed; left: 0; right: 0; bottom: 14px; text-align: center;
   font: 700 15px/1.2 system-ui, sans-serif; color: #FFE14D; pointer-events: none;

@@ -4,7 +4,7 @@
 (function () {
   const C = ['#0f380f', '#306230', '#8bac0f', '#9bbc0f'];   // darkest .. lightest
   const R = (x, y, w, h, c) => { ctx.fillStyle = C[c]; ctx.fillRect(Math.round(x), Math.round(y), w, h); };
-  const FLAT = () => { ctx.fillStyle = C[3]; ctx.fillRect(0, 0, W, H); };
+  const FLAT = () => { ctx.fillStyle = C[3]; ctx.fillRect(-OX, 0, VW, H); };
   /* sprite from char rows: digits = palette index, 'b' = tint colour tc, '.' = empty */
   function spr(rows, x, y, s, tc) {
     for (let r = 0; r < rows.length; r++) {
@@ -63,7 +63,7 @@
     const jh = () => jt < 0 ? 0 : Math.sin(Math.PI * jt / JD) * 76;
     const ropeY = () => 360 + Math.cos(th) * 90;
     const g = {
-      cmd: 'JUMP!', hint: 'SPACE / CLICK: HOP OVER THE ROPE', thint: 'TAP TO HOP', dur: 5, timeWin: true,
+      cmd: 'JUMP!', hint: 'SPACE / CLICK: HOP OVER THE ROPE', thint: 'TAP TO HOP', dur: 5, timeWin: true, wide: true,
       key(e) { if (e.code === 'Space' || e.code === 'ArrowUp') jump(); }, down() { jump(); },
       update(dt) {
         fxUpdate(dt);
@@ -81,8 +81,8 @@
       },
       draw(t) {
         FLAT();
-        R(0, GY, W, 8, 0); R(0, GY + 8, W, H - GY - 8, 2);
-        for (let x = 0; x < W; x += 32) R(x + ((x / 32 & 1) ? 8 : 0), GY + 40, 8, 8, 1);
+        R(-OX, GY, VW, 8, 0); R(-OX, GY + 8, VW, H - GY - 8, 2);
+        for (let x = -Math.ceil(OX / 32) * 32; x < W + OX; x += 32) R(x + ((x / 32 & 1) ? 8 : 0), GY + 40, 8, 8, 1);
         // handles / posts
         for (const px of [CX - 180, CX + 180]) { R(px - 8, 360, 16, GY - 360, 1); R(px - 16, 344, 32, 24, 0); }
         const back = Math.sin(th) > 0;
@@ -124,7 +124,7 @@
       else { best.done = 2; fails++; ptxt('OFF!', SX, 200); pix(SX, 330, 8, 1); beep(150, .15, .06, .05); if (fails >= 2) lose('SMUDGE!'); }
     };
     const g = {
-      cmd: 'STAMP!', hint: 'SPACE / CLICK: STAMP THE BOX', thint: 'TAP TO STAMP', dur: 5,
+      cmd: 'STAMP!', hint: 'SPACE / CLICK: STAMP THE BOX', thint: 'TAP TO STAMP', dur: 5, wide: true,
       key(e) { if (e.code === 'Space' || e.code === 'ArrowDown') stamp(); }, down() { stamp(); },
       update(dt) {
         fxUpdate(dt); anim = Math.max(0, anim - dt); cd = Math.max(0, cd - dt);
@@ -135,13 +135,13 @@
       draw(t) {
         FLAT();
         // conveyor
-        R(0, PY + PH, W, 40, 0); R(0, PY + PH + 6, W, 28, 1);
+        R(-OX, PY + PH, VW, 40, 0); R(-OX, PY + PH + 6, VW, 28, 1);
         const off = (t0 * v) % 32;
-        for (let x = -32; x < W + 32; x += 32) R(x + off, PY + PH + 14, 16, 12, 0);
-        for (let x = 40; x < W; x += 160) { R(x, PY + PH + 40, 16, 70, 0); R(x - 16, PY + PH + 100, 48, 10, 0); }
+        for (let x = -Math.ceil(OX / 32) * 32 - 32; x < W + OX + 32; x += 32) R(x + off, PY + PH + 14, 16, 12, 0);
+        for (let x = 40 - Math.ceil(OX / 160) * 160; x < W + OX; x += 160) { R(x, PY + PH + 40, 16, 70, 0); R(x - 16, PY + PH + 100, 48, 10, 0); }
         // papers
         for (const p of papers) {
-          const x = px(p); if (x < -100 || x > W + 100) continue;
+          const x = px(p); if (x < -OX - 100 || x > W + OX + 100) continue;
           pxRect(x - PW / 2, PY, PW, PH, 3);
           for (let i = 0; i < 3; i++) R(x - PW / 2 + 16, PY + 14 + i * 10, 40 + (i * 13 % 24), 4, 2);
           const tx = x + p.off - 24;
@@ -188,7 +188,7 @@
       else { g.result = 'lose'; mLose(); shake(7, .25); pix(400, 330, 12, 0, 280); ptxt(f < zs ? 'RAW!' : 'BURNT!', 400, 250); }
     };
     const g = {
-      cmd: 'POP!', hint: 'HOLD CLICK / SPACE, RELEASE IN THE ZONE', thint: 'HOLD, RELEASE IN THE ZONE', dur: 5,
+      cmd: 'POP!', hint: 'HOLD CLICK / SPACE, RELEASE IN THE ZONE', thint: 'HOLD, RELEASE IN THE ZONE', dur: 5, wide: true,
       key(e) { if (e.code === 'Space' && !e.repeat) start(); }, keyup(e) { if (e.code === 'Space' && hold) pop(); },
       down() { start(); }, up() { if (hold) pop(); },
       update(dt) {
@@ -207,7 +207,7 @@
       },
       draw(t) {
         FLAT();
-        R(0, 480, W, 8, 0); R(0, 488, W, H - 488, 2);
+        R(-OX, 480, VW, 8, 0); R(-OX, 488, VW, H - 488, 2);
         // plate
         R(590, 462, 130, 12, 0); R(602, 474, 106, 8, 1);
         // toaster
@@ -216,7 +216,7 @@
         // bread rising in slot (clipped to above toaster top)
         if (!fly) {
           const vis = 22 + f * 36;
-          ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, ty + 8); ctx.clip();
+          ctx.save(); ctx.beginPath(); ctx.rect(-OX, 0, VW, ty + 8); ctx.clip();
           spr(BREAD, 360, ty + 8 - vis, 8, col()); ctx.restore();
         }
         pxRect(tx, ty, tw, th2, 2);
@@ -260,21 +260,21 @@
       cd = .2; rec = .1; bul.push({ x: cx, y: 480 }); beep(1175, .05, .05); beep(784, .06, .04, .03);
     };
     const g = {
-      cmd: 'SHOOT!', hint: 'MOUSE / ARROWS: AIM   CLICK / SPACE: FIRE', thint: 'DRAG TO AIM, TAP TO FIRE', dur: 5,
+      cmd: 'SHOOT!', hint: 'MOUSE / ARROWS: AIM   CLICK / SPACE: FIRE', thint: 'DRAG TO AIM, TAP TO FIRE', dur: 5, wide: true,
       key(e) { if (e.code === 'Space' || e.code === 'ArrowUp') fire(); },
-      move(p) { tx = Math.max(40, Math.min(W - 40, p.x)); },
-      down(p) { tx = Math.max(40, Math.min(W - 40, p.x)); cx = tx; fire(); },
+      move(p) { tx = Math.max(40 - OX, Math.min(W + OX - 40, p.x)); },
+      down(p) { tx = Math.max(40 - OX, Math.min(W + OX - 40, p.x)); cx = tx; fire(); },
       update(dt) {
         fxUpdate(dt); cd = Math.max(0, cd - dt); rec = Math.max(0, rec - dt);
         if (g.result) return;
         const kd = (keys['ArrowRight'] || keys['KeyD'] ? 1 : 0) - (keys['ArrowLeft'] || keys['KeyA'] ? 1 : 0);
         if (kd) { cx += kd * 460 * dt; tx = cx; } else cx += (tx - cx) * Math.min(1, dt * 20);
-        cx = Math.max(40, Math.min(W - 40, cx));
+        cx = Math.max(40 - OX, Math.min(W + OX - 40, cx));
         const live = inv.filter(i => i.alive);
-        ox += dir * 120 * rs * dt; oy += 36 * rs * dt;
+        ox += dir * 120 * rs * VW / W * dt; oy += 36 * rs * dt;   // wider field, same bounce rhythm
         const minX = Math.min(...live.map(px)), maxX = Math.max(...live.map(px)) + 48;
-        if (maxX > 776 && dir > 0) { dir = -1; oy += 22; beep(196, .05, .04); }
-        else if (minX < 24 && dir < 0) { dir = 1; oy += 22; beep(196, .05, .04); }
+        if (maxX > W + OX - 24 && dir > 0) { dir = -1; oy += 22; beep(196, .05, .04); }
+        else if (minX < 24 - OX && dir < 0) { dir = 1; oy += 22; beep(196, .05, .04); }
         for (let i = bul.length - 1; i >= 0; i--) {
           const b = bul[i]; b.y -= 780 * dt;
           let hit = null;
@@ -291,9 +291,9 @@
       },
       draw(t) {
         FLAT();
-        R(0, LINE + 6, W, 6, 1);
-        for (let x = 0; x < W; x += 24) R(x, LINE + 6, 12, 6, 0);
-        R(0, 600 - 16, W, 16, 2);
+        R(-OX, LINE + 6, VW, 6, 1);
+        for (let x = -Math.ceil(OX / 24) * 24; x < W + OX; x += 24) R(x, LINE + 6, 12, 6, 0);
+        R(-OX, 600 - 16, VW, 16, 2);
         const fr = Math.floor(now * 3) % 2 ? A : B;
         for (const v of inv) if (v.alive) spr(fr, px(v), py(v), 6);
         for (const b of bul) { R(b.x - 4, b.y, 8, 20, 0); R(b.x - 2, b.y + 4, 4, 8, 3); }

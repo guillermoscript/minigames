@@ -12,7 +12,7 @@
       const l = keys.ArrowLeft || keys.KeyA, r = keys.ArrowRight || keys.KeyD;
       let tg;
       if (l || r) { s.kd = (r ? 1 : 0) - (l ? 1 : 0); tg = s.kd * MAXT; }
-      else tg = Math.max(-1, Math.min(1, (s.px - W / 2) / (W / 2 - 40))) * MAXT;
+      else tg = Math.max(-1, Math.min(1, (s.px - W / 2) / (VW / 2 - 40))) * MAXT;
       s.v += (tg - s.v) * Math.min(1, dt * (l || r ? 7 : 12));
       s.n = s.v / MAXT;
     };
@@ -44,7 +44,7 @@
     let x = -hx * .5 + (Math.random() - .5) * 60, vx = 0, c = 0, sink = 0, fall = 0, ang = 0;
     const g = {
       cmd: 'SLIDE!', hint: 'MOUSE X / ARROWS: TILT THE CHEESE INTO THE HOLE', thint: 'DRAG LEFT / RIGHT TO TILT', dur: 5,
-      move: tl.ptr, down: tl.ptr,
+      wide: true, move: tl.ptr, down: tl.ptr,
       update(dt) {
         tl.step(dt); c += dt;
         if (g.result === 'win') { sink += dt; return; }
@@ -62,6 +62,8 @@
       }, draw(t) {
         bg(CREAM, CREAM2, c);
         ctx.save(); ctx.translate(W / 2, H / 2); ctx.rotate(tl.v);
+        // ground beyond the walls (fills the margins under any tilt)
+        ctx.fillStyle = INK; ctx.fillRect(-1400, 50, 2800, 1000); ctx.fillStyle = '#E8C08A'; ctx.fillRect(-1400, 58, 2800, 1000);
         // slab
         ctx.fillStyle = INK; ctx.fillRect(-380, 50, 760, 140);
         ctx.fillStyle = '#BFE9FF'; ctx.fillRect(-372, 58, 744, 124);
@@ -101,7 +103,7 @@
     let c = 0, x = 400, off = 0, spin = 0, cones = [], nxt = .5, near = 0, edge = 0;
     const g = {
       cmd: 'STEER!', hint: 'MOUSE X / ARROWS: TURN THE WHEEL, DODGE CONES', thint: 'DRAG LEFT / RIGHT TO STEER', dur: 5, timeWin: true,
-      move: tl.ptr, down: tl.ptr,
+      wide: true, move: tl.ptr, down: tl.ptr,
       update(dt) {
         tl.step(dt); c += dt;
         if (g.result) { spin += dt * 14; return; }
@@ -126,8 +128,8 @@
         cones = cones.filter(q => q.y < 680);
       }, draw(t) {
         // grass
-        ctx.fillStyle = '#9BDB6A'; ctx.fillRect(0, 0, W, H);
-        ctx.fillStyle = '#86cc55'; for (let i = 0; i < 12; i++) { const y = ((i * 70 + off * .9) % 840) - 120; ctx.fillRect(40 + (i % 3) * 20, y, 70, 18); ctx.fillRect(660 - (i % 3) * 20, y + 30, 70, 18); }
+        ctx.fillStyle = '#9BDB6A'; ctx.fillRect(-OX, 0, VW, H);
+        ctx.fillStyle = '#86cc55'; for (let k = 0; k * 200 < OX + 60; k++) for (let i = 0; i < 12; i++) { const y = ((i * 70 + k * 37 + off * .9) % 840) - 120; ctx.fillRect(40 + (i % 3) * 20 - k * 200, y, 70, 18); ctx.fillRect(660 - (i % 3) * 20 + k * 200, y + 30, 70, 18); }
         ctx.fillStyle = INK; ctx.fillRect(RL - 14, 0, RR - RL + 28, H); ctx.fillStyle = '#6b6b78'; ctx.fillRect(RL, 0, RR - RL, H);
         ctx.fillStyle = '#fff'; for (let i = 0; i < 9; i++) { const y = ((i * 90 + off) % 810) - 90; ctx.fillRect(RL + 4, y, 10, 50); ctx.fillRect(RR - 14, y, 10, 50); }
         ctx.fillStyle = '#FFE14D'; for (let i = 0; i < 9; i++) { const y = ((i * 90 + off) % 810) - 90; ctx.fillRect(398, y, 8, 44); }
@@ -147,7 +149,7 @@
         ctx.restore();
         claude(x, 462, 2.4, { mood: sad(g) });
         // big wheel
-        ctx.save(); ctx.translate(100, 470); ctx.rotate(g.result ? spin : tl.v * 2.6);
+        ctx.save(); ctx.translate(100 - OX * .8, 470); ctx.rotate(g.result ? spin : tl.v * 2.6);
         shadow(0, 100, 80, 14, .25);
         ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(0, 0, 90, 0, 7); ctx.fill();
         ctx.fillStyle = '#3b3550'; ctx.beginPath(); ctx.arc(0, 0, 80, 0, 7); ctx.fill();
@@ -159,7 +161,7 @@
         ctx.fillStyle = '#FFE14D'; ctx.fillRect(-6, -88, 12, 14);
         ctx.restore();
         // progress
-        box3(640, 20, 140, 18, '#fff', 3, 3); ctx.fillStyle = '#5CFF7A'; ctx.fillRect(640, 20, 140 * clamp(c / (5 / Math.sqrt(sp)), 0, 1), 18);
+        box3(W + OX - 160, 20, 140, 18, '#fff', 3, 3); ctx.fillStyle = '#5CFF7A'; ctx.fillRect(W + OX - 160, 20, 140 * clamp(c / (5 / Math.sqrt(sp)), 0, 1), 18);
         vignette(.2);
       }
     };
@@ -168,7 +170,7 @@
 
   /* ── 3 COLLECT: roll the ball over every coin, skip the holes ── */
   function twCoins(sp) {
-    const tl = tiltCtl(), LIM = 330;
+    const tl = tiltCtl(), LIM = 330 + OX * .6;
     const nC = 4 + (Math.random() * 2 | 0);
     const holes = [-170, 120].map(h => h + (Math.random() - .5) * 40);
     const hx0 = holes[0], hx1 = holes[1];
@@ -178,7 +180,7 @@
     let x = (hx0 + hx1) / 2 - 20, vx = 0, c = 0, rot = 0, fall = 0, left = nC, pulse = 0;
     const g = {
       cmd: 'COLLECT!', hint: 'MOUSE X / ARROWS: TILT, GET ALL COINS, AVOID HOLES', thint: 'DRAG LEFT / RIGHT TO TILT', dur: 6,
-      move: tl.ptr, down: tl.ptr,
+      wide: true, move: tl.ptr, down: tl.ptr,
       update(dt) {
         tl.step(dt); c += dt; pulse = Math.max(0, pulse - dt);
         if (g.result === 'lose') { fall += dt; return; }
@@ -199,15 +201,15 @@
         ctx.save(); ctx.translate(W / 2, H / 2); ctx.rotate(tl.v);
         // platform segments with gaps
         const segs = [-390, hx0 - 30, hx0 + 30, hx1 - 30, hx1 + 30, 390];
-        ctx.fillStyle = INK; ctx.fillRect(-398, 62, 796, 112);
+        ctx.fillStyle = INK; ctx.fillRect(-1400, 62, 2800, 112);
         const P = (a, b) => { ctx.fillStyle = ORG; ctx.fillRect(a, 66, b - a, 104); ctx.fillStyle = 'rgba(255,255,255,.4)'; ctx.fillRect(a, 66, b - a, 10); };
-        P(-394, hx0 - 30); P(hx0 + 30, hx1 - 30); P(hx1 + 30, 394);
+        P(-1400, hx0 - 30); P(hx0 + 30, hx1 - 30); P(hx1 + 30, 1400);
         for (const h of holes) {   // holes: dark pits
           ctx.fillStyle = INK; ctx.fillRect(h - 36, 56, 72, 130); ctx.fillStyle = '#4a3340'; ctx.fillRect(h - 30, 62, 60, 118);
           ctx.fillStyle = '#fff'; ctx.fillRect(h - 10, 100 + (now * 40 % 30), 4, 12); ctx.fillRect(h + 8, 130 + (now * 30 % 30), 4, 10);
           spikes(h - 30, h + 30, 180, -1, 4);
         }
-        ctx.fillStyle = ORD; for (let i = 0; i < 9; i++) ctx.fillRect(-380 + i * 90, 140, 30, 8);
+        ctx.fillStyle = ORD; for (let i = -9; i < 18; i++) ctx.fillRect(-380 + i * 90, 140, 30, 8);
         // coins
         for (const q of coins) if (!q.got) { shadow(q.x, 64, 16, 4, .25); token(q.x, 22 + Math.sin(c * 4 + q.x) * 4, 16); }
         // ball
@@ -236,7 +238,7 @@
     gtarget = (Math.random() < .5 ? -1 : 1) * 2;
     const g = {
       cmd: 'BALANCE!', hint: 'MOUSE X / ARROWS: TILT AGAINST THE LEAN', thint: 'DRAG LEFT / RIGHT TO COUNTER LEAN', dur: 5, timeWin: true,
-      move: tl.ptr, down: tl.ptr,
+      wide: true, move: tl.ptr, down: tl.ptr,
       update(dt) {
         tl.step(dt); c += dt;
         if (g.result === 'lose') { bv += dt * 5; bal += bv * dt * Math.sign(bal || 1); return; }
@@ -251,10 +253,10 @@
         bg(CREAM, CREAM2, c);
         ctx.save(); ctx.translate(W / 2, H / 2 + 20); ctx.rotate(tl.v);
         // half-pipe bowl
-        ctx.beginPath(); ctx.moveTo(-720, surf(-720)); for (let x = -720; x <= 720; x += 30) ctx.lineTo(x, surf(clamp(x, -360, 360)) + (Math.abs(x) > 360 ? (Math.abs(x) - 360) * Math.sign(0) - (Math.abs(x) - 360) * 2.2 : 0));
-        ctx.lineTo(720, 700); ctx.lineTo(-720, 700); ctx.closePath(); ctx.fillStyle = INK; ctx.fill();
-        ctx.save(); ctx.translate(0, 8); ctx.beginPath(); ctx.moveTo(-720, surf(-720)); for (let x = -720; x <= 720; x += 30) ctx.lineTo(x, surf(clamp(x, -360, 360)) + (Math.abs(x) > 360 ? -(Math.abs(x) - 360) * 2.2 : 0));
-        ctx.lineTo(720, 700); ctx.lineTo(-720, 700); ctx.closePath(); ctx.fillStyle = ORG; ctx.fill(); ctx.restore();
+        ctx.beginPath(); ctx.moveTo(-1300, surf(-1300)); for (let x = -1300; x <= 1300; x += 30) ctx.lineTo(x, surf(clamp(x, -360, 360)) + (Math.abs(x) > 360 ? (Math.abs(x) - 360) * Math.sign(0) - (Math.abs(x) - 360) * 2.2 : 0));
+        ctx.lineTo(1300, 1200); ctx.lineTo(-1300, 1200); ctx.closePath(); ctx.fillStyle = INK; ctx.fill();
+        ctx.save(); ctx.translate(0, 8); ctx.beginPath(); ctx.moveTo(-1300, surf(-1300)); for (let x = -1300; x <= 1300; x += 30) ctx.lineTo(x, surf(clamp(x, -360, 360)) + (Math.abs(x) > 360 ? -(Math.abs(x) - 360) * 2.2 : 0));
+        ctx.lineTo(1300, 1200); ctx.lineTo(-1300, 1200); ctx.closePath(); ctx.fillStyle = ORG; ctx.fill(); ctx.restore();
         ctx.strokeStyle = '#fff'; ctx.lineWidth = 8; ctx.beginPath(); for (let x = -340; x <= 340; x += 20) ctx.lineTo(x, surf(x) + 8 + 2); ctx.stroke();
         ctx.strokeStyle = INK; ctx.lineWidth = 3; ctx.beginPath(); for (let x = -340; x <= 340; x += 20) ctx.lineTo(x, surf(x) + 50); ctx.stroke();
         // skater
@@ -271,7 +273,7 @@
         ctx.restore(); ctx.restore();
         ctx.restore();
         // wind streaks
-        for (const w of wind) { const k = w.t / .8; ctx.globalAlpha = 1 - k; ctx.strokeStyle = '#fff'; ctx.lineWidth = 6; ctx.lineCap = 'round'; const x0 = w.d > 0 ? 80 + k * 600 : 720 - k * 600; ctx.beginPath(); ctx.moveTo(x0, w.y); ctx.lineTo(x0 + w.d * 90, w.y); ctx.stroke(); ctx.lineCap = 'butt'; ctx.globalAlpha = 1; }
+        for (const w of wind) { const k = w.t / .8; ctx.globalAlpha = 1 - k; ctx.strokeStyle = '#fff'; ctx.lineWidth = 6; ctx.lineCap = 'round'; const x0 = w.d > 0 ? 80 - OX + k * (VW - 200) : W + OX - 80 - k * (VW - 200); ctx.beginPath(); ctx.moveTo(x0, w.y); ctx.lineTo(x0 + w.d * 90, w.y); ctx.stroke(); ctx.lineCap = 'butt'; ctx.globalAlpha = 1; }
         // balance bar
         box3(200, 26, 400, 28, '#fff', 4, 4);
         ctx.fillStyle = '#5CFF7A'; ctx.fillRect(200 + 400 * .35, 26, 400 * .3, 28);

@@ -7,8 +7,25 @@ const _td3 = {
   /* lazily created shared scratch objects (THREE must already be loaded) */
   init() { if (!this.V) { this.V = new THREE.Vector3(); this.P = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0); } },
   cl: (v, a, b) => v < a ? a : v > b ? b : v,
+  /* widescreen: own renderer sized VW×H (the shared T3 one is fixed at 800×600), camera aspect follows VW so wide screens SEE more scene */
+  R: null,
+  render(S) {
+    if (!this.R && !this.bad) {
+      try {
+        const c = document.createElement('canvas'); c.width = VW; c.height = H;
+        this.R = new THREE.WebGLRenderer({ canvas: c, antialias: true, alpha: false, preserveDrawingBuffer: true });
+        this.R.setPixelRatio(1); this.R.shadowMap.enabled = true; this.R.shadowMap.type = THREE.PCFSoftShadowMap;
+      } catch (e) { this.bad = true; this.R = null; }
+    }
+    const R = this.R; if (!R) { T3.render(S); return; }
+    if (R.domElement.width !== VW) R.setSize(VW, H, false);
+    if (Math.abs(S.camera.aspect - VW / H) > 1e-4) { S.camera.aspect = VW / H; S.camera.updateProjectionMatrix(); }
+    S.camera.updateMatrixWorld(); R.render(S.scene, S.camera); ctx.drawImage(R.domElement, -OX, 0, VW, H);
+  },
+  /* canvas px (game coords, may be <0 / >W) → normalized device coords for raycasting */
+  ndc(p) { return new THREE.Vector2((p.x + OX) / VW * 2 - 1, -(p.y / H) * 2 + 1); },
   /* 2D overlay helper: world point (x,y,z) → canvas px, no allocation */
-  scr(S, x, y, z) { _td3.init(); _td3.V.set(x, y, z); return T3.screen(S, _td3.V); },
+  scr(S, x, y, z) { _td3.init(); _td3.V.set(x, y, z); const q = _td3.V.project(S.camera); return { x: (q.x + 1) / 2 * VW - OX, y: (1 - q.y) / 2 * H, z: q.z }; },
 };
 
 /* ───────────── 1. CUBE MATCH ───────────── */
@@ -71,7 +88,7 @@ reg3('td_cube', sp => {
   let drag = false, lx = 0, ly = 0, holdT = 0, pulse = 0, matched = false, ang = 9;
   const snap = () => { let b = 0, bd = -1; for (let i = 0; i < 24; i++) { const d = Math.abs(ORI[i].dot(q)); if (d > bd) { bd = d; b = i; } } goal.copy(ORI[b]); if (goal.dot(q) < 0) { goal.x *= -1; goal.y *= -1; goal.z *= -1; goal.w *= -1; } };
   const g = {
-    cmd: 'MATCH!', hint: 'DRAG OR ARROWS: COPY THE TARGET', thint: 'DRAG THE CUBE TO MATCH', dur: 7,
+    wide: true, cmd: 'MATCH!', hint: 'DRAG OR ARROWS: COPY THE TARGET', thint: 'DRAG THE CUBE TO MATCH', dur: 7,
     key(e) {
       if (g.result || drag) return;
       let m = null;
@@ -95,7 +112,8 @@ reg3('td_cube', sp => {
       cube.quaternion.copy(q);
       cube.position.y = Math.sin(t * 2.2) * .12;
       pulse = Math.max(0, pulse - dt * 4); const sc = 1 + pulse * .08 + (g.result === 'win' ? Math.sin(t * 18) * .04 : 0); cube.scale.setScalar(sc);
-      tgt.position.y = 2.55 + Math.sin(t * 2.2 + 1) * .08;
+      tgt.position.x = -(Math.tan(.3927) * 7.2 * VW / H - 1.7);   // pinned to the top-left of the visible area at any width
+      tgt.position.y = 1.9 + Math.sin(t * 2.2 + 1) * .08;
       if (g.result) return;
       ang = q.angleTo(target);
       const m = ang < TOL;
@@ -112,14 +130,14 @@ reg3('td_cube', sp => {
       } else holdT = Math.max(0, holdT - dt * 2);
     },
     draw(t) {
-      T3.render(S);
+      _td3.render(S);
       const c = _td3.scr(S, 0, cube.position.y, 0);
       if (matched || g.result) {
         ctx.strokeStyle = '#7dff7a'; ctx.lineWidth = 8; ctx.globalAlpha = .55 + .25 * Math.sin(t * 20);
         ctx.beginPath(); ctx.arc(c.x, c.y, 220, 0, 7); ctx.stroke(); ctx.globalAlpha = 1;
       }
       // target frame
-      const tp = _td3.scr(S, -5.1, 2.55, 1.2);
+      const tp = _td3.scr(S, tgt.position.x, 1.9, 1.2);
       ctx.save(); ctx.lineWidth = 5; ctx.strokeStyle = INK; ctx.fillStyle = 'rgba(255,255,255,.25)';
       ctx.fillRect(tp.x - 78, tp.y - 74, 156, 168); ctx.strokeRect(tp.x - 78, tp.y - 74, 156, 168); ctx.restore();
       txt('TARGET', tp.x, tp.y + 72, 24, '#fff', 'center', 140);
@@ -148,12 +166,13 @@ reg3('td_lanes', sp => {
     s.position.set(sx, .14, 10 - i * 8); S.scene.add(s); stripes.push(s);
   }
   const trees = [];
-  for (let i = 0; i < 16; i++) {
+  for (let i = 0; i < 32; i++) {
     const side = i % 2 ? 1 : -1, tr = new THREE.Group(), M = T3.mk;
     const trunk = M.cyl(.3, .4, 1.2, 0x8a5a3c); trunk.position.y = .6; tr.add(trunk);
     const c1 = M.cone(1.5, 2.4, i % 3 ? 0x3fb64f : 0x2e9e6a); c1.position.y = 2.2; tr.add(c1);
     const c2 = M.cone(1.1, 1.8, i % 3 ? 0x4ccb5c : 0x3bb57e); c2.position.y = 3.4; tr.add(c2);
-    T3.add(S, tr, [side * (7.5 + (i * 7 % 5)), 0, 10 - Math.floor(i / 2) * 12]); trees.push(tr);
+    // i >= 16: outer rows that only widescreens ever see
+    T3.add(S, tr, i < 16 ? [side * (7.5 + (i * 7 % 5)), 0, 10 - Math.floor(i / 2) * 12] : [side * (15 + (i * 7 % 11)), 0, 4 - Math.floor((i - 16) / 2) * 12]); trees.push(tr);
   }
   // obstacle pool: each holds boulder / barrel / crate children
   const pool = [];
@@ -188,7 +207,7 @@ reg3('td_lanes', sp => {
   const jump = () => { if (y <= 0 && !g.result) { vy = 9.2; sfx.boing(); sfx.whoosh(true); } };
   const go = d => { const n = _td3.cl(lane + d, -1, 1); if (n !== lane && !g.result) { lane = n; sfx.whoosh(d > 0); shakeV = .06; } };
   const g = {
-    cmd: 'RUN!', hint: 'ARROWS / A D: DODGE · SPACE: JUMP', thint: 'TAP SIDES: DODGE · TAP MIDDLE: JUMP', dur: 7, timeWin: true,
+    wide: true, cmd: 'RUN!', hint: 'ARROWS / A D: DODGE · SPACE: JUMP', thint: 'TAP SIDES: DODGE · TAP MIDDLE: JUMP', dur: 7, timeWin: true,
     key(e) {
       if (e.code === 'ArrowLeft' || e.code === 'KeyA') go(-1);
       else if (e.code === 'ArrowRight' || e.code === 'KeyD') go(1);
@@ -231,14 +250,14 @@ reg3('td_lanes', sp => {
       cam.lookAt(cam.position.x * .6, 1.2, -9);
     },
     draw(t) {
-      T3.render(S);
+      _td3.render(S);
       // speed lines
       ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 3; ctx.lineCap = 'round';
       for (let i = 0; i < 8; i++) {
-        const a = i * .83 + 1, r = 280 + ((now * 400 + i * 97) % 200), r2 = r + 40;
-        ctx.beginPath(); ctx.moveTo(W / 2 + Math.cos(a) * r * 1.2, 240 + Math.sin(a) * r * .8); ctx.lineTo(W / 2 + Math.cos(a) * r2 * 1.2, 240 + Math.sin(a) * r2 * .8); ctx.stroke();
+        const a = i * .83 + 1, r = 280 + ((now * 400 + i * 97) % 200), r2 = r + 40, kx = 1.2 * VW / W;
+        ctx.beginPath(); ctx.moveTo(W / 2 + Math.cos(a) * r * kx, 240 + Math.sin(a) * r * .8); ctx.lineTo(W / 2 + Math.cos(a) * r2 * kx, 240 + Math.sin(a) * r2 * .8); ctx.stroke();
       }
-      if (TOUCH && !g.result && t < 2) { ctx.globalAlpha = .35; txt('<', 90, H / 2, 90, '#fff'); txt('>', W - 90, H / 2, 90, '#fff'); txt('^', W / 2, H / 2, 90, '#fff'); ctx.globalAlpha = 1; }
+      if (TOUCH && !g.result && t < 2) { ctx.globalAlpha = .35; txt('<', 90 - OX, H / 2, 90, '#fff'); txt('>', W + OX - 90, H / 2, 90, '#fff'); txt('^', W / 2, H / 2, 90, '#fff'); ctx.globalAlpha = 1; }
       vignette(.3);
     },
   };
@@ -308,13 +327,13 @@ reg3('td_crane', sp => {
   const vDown = 5 + 1.5 * (sp - 1), vUp = 5.5 + 1.5 * (sp - 1), vX = 11;
   _td3.init();
   const planeX = p => {
-    S.ray.setFromCamera(new THREE.Vector2(p.x / W * 2 - 1, -(p.y / H) * 2 + 1), S.camera);
+    S.ray.setFromCamera(_td3.ndc(p), S.camera);
     const h = S.ray.ray.intersectPlane(_td3.P, _td3.V); return h ? _td3.cl(h.x, -SLIM, SLIM) : tx;
   };
   const clank = () => { snd(180, .08, 'square', .09, 0, 90); snd(1500, .04, 'square', .05); noise(.07, .06, 2500, 7000, 'highpass'); sfx.hit(); camShake = .12; };
   const drop = () => { if (st !== 'idle') return; st = 'down'; sfx.whoosh(false); sfx.tick(); };
   const g = {
-    cmd: 'GRAB!', hint: 'MOVE + CLICK / ARROWS + SPACE', thint: 'TAP WHERE TO GRAB', dur: 9,
+    wide: true, cmd: 'GRAB!', hint: 'MOVE + CLICK / ARROWS + SPACE', thint: 'TAP WHERE TO GRAB', dur: 9,
     key(e) { if (e.code === 'Space' || e.code === 'ArrowDown' || e.code === 'Enter') { if (st === 'idle') pend = true; } },
     move(p) { if (st === 'idle' && !pend) tx = planeX(p); },
     down(p) { if (st === 'idle' && !g.result) { tx = planeX(p); pend = true; } },
@@ -384,7 +403,7 @@ reg3('td_crane', sp => {
       cam.lookAt(cam.position.x * .5, 3.6, 0);
     },
     draw(t) {
-      T3.render(S);
+      _td3.render(S);
       if (st === 'idle' && !g.result) {
         const s = _td3.scr(S, cx, 1.2, 0);
         ctx.strokeStyle = '#fff'; ctx.lineWidth = 4; ctx.globalAlpha = .6 + .3 * Math.sin(t * 8);
@@ -407,9 +426,9 @@ reg3('td_hop', sp => {
   lava.rotation.x = -Math.PI / 2; lava.position.y = -3; S.scene.add(lava);
   const SP = 5, n = 4 + (sp > 1.5), M = T3.mk;
   const bubbles = [];
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 16; i++) {
     const b = new THREE.Mesh(new THREE.SphereGeometry(.5, 10, 8), new THREE.MeshBasicMaterial({ color: i % 2 ? 0xffd23f : 0xff8a3c }));
-    b.userData = { bx: -4 + Math.random() * (n * SP + 10), bz: (Math.random() - .5) * 14, ph: Math.random() * 6, f: 1 + Math.random() };
+    b.userData = { bx: -12 + Math.random() * (n * SP + 26), bz: (Math.random() - .5) * 14, ph: Math.random() * 6, f: 1 + Math.random() };
     b.position.set(b.userData.bx, -3, b.userData.bz); S.scene.add(b); bubbles.push(b);
   }
   const COLS = [0xff7ac6, 0x6ee7b7, 0xffd84a, 0xa99bff, 0xff9a5a];
@@ -440,7 +459,7 @@ reg3('td_hop', sp => {
   let cx = 0, cy = TOPY, cz = 0, vy = 0, air = false, on = 0, sq = 0, camx = 0, lookx = 3, camShake = 0, tsec = 0, done = 0, sink = 0, ft = 0;
   const jump = () => { if (air || g.result) return; air = true; vy = VY; sq = -1; sfx.boing(); sfx.whoosh(true); };
   const g = {
-    cmd: 'HOP!', hint: 'SPACE / CLICK: HOP TO THE STAR', thint: 'TAP TO HOP TO THE STAR', dur: 8,
+    wide: true, cmd: 'HOP!', hint: 'SPACE / CLICK: HOP TO THE STAR', thint: 'TAP TO HOP TO THE STAR', dur: 8,
     key(e) { if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'ArrowRight' || e.code === 'KeyW' || e.code === 'KeyD') jump(); },
     down() { jump(); },
     update(dt, t) {
@@ -494,7 +513,7 @@ reg3('td_hop', sp => {
       cam.lookAt(lookx, .5, 0);
     },
     draw(t) {
-      T3.render(S);
+      _td3.render(S);
       if (!air && !g.result && t < 2) txt(TOUCH ? 'TAP!' : 'SPACE!', W / 2, 500, 38, '#fff', 'center', 300);
       vignette(.25);
     },

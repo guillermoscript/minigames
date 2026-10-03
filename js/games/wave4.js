@@ -4,7 +4,7 @@
 function gBalance(sp) {
   let a = (Math.random() < .5 ? -1 : 1) * .12, w = 0, bx = 0, c = 0, warn = 0; const ph = Math.random() * 6;
   const g = {
-    cmd: 'BALANCE!', hint: 'LEAN THE SAME WAY: ← → OR MOUSE', thint: 'TOUCH LEFT OR RIGHT', dur: 5, timeWin: true,
+    cmd: 'BALANCE!', wide: true, hint: 'LEAN THE SAME WAY: ← → OR MOUSE', thint: 'TOUCH LEFT OR RIGHT', dur: 5, timeWin: true,
     update(dt) {
       if (g.result) return;
       c = (keys.ArrowRight || keys.KeyD ? 1 : 0) - (keys.ArrowLeft || keys.KeyA ? 1 : 0);
@@ -17,7 +17,7 @@ function gBalance(sp) {
     },
     draw(t) {
       bg('#FFB3D9', '#ff9fcd', t);
-      ctx.fillStyle = INK; ctx.fillRect(0, 516, W, 90); ctx.fillStyle = '#9b6bd1'; ctx.fillRect(0, 524, W, 80);
+      ctx.fillStyle = INK; ctx.fillRect(-OX, 516, VW, 90); ctx.fillStyle = '#9b6bd1'; ctx.fillRect(-OX, 524, VW, 80);
       const cx = W / 2 + bx;
       shadow(cx, 520, 56, 12, .3); circ(cx, 466, 50, '#4DB8FF', 5);
       ctx.save(); ctx.translate(cx, 466); ctx.rotate(bx / 50); ctx.fillStyle = '#fff'; ctx.fillRect(-6, -48, 12, 96); ctx.fillRect(-48, -6, 96, 12); ctx.fillStyle = 'rgba(255,255,255,.4)'; ctx.beginPath(); ctx.ellipse(-18, -22, 12, 7, -.6, 0, 7); ctx.fill(); ctx.restore();
@@ -35,7 +35,7 @@ function gFlip(sp) {
   const cards = kinds.map((k, i) => ({ k, x: x0 + i * (cw + gap), up: true, done: false, pk: 1 }));
   let clock = 0, lock = 0, sel = [], pairs = 0, flipped = false; const peek = 1.6 / Math.sqrt(sp);
   const g = {
-    cmd: 'FLIP!', hint: 'REMEMBER, THEN MATCH PAIRS', thint: 'REMEMBER, THEN TAP PAIRS', dur: 6.5,
+    cmd: 'FLIP!', wide: true, hint: 'REMEMBER, THEN MATCH PAIRS', thint: 'REMEMBER, THEN TAP PAIRS', dur: 6.5,
     down(p) {
       if (clock < peek || lock > 0 || g.result) return;
       const c = cards.find(c => !c.up && !c.done && p.x > c.x && p.x < c.x + cw && p.y > 170 && p.y < 370);
@@ -82,7 +82,7 @@ function gCharge(sp) {
     g.result = win ? 'win' : 'lose'; sfx.whoosh(); if (win) { sfx.boing(); ring(300, GY, '#fff', 70); } else { sfx.miss(); shake(4, .15); }
   };
   const g = {
-    cmd: 'CHARGE!', hint: 'HOLD SPACE, RELEASE IN GREEN', thint: 'HOLD, RELEASE IN GREEN', dur: 5,
+    cmd: 'CHARGE!', wide: true, hint: 'HOLD SPACE, RELEASE IN GREEN', thint: 'HOLD, RELEASE IN GREEN', dur: 5,
     key(e) { if (e.code === 'Space') start(); }, keyup(e) { if (e.code === 'Space') release(); },
     down() { start(); }, up() { release(); },
     update(dt) {
@@ -91,7 +91,7 @@ function gCharge(sp) {
     },
     draw(t) {
       bg('#9BF6FF', '#87ecf7', t);
-      ctx.fillStyle = INK; ctx.fillRect(0, GY - 4, W, 110); ctx.fillStyle = '#58c24a'; ctx.fillRect(0, GY, W, 100);
+      ctx.fillStyle = INK; ctx.fillRect(-OX, GY - 4, VW, 110); ctx.fillStyle = '#58c24a'; ctx.fillRect(-OX, GY, VW, 100);
       box3(540, GY - LH, 80, 18, '#7a5230', 4, 5);
       box3(90, 150, 50, 350, '#fff', 6, 5);
       ctx.fillStyle = hold && p >= zc - zw / 2 && p <= zc + zw / 2 ? '#c8ffd2' : '#5CFF7A'; ctx.fillRect(90, 500 - (zc + zw / 2) * 3.5, 50, zw * 3.5);
@@ -111,10 +111,11 @@ function gCharge(sp) {
 /* 26 ── FLAP: slip through the gaps (space / up / click) */
 function gFlap(sp) {
   const spd = 320 * sp; let py = 300, vy = 0;
-  const pipes = [{ x: 700, gy: 200 + Math.random() * 200 }, { x: 700 + 416 * sp, gy: 200 + Math.random() * 200 }];
+  const px0 = OX > 0 ? W + OX + 60 : 700; // first pipe enters from the true screen edge
+  const pipes = [{ x: px0, gy: 200 + Math.random() * 200 }, { x: px0 + 416 * sp, gy: 200 + Math.random() * 200 }];
   const flap = () => { if (!g.result) { vy = -520; sfx.whoosh(); snd(500, .06, 'square', .04, 0, 800); burst(150, py + 20, '#fff', 4, 120); } };
   const g = {
-    cmd: 'FLAP!', hint: 'SPACE OR CLICK TO FLAP', thint: 'TAP TO FLAP', dur: 4.5, timeWin: true,
+    cmd: 'FLAP!', wide: true, hint: 'SPACE OR CLICK TO FLAP', thint: 'TAP TO FLAP', dur: 4.5, timeWin: true,
     key(e) { if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') flap(); }, down() { flap(); },
     update(dt) {
       if (g.result) return;
@@ -130,10 +131,11 @@ function gFlap(sp) {
     draw(t) {
       bg('#8FD3FF', '#7fc7f7', t);
       for (const q of pipes) {
+        if (q.x < -OX - 60) continue;
         box(q.x - 45, 40, 90, q.gy - 95 - 40, '#5CC24A', 5); box(q.x - 54, q.gy - 95 - 24, 108, 24, '#4aa83a', 5);
         box(q.x - 45, q.gy + 95, 90, 560 - q.gy - 95, '#5CC24A', 5); box(q.x - 54, q.gy + 95, 108, 24, '#4aa83a', 5);
       }
-      ctx.fillStyle = INK; ctx.fillRect(0, 524, W, 80); ctx.fillStyle = '#d9a066'; ctx.fillRect(0, 530, W, 80);
+      ctx.fillStyle = INK; ctx.fillRect(-OX, 524, VW, 80); ctx.fillStyle = '#d9a066'; ctx.fillRect(-OX, 530, VW, 80);
       shadow(180, 540, 40 - Math.max(0, Math.min(20, (540 - py) / 20)), 8, .25);
       ctx.save(); ctx.translate(180, py); ctx.rotate(Math.max(-.5, Math.min(.8, vy / 900)));
       claude(0, 0, 8, { mood: g.result === 'lose' ? 'sad' : g.result === 'win' ? 'happy' : null }); ctx.restore();
@@ -145,10 +147,10 @@ function gFlap(sp) {
 /* 27 ── PONG: don't let the ball past you (mouse or ↑ ↓) */
 function gPong(sp) {
   const pad = { y: 300, h: 120 }; let target = 300, hits = 0;
-  const vMax = 360 * sp, ball = { x: 300, y: 200 + Math.random() * 200, vx: 230 * Math.sqrt(sp), vy: (Math.random() < .5 ? -1 : 1) * (100 + Math.random() * 80) * Math.sqrt(sp), r: 16 };
+  const vs = VW / W, rx = W + OX - 50, px = -OX + 62, vMax = 360 * sp * vs, ball = { x: 300, y: 200 + Math.random() * 200, vx: 230 * Math.sqrt(sp) * vs, vy: (Math.random() < .5 ? -1 : 1) * (100 + Math.random() * 80) * Math.sqrt(sp), r: 16 };
   const faster = () => { ball.vx = Math.sign(ball.vx) * Math.min(vMax, Math.abs(ball.vx) * 1.12); };
   const g = {
-    cmd: 'PONG!', hint: 'BLOCK THE BALL: MOUSE OR ↑ ↓', thint: 'DRAG UP AND DOWN', dur: 4.8, timeWin: true,
+    cmd: 'PONG!', wide: true, hint: 'BLOCK THE BALL: MOUSE OR ↑ ↓', thint: 'DRAG UP AND DOWN', dur: 4.8, timeWin: true,
     move(p) { target = p.y; },
     update(dt) {
       if (g.result) return;
@@ -157,18 +159,18 @@ function gPong(sp) {
       ball.x += ball.vx * dt; ball.y += ball.vy * dt;
       if (ball.y < 76 + ball.r) { ball.y = 76 + ball.r; ball.vy = Math.abs(ball.vy); sfx.tick(); }
       if (ball.y > 524 - ball.r) { ball.y = 524 - ball.r; ball.vy = -Math.abs(ball.vy); sfx.tick(); }
-      if (ball.x > 750 - ball.r) { ball.x = 750 - ball.r; ball.vx = -Math.abs(ball.vx); faster(); sfx.blip(-5); burst(750, ball.y, '#ffd23f', 5, 160); }
-      if (ball.vx < 0 && ball.x - ball.r <= 62 && ball.x > 30 && Math.abs(ball.y - pad.y) < pad.h / 2 + ball.r) {
-        ball.vx = Math.abs(ball.vx); faster(); ball.vy += (ball.y - pad.y) * 3; hits++; sfx.hit(); sfx.blip(hits * 2); shake(3, .1); burst(62, ball.y, OR, 8); ring(62, ball.y, '#fff', 50, .25); floatText('+1', 100, ball.y - 30, '#fff', 28);
+      if (ball.x > rx - ball.r) { ball.x = rx - ball.r; ball.vx = -Math.abs(ball.vx); faster(); sfx.blip(-5); burst(rx, ball.y, '#ffd23f', 5, 160); }
+      if (ball.vx < 0 && ball.x - ball.r <= px && ball.x > px - 32 && Math.abs(ball.y - pad.y) < pad.h / 2 + ball.r) {
+        ball.vx = Math.abs(ball.vx); faster(); ball.vy += (ball.y - pad.y) * 3; hits++; sfx.hit(); sfx.blip(hits * 2); shake(3, .1); burst(px, ball.y, OR, 8); ring(px, ball.y, '#fff', 50, .25); floatText('+1', px + 38, ball.y - 30, '#fff', 28);
       }
-      if (ball.x < 0) { g.result = 'lose'; sfx.miss(); sfx.buzz(); shake(9, .3); burst(10, ball.y, '#FF4D4D', 14); }
+      if (ball.x < -OX) { g.result = 'lose'; sfx.miss(); sfx.buzz(); shake(9, .3); burst(-OX + 10, ball.y, '#FF4D4D', 14); }
     },
     draw(t) {
       bg('#1f2a44', '#26335a', t);
-      ctx.fillStyle = '#fff'; ctx.fillRect(20, 64, 760, 8); ctx.fillRect(20, 524, 760, 8);
-      for (let i = 0; i < 9; i++) { box(750, 80 + i * 50, 30, 42, i % 2 ? '#ff6b6b' : '#ffd23f', 3); }
-      box3(34, pad.y - pad.h / 2, 22, pad.h, OR, 4, 4);
-      claude(120, pad.y + 30, 3.2, { mood: g.result === 'lose' ? 'sad' : g.result === 'win' ? 'happy' : null });
+      ctx.fillStyle = '#fff'; ctx.fillRect(-OX + 20, 64, VW - 40, 8); ctx.fillRect(-OX + 20, 524, VW - 40, 8);
+      for (let i = 0; i < 9; i++) { box(rx, 80 + i * 50, 30, 42, i % 2 ? '#ff6b6b' : '#ffd23f', 3); }
+      box3(-OX + 34, pad.y - pad.h / 2, 22, pad.h, OR, 4, 4);
+      claude(-OX + 120, pad.y + 30, 3.2, { mood: g.result === 'lose' ? 'sad' : g.result === 'win' ? 'happy' : null });
       shadow(ball.x + 4, 536, ball.r, 5, .35); token(ball.x, ball.y, ball.r + 4);
     }
   };
@@ -180,7 +182,7 @@ function gCrank(sp) {
   const cx = 400, cy = 300, need = (sp > 1.5 ? 4 : 3) * Math.PI * 2;
   let acc = 0, pa = null, ang = 0, lt = 0;
   const g = {
-    cmd: 'CRANK!', hint: 'SPIN THE MOUSE AROUND THE WHEEL', thint: 'SPIN YOUR FINGER AROUND', dur: 5,
+    cmd: 'CRANK!', wide: true, hint: 'SPIN THE MOUSE AROUND THE WHEEL', thint: 'SPIN YOUR FINGER AROUND', dur: 5,
     move(p) {
       if (g.result) return;
       const d = Math.hypot(p.x - cx, p.y - cy); if (d < 40) { pa = null; return; }
@@ -220,7 +222,7 @@ function gMaze(sp) {
   const me = { r: 0, c: 0, x: ox + cs / 2, y: oy + cs / 2 }; let bump = 0;
   const dirs = { ArrowUp: 'u', KeyW: 'u', ArrowDown: 'd', KeyS: 'd', ArrowLeft: 'l', KeyA: 'l', ArrowRight: 'r', KeyD: 'r' };
   const g = {
-    cmd: 'MAZE!', swipe: true, hint: 'REACH THE STAR WITH ARROWS', thint: 'SWIPE TO MOVE', dur: 7,
+    cmd: 'MAZE!', wide: true, swipe: true, hint: 'REACH THE STAR WITH ARROWS', thint: 'SWIPE TO MOVE', dur: 7,
     key(e) {
       const d = dirs[e.code]; if (!d || g.result) return; const { r, c } = me;
       if (d === 'r' && c < C - 1 && !wr[r][c]) me.c++; else if (d === 'l' && c > 0 && !wr[r][c - 1]) me.c--;
@@ -256,7 +258,7 @@ function gWires(sp) {
   const cols = ['#ff4d4d', '#4DB8FF', '#ffd23f', '#5CFF7A'].slice(0, n);
   const L = shuffle(cols.slice()), Rr = shuffle(cols.slice()), conns = []; let sel = -1, shk = 0;
   const g = {
-    cmd: 'WIRES!', hint: 'CLICK LEFT, THEN THE SAME COLOUR', thint: 'TAP LEFT, THEN SAME COLOUR', dur: 5.5,
+    cmd: 'WIRES!', wide: true, hint: 'CLICK LEFT, THEN THE SAME COLOUR', thint: 'TAP LEFT, THEN SAME COLOUR', dur: 5.5,
     down(p) {
       const li = ys.findIndex((y, i) => Math.abs(p.x - 150) < 55 && Math.abs(p.y - y) < 36 && !conns.some(c => c.l === i));
       if (li >= 0) { sel = li; sfx.click(); ring(150, ys[li], '#fff', 50, .25); return; }

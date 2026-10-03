@@ -58,15 +58,16 @@ const poseKey = e => KEYPOSE[e.code] != null ? KEYPOSE[e.code] : -1;
 reg('mv_pose', sp => {
   const rs = Math.sqrt(sp), R = sp >= 1.6 ? 2 : 1, DUR = 4.5, PASS = .25;
   const RT = (DUR / rs - .3 - R * PASS) / R;
+  const SX = -OX + 100;   // conveyor start: left screen edge
   let r = 0, c = 0, c2 = 0, cur = 4, tgt = (Math.random() * 4) | 0, phase = 0, wallT = 0, flash = 0, snap = 0, belt = 0;
   const press = pi => {
     if (g.result || phase || pi < 0) return;
     cur = pi; snap = .2; sfx.blip(pi * 2 + 3);
-    const x = 100 + 400 * Math.min(1, c / RT);
+    const x = SX + (500 - SX) * Math.min(1, c / RT);
     ring(x, 400, '#fff', 60, .3); burst(x, 420, GOLD, 6, 160);
   };
   const g = {
-    cmd: 'POSE!', hint: 'ARROWS: MATCH THE HOLE', thint: 'TAP THE POSE THAT FITS', dur: DUR,
+    wide: true, cmd: 'POSE!', hint: 'ARROWS: MATCH THE HOLE', thint: 'TAP THE POSE THAT FITS', dur: DUR,
     key(e) { if (!e.repeat) press(poseKey(e)); },
     down(p) { press(mvBtnHit(p)); },
     update(dt) {
@@ -100,22 +101,23 @@ reg('mv_pose', sp => {
     draw(t) {
       bg(MAG, '#ff5cb6', t);
       const k = Math.min(1, c / RT);
-      // wall
-      ctx.fillStyle = INK; ctx.fillRect(520 - 6, 70 - 6, 300, 392);
-      ctx.fillStyle = PUR; ctx.fillRect(520, 70, 300, 380);
+      // wall (runs off the right screen edge)
+      const WE = Math.max(820, W + OX + 10);
+      ctx.fillStyle = INK; ctx.fillRect(520 - 6, 70 - 6, WE - 520 + 6, 392);
+      ctx.fillStyle = PUR; ctx.fillRect(520, 70, WE - 520, 380);
       ctx.strokeStyle = 'rgba(20,16,28,.28)'; ctx.lineWidth = 3; ctx.beginPath();
-      for (let y = 70; y < 450; y += 40) { ctx.moveTo(520, y); ctx.lineTo(820, y); for (let x = 520 + ((y / 40) & 1) * 30; x < 820; x += 60) { ctx.moveTo(x, y); ctx.lineTo(x, y + 40); } }
+      for (let y = 70; y < 450; y += 40) { ctx.moveTo(520, y); ctx.lineTo(WE, y); for (let x = 520 + ((y / 40) & 1) * 30; x < WE; x += 60) { ctx.moveTo(x, y); ctx.lineTo(x, y + 40); } }
       ctx.stroke();
       const hu = 7 * (1 + wallT * 1.2);
       mvFig(660, 444, hu, tgt, '#1b0a38', { oc: (now * 6 | 0) % 2 ? GOLD : '#fff', ol: 5 });
       drawArrow(660, 118, ARROW_DIR[tgt], 20, GOLD);
-      if (flash > 0) { ctx.globalAlpha = flash * 3; ctx.fillStyle = '#fff'; ctx.fillRect(520, 70, 300, 380); ctx.globalAlpha = 1; }
+      if (flash > 0) { ctx.globalAlpha = flash * 3; ctx.fillStyle = '#fff'; ctx.fillRect(520, 70, WE - 520, 380); ctx.globalAlpha = 1; }
       // belt
-      ctx.fillStyle = INK; ctx.fillRect(0, 440, W, 54); ctx.fillStyle = '#3b1d6e'; ctx.fillRect(0, 446, W, 42);
+      ctx.fillStyle = INK; ctx.fillRect(-OX, 440, VW, 54); ctx.fillStyle = '#3b1d6e'; ctx.fillRect(-OX, 446, VW, 42);
       ctx.fillStyle = '#7B3FE4'; const off = (belt * 140) % 48;
-      for (let x = -48 + off; x < W; x += 48) { ctx.beginPath(); ctx.moveTo(x, 458); ctx.lineTo(x + 20, 467); ctx.lineTo(x, 476); ctx.lineTo(x + 8, 467); ctx.closePath(); ctx.fill(); }
+      for (let x = -OX - 48 + off; x < W + OX; x += 48) { ctx.beginPath(); ctx.moveTo(x, 458); ctx.lineTo(x + 20, 467); ctx.lineTo(x, 476); ctx.lineTo(x + 8, 467); ctx.closePath(); ctx.fill(); }
       // claude
-      const x = phase ? 500 + 160 * Math.min(1, c2 / PASS) : 100 + 400 * k;
+      const x = phase ? 500 + 160 * Math.min(1, c2 / PASS) : SX + (500 - SX) * k;
       const bob = g.result ? 0 : Math.abs(Math.sin(belt * 14)) * 3, sq = snap > 0 ? 1 + snap * .5 : 1;
       shadow(x, 446, 60, 10, .35);
       ctx.save(); ctx.translate(x, 444 - bob); ctx.scale(sq, 2 - sq); ctx.translate(-x, -444 + bob);
@@ -147,7 +149,7 @@ reg('mv_mirror', sp => {
     } else { g.result = 'lose'; mvLose(600, 300); }
   };
   const g = {
-    cmd: 'COPY!', hint: 'ARROWS: REPEAT THE DANCE', thint: 'TAP THE POSES IN ORDER', dur: 6,
+    wide: true, cmd: 'COPY!', hint: 'ARROWS: REPEAT THE DANCE', thint: 'TAP THE POSES IN ORDER', dur: 6,
     key(e) { if (!e.repeat) press(poseKey(e)); },
     down(p) { press(mvBtnHit(p)); },
     update(dt) {
@@ -206,7 +208,7 @@ reg('mv_beat', sp => {
   };
   const miss = s => { g.result = 'lose'; res[j] = -1; mvLose(400, 300); floatText(s || 'MISS!', 400, 190, '#ff4d4d', 48); };
   const g = {
-    cmd: 'BEAT!', hint: 'SPACE / CLICK ON THE BEAT', thint: 'TAP WHEN THE RING LANDS', dur: 5,
+    wide: true, cmd: 'BEAT!', hint: 'SPACE / CLICK ON THE BEAT', thint: 'TAP WHEN THE RING LANDS', dur: 5,
     key(e) { if (!e.repeat && (e.code === 'Space' || e.code === 'Enter' || /^Arrow/.test(e.code))) press(); },
     down() { press(); },
     update(dt) {
@@ -219,8 +221,8 @@ reg('mv_beat', sp => {
     draw(t) {
       bg(PUR, '#8a52ee', t);
       // floor
-      ctx.fillStyle = INK; ctx.fillRect(0, 470, W, 130); ctx.fillStyle = '#3b1d6e'; ctx.fillRect(0, 476, W, 124);
-      ctx.fillStyle = '#5a2fa8'; for (let x = 0; x < W; x += 80) ctx.fillRect(x, 560, 40, 8);
+      ctx.fillStyle = INK; ctx.fillRect(-OX, 470, VW, 130); ctx.fillStyle = '#3b1d6e'; ctx.fillRect(-OX, 476, VW, 124);
+      ctx.fillStyle = '#5a2fa8'; for (let x = -Math.ceil(OX / 80) * 80; x < W + OX; x += 80) ctx.fillRect(x, 560, 40, 8);
       // target
       const pu = pulse / .15, tr = 62 * (1 + pu * .12);
       shadow(400, 440, 100, 16, .3);
@@ -256,7 +258,7 @@ reg('mv_beat', sp => {
 
 /* ── 4 SWIM: alternate left/right strokes in rhythm to beat the rival bug ── */
 reg('mv_swim', sp => {
-  const rs = Math.sqrt(sp), TR = 4.2 / rs, X0 = 80, X1 = 700, LY = [215, 395], boost = 1 + .25 * (sp - 1);
+  const rs = Math.sqrt(sp), TR = 4.2 / rs, X0 = -OX + 80, X1 = W + OX - 100, LY = [215, 395], ks = (X1 - X0) / 620, boost = (1 + .25 * (sp - 1)) * ks;   // ks: stroke power scales with pool length so time-to-finish stays the same
   let c = 0, px = X0, v = 0, last = -1, lastT = -1, arm = 0, stumble = 0, pad = [0, 0], combo = 0;
   const rivalX = () => X0 + (X1 - X0) * Math.min(1, c / TR + .025 * Math.sin(c * 6));
   const stroke = side => {
@@ -271,9 +273,9 @@ reg('mv_swim', sp => {
     if (combo === 4) { floatText('RHYTHM!', px, LY[1] - 80, GOLD, 30); sfx.sparkle(); }
   };
   const g = {
-    cmd: 'SWIM!', hint: 'ALTERNATE LEFT / RIGHT', thint: 'TAP LEFT, RIGHT, LEFT, RIGHT...', dur: 5,
+    wide: true, cmd: 'SWIM!', hint: 'ALTERNATE LEFT / RIGHT', thint: 'TAP LEFT, RIGHT, LEFT, RIGHT...', dur: 5,
     key(e) { if (e.repeat) return; if (e.code === 'ArrowLeft' || e.code === 'KeyA') stroke(0); else if (e.code === 'ArrowRight' || e.code === 'KeyD') stroke(1); },
-    down(p) { stroke(p.x < 400 ? 0 : 1); },
+    down(p) { stroke(p.x < W / 2 ? 0 : 1); },
     update(dt) {
       pad[0] = Math.max(0, pad[0] - dt); pad[1] = Math.max(0, pad[1] - dt); arm = Math.max(0, arm - dt * 5); stumble = Math.max(0, stumble - dt);
       if (g.result) return;
@@ -282,19 +284,19 @@ reg('mv_swim', sp => {
       else if (rivalX() >= X1) { g.result = 'lose'; mvLose(px, LY[1]); floatText('TOO SLOW!', 400, 120, '#ff4d4d', 50); }
     },
     draw(t) {
-      ctx.fillStyle = INK; ctx.fillRect(0, 0, W, H);
-      ctx.fillStyle = '#FFE29A'; ctx.fillRect(0, 0, W, 78); ctx.fillStyle = INK; ctx.fillRect(0, 74, W, 6);
-      ctx.fillStyle = '#e8c97a'; for (let x = 0; x < W; x += 50) ctx.fillRect(x, 0, 4, 74);
-      ctx.fillStyle = TEAL; ctx.fillRect(0, 80, W, 430);
+      ctx.fillStyle = INK; ctx.fillRect(-OX, 0, VW, H);
+      ctx.fillStyle = '#FFE29A'; ctx.fillRect(-OX, 0, VW, 78); ctx.fillStyle = INK; ctx.fillRect(-OX, 74, VW, 6);
+      ctx.fillStyle = '#e8c97a'; for (let x = -Math.ceil(OX / 50) * 50; x < W + OX; x += 50) ctx.fillRect(x, 0, 4, 74);
+      ctx.fillStyle = TEAL; ctx.fillRect(-OX, 80, VW, 430);
       ctx.fillStyle = '#4fe0d2'; const sc = (now * 40) % 60;
-      for (let y = 100; y < 500; y += 26) for (let x = ((y / 26 & 1) * 30) - 60 + sc; x < W; x += 60) ctx.fillRect(x, y, 22, 5);
+      for (let y = 100; y < 500; y += 26) for (let x = ((y / 26 & 1) * 30) - 60 - Math.ceil(OX / 60) * 60 + sc; x < W + OX; x += 60) ctx.fillRect(x, y, 22, 5);
       // start wall + finish
-      box(0, 130, 30, 355, '#fff', 4);
+      box(-OX, 130, 30, 355, '#fff', 4);
       for (let i = 0; i < 18; i++) for (let k = 0; k < 2; k++) { ctx.fillStyle = (i + k) & 1 ? INK : '#fff'; ctx.fillRect(X1 + 22 + k * 14, 130 + i * 19.7, 14, 19.7); }
       ctx.strokeStyle = INK; ctx.lineWidth = 4; ctx.strokeRect(X1 + 22, 130, 28, 355);
       txt('FINISH', X1 + 36, 108, 24, GOLD);
       // lane ropes
-      for (const ry of [130, 305, 485]) for (let x = 24; x < W; x += 24) circ(x, ry, 7, (x / 24) & 1 ? MAG : '#fff', 3);
+      for (const ry of [130, 305, 485]) for (let x = 24 - Math.ceil(OX / 24) * 24; x < W + OX; x += 24) circ(x, ry, 7, (x / 24) & 1 ? MAG : '#fff', 3);
       // swimmers
       const rx = rivalX(), pyy = LY[1] + 10 + (stumble > 0 ? Math.sin(now * 60) * 3 : 0);
       drawBug(rx, LY[0] + 12, Math.PI / 2, .75, c);
@@ -305,18 +307,18 @@ reg('mv_swim', sp => {
       ctx.fillStyle = INK; ctx.fillRect(px + 18, pyy - 40 - up, 46, 18); ctx.fillStyle = OR; ctx.fillRect(px + 22, pyy - 36 - up, 38, 10);
       // water cover + surface waves
       ctx.fillStyle = 'rgba(25,198,183,.55)';
-      ctx.fillRect(0, LY[0] + 6, W, 56); ctx.fillRect(0, LY[1] + 4, W, 58);
+      ctx.fillRect(-OX, LY[0] + 6, VW, 56); ctx.fillRect(-OX, LY[1] + 4, VW, 58);
       ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.beginPath();
-      for (const wy of [LY[0] + 6, LY[1] + 4]) for (let x = 0; x <= W; x += 20) { const yy = wy + Math.sin(x * .06 + now * 8) * 3; x ? ctx.lineTo(x, yy) : ctx.moveTo(x, yy); }
+      for (const wy of [LY[0] + 6, LY[1] + 4]) for (let x = -OX; x <= W + OX + 20; x += 20) { const yy = wy + Math.sin(x * .06 + now * 8) * 3; x > -OX ? ctx.lineTo(x, yy) : ctx.moveTo(x, yy); }
       ctx.stroke();
       // wake
       ctx.fillStyle = 'rgba(255,255,255,.6)';
       for (let i = 1; i < 5; i++) { ctx.beginPath(); ctx.arc(px - 40 - i * 22, LY[1] + 6, 6 / i + 2, 0, 7); ctx.fill(); }
       // controls
       for (let s = 0; s < 2; s++) {
-        const bx = s ? 420 : 40, on = pad[s] > 0;
-        box3(bx, 520, 340, 66, on ? GOLD : (last === s ? '#d9c5ff' : '#fff'), 4, 4);
-        drawArrow(bx + 170, 553, s ? 1 : 3, 20, on ? MAG : PUR);
+        const bw = 340 + OX, bx = s ? W / 2 + 20 : -OX + 40, on = pad[s] > 0;
+        box3(bx, 520, bw, 66, on ? GOLD : (last === s ? '#d9c5ff' : '#fff'), 4, 4);
+        drawArrow(bx + bw / 2, 553, s ? 1 : 3, 20, on ? MAG : PUR);
       }
       const prog = (px - X0) / (X1 - X0); txt('YOU', 40, 100, 18, OR, 'left');
       ctx.fillStyle = OR; ctx.fillRect(40, 60 - 0, 0, 0); box(250, 52, 300, 10, '#fff', 3); ctx.fillStyle = OR; ctx.fillRect(250, 52, 300 * prog, 10);

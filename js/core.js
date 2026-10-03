@@ -3,6 +3,17 @@
 const W = 800, H = 600;
 const cv = document.getElementById('c');
 const ctx = cv.getContext('2d');
+/* Widescreen: the canvas widens to the screen's shape (up to ~2.4:1). Games still play in the 800×600 area in the
+   middle; VW is the full logical width and OX how far that area sits from the left edge (so the screen spans -OX..W+OX). */
+let VW = W, OX = 0;
+function fitScreen() {
+  const a = Math.min(2.4, Math.max(W / H, innerWidth / innerHeight));
+  VW = Math.round(H * a); OX = (VW - W) / 2;
+  if (cv.width !== VW) cv.width = VW;
+  const k = Math.min(innerWidth / VW, innerHeight / H);
+  cv.style.width = VW * k + 'px'; cv.style.height = H * k + 'px';
+}
+addEventListener('resize', fitScreen); fitScreen();
 const INK = '#14101c', OR = '#D97757';
 let muted = false, now = 0;
 
@@ -133,7 +144,7 @@ function star(cx, cy, ro, ri, n, rot, fill, o = 4) {
   ctx.fillStyle = fill; ctx.fill();
 }
 function bg(color, ray, t) {
-  ctx.fillStyle = color; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = color; ctx.fillRect(-OX, 0, VW, H);
   ctx.fillStyle = ray; const n = 16, rot = t * .12;
   for (let i = 0; i < n; i++) {
     const a0 = rot + i * Math.PI * 2 / n, a1 = a0 + Math.PI / n;
@@ -143,9 +154,9 @@ function bg(color, ray, t) {
     ctx.fill();
   }
   const gr = ctx.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, 'rgba(255,255,255,.16)'); gr.addColorStop(1, 'rgba(20,16,28,.14)');
-  ctx.fillStyle = gr; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = gr; ctx.fillRect(-OX, 0, VW, H);
   ctx.fillStyle = 'rgba(20,16,28,.06)';                       // halftone dots
-  for (let y = 10; y < H; y += 28) for (let x = (y / 28 & 1) * 14 + 6; x < W; x += 28) { ctx.beginPath(); ctx.arc(x, y, 3, 0, 7); ctx.fill(); }
+  for (let y = 10; y < H; y += 28) for (let x = (y / 28 & 1) * 14 + 6 - Math.ceil(OX / 28) * 28; x < W + OX; x += 28) { ctx.beginPath(); ctx.arc(x, y, 3, 0, 7); ctx.fill(); }
 }
 
 /* The Claude Code mascot: a blocky orange crab-critter. x = centre, y = bottom of feet, u = pixel unit */
@@ -234,8 +245,9 @@ function drawFx() {
 }
 let _vig;
 function vignette(a = .35) {       // cheap cached radial darkening of the corners
-  if (!_vig) { _vig = ctx.createRadialGradient(W / 2, H / 2, H * .45, W / 2, H / 2, H * .95); _vig.addColorStop(0, 'rgba(20,16,28,0)'); _vig.addColorStop(1, 'rgba(20,16,28,1)'); }
-  ctx.globalAlpha = a; ctx.fillStyle = _vig; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1;
+  if (!_vig) { _vig = ctx.createRadialGradient(0, 0, H * .45, 0, 0, H * .95); _vig.addColorStop(0, 'rgba(20,16,28,0)'); _vig.addColorStop(1, 'rgba(20,16,28,1)'); }
+  ctx.save(); ctx.translate(W / 2, H / 2); ctx.scale(VW / W, 1);   // stretched sideways so wide screens darken at their own edges
+  ctx.globalAlpha = a; ctx.fillStyle = _vig; ctx.fillRect(-W / 2, -H / 2, W, H); ctx.restore();
 }
 /* soft ground shadow under a sprite */
 function shadow(x, y, rx, ry = rx * .3, a = .25) { ctx.fillStyle = `rgba(20,16,28,${a})`; ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, 7); ctx.fill(); }
@@ -251,7 +263,7 @@ const keys = {};
 let mouse = { x: W / 2, y: H / 2 };
 function pos(e) {
   const r = cv.getBoundingClientRect();
-  return { x: (e.clientX - r.left) * W / r.width, y: (e.clientY - r.top) * H / r.height };
+  return { x: (e.clientX - r.left) * VW / r.width - OX, y: (e.clientY - r.top) * H / r.height, touch: e.pointerType === 'touch' };
 }
 
 

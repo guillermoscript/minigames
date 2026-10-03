@@ -12,6 +12,37 @@
     const x0 = W / 2 - (need - 1) * 22;
     for (let i = 0; i < need; i++) circ(x0 + i * 44, y, 14, i < n ? '#FFE14D' : 'rgba(255,255,255,.45)', 4);
   };
+  /* widescreen: own renderer sized VW×H (the shared T3 one is fixed at 800×600), camera aspect follows VW so wide screens SEE more scene */
+  const X = {
+    R: null, bad: false,
+    render(S) {
+      if (!X.R && !X.bad) {
+        try {
+          const c = document.createElement('canvas'); c.width = VW; c.height = H;
+          X.R = new THREE.WebGLRenderer({ canvas: c, antialias: true, alpha: false, preserveDrawingBuffer: true });
+          X.R.setPixelRatio(1); X.R.shadowMap.enabled = true; X.R.shadowMap.type = THREE.PCFSoftShadowMap;
+        } catch (e) { X.bad = true; X.R = null; }
+      }
+      const R = X.R; if (!R) { T3.render(S); return; }
+      if (R.domElement.width !== VW) R.setSize(VW, H, false);
+      if (Math.abs(S.camera.aspect - VW / H) > 1e-4) { S.camera.aspect = VW / H; S.camera.updateProjectionMatrix(); }
+      S.camera.updateMatrixWorld(); R.render(S.scene, S.camera); ctx.drawImage(R.domElement, -OX, 0, VW, H);
+    },
+    /* canvas px (game coords, may be <0 / >W) → normalized device coords for raycasting */
+    ndc: p => new THREE.Vector2((p.x + OX) / VW * 2 - 1, -(p.y / H) * 2 + 1),
+    screen(S, v) { const q = v.clone().project(S.camera); return { x: (q.x + 1) / 2 * VW - OX, y: (1 - q.y) / 2 * H, z: q.z }; },
+    ray(S, p, objs) {
+      S.ray.setFromCamera(X.ndc(p), S.camera);
+      const h = S.ray.intersectObjects(objs || S.scene.children, true).filter(i => !i.object.userData.outline);
+      return h[0] || null;
+    },
+    ground(S, p, h = 0) {
+      S.ray.setFromCamera(X.ndc(p), S.camera);
+      const r = S.ray.ray; if (Math.abs(r.direction.y) < 1e-4) return null;
+      const k = (h - r.origin.y) / r.direction.y; return k < 0 ? null : r.origin.clone().addScaledVector(r.direction, k);
+    },
+  };
+  const WK = VW / W;   // widescreen scale for scenery spread (1 in portrait)
   const eoBack = u => { const c = 1.9; u -= 1; return 1 + (c + 1) * u * u * u + c * u * u; };
 
   /* ───────────────────────── 1. TUNNEL ───────────────────────── */
@@ -32,9 +63,9 @@
       w.gs = gsBase + rnd(-.2, .2);
       w.gx = clamp(lastGx + rnd(-5.5, 5.5), -4, 4); w.gy = clamp(lastGy + rnd(-3.5, 3.5), -3, 3);
       lastGx = w.gx; lastGy = w.gy;
-      const { gx, gy, gs } = w, X = 10, Y = 8, p = w.pan, f = w.fr;
-      setB(p[0], -X, gx - gs, -Y, Y, 0, 1);
-      setB(p[1], gx + gs, X, -Y, Y, 0, 1);
+      const { gx, gy, gs } = w, XW = 10 * WK, Y = 8, p = w.pan, f = w.fr;
+      setB(p[0], -XW, gx - gs, -Y, Y, 0, 1);
+      setB(p[1], gx + gs, XW, -Y, Y, 0, 1);
       setB(p[2], gx - gs, gx + gs, gy + gs, Y, 0, 1);
       setB(p[3], gx - gs, gx + gs, -Y, gy - gs, 0, 1);
       setB(f[0], gx - gs - .35, gx - gs, gy - gs - .35, gy + gs + .35, .6, .3);
@@ -52,15 +83,16 @@
     const rings = [], RN = 9, RS = 10, ringCols = [0x5ac8fa, 0xff5a8a];
     for (let i = 0; i < RN; i++) {
       const g = new THREE.Group(), m = new THREE.MeshBasicMaterial({ color: ringCols[i % 2] });
-      setB(box(g, m), -10.3, 10.3, 7.7, 8.0, 0, .3); setB(box(g, m), -10.3, 10.3, -8.0, -7.7, 0, .3);
-      setB(box(g, m), -10.3, -10, -8, 8, 0, .3); setB(box(g, m), 10, 10.3, -8, 8, 0, .3);
+      const RX = 10 * WK;
+      setB(box(g, m), -RX - .3, RX + .3, 7.7, 8.0, 0, .3); setB(box(g, m), -RX - .3, RX + .3, -8.0, -7.7, 0, .3);
+      setB(box(g, m), -RX - .3, -RX, -8, 8, 0, .3); setB(box(g, m), RX, RX + .3, -8, 8, 0, .3);
       g.position.z = 3 - i * RS; S.scene.add(g); rings.push(g);
     }
     /* streaking lights */
     const streaks = [], SM = [0xffffff, 0x9ff3ff, 0xffd1f0].map(c => new THREE.MeshBasicMaterial({ color: c }));
     for (let i = 0; i < 40; i++) {
       const b = box(S.scene, SM[i % 3]); b.scale.set(.1, .1, 4);
-      b.position.set(rnd(-9.5, 9.5), rnd(-7.5, 7.5), rnd(-90, 3)); streaks.push(b);
+      b.position.set(rnd(-9.5 * WK, 9.5 * WK), rnd(-7.5, 7.5), rnd(-90, 3)); streaks.push(b);
     }
     /* ship = Claude on a hover board */
     const ship = T3.claude(S, .4, OR, [0, -.4, SZ]);
@@ -71,8 +103,8 @@
     const lines = Array.from({ length: 18 }, (_, i) => ({ a: i / 18 * 6.283 + rnd(-.2, .2), r: rnd(0, 1) }));
 
     const g = {
-      cmd: 'FLY!', hint: 'STEER THROUGH THE GAPS', thint: 'DRAG TO STEER', dur: 6, timeWin: true,
-      move(p) { if (dead) return; tx = (p.x / W * 2 - 1) * LX; ty = -(p.y / H * 2 - 1) * LY; },
+      wide: true, cmd: 'FLY!', hint: 'STEER THROUGH THE GAPS', thint: 'DRAG TO STEER', dur: 6, timeWin: true,
+      move(p) { if (dead) return; tx = clamp((p.x / W * 2 - 1) * LX, -LX, LX); ty = -(p.y / H * 2 - 1) * LY; },
       down(p) { g.move(p); },
       update(dt) {
         dt = Math.min(dt, .033); T += dt;
@@ -94,17 +126,17 @@
             if (mx < .5 || my < .45) {
               dead = true; g.result = 'lose'; spin = 1; camShake = 1;
               sfx.thud(); sfx.buzz(); shake(14, .4);
-              const s = T3.screen(S, ship.position); burst(s.x, s.y, '#FFE14D', 22, 340); ring(s.x, s.y, '#fff', 120, .5); floatText('CRASH!', s.x, s.y - 50, '#ff5a8a', 46);
+              const s = X.screen(S, ship.position); burst(s.x, s.y, '#FFE14D', 22, 340); ring(s.x, s.y, '#fff', 120, .5); floatText('CRASH!', s.x, s.y - 50, '#ff5a8a', 46);
             } else {
               passes++; sfx.blip(passes * 2); sfx.whoosh(true); kick = 1;
-              if (Math.min(mx, my) < .9) { const s = T3.screen(S, ship.position); floatText('CLOSE!', s.x, s.y - 60, '#9ff3ff', 32); sfx.tickHi(); }
+              if (Math.min(mx, my) < .9) { const s = X.screen(S, ship.position); floatText('CLOSE!', s.x, s.y - 60, '#9ff3ff', 32); sfx.tickHi(); }
             }
           }
         }
         for (const r of rings) { r.position.z += v * dt; if (r.position.z > 4) r.position.z -= RN * RS; }
         for (const b of streaks) {
           b.position.z += v * 1.15 * dt;
-          if (b.position.z > 4) { b.position.z -= 94; b.position.x = rnd(-9.5, 9.5); b.position.y = rnd(-7.5, 7.5); }
+          if (b.position.z > 4) { b.position.z -= 94; b.position.x = rnd(-9.5 * WK, 9.5 * WK); b.position.y = rnd(-7.5, 7.5); }
           b.scale.z = 3 + v * .06;
         }
         for (const l of lines) { l.r += dt * (.9 + vf); if (l.r > 1) { l.r = 0; l.a = rnd(0, 6.283); } }
@@ -123,12 +155,12 @@
         c.fov = 70 + 8 * vf + kick * 6 + Math.sin(T * 3) * .6; c.updateProjectionMatrix();
       },
       draw() {
-        T3.render(S);
+        X.render(S);
         ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineCap = 'round';
         for (const l of lines) {
           const r0 = 120 + l.r * l.r * 520, r1 = r0 + 30 + l.r * 90 * vf, cs = Math.cos(l.a), sn = Math.sin(l.a);
           ctx.globalAlpha = Math.min(1, l.r * 2) * (1 - l.r * .5) * .8; ctx.lineWidth = 1 + l.r * 3;
-          ctx.beginPath(); ctx.moveTo(W / 2 + cs * r0 * 1.3, H / 2 + sn * r0); ctx.lineTo(W / 2 + cs * r1 * 1.3, H / 2 + sn * r1); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(W / 2 + cs * r0 * 1.3 * WK, H / 2 + sn * r0); ctx.lineTo(W / 2 + cs * r1 * 1.3 * WK, H / 2 + sn * r1); ctx.stroke();
         }
         ctx.restore(); ctx.globalAlpha = 1;
         vignette(.45);
@@ -149,11 +181,11 @@
       holes.push({ x, z, c: null });
     }
     /* scenery */
-    for (let i = 0; i < 16; i++) {
-      const x = rnd(-9, 9), z = rnd(-6, 6); if (holes.some(h => Math.hypot(h.x - x, h.z - z) < 1.8)) continue;
+    for (let i = 0; i < Math.round(16 * WK); i++) {
+      const x = rnd(-9 * WK, 9 * WK), z = rnd(-6, 6); if (holes.some(h => Math.hypot(h.x - x, h.z - z) < 1.8)) continue;
       T3.sphere(S, .13, i % 2 ? 0xff7fb0 : 0xffe14d, [x, .13, z], 1.15);
     }
-    for (const x of [-9, -5.5, 6, 9.5]) { T3.cyl(S, .35, .45, 2, 0x8a5a2e, [x, 1, -8]); T3.sphere(S, 1.7, 0x4fbf4f, [x, 3.3, -8]); }
+    for (const x of [-9, -5.5, 6, 9.5, -14, -19, 13.5, 18.5]) { if (Math.abs(x) > 9.5 * WK + 1.5) continue; T3.cyl(S, .35, .45, 2, 0x8a5a2e, [x, 1, -8]); T3.sphere(S, 1.7, 0x4fbf4f, [x, 3.3, -8]); }
     const mkMole = () => {
       const g = new THREE.Group();
       const b = M.sphere(.78, 0x9a6b43); b.scale.set(1, 1.15, 1); b.position.y = .55; g.add(b);
@@ -194,7 +226,7 @@
 
     function whack(c) {
       c.state = 'hit'; c.t = 0; count++;
-      wp.set(c.hole.x, 1, c.hole.z); const s = T3.screen(S, wp);
+      wp.set(c.hole.x, 1, c.hole.z); const s = X.screen(S, wp);
       if (c.kind === 'bug') sfx.splat(); else sfx.boing();
       sfx.hit(); sfx.thud(); sfx.blip(count * 2); shake(7, .18); cam = 1;
       burst(s.x, s.y, c.kind === 'bug' ? '#e8433a' : '#c98a3d', 14); burst(s.x, s.y, '#FFE14D', 8, 200); ring(s.x, s.y, '#fff', 80);
@@ -202,12 +234,12 @@
       if (count >= need && !g.result) { g.result = 'win'; sfx.sparkle(); confetti(W / 2, H / 2, 50); }
     }
     const g = {
-      cmd: 'WHACK!', hint: 'CLICK THE MOLES AND BUGS', thint: 'TAP THE MOLES', dur: 7,
-      move(p) { const q = T3.ground(S, p, .3); if (q) { gp = q; } },
+      wide: true, cmd: 'WHACK!', hint: 'CLICK THE MOLES AND BUGS', thint: 'TAP THE MOLES', dur: 7,
+      move(p) { const q = X.ground(S, p, .3); if (q) { gp = q; } },
       down(p) {
         if (g.result) return; g.move(p); sw = .28; sfx.whoosh(false);
         let hit = null;
-        const act = active(), r = act.length ? T3.ray(S, p, act.map(c => c.g)) : null;
+        const act = active(), r = act.length ? X.ray(S, p, act.map(c => c.g)) : null;
         if (r) { let o = r.object; while (o && !o.userData.crit) o = o.parent; if (o) hit = o.userData.crit; }
         if (!hit && gp) { let bd = 1.35; for (const c of act) { const d = Math.hypot(gp.x - c.hole.x, gp.z - c.hole.z); if (d < bd && c.h > .3) { bd = d; hit = c; } } }
         if (hit) whack(hit);
@@ -247,7 +279,7 @@
         mal.position.set(mx, lift, mz); mal.rotation.set(tilt, 0, 0);
         const c = S.camera; c.position.set((Math.random() - .5) * cam * .25, 10 + (Math.random() - .5) * cam * .25, 8.6); c.lookAt(0, 0, .6);
       },
-      draw() { T3.render(S); pips(count, need); }
+      draw() { X.render(S); pips(count, need); }
     };
     return g;
   }, 'Whack');
@@ -293,11 +325,11 @@
     const MAXT = .34;
     const wp = new THREE.Vector3();
     const evt = (txtS, col, sz, y = 0.8) => {
-      wp.set(bx, y, bz); piv.localToWorld(wp); const s = T3.screen(S, wp); return s;
+      wp.set(bx, y, bz); piv.localToWorld(wp); const s = X.screen(S, wp); return s;
     };
 
     const g = {
-      cmd: 'ROLL!', hint: 'TILT TO THE GOAL', thint: 'DRAG TO TILT', dur: 8,
+      wide: true, cmd: 'ROLL!', hint: 'TILT TO THE GOAL', thint: 'DRAG TO TILT', dur: 8,
       move(p) { if (usingKeys) return; nx = clamp((p.x - W / 2) / (W / 2), -1, 1); nz = clamp((p.y - H / 2) / (H / 2), -1, 1); },
       down(p) { g.move(p); },
       update(dt) {
@@ -344,7 +376,7 @@
         const c = S.camera; c.position.set(rz * -3 + (Math.random() - .5) * cam * .3, 11.5 + (Math.random() - .5) * cam * .3, 9.5 - (state === 'fall' ? Math.min(2, fallT) : 0)); c.lookAt(0, -.4, .5);
         if (state === 'fall') fallT += dt;
       },
-      draw() { T3.render(S); }
+      draw() { X.render(S); }
     };
     return g;
   }, 'Roll');
@@ -354,8 +386,8 @@
     const S = T3.scene({ bg: 0x9ad8ff, ground: 0x7ed957, cam: [0, 6, 10.5], look: [0, 2, 0], fov: 62, sun: [4, 14, 6], fog: [28, 60] });
     const M = T3.mk, need = 5, XR = 4.4;
     /* scenery */
-    for (const x of [-9, -4.5, 2, 7, 11]) { T3.sphere(S, rnd(1, 1.5), 0x4fbf4f, [x + rnd(-1, 1), 1, -8], 1.06); }
-    for (const x of [-11, 9.5]) { T3.cyl(S, .4, .5, 3, 0x8a5a2e, [x, 1.5, -6]); T3.sphere(S, 2.2, 0x3fae5a, [x, 4.2, -6]); }
+    for (const x of [-9, -4.5, 2, 7, 11, -15, -21, 16, 22]) { if (Math.abs(x) > 11 * WK + 3) continue; T3.sphere(S, rnd(1, 1.5), 0x4fbf4f, [x + rnd(-1, 1), 1, -8], 1.06); }
+    for (const x of [-11, 9.5, -17, 15.5]) { if (Math.abs(x) > 11 * WK) continue; T3.cyl(S, .4, .5, 3, 0x8a5a2e, [x, 1.5, -6]); T3.sphere(S, 2.2, 0x3fae5a, [x, 4.2, -6]); }
     /* basket + Claude */
     const bk = new THREE.Group();
     const body = M.cyl(1.05, .82, .8, 0xc98a3d); body.position.y = .4; bk.add(body);
@@ -391,11 +423,11 @@
     let bx = 0, bz = 1, tx = 0, tz = 1, caught = 0, T = 0, spawnT = .3, nSpawn = 0, sq = 0, cam = 0, vxs = 0, over = false;
     const vBase = 5 + 2 * sp, wp = new THREE.Vector3();
     const kill = it => { S.scene.remove(it.g); S.scene.remove(it.sh); dispose(it.g); };
-    const scr = (x, y, z) => { wp.set(x, y, z); return T3.screen(S, wp); };
+    const scr = (x, y, z) => { wp.set(x, y, z); return X.screen(S, wp); };
 
     const g = {
-      cmd: 'CATCH!', hint: 'CATCH FRUIT, DODGE BUGS', thint: 'DRAG TO MOVE', dur: 8,
-      move(p) { const q = T3.ground(S, p, .9); if (q) { tx = clamp(q.x, -XR, XR); tz = clamp(q.z, -1.4, 3.2); } },
+      wide: true, cmd: 'CATCH!', hint: 'CATCH FRUIT, DODGE BUGS', thint: 'DRAG TO MOVE', dur: 8,
+      move(p) { const q = X.ground(S, p, .9); if (q) { tx = clamp(q.x, -XR, XR); tz = clamp(q.z, -1.4, 3.2); } },
       down(p) { g.move(p); },
       update(dt) {
         dt = Math.min(dt, .04); T += dt; sq *= Math.pow(.005, dt); cam *= Math.pow(.02, dt);
@@ -441,7 +473,7 @@
         }
         const c = S.camera; c.position.set(bx * .12 + (Math.random() - .5) * cam * .3, 6 + (Math.random() - .5) * cam * .3, 10.5); c.lookAt(bx * .06, 2, 0);
       },
-      draw() { T3.render(S); pips(caught, need); }
+      draw() { X.render(S); pips(caught, need); }
     };
     return g;
   }, 'Catch');

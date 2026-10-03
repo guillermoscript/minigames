@@ -3,6 +3,8 @@
 (() => {
   const cl = (v, a, b) => v < a ? a : v > b ? b : v;
   const rnd = (a, b) => a + Math.random() * (b - a);
+  /* widescreen: world point → game px (x may be <0 / >W); the wide renderer lives in td3.js (_td3.render) */
+  const scr = (S, v) => { const q = v.clone().project(S.camera); return { x: (q.x + 1) / 2 * VW - OX, y: (1 - q.y) / 2 * H, z: q.z }; };
   const dotsBar = (n, need, y = 556) => {          // progress pips along the bottom
     for (let i = 0; i < need; i++) { circ(W / 2 + (i - (need - 1) / 2) * 44, y, 15, i < n ? '#FFE14D' : 'rgba(255,255,255,.55)', 4); }
   };
@@ -27,7 +29,7 @@
     spawn();
     const addFall = (m, vx, vz) => { fall.push({ m, vy: 0, vx, vz, rx: rnd(-2, 2), rz: rnd(-2, 2) }); };
     const chunk = (w, d, x, y, z, c, vx, vz) => { addFall(T3.box(S, w, CH, d, c, [x, y, z]), vx, vz); };
-    const note = (s, col) => { const q = T3.screen(S, cur.position); floatText(s, q.x, q.y - 30, col, 38); };
+    const note = (s, col) => { const q = scr(S, cur.position); floatText(s, q.x, q.y - 30, col, 38); };
     const drop = () => {
       if (g.result || t0 > 0 || !cur) return;
       const x = axisX(), a = AMP * Math.sin(ph), c = x ? top.x : top.z, s = x ? top.w : top.d;
@@ -36,7 +38,7 @@
       if (ov < .08) {                                                 // total miss
         addFall(cur, 0, 0); cur.position.set(x ? a : top.x, y, x ? top.z : a);
         sfx.miss(); sfx.buzz(); shake(8, .3); g.result = 'lose';
-        const q = T3.screen(S, cur.position); floatText('MISS!', q.x, q.y, '#ff5a5a', 44); return;
+        const q = scr(S, cur.position); floatText('MISS!', q.x, q.y, '#ff5a5a', 44); return;
       }
       const perfect = Math.abs(a - c) < .13;
       let nc = (lo + hi) / 2, ns = ov;
@@ -49,7 +51,7 @@
       const w = x ? ns : top.w, d = x ? top.d : ns, px = x ? nc : top.x, pz = x ? top.z : nc;
       cur = T3.box(S, w, CH, d, col, [px, y, pz]);
       top.x = px; top.z = pz; top.w = w; top.d = d; placed++; bounce = .12;
-      const q = T3.screen(S, cur.position);
+      const q = scr(S, cur.position);
       if (perfect) { sfx.sparkle(); sfx.coin(); ring(q.x, q.y, '#FFE14D', 110); burst(q.x, q.y, '#FFE14D', 16); floatText('PERFECT!', q.x, q.y - 40, '#FFE14D', 40); spec.position.y = .6; }
       else { sfx.thud(); sfx.hit(); burst(q.x, q.y, '#fff', 8, 160); shake(3, .12); }
       if (placed >= NEED) {
@@ -58,7 +60,7 @@
       } else spawn();
     };
     const g = {
-      cmd: 'STACK!', hint: 'CLICK / SPACE TO DROP', thint: 'TAP TO DROP', dur: 7,
+      wide: true, cmd: 'STACK!', hint: 'CLICK / SPACE TO DROP', thint: 'TAP TO DROP', dur: 7,
       update(dt, t) {
         if (t0 > 0) t0 -= dt;
         if (!g.result && cur) {
@@ -80,7 +82,7 @@
       },
       down() { drop(); }, key(e) { if (e.code === 'Space' || e.code === 'Enter') drop(); },
       draw() {
-        T3.render(S);
+        _td3.render(S);
         txt(placed + ' / ' + NEED, W / 2, 540, 44, '#fff'); dotsBar(placed, NEED, 570);
       }
     };
@@ -117,14 +119,14 @@
     const knock = (p, vx, vz) => {
       if (p.st) return; p.st = 1; p.vx = vx; p.vz = vz; const l = Math.hypot(vx, vz) || 1; p.ax = vz / l; p.az = -vx / l; down++;
       if (hitSfx <= 0) { sfx.hit(); sfx.thud(); hitSfx = .06; } else sfx.tick();
-      const q = T3.screen(S, p.m.position); burst(q.x, q.y - 40, '#fff', 4, 150);
+      const q = scr(S, p.m.position); burst(q.x, q.y - 40, '#fff', 4, 150);
     };
     const launch = (pw, a) => {
       const v = 9 + 14 * pw; ang = a; bl.vx = Math.sin(a) * v; bl.vz = -Math.cos(a) * v; phase = 'roll'; sfx.whoosh(true); drag = null; charging = false;
     };
     const pwOf = dy => cl((dy - 8) / 170, .12, 1);
     const g = {
-      cmd: 'BOWL!', hint: 'DRAG BACK, RELEASE', thint: 'DRAG BACK, LET GO', dur: 7,
+      wide: true, cmd: 'BOWL!', hint: 'DRAG BACK, RELEASE', thint: 'DRAG BACK, LET GO', dur: 7,
       down(p) { if (phase !== 'aim') return; drag = { sx: p.x, sy: p.y, cx: p.x, cy: p.y }; sfx.click(); },
       move(p) { if (drag) { drag.cx = p.x; drag.cy = p.y; } },
       up(p) {
@@ -188,16 +190,16 @@
         S.camera.lookAt(camX * .6, .7, Math.max(bl.z - 9, HEADZ - 3));
       },
       draw(t) {
-        T3.render(S);
+        _td3.render(S);
         if (phase === 'aim') {
-          const a = T3.screen(S, ball.position), px = bl.x + Math.sin(ang) * 11, pz = bl.z - Math.cos(ang) * 11;
-          const b = T3.screen(S, S.camera.position.clone().set(px, .6, pz));
+          const a = scr(S, ball.position), px = bl.x + Math.sin(ang) * 11, pz = bl.z - Math.cos(ang) * 11;
+          const b = scr(S, S.camera.position.clone().set(px, .6, pz));
           ctx.save(); ctx.setLineDash([16, 12]); ctx.lineCap = 'round'; ctx.lineWidth = 7; ctx.strokeStyle = INK; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
           ctx.lineWidth = 3.5; ctx.strokeStyle = '#FFE14D'; ctx.stroke(); ctx.restore();
           let pw = -1; if (drag) pw = (drag.cy - drag.sy) > 14 ? pwOf(drag.cy - drag.sy) : 0; else if (charging) pw = .3 + .7 * (1 - Math.cos(kt * 5)) / 2;
-          if (pw >= 0) { box(W - 70, 180, 30, 260, 'rgba(20,16,28,.6)', 4); box(W - 70, 180 + 260 * (1 - pw), 30, 260 * pw, pw > .85 ? '#ff5a5a' : '#5fd38d', 3); txt('POWER', W - 55, 160, 22, '#fff'); }
+          if (pw >= 0) { box(W + OX - 70, 180, 30, 260, 'rgba(20,16,28,.6)', 4); box(W + OX - 70, 180 + 260 * (1 - pw), 30, 260 * pw, pw > .85 ? '#ff5a5a' : '#5fd38d', 3); txt('POWER', W + OX - 55, 160, 22, '#fff'); }
           if (drag) { ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(drag.sx, drag.sy); ctx.lineTo(drag.cx, drag.cy); ctx.stroke(); circ(drag.cx, drag.cy, 10, '#fff', 3); }
-        } else if (phase !== 'aim') txt(window.t('{n} DOWN', { n: down }), 90, 548, 38, '#fff');
+        } else if (phase !== 'aim') txt(window.t('{n} DOWN', { n: down }), 90 - OX, 548, 38, '#fff');
       }
     };
     return g;
@@ -205,7 +207,7 @@
 
   /* ───────────── 3. DIVE ───────────── */
   reg3('td_dive', sp => {
-    const NEED = 3 + (sp > 1.6 ? 1 : 0), RR = 2.7 - (sp - 1) * .2, SPD = 20 + 6 * (sp - 1), GAP = 20;
+    const kw = VW / W, NEED = 3 + (sp > 1.6 ? 1 : 0), RR = 2.7 - (sp - 1) * .2, SPD = 20 + 6 * (sp - 1), GAP = 20;
     const S = T3.scene({ bg: 0x6cc4ff, fog: [30, 95], cam: [0, 7, 11], look: [0, -6, 0], sun: [4, 20, 8] });
     S.sun.castShadow = false;
     const gnd = new THREE.Mesh(new THREE.PlaneGeometry(260, 260), T3.mat(0x7fd36b)); gnd.rotation.x = -Math.PI / 2; gnd.position.y = -100; S.scene.add(gnd);
@@ -214,10 +216,10 @@
     for (let i = 0; i < 16; i++) {
       const c = new THREE.Group(), M = T3.mk;
       [[0, 0, 0, 1.6], [1.5, -.2, .2, 1.2], [-1.4, -.1, -.2, 1.3]].forEach(q => { const s = M.sphere(q[3], 0xffffff, 1.05); s.position.set(q[0], q[1], q[2]); c.add(s); });
-      c.position.set((Math.random() < .5 ? -1 : 1) * rnd(5, 16), rnd(-60, 10), rnd(-10, 1)); S.scene.add(c); clouds.push(c);
+      c.position.set((Math.random() < .5 ? -1 : 1) * rnd(5, 16) * kw, rnd(-60, 10), rnd(-10, 1)); S.scene.add(c); clouds.push(c);
     }
     const streaks = [], smat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .55 }), sgeo = new THREE.BoxGeometry(.06, 4, .06);
-    for (let i = 0; i < 14; i++) { const s = new THREE.Mesh(sgeo, smat); s.position.set((Math.random() < .5 ? -1 : 1) * rnd(1.5, 9), rnd(-20, 10), rnd(-6, 5)); S.scene.add(s); streaks.push(s); }
+    for (let i = 0; i < 14; i++) { const s = new THREE.Mesh(sgeo, smat); s.position.set((Math.random() < .5 ? -1 : 1) * rnd(1.5, 9) * kw, rnd(-20, 10), rnd(-6, 5)); S.scene.add(s); streaks.push(s); }
     const rings = [];
     for (let i = 0; i < 6; i++) {
       const m = T3.torus(S, RR, .28, 0xffc93c, [0, -999, 0], [Math.PI / 2, 0, 0]); m.visible = false; m.castShadow = false;
@@ -233,7 +235,7 @@
     };
     const setT = p => { tgt.x = cl((p.x / W - .5) * 2 * R.x, -R.x, R.x); tgt.z = cl((p.y / H - .5) * 2 * R.z, -R.z, R.z); };
     const g = {
-      cmd: 'DIVE!', hint: 'STEER THROUGH THE RINGS', thint: 'DRAG TO STEER', dur: 7,
+      wide: true, cmd: 'DIVE!', hint: 'STEER THROUGH THE RINGS', thint: 'DRAG TO STEER', dur: 7,
       move(p) { setT(p); }, down(p) { setT(p); },
       key(e) { kd[e.code] = 1; }, keyup(e) { kd[e.code] = 0; },
       update(dt, t) {
@@ -252,7 +254,7 @@
             r.m.rotation.z += dt * .8;
             if (py < 0 && r.y >= 0) {
               if (Math.hypot(pos.x - r.x, pos.z - r.z) < RR - .05) {
-                r.st = 1; got++; const q = T3.screen(S, P.position);
+                r.st = 1; got++; const q = scr(S, P.position);
                 sfx.coin(); sfx.sparkle(); ring(q.x, q.y, '#FFE14D', 120); burst(q.x, q.y, '#FFE14D', 16); floatText('+1', q.x, q.y - 50, '#fff', 44); shk = .35; r.mat.color.setHex(0x5fe08a); r.mat.transparent = true;
                 if (got >= NEED) { g.result = 'win'; sfx.sparkle(); }
               } else { r.st = 2; r.mat.color.setHex(0xff5a5a); sfx.miss(); lastRingMiss = .5; }
@@ -260,15 +262,15 @@
           } else if (r.st === 1) { r.a += dt * 2.5; r.m.scale.setScalar(1 + r.a * 1.2); r.mat.opacity = Math.max(0, 1 - r.a); if (r.a >= 1) { r.on = false; r.m.visible = false; } }
           if (r.y > 14) { r.on = false; r.m.visible = false; }
         }
-        for (const c of clouds) { c.position.y += SPD * dt; if (c.position.y > 14) c.position.set((Math.random() < .5 ? -1 : 1) * rnd(5, 16), -62 - Math.random() * 10, rnd(-10, 1)); }
-        for (const s of streaks) { s.position.y += SPD * 1.7 * dt; if (s.position.y > 12) s.position.set((Math.random() < .5 ? -1 : 1) * rnd(1.5, 9), -22, rnd(-6, 5)); }
+        for (const c of clouds) { c.position.y += SPD * dt; if (c.position.y > 14) c.position.set((Math.random() < .5 ? -1 : 1) * rnd(5, 16) * kw, -62 - Math.random() * 10, rnd(-10, 1)); }
+        for (const s of streaks) { s.position.y += SPD * 1.7 * dt; if (s.position.y > 12) s.position.set((Math.random() < .5 ? -1 : 1) * rnd(1.5, 9) * kw, -22, rnd(-6, 5)); }
         gnd.position.y = -100 + t * 11;
         camX += (pos.x * .55 - camX) * Math.min(1, dt * 4); shk = Math.max(0, shk - dt);
         S.camera.position.set(camX, 7, 11); S.camera.lookAt(camX, -6, 0); if (shk > 0) T3.shakeCam(S, shk * .6);
         lastRingMiss = Math.max(0, lastRingMiss - dt);
       },
       draw() {
-        T3.render(S);
+        _td3.render(S);
         txt(got + ' / ' + NEED, W / 2, 540, 44, '#fff'); dotsBar(got, NEED, 575);
         if (lastRingMiss > 0) txt('MISSED!', W / 2, 300, 46, '#ff5a5a');
         vignette(.25);
@@ -284,7 +286,7 @@
     const S = T3.scene({ bg: 0x8fd3ff, fog: [20, 48], cam: [0, 2.6, 6.5], look: [0, 3, -4], ground: 0xe8a85c, sun: [4, 14, 5], fov: 55 });
     T3.box(S, 4, .03, 6.2, 0xd9573f, [0, .02, -6.1], null, 1.0);
     T3.torus(S, 1.8, .05, 0xffffff, [0, .05, -3], [Math.PI / 2, 0, 0], 1.0);
-    T3.box(S, 30, .03, .12, 0xffffff, [0, .03, -12], null, 1.0);
+    T3.box(S, 60, .03, .12, 0xffffff, [0, .03, -12], null, 1.0);
     T3.cyl(S, .16, .2, 3.6, 0x8a8aa6, [0, 1.8, -10.3]);
     T3.box(S, .25, .25, 1.4, 0x8a8aa6, [0, 3.2, -9.7]);
     T3.box(S, 3.6, 2.0, .14, 0xffffff, [0, 3.7, BOARDZ]);
@@ -312,7 +314,7 @@
     };
     const aimOf = x => (x - W / 2) / 260;
     const g = {
-      cmd: 'SHOOT!', hint: 'FLICK UP TO SHOOT', thint: 'SWIPE UP TO SHOOT', dur: 7,
+      wide: true, cmd: 'SHOOT!', hint: 'FLICK UP TO SHOOT', thint: 'SWIPE UP TO SHOOT', dur: 7,
       down(p) {
         if (st !== 'ready') return;
         if (metering) { shoot(meterPw(), aimOf(aimX)); return; }
@@ -357,7 +359,7 @@
             }
             if (py > HY && b.y <= HY && b.vy < 0 && !(st === 'rest') && Math.hypot(b.x - HX, b.z - HZ) < RIMR - .08 && !ball.userData.counted) {
               ball.userData.counted = 1; scored++; wob = 1; zoom = 1; camShake = .25;
-              const q = T3.screen(S, ball.position); sfx.coin(); sfx.sparkle(); sfx.pop(); shake(5, .2);
+              const q = scr(S, ball.position); sfx.coin(); sfx.sparkle(); sfx.pop(); shake(5, .2);
               ring(q.x, q.y, '#FFE14D', 120); burst(q.x, q.y, '#FFE14D', 18); burst(q.x, q.y, '#ff8a2b', 10, 200);
               floatText(rimTouch ? 'NICE!' : 'SWISH!', q.x, q.y - 70, rimTouch ? '#fff' : '#FFE14D', 52);
               if (scored >= NEED) { g.result = 'win'; }
@@ -376,12 +378,12 @@
         if (camShake > 0) T3.shakeCam(S, camShake);
       },
       draw() {
-        T3.render(S);
+        _td3.render(S);
         if (st === 'ready') {
           let pw = -1;
           if (pressed && drag && drag.sy - drag.cy > 20) pw = cl((drag.sy - drag.cy) / 250, 0, 1);
           else if (pressed || metering) pw = meterPw();
-          const bx = W - 66, by = 170, bh = 300;
+          const bx = W + OX - 66, by = 170, bh = 300;
           box(bx, by, 34, bh, 'rgba(20,16,28,.55)', 4);
           const lo = SWEET - .11, hi = SWEET + .11; ctx.fillStyle = '#5fd38d'; ctx.fillRect(bx + 2, by + bh * (1 - hi), 30, bh * (hi - lo));
           if (pw >= 0) { const y = by + bh * (1 - pw); ctx.fillStyle = INK; ctx.fillRect(bx - 10, y - 5, 54, 10); ctx.fillStyle = '#fff'; ctx.fillRect(bx - 7, y - 3, 48, 6); }
@@ -389,7 +391,7 @@
           if (pressed || metering) { ctx.save(); ctx.setLineDash([10, 10]); ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = 4; const ax = (drag && drag.sy - drag.cy > 20) ? W / 2 + (drag.cx - drag.sx) : aimX; ctx.beginPath(); ctx.moveTo(ax, 150); ctx.lineTo(ax, 300); ctx.stroke(); ctx.restore(); }
           if (drag && pressed) { ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(drag.sx, drag.sy); ctx.lineTo(drag.cx, drag.cy); ctx.stroke(); }
         }
-        txt(scored + ' / ' + NEED, 90, 548, 40, '#fff');
+        txt(scored + ' / ' + NEED, 90 - OX, 548, 40, '#fff');
       }
     };
     return g;

@@ -13,6 +13,7 @@ function gcSole(sp) {
   const stomps = [], rings = [];
   for (let i = 0; i < n; i++) stomps.push({ s: .5 + i * gap, x: 0, y: 0, init: false, hit: false, thoom: 0, w: false });
   const g = {
+    wide: true,
     cmd: 'MOVE!', hint: 'DODGE THE FOOT: MOUSE OR ARROWS', thint: 'DRAG TO DODGE THE FOOT', dur: 5, timeWin: true,
     move(p) { tx = p.x; ty = p.y; },
     update(dt) {
@@ -23,11 +24,11 @@ function gcSole(sp) {
       const kx = (keys.ArrowRight || keys.KeyD ? 1 : 0) - (keys.ArrowLeft || keys.KeyA ? 1 : 0), ky = (keys.ArrowDown || keys.KeyS ? 1 : 0) - (keys.ArrowUp || keys.KeyW ? 1 : 0);
       if (kx || ky) { tx = me.x += kx * 340 * ts; ty = me.y += ky * 340 * ts; }
       else { const dx = tx - me.x, dy = ty - me.y, d = Math.hypot(dx, dy) || 1, m = Math.min(d, 430 * ts); me.x += dx / d * m; me.y += dy / d * m; }
-      me.x = gcClamp(me.x, 40, 760); me.y = gcClamp(me.y, 360, 535);
+      me.x = gcClamp(me.x, 40 - OX, W - 40 + OX); me.y = gcClamp(me.y, 360, 535);
       for (const s of stomps) {
         const u = c - s.s; s.thoom = Math.max(0, s.thoom - dt);
         if (u < 0) continue;
-        if (!s.init) { s.init = true; s.x = gcClamp(me.x + (me.x < 400 ? 160 : -160), 80, 720); s.y = gcClamp(me.y - 70, 380, 520); }
+        if (!s.init) { s.init = true; s.x = gcClamp(me.x + (me.x < 400 ? 160 : -160), 80 - OX, W - 80 + OX); s.y = gcClamp(me.y - 70, 380, 520); }
         if (u < 1.1) { s.x += (me.x - s.x) * Math.min(1, 3.4 * ts); s.y += (me.y - s.y) * Math.min(1, 3.4 * ts); }
         if (u >= 1.1 && !s.w) { s.w = true; sfx.whoosh(false); }
         if (u >= 1.55 && !s.hit) {
@@ -40,8 +41,8 @@ function gcSole(sp) {
     draw(t) {
       bg('#9BE7FF', '#8bdcf5', t);
       ctx.save();
-      ctx.fillStyle = INK; ctx.fillRect(0, 326, W, H); ctx.fillStyle = '#8fd36a'; ctx.fillRect(0, 332, W, H);
-      for (let i = 0; i < 12; i++) { ctx.fillStyle = '#7bc45a'; ctx.fillRect(30 + i * 70, 350 + (i * 37) % 180, 26, 8); }
+      ctx.fillStyle = INK; ctx.fillRect(-OX, 326, VW, H); ctx.fillStyle = '#8fd36a'; ctx.fillRect(-OX, 332, VW, H);
+      for (let i = -Math.ceil(OX / 70); i < 12 + Math.ceil(OX / 70); i++) { ctx.fillStyle = '#7bc45a'; ctx.fillRect(30 + i * 70, 350 + ((i + 20) * 37) % 180, 26, 8); }
       for (const s of stomps) {
         const u = c - s.s; if (!s.init || u > 2) continue;
         const flash = u > 1.1 && u < 1.55 && Math.floor(u * 16) % 2 === 0;
@@ -80,9 +81,10 @@ function gcSole(sp) {
 function gcRhino(sp) {
   const k = Math.sqrt(sp), two = sp > 1.5, CX = 590, GY = 470;
   const starts = [.7, 3.1], vs = [240, 320], N = two ? 2 : 1, ZONE = 160; // ZONE: how far out (px) the cape still counts
-  let c = 0, idx = 0, sw = 0, cd = 0, fling = 0, hopT = 0; const rh = { x: -190, swiped: false, gone: false }; const dust = [];
+  let c = 0, idx = 0, sw = 0, cd = 0, fling = 0, hopT = 0; const rh = { x: -190 - OX, swiped: false, gone: false }; const dust = [];
   const gapOf = () => (CX - 40) - (rh.x + 95);
   const g = {
+    wide: true,
     cmd: 'OLE!', hint: 'CLICK/SPACE WHEN THE RHINO IS IN THE ZONE', thint: 'TAP WHEN THE RHINO IS IN THE ZONE', dur: two ? 5.8 : 5,
     key(e) { if (e.code === 'Space') g.cape(); }, down() { g.cape(); },
     cape() {
@@ -97,23 +99,23 @@ function gcRhino(sp) {
       if (sw > 0) { sw += dt * 4; if (sw > 1) sw = 0; } if (hopT > 0) { hopT += dt * 1.6; if (hopT > 1) hopT = 0; }
       for (let i = dust.length - 1; i >= 0; i--) { dust[i].r += dt * 40; dust[i].a -= dt * 2; dust[i].y -= dt * 20; if (dust[i].a <= 0) dust.splice(i, 1); }
       if (idx < N && c >= starts[idx]) {
-        rh.x += vs[idx] * ts;
+        rh.x += vs[idx] * ts * (645 + OX) / 645;   // wider run-up, scaled so it still reaches the cape in the same time
         if (Math.random() < .5) dust.push({ x: rh.x - 70, y: GY - 6, r: 10, a: .9 });
         if (!rh.swiped && !g.result && gapOf() <= -8) gcLose(g);
         if (g.result === 'lose' && rh.x + 95 >= CX - 40 && !fling) { fling = .001; sfx.thud(); sfx.boing(); shake(12, .35); burst(CX, GY - 40, '#fff', 16); }
-        if (rh.x > W + 200) { idx++; rh.x = -190; rh.swiped = false; }
+        if (rh.x > W + OX + 200) { idx++; rh.x = -190 - OX; rh.swiped = false; }
       }
       if (fling) fling += dt;
     },
     draw(t) {
       bg('#FFD36B', '#ffc94d', t);
-      ctx.fillStyle = INK; ctx.fillRect(0, GY - 4, W, 140); ctx.fillStyle = '#e8b866'; ctx.fillRect(0, GY, W, 140);
+      ctx.fillStyle = INK; ctx.fillRect(-OX, GY - 4, VW, 140); ctx.fillStyle = '#e8b866'; ctx.fillRect(-OX, GY, VW, 140);
       const run = idx < N && c >= starts[idx], warn = idx < N && !run && c > starts[idx] - .55;
       const inZone = run && !rh.swiped && !g.result && gapOf() <= ZONE;
       ctx.globalAlpha = inZone ? .75 + Math.sin(now * 30) * .2 : .35; ctx.fillStyle = inZone ? '#FFE14D' : '#fff';
       ctx.fillRect(CX - 40 - ZONE, GY + 8, ZONE, 26); ctx.globalAlpha = 1;
       if (inZone) txt('NOW!', CX - 40 - ZONE / 2, GY + 80, 44, '#e8232f');
-      if (warn) { txt('!', 70, 330 + Math.sin(now * 40) * 4, 90, '#ff3b3b'); }
+      if (warn) { txt('!', 70 - OX / 2, 330 + Math.sin(now * 40) * 4, 90, '#ff3b3b'); }
       for (const d of dust) { ctx.globalAlpha = Math.max(0, d.a); circ(d.x, d.y, d.r, '#f6ead0', 3); } ctx.globalAlpha = 1;
       if (run) {
         ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = 6;
@@ -157,6 +159,7 @@ function gcAlley(sp) {
   const T = roles.map((r, i) => ({ r, s: .5 + i * .85, slot: -1, u: -1, hit: 0, shot: false }));
   let c = 0, kills = 0, boom = 0, boomX = 0; const flashes = [];
   const g = {
+    wide: true,
     cmd: 'SHOOT!', hint: 'CLICK BANDITS, NOT CIVILIANS', thint: 'TAP BANDITS, NOT CIVILIANS', dur: 5.6,
     down(p) {
       if (g.result) return; flashes.push({ x: p.x, y: p.y, a: 1 }); sfx.pop(); ring(p.x, p.y, '#fff', 30, .25);
@@ -193,8 +196,8 @@ function gcAlley(sp) {
     },
     draw(t) {
       bg('#E3B77A', '#d9a96a', t);
-      ctx.fillStyle = '#7a4a2a'; ctx.fillRect(0, 140, W, 300); ctx.fillStyle = INK; ctx.fillRect(0, 130, W, 12);
-      for (let i = 0; i < 24; i++) { ctx.fillStyle = 'rgba(0,0,0,.1)'; ctx.fillRect(0, 150 + i * 13, W, 3); }
+      ctx.fillStyle = '#7a4a2a'; ctx.fillRect(-OX, 140, VW, 300); ctx.fillStyle = INK; ctx.fillRect(-OX, 130, VW, 12);
+      for (let i = 0; i < 24; i++) { ctx.fillStyle = 'rgba(0,0,0,.1)'; ctx.fillRect(-OX, 150 + i * 13, VW, 3); }
       txt('SALOON', 400, 90, 56, '#FFE14D'); ctx.fillStyle = INK; ctx.fillRect(190, 118, 420, 8);
       for (let s = 0; s < 3; s++) {
         const cx = CXS[s];
@@ -228,10 +231,10 @@ function gcAlley(sp) {
         box(cx - 110, WTOP - 22, 220, 16, '#5a3418', 5);
       }
       if (boom > 0) { star(boomX + 30, 300, 70, 30, 8, now * 3, '#FFE14D', 5); txt('BANG!', boomX, 250, 56, '#ff3b3b'); }
-      ctx.fillStyle = INK; ctx.fillRect(0, 462, W, 140); ctx.fillStyle = '#9b6a3a'; ctx.fillRect(0, 468, W, 140);
+      ctx.fillStyle = INK; ctx.fillRect(-OX, 462, VW, 140); ctx.fillStyle = '#9b6a3a'; ctx.fillRect(-OX, 468, VW, 140);
       claude(400, 556, 5, { mood: gcMood(g) });
       box(412, 520, 34, 10, '#444', 3);
-      for (let i = 0; i < 3; i++) star(60 + i * 44, 500, 16, 7, 5, -Math.PI / 2, i < kills ? '#FFE14D' : '#4a4558', 3);
+      for (let i = 0; i < 3; i++) star(60 - OX / 2 + i * 44, 500, 16, 7, 5, -Math.PI / 2, i < kills ? '#FFE14D' : '#4a4558', 3);
       for (const f of flashes) { ctx.globalAlpha = f.a; circ(f.x, f.y, 14, '#fff', 0); } ctx.globalAlpha = 1;
       const m = TOUCH ? null : mouse;
       const mx = flashes.length ? flashes[flashes.length - 1].x : mouse.x, my = flashes.length ? flashes[flashes.length - 1].y : mouse.y;
@@ -264,6 +267,7 @@ function gcPinball(sp) {
   const tipOf = f => [f.px + f.dir * L * Math.cos(f.a), f.py + L * Math.sin(f.a)];
   const setF = (i, v) => { if (v && !fl[i].on) sfx.click(); fl[i].on = v; };
   const g = {
+    wide: true,
     cmd: 'BOUNCE!', hint: '← → (OR A D) FLIP: KEEP A BALL IN PLAY', thint: 'TAP LEFT / RIGHT HALF', dur: 5, timeWin: true,
     key(e) { if (e.code === 'ArrowLeft' || e.code === 'KeyA' || e.code === 'KeyZ') setF(0, true); if (e.code === 'ArrowRight' || e.code === 'KeyD' || e.code === 'Slash') setF(1, true); if (e.code === 'Space') { setF(0, true); setF(1, true); } },
     keyup(e) { if (e.code === 'ArrowLeft' || e.code === 'KeyA' || e.code === 'KeyZ') setF(0, false); if (e.code === 'ArrowRight' || e.code === 'KeyD' || e.code === 'Slash') setF(1, false); if (e.code === 'Space') { setF(0, false); setF(1, false); } },
@@ -330,6 +334,7 @@ function gcBatter(sp) {
     if (z >= .88 && z <= 1.02) { hit = true; crowd = 1; gcWin(g); sfx.hit(); sfx.stamp(); sfx.sparkle(); shake(14, .35); burst(400, 470, '#FFE14D', 22, 340); ring(400, 470, '#fff', 120); floatText('NICE!', 400, 400, '#FFE14D', 50); } else { miss = true; gcLose(g); sfx.miss(); floatText('WHIFF', 330, 420, '#fff', 36); }
   };
   const g = {
+    wide: true,
     cmd: 'SWING!', hint: 'CLICK/SPACE WHEN THE BALL REACHES THE BAT', thint: 'TAP WHEN THE BALL HITS THE ZONE', dur: 4.2,
     key(e) { if (e.code === 'Space') swing(); }, down() { swing(); },
     update(dt) {
@@ -338,9 +343,9 @@ function gcBatter(sp) {
     },
     draw(t) {
       bg('#7FC8FF', '#74bcf2', t);
-      ctx.fillStyle = INK; ctx.fillRect(0, 160, W, 90);
-      for (let i = 0; i < 40; i++) { ctx.fillStyle = crowd > 0 && i % 2 ? '#fff' : ['#ff4d6d', '#ffd23f', '#5CFF7A', '#4DB8FF'][i % 4]; circ(10 + i * 20, 190 + (i % 3) * 14 - (crowd > 0 ? Math.abs(Math.sin(now * 14 + i)) * 12 : 0), 8, ctx.fillStyle, 2); }
-      ctx.fillStyle = INK; ctx.fillRect(0, 246, W, 380); ctx.fillStyle = '#58c24a'; ctx.fillRect(0, 252, W, 380);
+      ctx.fillStyle = INK; ctx.fillRect(-OX, 160, VW, 90);
+      for (let i = -Math.ceil(OX / 20); i < 40 + Math.ceil(OX / 20); i++) { const j = i + 100; ctx.fillStyle = crowd > 0 && j % 2 ? '#fff' : ['#ff4d6d', '#ffd23f', '#5CFF7A', '#4DB8FF'][j % 4]; circ(10 + i * 20, 190 + (j % 3) * 14 - (crowd > 0 ? Math.abs(Math.sin(now * 14 + i)) * 12 : 0), 8, ctx.fillStyle, 2); }
+      ctx.fillStyle = INK; ctx.fillRect(-OX, 246, VW, 380); ctx.fillStyle = '#58c24a'; ctx.fillRect(-OX, 252, VW, 380);
       ctx.fillStyle = '#d9a066'; ctx.beginPath(); ctx.ellipse(400, 480, 180, 70, 0, 0, 7); ctx.fill();
       // machine
       box(350, 160, 100, 90, '#7a8599', 5); box(380, 230, 40, 40, '#4a5568', 5); circ(400, 212, 16, INK, 0); circ(400, 212, 10, crowd > 0 ? '#ffd23f' : '#ff3b3b', 0);
@@ -375,29 +380,31 @@ function gcBatter(sp) {
 function gcSnap(sp) {
   const k = Math.sqrt(sp), dir = Math.random() < .5 ? 1 : -1, FW = 230, FH = 170;
   let c = 0, fx = 400, fy = 280, tx = 400, ty = 280, flash = 0, pol = 0, shot = 0;
-  const ufo = { x: dir > 0 ? -80 : 880, y: 260, base: 190 + Math.random() * 130 };
-  const birds = [], clouds = [];
-  for (let i = 0; i < 4; i++) birds.push({ x: Math.random() * W, y: 90 + Math.random() * 360, v: (Math.random() < .5 ? -1 : 1) * (120 + Math.random() * 120) * (sp > 1 ? 1.1 : 1), ph: Math.random() * 6 });
-  for (let i = 0; i < 5; i++) clouds.push({ x: Math.random() * W, y: 70 + Math.random() * 380, s: 36 + Math.random() * 30, v: 12 + Math.random() * 14 });
+  const ufo = { x: dir > 0 ? -80 - OX : 880 + OX, y: 260, base: 190 + Math.random() * 130 };
+  const birds = [], clouds = [], vk = 1 + (VW - W) / 960 * .6;   // vk: faster UFO to cross the wider sky
+  for (let i = 0; i < Math.round(4 * VW / W); i++) birds.push({ x: -OX + Math.random() * VW, y: 90 + Math.random() * 360, v: (Math.random() < .5 ? -1 : 1) * (120 + Math.random() * 120) * (sp > 1 ? 1.1 : 1), ph: Math.random() * 6 });
+  for (let i = 0; i < Math.round(5 * VW / W); i++) clouds.push({ x: -OX + Math.random() * VW, y: 70 + Math.random() * 380, s: 36 + Math.random() * 30, v: 12 + Math.random() * 14 });
   const snap = () => {
     if (shot || g.result) return; shot = 1; flash = 1; pol = .001; sfx.click(); noise(.12, .05, 3000, 800, 'highpass', .02);
     if (c >= .15 && Math.abs(ufo.x - fx) < FW * .38 && Math.abs(ufo.y - fy) < FH * .38) { gcWin(g); sfx.sparkle(); burst(ufo.x, ufo.y, '#7cf7d4', 18); ring(ufo.x, ufo.y, '#fff', 100); floatText('PERFECT!', ufo.x, ufo.y - 50, '#7cf7d4', 40); } else { gcLose(g); sfx.miss(); }
   };
   const g = {
-    cmd: 'SNAP!', hint: 'FRAME THE UFO, THEN CLICK', thint: 'MOVE FRAME, TAP ON THE UFO', dur: 5,
-    move(p) { tx = p.x; ty = p.y; }, down(p) { tx = p.x; ty = p.y; snap(); },
+    wide: true,
+    cmd: 'SNAP!', hint: 'FRAME THE UFO, THEN CLICK', thint: 'DRAG THE FRAME, LIFT TO SNAP', dur: 5,
+    // touch: dragging moves the frame and lifting the finger snaps; mouse: click snaps
+    move(p) { tx = p.x; ty = p.y; }, down(p) { tx = p.x; ty = p.y; if (!p.touch) snap(); }, up(p) { if (p.touch) snap(); },
     key(e) { if (e.code === 'Space') snap(); },
     update(dt) {
       const ts = dt * k; if (!shot) c += ts;
       const kx = (keys.ArrowRight || keys.KeyD ? 1 : 0) - (keys.ArrowLeft || keys.KeyA ? 1 : 0), ky = (keys.ArrowDown || keys.KeyS ? 1 : 0) - (keys.ArrowUp || keys.KeyW ? 1 : 0);
       if (kx || ky) { tx = fx + kx * 40; ty = fy + ky * 40; }
-      fx += (gcClamp(tx, 115, 685) - fx) * Math.min(1, 14 * dt); fy += (gcClamp(ty, 95, 455) - fy) * Math.min(1, 14 * dt);
+      fx += (gcClamp(tx, 115 - OX, 685 + OX) - fx) * Math.min(1, 14 * dt); fy += (gcClamp(ty, 95, 455) - fy) * Math.min(1, 14 * dt);
       flash = Math.max(0, flash - dt * 4); if (pol) pol = Math.min(1.5, pol + dt);
-      for (const b of birds) { b.x += b.v * ts; if (b.x < -60) b.x = W + 60; if (b.x > W + 60) b.x = -60; }
-      for (const cl of clouds) { cl.x += cl.v * dt; if (cl.x > W + 100) cl.x = -100; }
+      for (const b of birds) { b.x += b.v * ts; if (b.x < -OX - 60) b.x = W + OX + 60; if (b.x > W + OX + 60) b.x = -OX - 60; }
+      for (const cl of clouds) { cl.x += cl.v * dt; if (cl.x > W + OX + 100) cl.x = -OX - 100; }
       if (!shot) {
-        if (c > .3) { ufo.x += dir * 255 * ts; ufo.y = ufo.base + Math.sin(c * 2.4) * 55; }
-        if ((dir > 0 && ufo.x > W + 90) || (dir < 0 && ufo.x < -90)) gcLose(g);
+        if (c > .3) { ufo.x += dir * 255 * vk * ts; ufo.y = ufo.base + Math.sin(c * 2.4) * 55; }
+        if ((dir > 0 && ufo.x > W + OX + 90) || (dir < 0 && ufo.x < -OX - 90)) gcLose(g);
       }
     },
     draw(t) {
@@ -406,7 +413,7 @@ function gcSnap(sp) {
       for (const b of birds) {
         const fl = Math.sin(now * 12 + b.ph) * 10; ctx.strokeStyle = INK; ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(b.x - 24, b.y - fl); ctx.lineTo(b.x, b.y + 6); ctx.lineTo(b.x + 24, b.y - fl); ctx.stroke(); ctx.lineCap = 'butt';
       }
-      if (!shot || g.result) if (ufo.x > -100 && ufo.x < W + 100) {
+      if (!shot || g.result) if (ufo.x > -OX - 100 && ufo.x < W + OX + 100) {
         shadow(ufo.x, ufo.y + 40, 40, 8, .12);
         ctx.save(); ctx.translate(ufo.x, ufo.y); ctx.rotate(Math.sin(now * 5) * .08);
         circ(0, -16, 22, '#7cf7d4', 4);
@@ -416,7 +423,7 @@ function gcSnap(sp) {
       }
       // viewfinder
       ctx.fillStyle = 'rgba(20,16,28,.28)';
-      ctx.fillRect(0, 0, W, fy - FH / 2); ctx.fillRect(0, fy + FH / 2, W, H); ctx.fillRect(0, fy - FH / 2, fx - FW / 2, FH); ctx.fillRect(fx + FW / 2, fy - FH / 2, W, FH);
+      ctx.fillRect(-OX, 0, VW, fy - FH / 2); ctx.fillRect(-OX, fy + FH / 2, VW, H); ctx.fillRect(-OX, fy - FH / 2, fx - FW / 2 + OX, FH); ctx.fillRect(fx + FW / 2, fy - FH / 2, W + OX - (fx + FW / 2), FH);
       const L = 34;
       for (const col of [INK, '#fff']) {
         ctx.strokeStyle = col; ctx.lineWidth = col === INK ? 12 : 5; ctx.lineCap = col === INK ? 'square' : 'butt'; ctx.beginPath();
@@ -427,14 +434,14 @@ function gcSnap(sp) {
       if (Math.floor(now * 2) % 2 === 0) { circ(fx - FW / 2 + 18, fy - FH / 2 - 22, 7, '#ff3b3b', 2); }
       if (pol) {
         const k2 = Math.min(1, pol / .5), py = 640 - k2 * 270;
-        ctx.save(); ctx.translate(690, py); ctx.rotate(.12);
+        ctx.save(); ctx.translate(690 + OX * .6, py); ctx.rotate(.12);
         box(-80, -100, 160, 200, '#fff', 5); box(-68, -88, 136, 130, g.result === 'win' ? '#8FD3FF' : '#6fb8e8', 3);
         if (g.result === 'win') { ctx.fillStyle = INK; ctx.beginPath(); ctx.ellipse(0, -30, 38, 12, 0, 0, 7); ctx.fill(); circ(0, -42, 14, '#7cf7d4', 3); }
         else txt('?', 0, -22, 70, '#fff');
         txt(g.result === 'win' ? 'PERFECT' : 'OOPS', 0, 74, 26, g.result === 'win' ? '#2bb24c' : '#ff4d4d', 'center', 130);
         ctx.restore();
       }
-      if (flash > 0) { ctx.fillStyle = 'rgba(255,255,255,' + Math.min(1, flash * 1.4) + ')'; ctx.fillRect(0, 0, W, H); }
+      if (flash > 0) { ctx.fillStyle = 'rgba(255,255,255,' + Math.min(1, flash * 1.4) + ')'; ctx.fillRect(-OX, 0, VW, H); }
     }
   };
   return g;
@@ -444,11 +451,12 @@ function gcSnap(sp) {
 function gcTrap(sp) {
   const k = Math.sqrt(sp), FY = 500, TY0 = 140;
   const om = 2.0 + sp * .5, ph = Math.random() * 6;
-  const mouse2 = { x: 120 + Math.random() * 560, dir: Math.random() < .5 ? -1 : 1, v: 170, t: 0, pause: 0 };
-  const cheese = { x: 140 + Math.random() * 520 };
+  const mouse2 = { x: 120 - OX + Math.random() * (560 + 2 * OX), dir: Math.random() < .5 ? -1 : 1, v: 170, t: 0, pause: 0 };
+  const cheese = { x: 140 - OX + Math.random() * (520 + 2 * OX) };
   let c = 0, tx = 400, ty = TY0, vy = 0, fall = false, landed = false, snapT = 0, wig = 0;
   const drop = () => { if (fall || g.result) return; fall = true; vy = 0; sfx.whoosh(false); };
   const g = {
+    wide: true,
     cmd: 'DROP!', hint: 'CLICK/SPACE TO DROP THE TRAP ON THE MOUSE', thint: 'TAP TO DROP THE TRAP', dur: 5.2,
     key(e) { if (e.code === 'Space') drop(); }, down() { drop(); },
     update(dt) {
@@ -456,9 +464,9 @@ function gcTrap(sp) {
       if (!landed) {
         const m = mouse2; m.t -= ts;
         if (m.t <= 0) { m.t = .4 + Math.random() * .8; const r = Math.random(); if (r < .25) m.pause = .35; else m.pause = 0; if (Math.random() < .5) m.dir *= -1; m.v = (130 + Math.random() * 150) * Math.sqrt(sp * .8 + .2); }
-        if (m.x < 60) m.dir = 1; if (m.x > 740) m.dir = -1;
+        if (m.x < 60 - OX) m.dir = 1; if (m.x > 740 + OX) m.dir = -1;
         if (!m.pause || m.t > .4) m.x += m.dir * m.v * ts * (m.pause ? 0 : 1);
-        if (!fall) tx = 400 + 290 * Math.sin(c * om + ph);
+        if (!fall) tx = 400 + (290 + OX) * Math.sin(c * om + ph);
         else {
           vy += 2600 * ts; ty += vy * ts;
           if (ty >= FY - 38) { ty = FY - 38; landed = true; snapT = .001; sfx.thud(); shake(11, .3); burst(tx, FY, '#f6ead0', 12, 240); if (Math.abs(tx - m.x) < 66) { gcWin(g); sfx.stamp(); floatText('GOTCHA!', tx, ty - 120, '#FFE14D', 40); } else { gcLose(g); sfx.boing(); floatText('MISSED', m.x, FY - 90, '#fff', 34); } }
@@ -468,9 +476,9 @@ function gcTrap(sp) {
     },
     draw(t) {
       bg('#C9A27A', '#bf9669', t);
-      ctx.fillStyle = INK; ctx.fillRect(0, FY - 4, W, 120); ctx.fillStyle = '#8b5a2b'; ctx.fillRect(0, FY, W, 120);
-      for (let i = 0; i < 8; i++) { ctx.fillStyle = 'rgba(0,0,0,.13)'; ctx.fillRect(i * 110, FY, 6, 120); }
-      box(0, 52, W, 14, '#555', 4); for (let i = 0; i < 20; i++) { ctx.fillStyle = INK; ctx.fillRect(10 + i * 40, 70, 4, 6); }
+      ctx.fillStyle = INK; ctx.fillRect(-OX, FY - 4, VW, 120); ctx.fillStyle = '#8b5a2b'; ctx.fillRect(-OX, FY, VW, 120);
+      for (let i = -Math.ceil(OX / 110); i < 8 + Math.ceil(OX / 110); i++) { ctx.fillStyle = 'rgba(0,0,0,.13)'; ctx.fillRect(i * 110, FY, 6, 120); }
+      box(-OX - 6, 52, VW + 12, 14, '#555', 4); for (let i = -Math.ceil(OX / 40); i < 20 + Math.ceil(OX / 40); i++) { ctx.fillStyle = INK; ctx.fillRect(10 + i * 40, 70, 4, 6); }
       // cheese
       ctx.fillStyle = INK; ctx.beginPath(); ctx.moveTo(cheese.x - 34, FY - 2); ctx.lineTo(cheese.x + 34, FY - 2); ctx.lineTo(cheese.x - 34, FY - 38); ctx.closePath(); ctx.lineWidth = 8; ctx.lineJoin = 'round'; ctx.strokeStyle = INK; ctx.stroke();
       ctx.fillStyle = '#FFD23F'; ctx.fill(); circ(cheese.x - 14, FY - 10, 5, '#f0b400', 1); circ(cheese.x + 8, FY - 8, 4, '#f0b400', 1);
@@ -507,6 +515,7 @@ function gcDouse(sp) {
   const fires = wins.map(w => ({ x: w.x, y: w.y + 20, hp: 1, steam: 0, sx: 0 }));
   const ps = [], steam = []; let spray = false, c = 0; const NZ = { x: 400, y: 520 };
   const g = {
+    wide: true,
     cmd: 'EXTINGUISH!', hint: 'HOLD CLICK/SPACE + AIM AT THE FLAMES', thint: 'HOLD + DRAG ON THE FLAMES', dur: 6.2,
     down(p) { spray = true; }, up() { spray = false; },
     key(e) { if (e.code === 'Space') spray = true; }, keyup(e) { if (e.code === 'Space') spray = false; },
@@ -521,7 +530,7 @@ function gcDouse(sp) {
       for (let i = steam.length - 1; i >= 0; i--) { const s = steam[i]; s.y += s.vy * dt; s.r += dt * 30; s.a -= dt * 1.1; if (s.a <= 0) steam.splice(i, 1); }
       if (g.result) return;
       if (spray) {
-        const tx = gcClamp(mouse.x, 120, 700), ty = gcClamp(mouse.y, 100, 450);
+        const tx = gcClamp(mouse.x, 120 - OX, 700 + OX), ty = gcClamp(mouse.y, 100, 450);
         for (let i = 0; i < Math.max(1, Math.round(ts * 120)); i++) {
           const jx = (Math.random() - .5) * 30, jy = (Math.random() - .5) * 30, dx = tx + jx - NZ.x, dy = ty + jy - NZ.y;
           const T2 = TF * (.8 + Math.random() * .4);
@@ -535,7 +544,7 @@ function gcDouse(sp) {
     },
     draw(t) {
       bg('#8D9BFF', '#8190f2', t);
-      ctx.fillStyle = INK; ctx.fillRect(0, 500, W, 110); ctx.fillStyle = '#6c7a8a'; ctx.fillRect(0, 506, W, 110);
+      ctx.fillStyle = INK; ctx.fillRect(-OX, 500, VW, 110); ctx.fillStyle = '#6c7a8a'; ctx.fillRect(-OX, 506, VW, 110);
       box(200, 90, 400, 410, '#c5513a', 6);
       for (let i = 0; i < 7; i++) for (let j = 0; j < 7; j++) { ctx.fillStyle = 'rgba(0,0,0,.1)'; ctx.fillRect(206 + (i + j % 2 * .5) * 58, 96 + j * 58, 46, 4); }
       box(180, 70, 440, 30, '#7a2f22', 6);
@@ -560,7 +569,7 @@ function gcDouse(sp) {
       for (const f of fires) if (f.hp > 0 && f.hp < 1 && Math.floor(now * 12) % 3 === 0) circ(f.x + Math.sin(now * 20 + f.x) * 30, f.y - 20 - (now * 90 + f.x) % 60, 4, '#fff', 0);
       shadow(400, 546, 34, 8, .3); box(380, 510, 40, 30, '#e8232f', 5); circ(400, 506, 12, '#9aa', 3);
       claude(120, 500, 5, { mood: gcMood(g) });
-      const cx = gcClamp(mouse.x, 120, 700), cy = gcClamp(mouse.y, 100, 450);
+      const cx = gcClamp(mouse.x, 120 - OX, 700 + OX), cy = gcClamp(mouse.y, 100, 450);
       ctx.strokeStyle = INK; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(cx, cy, 16, 0, 7); ctx.stroke(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.stroke();
     }
   };
@@ -569,14 +578,15 @@ function gcDouse(sp) {
 
 /* ───────── 10 ── PUTT FOR DOUGH: drag back and release ───────── */
 function gcPutt(sp) {
-  const k = Math.sqrt(sp), GX0 = 70, GX1 = 730, GY0 = 110, GY1 = 500;
-  const ball = { x: 150, y: 250 + Math.random() * 100, vx: 0, vy: 0, sunk: 0, rolling: false };
-  const hole = { x: 600 + Math.random() * 100, y: 190 + Math.random() * 220, r: 17 };
+  const k = Math.sqrt(sp), GX0 = 70 - OX, GX1 = 730 + OX, GY0 = 110, GY1 = 500;   // wider green; tee and hole move out only a bit so the shot stays reachable
+  const ball = { x: 150 - OX * .3, y: 250 + Math.random() * 100, vx: 0, vy: 0, sunk: 0, rolling: false };
+  const hole = { x: 600 + OX * .3 + Math.random() * 100, y: 190 + Math.random() * 220, r: 17 };
   const dxh = hole.x - ball.x, dyh = hole.y - ball.y, mid = .5;
   const bunk = { x: ball.x + dxh * mid + (Math.random() - .5) * 20, y: ball.y + dyh * mid + (Math.random() < .5 ? -1 : 1) * 10, rx: 62, ry: 48 };
   let drag = false, px = 0, py = 0, shot = false, still = 0, c = 0;
   const pullVec = () => { let dx = ball.x - px, dy = ball.y - py; const d = Math.hypot(dx, dy); if (d > 200) { dx *= 200 / d; dy *= 200 / d; } return [dx, dy, Math.min(200, d)]; };
   const g = {
+    wide: true,
     cmd: 'PUTT!', hint: 'DRAG BACK FROM THE BALL, RELEASE', thint: 'DRAG BACK, LET GO', dur: 6.5,
     down(p) { if (shot || g.result) return; drag = true; px = p.x; py = p.y; },
     move(p) { px = p.x; py = p.y; },
@@ -602,7 +612,7 @@ function gcPutt(sp) {
     draw(t) {
       bg('#4FD65C', '#47c954', t);
       box(GX0, GY0, GX1 - GX0, GY1 - GY0, '#5de36a', 6);
-      for (let i = 0; i < 10; i++) { ctx.fillStyle = i % 2 ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.05)'; ctx.fillRect(GX0 + i * 66, GY0, 33, GY1 - GY0); }
+      for (let i = 0; i < Math.ceil((GX1 - GX0) / 66); i++) { ctx.fillStyle = i % 2 ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.05)'; ctx.fillRect(GX0 + i * 66, GY0, Math.min(33, GX1 - GX0 - i * 66), GY1 - GY0); }
       ctx.fillStyle = INK; ctx.beginPath(); ctx.ellipse(bunk.x, bunk.y, bunk.rx + 5, bunk.ry + 5, 0, 0, 7); ctx.fill(); ctx.fillStyle = '#f1d98a'; ctx.beginPath(); ctx.ellipse(bunk.x, bunk.y, bunk.rx, bunk.ry, 0, 0, 7); ctx.fill();
       for (let i = 0; i < 10; i++) { ctx.fillStyle = '#d9bd62'; ctx.fillRect(bunk.x - 40 + (i * 37) % 80, bunk.y - 30 + (i * 23) % 60, 4, 4); }
       circ(hole.x, hole.y, hole.r, INK, 3);
@@ -618,7 +628,7 @@ function gcPutt(sp) {
       ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(ball.x + 3, ball.y + 7, 12 * sk, 5 * sk, 0, 0, 7); ctx.fill();
       circ(ball.x, ball.y, 10 * sk, '#fff', 3);
       if (ball.sunk) { star(hole.x, hole.y - 20, 30, 12, 6, now * 5, '#FFE14D', 2); txt('PLINK!', hole.x, hole.y - 120, 40, '#fff'); }
-      for (let i = 0; i < 4; i++) star(GX0 + 40 + i * 180 + Math.sin(now * 3 + i) * 10, 68, 8, 3, 4, now * 2 + i, '#fff', 2);
+      for (let i = 0; i < 4; i++) star(GX0 + OX + 40 + i * 180 + Math.sin(now * 3 + i) * 10, 68, 8, 3, 4, now * 2 + i, '#fff', 2);
       claude(70, 585 - 40, 4, { mood: gcMood(g) });
     }
   };
@@ -635,11 +645,12 @@ function gcPark(sp) {
   const crash = () => {
     const cs = corners();
     for (let i = 0; i < 5; i++) if (i !== free) { const nx = BX[i]; for (const p of cs) if (inRect(p, nx - 24, BT + 30, nx + 24, BB - 10)) return true; }
-    for (const p of cs) if (p[1] < BT - 2 || p[0] < 8 || p[0] > W - 8) return true;
+    for (const p of cs) if (p[1] < BT - 2 || p[0] < 8 - OX || p[0] > W - 8 + OX) return true;
     return false;
   };
   const inBay = () => corners().every(p => inRect(p, BX[free] - BW / 2 + 2, BT, BX[free] + BW / 2 - 2, BB + 8));
   const g = {
+    wide: true,
     cmd: 'PARK!', hint: 'HOLD ↑ + STEER ← →, RELEASE TO STOP IN THE BAY', thint: 'HOLD TO DRIVE TO FINGER, LET GO TO STOP', dur: 6,
     down(p) { ptr = true; px = p.x; py = p.y; }, move(p) { px = p.x; py = p.y; }, up() { ptr = false; },
     update(dt) {
@@ -655,7 +666,7 @@ function gcPark(sp) {
     },
     draw(t) {
       bg('#8E94A8', '#858b9f', t);
-      ctx.fillStyle = INK; ctx.fillRect(0, BT - 18, W, 18); ctx.fillStyle = '#e8d6a8'; ctx.fillRect(0, BT - 14, W, 10);
+      ctx.fillStyle = INK; ctx.fillRect(-OX, BT - 18, VW, 18); ctx.fillStyle = '#e8d6a8'; ctx.fillRect(-OX, BT - 14, VW, 10);
       for (let i = 0; i < 5; i++) {
         const x = BX[i];
         ctx.fillStyle = '#fff'; ctx.fillRect(x - BW / 2 - 3, BT, 6, BB - BT); if (i === 4) ctx.fillRect(x + BW / 2 - 3, BT, 6, BB - BT);
@@ -684,6 +695,7 @@ function gcGoalie(sp) {
   const shots = []; for (let i = 0; i < N; i++) shots.push({ s: .35 + i * 1.45, tgt: (i === 0 ? (Math.random() < .5 ? 215 : 585) : 215 + Math.random() * 370), x0: 400, res: 0, ph: 0 });
   let gx = 400, tx = 400, c = 0, blocks = 0, done = 0, lastT = 0, lastR = 0, netRip = 0;
   const g = {
+    wide: true,
     cmd: 'BLOCK!', hint: 'MOUSE OR ← → TO MOVE THE GOALIE', thint: 'DRAG LEFT / RIGHT', dur: 5.4,
     move(p) { tx = p.x; }, down(p) { tx = p.x; },
     update(dt) {
@@ -708,8 +720,8 @@ function gcGoalie(sp) {
       bg('#3b1f6b', '#46257d', tm);
       const cols = ['rgba(255,77,158,.18)', 'rgba(77,184,255,.18)', 'rgba(255,225,77,.18)'];
       for (let i = 0; i < 3; i++) { ctx.fillStyle = cols[i]; ctx.beginPath(); ctx.moveTo(400, 0); ctx.lineTo(120 + i * 280 + Math.sin(now * 2 + i) * 60, 600); ctx.lineTo(260 + i * 280 + Math.sin(now * 2 + i) * 60, 600); ctx.fill(); }
-      ctx.fillStyle = INK; ctx.fillRect(0, GYL + 22, W, 400); ctx.fillStyle = '#3fbf5f'; ctx.fillRect(0, GYL + 28, W, 400);
-      for (let i = 0; i < 8; i++) { ctx.fillStyle = 'rgba(255,255,255,.07)'; ctx.fillRect(0, GYL + 40 + i * 52, W, 26); }
+      ctx.fillStyle = INK; ctx.fillRect(-OX, GYL + 22, VW, 400); ctx.fillStyle = '#3fbf5f'; ctx.fillRect(-OX, GYL + 28, VW, 400);
+      for (let i = 0; i < 8; i++) { ctx.fillStyle = 'rgba(255,255,255,.07)'; ctx.fillRect(-OX, GYL + 40 + i * 52, VW, 26); }
       // goal
       ctx.fillStyle = 'rgba(255,255,255,.14)'; ctx.fillRect(GL, 160, GR - GL, GYL - 160);
       ctx.strokeStyle = 'rgba(255,255,255,.45)'; ctx.lineWidth = 2; for (let x = GL; x <= GR; x += 22) { ctx.beginPath(); ctx.moveTo(x, 160); ctx.lineTo(x, GYL); ctx.stroke(); } for (let y = 160; y <= GYL; y += 22) { ctx.beginPath(); ctx.moveTo(GL, y); ctx.lineTo(GR, y); ctx.stroke(); }
@@ -746,8 +758,8 @@ function gcGoalie(sp) {
       }
       if (netRip > 0) { ctx.fillStyle = 'rgba(255,77,77,' + netRip * .35 + ')'; ctx.fillRect(GL, 160, GR - GL, GYL - 160); }
       if (lastT > 0) txt(lastR === 1 ? 'SAVE!' : 'GOAL!', 400, 200, 60, lastR === 1 ? '#5CFF7A' : '#ff4d4d');
-      for (let i = 0; i < N; i++) circ(40 + i * 40, 60, 13, shots[i].res === 1 ? '#5CFF7A' : shots[i].res === 2 ? '#ff4d4d' : '#4a4558', 3);
-      txt(window.t('NEED {n}', { n: need }), 100, 100, 20, '#fff');
+      for (let i = 0; i < N; i++) circ(40 - OX / 2 + i * 40, 60, 13, shots[i].res === 1 ? '#5CFF7A' : shots[i].res === 2 ? '#ff4d4d' : '#4a4558', 3);
+      txt(window.t('NEED {n}', { n: need }), 100 - OX / 2, 100, 20, '#fff');
     }
   };
   return g;
@@ -761,6 +773,7 @@ function gcNail(sp) {
   const tpos = () => NX + 205 * Math.sin(c * om + ph) * (1 + .12 * hits);
   const swing = () => { if (g.result || cool > 0 || hT >= 0) return; hT = 0; sfx.whoosh(false); };
   const g = {
+    wide: true,
     cmd: 'HAMMER!', hint: 'CLICK/SPACE WHEN THE THUMB IS CLEAR', thint: 'TAP WHEN THE THUMB IS CLEAR', dur: 6,
     key(e) { if (e.code === 'Space') swing(); }, down() { swing(); },
     update(dt) {
@@ -777,8 +790,9 @@ function gcNail(sp) {
     },
     draw(t) {
       bg('#FFB86B', '#f5ab5c', t);
-      ctx.fillStyle = INK; ctx.fillRect(0, PY - 4, W, 200); ctx.fillStyle = '#b97a3c'; ctx.fillRect(0, PY, W, 200);
-      for (let i = 0; i < 6; i++) { ctx.fillStyle = 'rgba(0,0,0,.14)'; ctx.fillRect(0, PY + 20 + i * 30, W, 3); ctx.fillRect(100 + i * 130, PY, 3, 30); }
+      ctx.fillStyle = INK; ctx.fillRect(-OX, PY - 4, VW, 200); ctx.fillStyle = '#b97a3c'; ctx.fillRect(-OX, PY, VW, 200);
+      for (let i = 0; i < 6; i++) ctx.fillStyle = 'rgba(0,0,0,.14)', ctx.fillRect(-OX, PY + 20 + i * 30, VW, 3);
+      for (let i = -Math.ceil(OX / 130); i < 6 + Math.ceil(OX / 130); i++) ctx.fillRect(100 + i * 130, PY, 3, 30);
       // nail
       const hy = headY();
       box(NX - 8, hy, 16, PY - hy, '#aab', 4);

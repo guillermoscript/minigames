@@ -4,7 +4,7 @@
   const A = '#0f380f', B = '#306230', C = '#8bac0f', D = '#9bbc0f';
   const R = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), w, h); };
   const sn = v => Math.round(v / 8) * 8;
-  const flat = () => { ctx.fillStyle = D; ctx.fillRect(0, 0, W, H); };
+  const flat = () => { ctx.fillStyle = D; ctx.fillRect(-OX, 0, VW, H); };
   const bp = (f, d = .06, v = .05, delay = 0) => snd(f, d, 'square', v, delay);
   const sndWin = () => [523, 659, 784, 1047].forEach((f, i) => bp(f, .1, .05, i * .07));
   const sndLose = () => [262, 220, 175, 131].forEach((f, i) => bp(f, .13, .05, i * .09));
@@ -43,7 +43,7 @@
     let s = .06, el = 0, hnd = 0, shards = null, D0 = 5 / Math.sqrt(sp);
     const Rr = v => 24 + v * 170;
     const g = {
-      cmd: 'PUMP!', hint: 'MASH CLICK / SPACE - STOP IN THE OK ZONE', thint: 'TAP FAST - STOP IN THE OK ZONE', dur: 5,
+      wide: true, cmd: 'PUMP!', hint: 'MASH CLICK / SPACE - STOP IN THE OK ZONE', thint: 'TAP FAST - STOP IN THE OK ZONE', dur: 5,
       timeWin: true,
       pump() {
         if (g.result) return;
@@ -119,7 +119,7 @@
       } else { g.result = 'lose'; sndLose(); shake(7, .25); fx.text('WRONG #', 400, 160, A, 40); }
     };
     const g = {
-      cmd: 'DIAL!', hint: 'MEMORISE - THEN CLICK / TYPE THE DIGITS', thint: 'MEMORISE - THEN TAP THE DIGITS', dur: 6.5,
+      wide: true, cmd: 'DIAL!', hint: 'MEMORISE - THEN CLICK / TYPE THE DIGITS', thint: 'MEMORISE - THEN TAP THE DIGITS', dur: 6.5,
       down(p) {
         for (let k = 0; k < 12; k++) {
           const x = kx + (k % 3) * (kw + gap), y = ky + ((k / 3) | 0) * (kh + gap);
@@ -188,7 +188,7 @@
       R(sn(b + face * 40), y - 88 + (push ? 0 : 8), 24, 16, col);                       // arm
     };
     const g = {
-      cmd: 'PUSH!', hint: 'ALTERNATE ← → (OR A / D) TO SHOVE', thint: 'TAP LEFT / RIGHT HALF, ALTERNATING', dur: 5,
+      wide: true, cmd: 'PUSH!', hint: 'ALTERNATE ← → (OR A / D) TO SHOVE', thint: 'TAP LEFT / RIGHT HALF, ALTERNATING', dur: 5,
       key(e) {
         if (e.repeat) return;
         if (e.code === 'ArrowLeft' || e.code === 'KeyA') act(-1); else if (e.code === 'ArrowRight' || e.code === 'KeyD') act(1);
@@ -244,7 +244,7 @@
     }
     let left = cells.length, lx = null, ly = null, el = 0, sq = 0;
     const g = {
-      cmd: 'SCRUB!', hint: 'RUB THE MOUSE OVER THE DIRT', thint: 'DRAG YOUR FINGER OVER THE DIRT', dur: 5.5,
+      wide: true, cmd: 'SCRUB!', hint: 'RUB THE MOUSE OVER THE DIRT', thint: 'DRAG YOUR FINGER OVER THE DIRT', dur: 5.5,
       move(p) {
         if (g.result) return;
         if (lx === null) { lx = p.x; ly = p.y; return; }

@@ -4,12 +4,12 @@
 function gSwat(sp) {
   const n = 3 + (sp > 1.4) + (sp > 1.9);
   const bugs = Array.from({ length: n }, () => ({
-    x: 120 + Math.random() * 560, y: 130 + Math.random() * 330, a: Math.random() * 6.28,
+    x: -OX + 120 + Math.random() * (VW - 240), y: 130 + Math.random() * 330, a: Math.random() * 6.28,
     v: (140 + Math.random() * 60) * sp, dead: 0, turn: 0
   }));
   const splats = [], pings = [];
   const g = {
-    cmd: 'SWAT!', hint: 'CLICK THE BUGS', thint: 'TAP THE BUGS', dur: 5,
+    wide: true, cmd: 'SWAT!', hint: 'CLICK THE BUGS', thint: 'TAP THE BUGS', dur: 5,
     update(dt) {
       pings.forEach(p => p.t += dt);
       if (g.result) return;
@@ -17,7 +17,7 @@ function gSwat(sp) {
         if (b.dead) continue;
         b.turn -= dt; if (b.turn < 0) { b.a += (Math.random() - .5) * 2.4; b.turn = .25 + Math.random() * .5; }
         b.x += Math.cos(b.a) * b.v * dt; b.y += Math.sin(b.a) * b.v * dt;
-        if (b.x < 50) { b.x = 50; b.a = Math.PI - b.a } if (b.x > 750) { b.x = 750; b.a = Math.PI - b.a }
+        if (b.x < 50 - OX) { b.x = 50 - OX; b.a = Math.PI - b.a } if (b.x > 750 + OX) { b.x = 750 + OX; b.a = Math.PI - b.a }
         if (b.y < 100) { b.y = 100; b.a = -b.a } if (b.y > 500) { b.y = 500; b.a = -b.a }
       }
     },
@@ -53,7 +53,7 @@ function gSwat(sp) {
       for (const p of pings) if (p.t < .3) {
         ctx.strokeStyle = '#fff'; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(p.x, p.y, 8 + p.t * 120, 0, 7); ctx.stroke();
       }
-      if (g.result === 'win') claude(W - 90, 540, 5, { mood: 'happy' });
+      if (g.result === 'win') claude(W + OX - 90, 540, 5, { mood: 'happy' });
     }
   };
   return g;
@@ -63,9 +63,9 @@ function gSwat(sp) {
 function gJump(sp) {
   const spd = 420 * sp, GY = 450;
   let py = 0, vy = 0, scroll = 0, land = 0;
-  const obs = [{ x: 860 }, { x: 860 + (500 + Math.random() * 80) * sp }];
+  const obs = [{ x: W + OX + 60 }, { x: W + OX + 60 + (500 + Math.random() * 80) * sp }];
   const g = {
-    cmd: 'JUMP!', hint: 'SPACE OR CLICK TO JUMP', thint: 'TAP TO JUMP', dur: 4.4, timeWin: true,
+    wide: true, cmd: 'JUMP!', hint: 'SPACE OR CLICK TO JUMP', thint: 'TAP TO JUMP', dur: 4.4, timeWin: true,
     jump() { if (py === 0 && !g.result) { vy = -960; sfx.boing(); sfx.whoosh(); burst(150, GY, '#c9e8a0', 6, 140); } },
     key(e) { if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') g.jump(); },
     down() { g.jump(); },
@@ -82,12 +82,14 @@ function gJump(sp) {
     },
     draw(t) {
       bg('#6EC6FF', '#5fb8f5', t);
-      for (let i = 0; i < 4; i++) { const cx = ((i * 260 - scroll * .25) % 1040 + 1040) % 1040 - 120; circ(cx, 110 + i * 25, 28, '#fff', 4); circ(cx + 34, 120 + i * 25, 22, '#fff', 4); circ(cx - 34, 124 + i * 25, 20, '#fff', 4); }
-      ctx.fillStyle = INK; ctx.fillRect(0, GY - 4, W, 160);
-      ctx.fillStyle = '#58c24a'; ctx.fillRect(0, GY, W, 26);
-      ctx.fillStyle = '#7a5230'; ctx.fillRect(0, GY + 26, W, 140);
+      const cn = Math.ceil((VW + 240) / 260), cp = cn * 260;
+      for (let i = 0; i < cn; i++) { const cx = ((i * 260 - scroll * .25) % cp + cp) % cp - 120 - OX; circ(cx, 110 + i * 25, 28, '#fff', 4); circ(cx + 34, 120 + i * 25, 22, '#fff', 4); circ(cx - 34, 124 + i * 25, 20, '#fff', 4); }
+      ctx.fillStyle = INK; ctx.fillRect(-OX, GY - 4, VW, 160);
+      ctx.fillStyle = '#58c24a'; ctx.fillRect(-OX, GY, VW, 26);
+      ctx.fillStyle = '#7a5230'; ctx.fillRect(-OX, GY + 26, VW, 140);
       ctx.fillStyle = '#6a4526';
-      for (let i = 0; i < 12; i++) ctx.fillRect(((i * 90 - scroll) % 1080 + 1080) % 1080 - 60, GY + 60 + (i % 3) * 30, 40, 10);
+      const dn = Math.ceil((VW + 120) / 90), dp = dn * 90;
+      for (let i = 0; i < dn; i++) ctx.fillRect(((i * 90 - scroll) % dp + dp) % dp - 60 - OX, GY + 60 + (i % 3) * 30, 40, 10);
       for (const o of obs) {
         for (let i = 0; i < 3; i++) { ctx.fillStyle = INK; ctx.beginPath(); ctx.moveTo(o.x - 32 + i * 22 - 4, GY - 62); ctx.lineTo(o.x - 21 + i * 22, GY - 92); ctx.lineTo(o.x - 10 + i * 22 + 4, GY - 62); ctx.fill();
           ctx.fillStyle = '#ff5a4d'; ctx.beginPath(); ctx.moveTo(o.x - 29 + i * 22, GY - 64); ctx.lineTo(o.x - 21 + i * 22, GY - 86); ctx.lineTo(o.x - 13 + i * 22, GY - 64); ctx.fill(); }
@@ -116,7 +118,7 @@ function gType(sp, forced) {
     else { shk = .25; sfx.miss(); shake(5, .15); }
   };
   const g = {
-    cmd: 'TYPE!', hint: 'TYPE THE WORD', dur: 5.5,
+    wide: true, cmd: 'TYPE!', hint: 'TYPE THE WORD', dur: 5.5,
     key(e) { if (e.key && e.key.length === 1) press(e.key.toUpperCase()); },
     down(p) {
       if (!TOUCH) return;
@@ -159,9 +161,9 @@ function gSpot(sp) {
   const base = 'hsl(15,68%,60%)', oddC = `hsl(${15 + dh},68%,60%)`;
   let pick = -1;
   const g = {
-    cmd: 'SPOT IT!', hint: 'FIND THE ODD ONE', thint: 'TAP THE ODD ONE', dur: 4.5,
+    wide: true, cmd: 'SPOT IT!', hint: 'FIND THE ODD ONE', thint: 'TAP THE ODD ONE', dur: 4.5,
     down(p) {
-      const c = p.x / cw | 0, r = (p.y - y0) / ch | 0;
+      const c = Math.floor(p.x / cw), r = Math.floor((p.y - y0) / ch);
       if (p.y < y0 || c < 0 || c >= cols || r < 0 || r >= rows) return;
       pick = r * cols + c; g.result = pick === odd ? 'win' : 'lose';
       const px = cw * c + cw / 2, py = y0 + ch * r + ch / 2;
@@ -190,7 +192,7 @@ function gSpot(sp) {
 function gMash(sp) {
   let fill = 0, bump = 0, tick = 0;
   const g = {
-    cmd: 'MASH!', hint: 'MASH SPACE OR CLICK', thint: 'TAP TAP TAP!', dur: 4.5,
+    wide: true, cmd: 'MASH!', hint: 'MASH SPACE OR CLICK', thint: 'TAP TAP TAP!', dur: 4.5,
     pump() {
       if (g.result) return;
       fill += 7.5; bump = .12; snd(220 + fill * 5, .06, 'square', .06); sfx.click(); if (fill > 70) noise(.06, .03, 2000, 4000, 'highpass');
@@ -225,19 +227,19 @@ function gMash(sp) {
 function gCatch(sp) {
   const FY = 528;
   const kinds = ['t', 't', 't', 'b', 'b'].sort(() => Math.random() - .5);
-  const items = kinds.map((k, i) => ({ k, x: 90 + Math.random() * 620, y: -40, at: .2 + i * .6 / sp, on: false }));
+  const items = kinds.map((k, i) => ({ k, x: -OX + 90 + Math.random() * (VW - 180), y: -40, at: .2 + i * .6 / sp, on: false }));
   const me = { x: W / 2, tx: W / 2 };
   let caught = 0, happy = 0, clock = 0;
   const g = {
-    cmd: 'CATCH!', hint: 'MOUSE OR ARROWS', thint: 'DRAG LEFT AND RIGHT', dur: 5.2,
+    wide: true, cmd: 'CATCH!', hint: 'MOUSE OR ARROWS', thint: 'DRAG LEFT AND RIGHT', dur: 5.2,
     move(p) { me.tx = p.x; },
     update(dt) {
       happy = Math.max(0, happy - dt);
       if (g.result) return;
       clock += dt;
-      if (keys.ArrowLeft || keys.KeyA) me.tx -= 760 * dt;
-      if (keys.ArrowRight || keys.KeyD) me.tx += 760 * dt;
-      me.tx = Math.max(60, Math.min(740, me.tx));
+      if (keys.ArrowLeft || keys.KeyA) me.tx -= 760 * VW / W * dt;
+      if (keys.ArrowRight || keys.KeyD) me.tx += 760 * VW / W * dt;
+      me.tx = Math.max(60 - OX, Math.min(740 + OX, me.tx));
       me.x += (me.tx - me.x) * Math.min(1, 18 * dt);
       for (const it of items) {
         if (!it.on && clock >= it.at) it.on = true;
@@ -254,7 +256,7 @@ function gCatch(sp) {
     },
     draw(t) {
       bg('#2A1B5C', '#34236e', t);
-      ctx.fillStyle = '#fff'; for (let i = 0; i < 24; i++) ctx.fillRect((i * 97) % W, (i * 53 + now * 30 * (1 + i % 3)) % 520, 3, 3);
+      ctx.fillStyle = '#fff'; for (let i = 0; i < (24 * VW / W | 0); i++) ctx.fillRect((i * 97) % VW - OX, (i * 53 + now * 30 * (1 + i % 3)) % 520, 3, 3);
       shadow(me.x, FY + 4, 56, 10, .3);
       for (const it of items) {
         if (!it.on || it.gone) continue;
@@ -272,7 +274,7 @@ function gCatch(sp) {
         }
       }
       claude(me.x, FY, 8, { mood: g.result === 'lose' ? 'sad' : (happy > 0 || g.result === 'win') ? 'happy' : null, run: Math.abs(me.tx - me.x) > 8 ? now : null });
-      for (let k = 0; k < 3; k++) circ(W - 100 + k * 36, 90, 12, k < caught ? '#FFC93C' : '#3d2f7a', 3);
+      for (let k = 0; k < 3; k++) circ(W + OX - 100 + k * 36, 90, 12, k < caught ? '#FFC93C' : '#3d2f7a', 3);
     }
   };
   return g;

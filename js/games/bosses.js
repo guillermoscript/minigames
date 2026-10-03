@@ -7,7 +7,7 @@ const BOSSES = {
     const max = s.bossHp || 10; let hp = max, flash = 0, hpv = max, sq = 0;
     const b = { x: 400, y: 300, a: Math.random() * 6.28, turn: 0 };
     const g = {
-      cmd: 'BOSS!', hint: 'SQUASH THE GIANT BUG', thint: 'TAP THE GIANT BUG', dur: 8, boss: true,
+      cmd: 'BOSS!', hint: 'SQUASH THE GIANT BUG', thint: 'TAP THE GIANT BUG', dur: 8, boss: true, wide: true,
       down(p) {
         if (Math.hypot(p.x - b.x, p.y - b.y) < 100) {
           hp--; flash = .12; sq = .2; confetti(p.x, p.y, 6); sfx.hit(); sfx.blip((max - hp) * 1.2); shake(5, .15);
@@ -21,7 +21,7 @@ const BOSSES = {
         const v = (130 + (max - hp) * 24) * sp;
         b.turn -= dt; if (b.turn < 0) { b.a += (Math.random() - .5) * 2.6; b.turn = .3 + Math.random() * .5; }
         b.x += Math.cos(b.a) * v * dt; b.y += Math.sin(b.a) * v * dt;
-        if (b.x < 130) { b.x = 130; b.a = Math.PI - b.a } if (b.x > 670) { b.x = 670; b.a = Math.PI - b.a }
+        if (b.x < 130 - OX) { b.x = 130 - OX; b.a = Math.PI - b.a } if (b.x > 670 + OX) { b.x = 670 + OX; b.a = Math.PI - b.a }
         if (b.y < 170) { b.y = 170; b.a = -b.a } if (b.y > 450) { b.y = 450; b.a = -b.a }
       },
       draw(t) {
@@ -46,15 +46,15 @@ const BOSSES = {
     const max = s.bossHp || 12; let hp = max, flash = 0, hpv = max, fire = 0, drop = 1;
     const me = { x: W / 2, tx: W / 2 }, bo = { x: W / 2, d: 1 }, shots = [], bombs = [];
     const g = {
-      cmd: 'BOSS!', hint: 'SLIDE + AUTO-FIRE!', thint: 'DRAG TO MOVE', dur: 10, boss: true,
+      cmd: 'BOSS!', hint: 'SLIDE + AUTO-FIRE!', thint: 'DRAG TO MOVE', dur: 10, boss: true, wide: true,
       move(p) { me.tx = p.x; },
       update(dt) {
         flash = Math.max(0, flash - dt); hpv += (hp - hpv) * Math.min(1, 6 * dt);
         if (g.result) return;
         if (keys.ArrowLeft || keys.KeyA) me.tx -= 700 * dt; if (keys.ArrowRight || keys.KeyD) me.tx += 700 * dt;
-        me.tx = Math.max(50, Math.min(750, me.tx)); me.x += (me.tx - me.x) * Math.min(1, 16 * dt);
+        me.tx = Math.max(50 - OX, Math.min(750 + OX, me.tx)); me.x += (me.tx - me.x) * Math.min(1, 16 * dt);
         bo.x += bo.d * (140 + (max - hp) * 12) * sp * dt;
-        if (bo.x < 130) { bo.x = 130; bo.d = 1; } if (bo.x > 670) { bo.x = 670; bo.d = -1; }
+        if (bo.x < 130 - OX) { bo.x = 130 - OX; bo.d = 1; } if (bo.x > 670 + OX) { bo.x = 670 + OX; bo.d = -1; }
         fire -= dt; if (fire < 0) { fire = .26; shots.push({ x: me.x, y: 470 }); sfx.blip(8); }
         drop -= dt; if (drop < 0) { drop = Math.max(.35, .8 - (max - hp) * .03) / sp; bombs.push({ x: bo.x, y: 190, vx: (Math.random() - .5) * 140 }); }
         for (let i = shots.length - 1; i >= 0; i--) {
@@ -67,7 +67,7 @@ const BOSSES = {
         for (let i = bombs.length - 1; i >= 0; i--) {
           const b = bombs[i]; b.y += (230 + (max - hp) * 8) * sp * dt; b.x += b.vx * dt;
           if (Math.hypot(b.x - me.x, b.y - 485) < 40) { g.result = 'lose'; sfx.thud(); sfx.buzz(); shake(10, .35); confetti(me.x, 485, 20); burst(me.x, 485, '#FF4D4D', 18); ring(me.x, 485, '#fff', 90); return; }
-          if (b.y > 560) bombs.splice(i, 1);
+          if (b.y > 560 || b.x < -OX - 40 || b.x > W + OX + 40) bombs.splice(i, 1);
         }
       },
       draw(t) {
@@ -97,7 +97,7 @@ const BOSSES = {
       if (v >= need) { g.result = 'win'; confetti(W / 2, 300, 50); sfx.sparkle(); shake(12, .4); ring(W / 2, 300, '#FFE14D', 220, .6); }
     };
     const g = {
-      cmd: 'BOSS!', hint: 'MASH SPACE / CLICK!', thint: 'TAP FAST!', dur: 8, boss: true,
+      cmd: 'BOSS!', hint: 'MASH SPACE / CLICK!', thint: 'TAP FAST!', dur: 8, boss: true, wide: true,
       key(e) { if (e.code === 'Space' || e.code === 'Enter') hit(); },
       down() { hit(); },
       update(dt) {
@@ -128,7 +128,7 @@ const BOSSES = {
       if (pos <= -1) { g.result = 'win'; confetti(W / 2, 300, 50); sfx.sparkle(); shake(12, .4); }
     };
     const g = {
-      cmd: 'BOSS!', hint: 'ALTERNATE A / D!', thint: 'TAP LEFT + RIGHT', dur: 9, boss: true,
+      cmd: 'BOSS!', hint: 'ALTERNATE A / D!', thint: 'TAP LEFT + RIGHT', dur: 9, boss: true, wide: true,
       key(e) { if (e.code === 'KeyA' || e.code === 'ArrowLeft') pull(-1); else if (e.code === 'KeyD' || e.code === 'ArrowRight') pull(1); },
       down(p) { pull(p.x < W / 2 ? -1 : 1); },
       update(dt) {
@@ -163,7 +163,7 @@ const BOSSES = {
       if (hits >= need) { g.result = 'win'; confetti(W / 2, 300, 50); sfx.sparkle(); shake(10, .3); }
     };
     const g = {
-      cmd: 'BOSS!', hint: 'HIT SPACE ON THE BEAT!', thint: 'TAP ON THE BEAT', dur: 11, boss: true,
+      cmd: 'BOSS!', hint: 'HIT SPACE ON THE BEAT!', thint: 'TAP ON THE BEAT', dur: 11, boss: true, wide: true,
       key(e) { if (e.code === 'Space' || e.code === 'Enter') hit(); },
       down() { hit(); },
       update(dt) {
@@ -187,13 +187,13 @@ const BOSSES = {
   catch(sp, s) {
     const need = 10; let got = 0, spawn = .3; const me = { x: W / 2, tx: W / 2 }, it = [];
     const g = {
-      cmd: 'BOSS!', hint: 'CATCH COINS, AVOID BOMBS!', thint: 'DRAG TO MOVE', dur: 11, boss: true,
+      cmd: 'BOSS!', hint: 'CATCH COINS, AVOID BOMBS!', thint: 'DRAG TO MOVE', dur: 11, boss: true, wide: true,
       move(p) { me.tx = p.x; },
       update(dt) {
         if (g.result) return;
         if (keys.ArrowLeft || keys.KeyA) me.tx -= 700 * dt; if (keys.ArrowRight || keys.KeyD) me.tx += 700 * dt;
-        me.tx = Math.max(60, Math.min(740, me.tx)); me.x += (me.tx - me.x) * Math.min(1, 16 * dt);
-        spawn -= dt; if (spawn < 0) { spawn = .5 / sp; it.push({ x: 60 + Math.random() * 680, y: 60, bomb: Math.random() < .3 }); }
+        me.tx = Math.max(60 - OX, Math.min(740 + OX, me.tx)); me.x += (me.tx - me.x) * Math.min(1, 16 * dt);
+        spawn -= dt; if (spawn < 0) { spawn = .5 / sp / Math.sqrt(VW / W); it.push({ x: 60 - OX + Math.random() * (680 + 2 * OX), y: 60, bomb: Math.random() < .3 }); }
         for (let i = it.length - 1; i >= 0; i--) {
           const o = it[i]; o.y += 280 * sp * dt;
           if (Math.abs(o.x - me.x) < 55 && Math.abs(o.y - 490) < 28) {
@@ -234,11 +234,11 @@ const BOSSES = {
       }
     };
     const g = {
-      cmd: 'BOSS!', hint: 'SLASH BUGS, SKIP BOMBS!', thint: 'SWIPE THE BUGS', dur: 10, boss: true,
+      cmd: 'BOSS!', hint: 'SLASH BUGS, SKIP BOMBS!', thint: 'SWIPE THE BUGS', dur: 10, boss: true, wide: true,
       move(p) { if (pressing) cut(p); }, down(p) { cut(p); },
       update(dt) {
         if (g.result) return;
-        spawn -= dt; if (spawn < 0) { spawn = .5 / sp; const x = 80 + Math.random() * 640; it.push({ x, y: 560, vx: (400 - x) * .25 + (Math.random() - .5) * 80, vy: -(520 + Math.random() * 120) * Math.sqrt(sp), bomb: Math.random() < .25 }); }
+        spawn -= dt; if (spawn < 0) { spawn = .5 / sp / Math.sqrt(VW / W); const x = 80 - OX + Math.random() * (640 + 2 * OX); it.push({ x, y: 560, vx: (W / 2 - x) * .25 + (Math.random() - .5) * 80, vy: -(520 + Math.random() * 120) * Math.sqrt(sp), bomb: Math.random() < .25 }); }
         for (let i = it.length - 1; i >= 0; i--) { const o = it[i]; o.vy += 700 * dt; o.x += o.vx * dt; o.y += o.vy * dt; if (o.y > 600 && o.vy > 0) it.splice(i, 1); }
       },
       draw(t) {
@@ -255,23 +255,24 @@ const BOSSES = {
     const k = Math.min(sp, 1.15), me = { y: 0, vy: 0 }, ob = []; let spawn = 1, dist = 0, buf = 0; const goal = 8;
     const jump = () => { if (g.result) return; if (me.y === 0) { me.vy = 900; sfx.blip(6); } else buf = .18; };
     const g = {
-      cmd: 'BOSS!', hint: 'SPACE TO JUMP!', thint: 'TAP TO JUMP', dur: 10, boss: true, timeWin: true,
+      cmd: 'BOSS!', hint: 'SPACE TO JUMP!', thint: 'TAP TO JUMP', dur: 10, boss: true, wide: true, timeWin: true,
       key(e) { if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') jump(); }, down() { jump(); },
       update(dt) {
         if (g.result) return;
         buf = Math.max(0, buf - dt);
         me.vy -= 2300 * dt; me.y = Math.max(0, me.y + me.vy * dt); if (me.y === 0) { me.vy = 0; if (buf > 0) { buf = 0; me.vy = 900; sfx.blip(6); } }
-        spawn -= dt; if (spawn < 0) { spawn = (1.1 + Math.random() * .5) / k; ob.push({ x: 860, w: 30 + Math.random() * 14, h: 38 + Math.random() * 18 }); }
+        spawn -= dt; if (spawn < 0) { spawn = (1.1 + Math.random() * .5) / k; ob.push({ x: W + OX + 60, w: 30 + Math.random() * 14, h: 38 + Math.random() * 18 }); }
         for (let i = ob.length - 1; i >= 0; i--) {
           const o = ob[i]; o.x -= 380 * k * dt;
           if (o.x < 160 + 14 && o.x + o.w > 160 - 14 && me.y < o.h - 14) { g.result = 'lose'; sfx.thud(); sfx.buzz(); shake(10, .35); burst(160, 440 - me.y, '#FF4D4D', 18); return; }
-          if (o.x + o.w < 100) { ob.splice(i, 1); dist++; sfx.blip(dist); if (dist >= goal) { g.result = 'win'; confetti(W / 2, 300, 50); sfx.sparkle(); shake(10, .3); return; } }
+          if (o.x + o.w < -OX - 20) { ob.splice(i, 1); continue; }
+          if (!o.done && o.x + o.w < 100) { o.done = true; dist++; sfx.blip(dist); if (dist >= goal) { g.result = 'win'; confetti(W / 2, 300, 50); sfx.sparkle(); shake(10, .3); return; } }
         }
       },
       draw(t) {
         bg('#4d3a14', '#634a19', t);
         txt(window.t('BARRIERS {dist} / {goal}', { dist, goal }), W / 2, 100, 30, '#FFE14D');
-        ctx.fillStyle = INK; ctx.fillRect(0, 450, W, 150); ctx.fillStyle = '#7d5a22'; ctx.fillRect(0, 456, W, 144);
+        ctx.fillStyle = INK; ctx.fillRect(-OX, 450, VW, 150); ctx.fillStyle = '#7d5a22'; ctx.fillRect(-OX, 456, VW, 144);
         for (const o of ob) { ctx.fillStyle = '#ff4d4d'; ctx.strokeStyle = INK; ctx.lineWidth = 4; ctx.fillRect(o.x, 450 - o.h, o.w, o.h); ctx.strokeRect(o.x, 450 - o.h, o.w, o.h); }
         shadow(160, 456, 28 - me.y / 20, 7); claude(160, 440 - me.y, 2.8, { mood: g.result === 'lose' ? 'sad' : g.result === 'win' ? 'happy' : null, run: g.result || me.y > 0 ? null : now * 2 });
         vignette(.3);
@@ -284,7 +285,7 @@ const BOSSES = {
     const need = 12; let got = 0, esc = 0, spawn = .4; const ms = [];
     const cell = i => ({ x: 210 + (i % 3) * 190, y: 230 + (i / 3 | 0) * 120 });
     const g = {
-      cmd: 'BOSS!', hint: 'WHACK THE MOLES!', thint: 'TAP THE MOLES', dur: 10, boss: true,
+      cmd: 'BOSS!', hint: 'WHACK THE MOLES!', thint: 'TAP THE MOLES', dur: 10, boss: true, wide: true,
       down(p) {
         if (g.result) return;
         for (const m of ms) { const c = cell(m.i); if (!m.hit && Math.hypot(p.x - c.x, p.y - c.y) < 62) {
@@ -317,7 +318,7 @@ const BOSSES = {
       sfx.blip(d * 3 + 2); if (++idx >= len) { g.result = 'win'; confetti(W / 2, 300, 50); sfx.sparkle(); shake(10, .3); }
     };
     const g = {
-      cmd: 'BOSS!', hint: 'REMEMBER, THEN REPEAT!', thint: 'TAP THE PADS', dur: 11, boss: true,
+      cmd: 'BOSS!', hint: 'REMEMBER, THEN REPEAT!', thint: 'TAP THE PADS', dur: 11, boss: true, wide: true,
       key(e) { let d = names.indexOf(e.code); if (d < 0) d = alt.indexOf(e.code); if (d >= 0) press(d); },
       down(p) { const dx = p.x - W / 2, dy = p.y - 330; if (Math.hypot(dx, dy) < 40) return; press(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : 3) : (dy > 0 ? 2 : 0)); },
       update(dt) {
@@ -347,7 +348,7 @@ const BOSSES = {
       } else { g.result = 'lose'; sfx.buzz(); shake(8, .3); fb = 'MISSED'; fbT = 1; }
     };
     const g = {
-      cmd: 'BOSS!', hint: 'STOP IT IN THE GREEN (x3)!', thint: 'TAP TO STOP', dur: 9, boss: true,
+      cmd: 'BOSS!', hint: 'STOP IT IN THE GREEN (x3)!', thint: 'TAP TO STOP', dur: 9, boss: true, wide: true,
       key(e) { if (e.code === 'Space' || e.code === 'Enter') stop(); }, down() { stop(); },
       update(dt) {
         fbT = Math.max(0, fbT - dt); if (g.result) return; if (pause > 0) { pause -= dt; return; }

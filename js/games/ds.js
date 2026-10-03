@@ -29,7 +29,7 @@ function dsRamp(sp) {
   ];
   const release = () => { if (!ball.on) { ball.on = true; sfx.whoosh(false); sfx.click(); } };
   const g = {
-    cmd: 'DRAW!', hint: 'DRAG TO DRAW A RAMP FOR THE BALL', thint: 'DRAW A RAMP WITH YOUR FINGER', dur: 4.8,
+    wide: true, cmd: 'DRAW!', hint: 'DRAG TO DRAW A RAMP FOR THE BALL', thint: 'DRAW A RAMP WITH YOUR FINGER', dur: 4.8,
     down(p) { if (used >= INKMAX || g.result) return; cur = { pts: [{ x: p.x, y: p.y }] }; strokes.push(cur); drawing = true; },
     move(p) {
       if (!drawing || !cur || g.result) return;
@@ -66,12 +66,12 @@ function dsRamp(sp) {
         ball.vx *= 1 - .15 * h;
       }
       if (Math.abs(ball.x - cupX) < 42 && ball.y > cupY + 14 && ball.y < cupY + 70) { g.result = 'win'; sfx.splat(); sfx.coin(); dsWin(cupX, cupY, 36); }
-      else if (ball.y > H + 40 || ball.x < -40 || ball.x > W + 40) { g.result = 'lose'; dsLose(Math.max(30, Math.min(W - 30, ball.x)), Math.min(H - 30, ball.y)); }
+      else if (ball.y > H + 40 || ball.x < -OX - 40 || ball.x > W + OX + 40) { g.result = 'lose'; dsLose(Math.max(30 - OX, Math.min(W + OX - 30, ball.x)), Math.min(H - 30, ball.y)); }
     },
     draw(t) {
-      ctx.fillStyle = '#fbfaf0'; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = '#fbfaf0'; ctx.fillRect(-OX, 0, VW, H);
       ctx.strokeStyle = '#a9d4f5'; ctx.lineWidth = 2;
-      for (let y = 40; y < H; y += 32) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+      for (let y = 40; y < H; y += 32) { ctx.beginPath(); ctx.moveTo(-OX, y); ctx.lineTo(W + OX, y); ctx.stroke(); }
       ctx.strokeStyle = '#ff9aa8'; ctx.beginPath(); ctx.moveTo(60, 0); ctx.lineTo(60, H); ctx.stroke();
       shadow(cupX, cupY + 78, 56, 8, .22);
       box3(380, 430, 90, 190, '#9a6a3c', 5, 6);
@@ -106,7 +106,7 @@ function dsRamp(sp) {
 /* ── 2 ── MIDNIGHT WEIRDO: find the creep with the flashlight */
 function dsCreep(sp) {
   const R = TOUCH ? 110 : 95, kinds = shuffle(['creep', 'cat', 'mailbox', 'trash', 'bush']);
-  const cells = shuffle([[150, 250], [400, 230], [650, 260], [220, 440], [440, 450], [660, 440]]).slice(0, 5);
+  const cells = shuffle([[150, 250], [400, 230], [650, 260], [220, 440], [440, 450], [660, 440]]).slice(0, 5).map(c => [W / 2 + (c[0] - W / 2) * VW / W, c[1]]);
   const figs = kinds.map((kd, i) => ({ kind: kd, x: cells[i][0] + dsRnd(-35, 35), y: cells[i][1] + dsRnd(-25, 25), ph: Math.random() * 6 }));
   const eyeY = { creep: -104, cat: -34, trash: -38, bush: -30 };
   const drawFig = f => {
@@ -141,7 +141,7 @@ function dsCreep(sp) {
   };
   let lx = 0, ly = 0;
   const g = {
-    cmd: 'LOOK!', hint: 'FIND THE CREEP: LIGHT IT, CLICK IT', thint: 'FIND THE CREEP: TAP IT', dur: 5.5,
+    wide: true, cmd: 'LOOK!', hint: 'FIND THE CREEP: LIGHT IT, CLICK IT', thint: 'FIND THE CREEP: TAP IT', dur: 5.5,
     down(p) {
       if (g.result) return;
       if (Math.hypot(p.x - mouse.x, p.y - mouse.y) > R + 20) return;
@@ -154,11 +154,11 @@ function dsCreep(sp) {
     },
     update() { if (!g.result && Math.hypot(mouse.x - lx, mouse.y - ly) > 60) { lx = mouse.x; ly = mouse.y; for (const f of figs) if (Math.hypot(mouse.x - f.x, mouse.y - (f.y - 45)) < 55) { sfx.blip(f.kind === 'creep' ? 7 : 0); } } },
     draw(t) {
-      ctx.fillStyle = '#2a3b63'; ctx.fillRect(0, 0, W, H);
-      ctx.fillStyle = '#1f2c4b'; ctx.fillRect(0, 190, W, 410);
-      ctx.fillStyle = '#fff'; for (let i = 0; i < 24; i++) ctx.fillRect((i * 97) % W, (i * 53) % 150 + 20, 3, 3);
-      circ(690, 90, 34, '#FFF3B0', 4);
-      ctx.fillStyle = INK; for (let x = 0; x < W; x += 40) ctx.fillRect(x, 215, 8, 70); ctx.fillRect(0, 232, W, 7);
+      ctx.fillStyle = '#2a3b63'; ctx.fillRect(-OX, 0, VW, H);
+      ctx.fillStyle = '#1f2c4b'; ctx.fillRect(-OX, 190, VW, 410);
+      ctx.fillStyle = '#fff'; for (let i = 0; i < 24 * VW / W; i++) ctx.fillRect((i * 97) % VW - OX, (i * 53) % 150 + 20, 3, 3);
+      circ(W + OX - 110, 90, 34, '#FFF3B0', 4);
+      ctx.fillStyle = INK; for (let x = -Math.ceil(OX / 40) * 40; x < W + OX; x += 40) ctx.fillRect(x, 215, 8, 70); ctx.fillRect(-OX, 232, VW, 7);
       const order = figs.slice().sort((a, b) => a.y - b.y);
       for (const f of order) { shadow(f.x, f.y + 3, f.kind === 'bush' ? 50 : 36, 8, .3); drawFig(f); }
       if (g.result && g.hit) {
@@ -167,7 +167,7 @@ function dsCreep(sp) {
       // darkness with a soft spotlight
       const mx = mouse.x, my = mouse.y;
       if (!g.result) {
-        ctx.fillStyle = 'rgba(6,5,18,.97)'; ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.arc(mx, my, R, 0, Math.PI * 2, true); ctx.fill('evenodd');
+        ctx.fillStyle = 'rgba(6,5,18,.97)'; ctx.beginPath(); ctx.rect(-OX, 0, VW, H); ctx.arc(mx, my, R, 0, Math.PI * 2, true); ctx.fill('evenodd');
         const gr = ctx.createRadialGradient(mx, my, R * .55, mx, my, R); gr.addColorStop(0, 'rgba(6,5,18,0)'); gr.addColorStop(1, 'rgba(6,5,18,.97)');
         ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(mx, my, R + .5, 0, Math.PI * 2); ctx.fill();
         for (const f of figs) {
@@ -205,7 +205,7 @@ function dsFuse(sp) {
     else { g.result = 'lose'; sfx.stamp(); sfx.buzz(); dsLose(400, 190); shake(16, .5); }
   };
   const g = {
-    cmd: 'CUT!', hint: 'CUT THE WIRE THE WORD SAYS: CLICK OR 1 2 3', thint: 'TAP THE WIRE THE WORD SAYS', dur: 4.6,
+    wide: true, cmd: 'CUT!', hint: 'CUT THE WIRE THE WORD SAYS: CLICK OR 1 2 3', thint: 'TAP THE WIRE THE WORD SAYS', dur: 4.6,
     down(p) {
       if (g.result) return;
       let best = null, bd = 22;
@@ -255,15 +255,15 @@ function dsFuse(sp) {
 
 /* ── 4 ── IN THE LOOP: lasso the buttons, dodge the decoys */
 function dsLoop(sp) {
-  const C = { x: dsRnd(300, 500), y: dsRnd(260, 380) }, tg = [], dc = [];
+  const C = { x: dsRnd(300 - OX / 2, 500 + OX / 2), y: dsRnd(260, 380) }, tg = [], dc = [];
   const far = (a, r) => tg.concat(dc).every(o => Math.hypot(o.x - a.x, o.y - a.y) > r);
   const nT = sp > 1.5 ? 4 : 3, nD = 3, cols = ['#ff4d4d', '#4DB8FF', '#FFE14D', '#5CFF7A', '#FF4D9E'];
   for (let i = 0; i < nT; i++) { let p, n = 0; do { const a = Math.random() * 6.28, r = Math.random() * 100; p = { x: C.x + Math.cos(a) * r, y: C.y + Math.sin(a) * r, col: cols[i] }; } while (!far(p, 78) && ++n < 60); tg.push(p); }
   for (let i = 0; i < nD; i++) {
     let p, n = 0;
     do { const a = Math.random() * 6.28, r = dsRnd(230, 290); p = { x: C.x + Math.cos(a) * r, y: C.y + Math.sin(a) * r * .8 }; n++; }
-    while ((p.x < 60 || p.x > 740 || p.y < 130 || p.y > 550 || !far(p, 90)) && n < 80);
-    if (p.x < 60 || p.x > 740 || p.y < 120 || p.y > 560) { p.x = Math.max(60, Math.min(740, p.x)); p.y = Math.max(125, Math.min(555, p.y)); }
+    while ((p.x < 60 - OX || p.x > 740 + OX || p.y < 130 || p.y > 550 || !far(p, 90)) && n < 80);
+    if (p.x < 60 - OX || p.x > 740 + OX || p.y < 120 || p.y > 560) { p.x = Math.max(60 - OX, Math.min(740 + OX, p.x)); p.y = Math.max(125, Math.min(555, p.y)); }
     dc.push(p);
   }
   let pts = [], pr = false, flash = 0, msg = '';
@@ -272,7 +272,7 @@ function dsLoop(sp) {
     ctx.fillStyle = INK; for (const o of [[-6, -6], [6, -6], [-6, 6], [6, 6]]) ctx.fillRect(x + o[0] - 2, y + o[1] - 2, 4, 4);
   };
   const g = {
-    cmd: 'LOOP!', hint: 'CIRCLE ALL THE COLOURED BUTTONS', thint: 'DRAW A LOOP AROUND THE COLOURED BUTTONS', dur: 5.8,
+    wide: true, cmd: 'LOOP!', hint: 'CIRCLE ALL THE COLOURED BUTTONS', thint: 'DRAW A LOOP AROUND THE COLOURED BUTTONS', dur: 5.8,
     down(p) { if (g.result) return; pr = true; pts = [{ x: p.x, y: p.y, t: now }]; sfx.click(); },
     move(p) { if (!pr || g.result) return; const l = pts[pts.length - 1]; if (Math.hypot(p.x - l.x, p.y - l.y) > 6) { pts.push({ x: p.x, y: p.y, t: now }); if (pts.length % 6 === 0) sfx.tick(); } },
     up() {
@@ -286,8 +286,8 @@ function dsLoop(sp) {
     },
     update(dt) { flash = Math.max(0, flash - dt); },
     draw(t) {
-      ctx.fillStyle = '#2f6b4a'; ctx.fillRect(0, 0, W, H);
-      ctx.fillStyle = '#2a6143'; for (let i = 0; i < 40; i++) ctx.fillRect((i * 131) % W, (i * 71) % H, 60, 3);
+      ctx.fillStyle = '#2f6b4a'; ctx.fillRect(-OX, 0, VW, H);
+      ctx.fillStyle = '#2a6143'; for (let i = 0; i < 40 * VW / W; i++) ctx.fillRect((i * 131) % VW - OX, (i * 71) % H, 60, 3);
       for (const o of dc) button(o.x, o.y, '#9a9aa5');
       for (const o of tg) button(o.x, o.y, o.col);
       const live = pts.filter(q => now - q.t < 1.1 || pr && q === pts[pts.length - 1]);
@@ -307,15 +307,15 @@ function dsLoop(sp) {
 
 /* ── 5 ── CAGE MATCH: cut the rope when the pig is under the cage */
 function dsCage(sp) {
-  const k = Math.sqrt(sp), GY = 490, cx0 = dsRnd(290, 510), CW = 180, CH = 140;
-  let px = dsRnd(130, 670), dir = Math.random() < .5 ? -1 : 1, cy = 100, vy = 0, cut = false, landed = false, clang = 0, esc = 0;
+  const k = Math.sqrt(sp), GY = 490, cx0 = dsRnd(290, 510), PS = 230 * (1 + (VW / W - 1) * .6), CW = 180, CH = 140;
+  let px = dsRnd(130 - OX, 670 + OX), dir = Math.random() < .5 ? -1 : 1, cy = 100, vy = 0, cut = false, landed = false, clang = 0, esc = 0;
   const g = {
-    cmd: 'CUT!', hint: 'CLICK TO CUT THE ROPE WHEN IT IS UNDER', thint: 'TAP TO CUT THE ROPE', dur: 4.6,
+    wide: true, cmd: 'CUT!', hint: 'CLICK TO CUT THE ROPE WHEN IT IS UNDER', thint: 'TAP TO CUT THE ROPE', dur: 4.6,
     down() { if (cut || g.result) return; cut = true; sfx.click(); sfx.whoosh(false); },
     key(e) { if (e.code === 'Space' || e.code === 'Enter') g.down(); },
     update(dt) {
       const gt = dt * k;
-      if (!g.result || !landed) { px += dir * 230 * gt; if (px < 110) { px = 110; dir = 1; } if (px > 690) { px = 690; dir = -1; } }
+      if (!g.result || !landed) { px += dir * PS * gt; if (px < 110 - OX) { px = 110 - OX; dir = 1; } if (px > 690 + OX) { px = 690 + OX; dir = -1; } }
       if (g.result && !(g.result === 'win')) { esc += dt; }
       if (cut && !landed) {
         vy += 2600 * gt; cy += vy * gt;
@@ -330,8 +330,8 @@ function dsCage(sp) {
     },
     draw(t) {
       bg('#FFD59E', '#ffc98a', t);
-      ctx.fillStyle = INK; ctx.fillRect(0, GY - 4, W, 120); ctx.fillStyle = '#7fcf5a'; ctx.fillRect(0, GY, W, 120);
-      box3(60, 60, 680, 26, '#7a5230', 5, 6);
+      ctx.fillStyle = INK; ctx.fillRect(-OX, GY - 4, VW, 120); ctx.fillStyle = '#7fcf5a'; ctx.fillRect(-OX, GY, VW, 120);
+      box3(60 - OX, 60, 680 + OX * 2, 26, '#7a5230', 5, 6);
       shadow(px, GY + 4, 46, 8, .3);
       if (!cut) shadow(cx0, GY + 4, CW / 2, 8, .12);
       // rope
@@ -377,7 +377,7 @@ function dsFan(sp) {
   const ch = { x: Math.max(110, Math.min(690, padX + side * dsRnd(130, 230) * -1)), y: 130, vx: dsRnd(-25, 25), vy: 0 };
   let px = mouse.x, py = mouse.y, spd = 0, spin = 0, wt = 0; const clouds = [[120, 130], [520, 100], [680, 220], [300, 260]];
   const g = {
-    cmd: 'BLOW!', hint: 'WAVE THE MOUSE TO FAN HIM ONTO THE PAD', thint: 'WAVE YOUR FINGER TO FAN HIM ONTO THE PAD', dur: 4.8,
+    wide: true, cmd: 'BLOW!', hint: 'WAVE THE MOUSE TO FAN HIM ONTO THE PAD', thint: 'WAVE YOUR FINGER TO FAN HIM ONTO THE PAD', dur: 4.8,
     update(dt) {
       if (g.result) { return; }
       const gt = dt * k, mx = mouse.x, my = mouse.y;
@@ -391,7 +391,7 @@ function dsFan(sp) {
       ch.vy += 420 * gt; ch.vy = Math.min(ch.vy, 100); ch.vy = Math.max(ch.vy, -120);
       ch.x += ch.vx * gt; ch.y += ch.vy * gt; spin += (ch.vx / 700 - spin) * Math.min(1, 6 * dt);
       if (spd > 900 && d < R && (wt -= dt) < 0) { wt = .12; sfx.whoosh(); burst(mx + (ch.x - mx) * .5, my + (cy - my) * .5, '#fff', 2, 120); }
-      if (ch.x < 10 || ch.x > W - 10) { g.result = 'lose'; dsLose(Math.max(40, Math.min(W - 40, ch.x)), ch.y - 40); }
+      if (ch.x < 10 - OX || ch.x > W + OX - 10) { g.result = 'lose'; dsLose(Math.max(40 - OX, Math.min(W + OX - 40, ch.x)), ch.y - 40); }
       else if (ch.y >= GY) {
         ch.y = GY;
         sfx.thud(); shake(8, .25); if (Math.abs(ch.x - padX) < 66) { g.result = 'win'; sfx.coin(); dsWin(ch.x, GY - 40); } else { g.result = 'lose'; dsLose(ch.x, GY - 20); }
@@ -399,8 +399,8 @@ function dsFan(sp) {
     },
     draw(t) {
       bg('#9BDDFF', '#8ed2f7', t);
-      for (const c of clouds) { const x = (c[0] + t * 12) % 900 - 50; circ(x, c[1], 30, '#fff', 4); circ(x + 34, c[1] + 8, 24, '#fff', 4); circ(x - 32, c[1] + 10, 22, '#fff', 4); circ(x, c[1] + 12, 26, '#fff', 0); }
-      ctx.fillStyle = INK; ctx.fillRect(0, GY + 6, W, 120); ctx.fillStyle = '#58c24a'; ctx.fillRect(0, GY + 10, W, 120);
+      for (const c of clouds) { const x = (c[0] + OX + t * 12) % (VW + 100) - 50 - OX; circ(x, c[1], 30, '#fff', 4); circ(x + 34, c[1] + 8, 24, '#fff', 4); circ(x - 32, c[1] + 10, 22, '#fff', 4); circ(x, c[1] + 12, 26, '#fff', 0); }
+      ctx.fillStyle = INK; ctx.fillRect(-OX, GY + 6, VW, 120); ctx.fillStyle = '#58c24a'; ctx.fillRect(-OX, GY + 10, VW, 120);
       box3(padX - 70, GY + 4, 140, 10, '#FFE14D', 3, 4);
       shadow(ch.x, GY + 8, 40 * Math.max(.3, 1 - (GY - ch.y) / 450), 9, .25);
       ctx.strokeStyle = '#ff4d4d'; ctx.lineWidth = 9; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(padX - 28, GY + 40); ctx.lineTo(padX + 28, GY + 80); ctx.moveTo(padX + 28, GY + 40); ctx.lineTo(padX - 28, GY + 80); ctx.stroke(); ctx.lineCap = 'butt';
@@ -433,7 +433,7 @@ function dsPose(sp) {
     { h: [[-32, 105], [32, 105]], f: [[-80, 465], [80, 465]] },
     { h: [[-125, 260], [105, 150]], f: [[-95, 455], [95, 395]] }
   ];
-  const T = POSES[Math.random() * POSES.length | 0], TX = 200, MX = 600, TOL = TOL_();
+  const T = POSES[Math.random() * POSES.length | 0], TX = 200 - OX / 2, MX = 600 + OX / 2, TOL = TOL_();
   function TOL_() { return sp > 1.5 ? 36 : 44; }
   const me = { h: [[-45, 360], [45, 360]], f: [[-30, 465], [30, 465]] };
   const handles = [{ a: me.h[0], sh: [-28, 198], max: 175 }, { a: me.h[1], sh: [28, 198], max: 175 }, { a: me.f[0], sh: [-22, 335], max: 150 }, { a: me.f[1], sh: [22, 335], max: 150 }];
@@ -456,7 +456,7 @@ function dsPose(sp) {
     for (let i = -2; i <= 2; i++) { ctx.beginPath(); ctx.moveTo(cx + i * 7, 164); ctx.lineTo(cx + i * 7, 172); ctx.stroke(); }
   };
   const g = {
-    cmd: 'POSE!', hint: 'DRAG HANDS AND FEET TO COPY THE POSE', thint: 'DRAG HANDS AND FEET TO COPY THE POSE', dur: 5.8,
+    wide: true, cmd: 'POSE!', hint: 'DRAG HANDS AND FEET TO COPY THE POSE', thint: 'DRAG HANDS AND FEET TO COPY THE POSE', dur: 5.8,
     down(p) {
       if (g.result) return; let bi = -1, bd = 52;
       handles.forEach((h, i) => { const d = Math.hypot(p.x - (MX + h.a[0]), p.y - h.a[1]); if (d < bd) { bd = d; bi = i; } });
@@ -477,7 +477,7 @@ function dsPose(sp) {
     },
     draw(t) {
       bg('#C9B8FF', '#bba8f8', t);
-      ctx.fillStyle = INK; ctx.fillRect(40, 474, 320, 8); ctx.fillRect(440, 474, 320, 8);
+      ctx.fillStyle = INK; ctx.fillRect(40 - OX, 474, 320 + OX, 8); ctx.fillRect(440, 474, 320 + OX, 8);
       shadow(TX, 482, 110, 10, .2); shadow(MX, 482, 110, 10, .2);
       txt('COPY THIS', TX, 100, 26, '#fff'); txt('YOU', MX, 100, 26, '#fff');
       skel(TX, T.h, T.f);
@@ -501,7 +501,7 @@ function dsSink(sp) {
   const by = x => BY + s * prof(x);
   const start = () => { hold = true; }, stop = () => { hold = false; };
   const g = {
-    cmd: 'HOLD!', hint: 'HOLD CLICK OR SPACE TO LIFT THE ROAD', thint: 'HOLD TO LIFT THE ROAD', dur: 5.2,
+    wide: true, cmd: 'HOLD!', hint: 'HOLD CLICK OR SPACE TO LIFT THE ROAD', thint: 'HOLD TO LIFT THE ROAD', dur: 5.2,
     down: start, up: stop, key(e) { if (e.code === 'Space') start(); }, keyup(e) { if (e.code === 'Space') stop(); },
     update(dt) {
       if (g.result) { if (g.result === 'lose') fall += dt * 500; return; }
@@ -522,10 +522,10 @@ function dsSink(sp) {
     draw(t) {
       bg('#FFD1A3', '#ffc593', t);
       // lava
-      ctx.fillStyle = INK; ctx.fillRect(0, 500, W, 110); ctx.fillStyle = '#ff6a2f'; ctx.fillRect(0, 508, W, 100);
-      ctx.fillStyle = '#ffd23f'; for (let i = 0; i < 8; i++) { const x = (i * 113 + t * 30) % W; ctx.fillRect(x, 520 + Math.sin(t * 3 + i) * 8, 40, 8); }
-      box3(-10, 330, 160, 280, '#9a6a3c', 5, 5); box3(650, 330, 160, 280, '#9a6a3c', 5, 5);
-      ctx.fillStyle = '#58c24a'; ctx.fillRect(-10, 322, 160, 12); ctx.fillRect(650, 322, 160, 12);
+      ctx.fillStyle = INK; ctx.fillRect(-OX, 500, VW, 110); ctx.fillStyle = '#ff6a2f'; ctx.fillRect(-OX, 508, VW, 100);
+      ctx.fillStyle = '#ffd23f'; for (let i = 0; i < 8 * VW / W; i++) { const x = (i * 113 + t * 30) % VW - OX; ctx.fillRect(x, 520 + Math.sin(t * 3 + i) * 8, 40, 8); }
+      box3(-10 - OX, 330, 160 + OX, 280, '#9a6a3c', 5, 5); box3(650, 330, 160 + OX, 280, '#9a6a3c', 5, 5);
+      ctx.fillStyle = '#58c24a'; ctx.fillRect(-10 - OX, 322, 160 + OX, 12); ctx.fillRect(650, 322, 160 + OX, 12);
       // bridge
       const pts = []; for (let x = X0; x <= X1; x += 10) pts.push([x, by(x) - 8]);
       ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = INK; ctx.lineWidth = 24; ctx.beginPath(); pts.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.stroke();
@@ -605,7 +605,7 @@ function dsScratch(sp) {
     if (pos.every((p, i) => !(syms[i] === lucky) || done[i])) { g.result = 'win'; dsWin(400, 300, 40); }
   };
   const g = {
-    cmd: 'SCRATCH!', hint: 'SCRATCH FOR BOTH LUCKY SYMBOLS', thint: 'SCRATCH FOR BOTH LUCKY SYMBOLS', dur: 5.8,
+    wide: true, cmd: 'SCRATCH!', hint: 'SCRATCH FOR BOTH LUCKY SYMBOLS', thint: 'SCRATCH FOR BOTH LUCKY SYMBOLS', dur: 5.8,
     down(p) { if (g.result) return; pr = true; lp = { x: p.x, y: p.y }; scratch(lp, lp); },
     move(p) { if (!pr || g.result) return; scratch(lp, p); lp = { x: p.x, y: p.y }; if (Math.random() < .25) noise(.05, .025, 3000 + Math.random() * 2000, 6000, 'bandpass'); if (Math.random() < .3) burst(p.x, p.y, '#dfe4ea', 1, 110); },
     up() { pr = false; },
@@ -662,7 +662,7 @@ function dsFaces(sp) {
   };
   const rowAt = p => { for (let r = 0; r < 3; r++) if (p.x > 460 && p.x < 460 + RW && p.y > SY + r * RH && p.y < SY + (r + 1) * RH) return r; return -1; };
   const g = {
-    cmd: 'MATCH!', hint: 'CLICK EACH ROW TO CHANGE IT (OR 1 2 3)', thint: 'TAP EACH ROW TO CHANGE IT', dur: 5.5,
+    wide: true, cmd: 'MATCH!', hint: 'CLICK EACH ROW TO CHANGE IT (OR 1 2 3)', thint: 'TAP EACH ROW TO CHANGE IT', dur: 5.5,
     down(p) { if (g.result) return; const r = rowAt(p); press = r >= 0 ? { r, y: p.y } : null; },
     up(p) { if (!press) return; const dy = p.y - press.y; cyc(press.r, Math.abs(dy) > 30 ? (dy < 0 ? 1 : -1) : 1); press = null; },
     key(e) { const m = /^Digit([123])$/.exec(e.code || ''); if (m) cyc(+m[1] - 1, 1); },
@@ -704,7 +704,7 @@ function dsTune(sp) {
   const SX = 130, SW = 540; let pr = false, hold = 0, beep = 0;
   const clarity = () => Math.pow(Math.max(0, 1 - Math.abs(d - spot) / .3), 2);
   const g = {
-    cmd: 'TUNE!', hint: 'DRAG THE DIAL (OR ← →) TILL IT IS CLEAR', thint: 'DRAG THE DIAL TILL IT IS CLEAR', dur: 5.4,
+    wide: true, cmd: 'TUNE!', hint: 'DRAG THE DIAL (OR ← →) TILL IT IS CLEAR', thint: 'DRAG THE DIAL TILL IT IS CLEAR', dur: 5.4,
     down(p) { if (g.result) return; pr = true; d = Math.max(0, Math.min(1, (p.x - SX) / SW)); },
     move(p) { if (pr && !g.result) d = Math.max(0, Math.min(1, (p.x - SX) / SW)); },
     up() { pr = false; },
@@ -769,7 +769,7 @@ function dsStrip(sp) {
     if (!left) { g.result = 'win'; dsWin(X, 300, 36); }
   };
   const g = {
-    cmd: 'STRIP!', hint: 'FLICK EVERY LAYER OFF THE CLAUDE', thint: 'SWIPE EVERY LAYER OFF', dur: 4.8,
+    wide: true, cmd: 'STRIP!', hint: 'FLICK EVERY LAYER OFF THE CLAUDE', thint: 'SWIPE EVERY LAYER OFF', dur: 4.8,
     down(p) { if (g.result) return; pr = true; lp = { x: p.x, y: p.y }; },
     move(p) {
       if (!pr || g.result) return;
@@ -785,7 +785,7 @@ function dsStrip(sp) {
     draw(t) {
       const heat = Math.min(1, clock / durA), cool = g.result === 'win';
       bg(cool ? '#9BE7FF' : heat > .7 ? '#ff7a4d' : '#FF9E5E', cool ? '#8ad9f5' : '#ff8f45', t);
-      ctx.fillStyle = INK; ctx.fillRect(0, Y, W, 100); ctx.fillStyle = cool ? '#cfeeff' : '#f0d9a0'; ctx.fillRect(0, Y + 6, W, 100);
+      ctx.fillStyle = INK; ctx.fillRect(-OX, Y, VW, 100); ctx.fillStyle = cool ? '#cfeeff' : '#f0d9a0'; ctx.fillRect(-OX, Y + 6, VW, 100);
       shadow(X, Y + 6, 7 * U, 12, .25);
       claude(X, Y, U, { col: heat > .55 && !cool ? '#e8452f' : OR, mood: cool ? 'happy' : null });
       for (const l of L) if (l.on) drawL(l.id, 0, 0);

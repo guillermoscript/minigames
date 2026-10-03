@@ -44,8 +44,9 @@ function twRoom(floorY, windowX) {
   circ(wx - 26, wy - 30, 11, '#FFE14D', 3);
 }
 function twMeter(th) {
-  circ(745, 52, 28, '#fff', 4);
-  ctx.save(); ctx.translate(745, 52); ctx.rotate(th * 1.6);
+  const mx = W + OX - 55;
+  circ(mx, 52, 28, '#fff', 4);
+  ctx.save(); ctx.translate(mx, 52); ctx.rotate(th * 1.6);
   ctx.fillStyle = INK; ctx.fillRect(-21, -5, 42, 10); ctx.fillStyle = OR; ctx.fillRect(-18, -3, 36, 6);
   ctx.fillStyle = '#FFE14D'; ctx.beginPath(); ctx.arc(0, -7, 5, 0, 7); ctx.fill();
   ctx.restore();
@@ -62,7 +63,7 @@ reg('tw_tilt', sp => {
   const FY = 60, R = 17, HW = 34 + (sp - 1) * 9, PX = [-120, 70], VC = 235 + 35 * (sp - 1), G = 1250 + 250 * (sp - 1);
   let x = -285, vx = 0, y = FY - R, vy = 0, rot = 0, c = 0, mode = 0, rollT = 0, pit = -1, th = 0, crossed = [false, false], flagT = 0;
   const g = {
-    cmd: 'TILT!', hint: 'MOUSE X / ← → : TILT THE ROOM, ROLL TO THE FLAG', thint: 'DRAG LEFT / RIGHT TO TILT', dur: 5,
+    wide: true, cmd: 'TILT!', hint: 'MOUSE X / ← → : TILT THE ROOM, ROLL TO THE FLAG', thint: 'DRAG LEFT / RIGHT TO TILT', dur: 5,
     move(p) { ctl.move(p); }, down(p) { ctl.move(p); },
     update(dt) {
       c += dt; flagT += dt; ctl.update(dt); th = ctl.ang;
@@ -154,7 +155,7 @@ reg('tw_spin', sp => {
   const lean = () => r + th;     // absolute lean as seen on screen
   const plateLocal = (i) => ({ x: Math.sin(c * 3 + i) * 1.5 + r * i * 6, y: -(i * 24 + 12), w: 118 - i * 8 });
   const g = {
-    cmd: 'SPIN!', hint: 'MOUSE X / ← → : ROTATE AGAINST ITS LEAN', thint: 'DRAG LEFT / RIGHT TO COUNTER THE LEAN', dur: 4.5, timeWin: true,
+    wide: true, cmd: 'SPIN!', hint: 'MOUSE X / ← → : ROTATE AGAINST ITS LEAN', thint: 'DRAG LEFT / RIGHT TO COUNTER THE LEAN', dur: 4.5, timeWin: true,
     move(p) { ctl.move(p); }, down(p) { ctl.move(p); },
     update(dt) {
       c += dt; spinT += dt; ctl.update(dt); th = ctl.ang;
@@ -211,9 +212,9 @@ reg('tw_spin', sp => {
       ctx.save(); ctx.setLineDash([10, 10]); ctx.strokeStyle = 'rgba(20,16,28,.35)'; ctx.lineWidth = 4;
       const piv = w2s(0, PY, th); ctx.beginPath(); ctx.moveTo(piv.x, piv.y); ctx.lineTo(piv.x, piv.y - 260); ctx.stroke(); ctx.restore();
       const a = lean(), warn = clamp(Math.abs(a) / .58, 0, 1);
-      box3(20, 20, 200, 24, '#fff', 4, 4); ctx.fillStyle = warn > .6 ? '#ff4d4d' : '#5CFF7A'; ctx.fillRect(20, 20, 200 * clamp(1 - warn, 0, 1), 24);
-      txt('BALANCE', 120, 32, 16, '#fff');
-      box3(20, 62, 200, 14, '#fff', 3, 3); ctx.fillStyle = '#4DB8FF'; ctx.fillRect(20, 62, 200 * clamp(c / D, 0, 1), 14);
+      box3(20 - OX, 20, 200, 24, '#fff', 4, 4); ctx.fillStyle = warn > .6 ? '#ff4d4d' : '#5CFF7A'; ctx.fillRect(20 - OX, 20, 200 * clamp(1 - warn, 0, 1), 24);
+      txt('BALANCE', 120 - OX, 32, 16, '#fff');
+      box3(20 - OX, 62, 200, 14, '#fff', 3, 3); ctx.fillStyle = '#4DB8FF'; ctx.fillRect(20 - OX, 62, 200 * clamp(c / D, 0, 1), 14);
       twMeter(th); vignette(.18 + warn * .15);
     }
   };
@@ -229,7 +230,7 @@ reg('tw_pour', sp => {
   const half = y => lerp(GWT, GWB, clamp((y - GTOP) / (TABLE - GTOP), 0, 1)) / 2 - 6;
   const spout = () => ({ x: P.x + 84 * Math.cos(phi) + 78 * Math.sin(phi), y: P.y + 84 * Math.sin(phi) - 78 * Math.cos(phi) });
   const g = {
-    cmd: 'POUR!', hint: 'MOUSE X / → : TILT TO POUR, FILL TO THE LINE', thint: 'DRAG RIGHT TO POUR, LEFT TO STOP', dur: 5,
+    wide: true, cmd: 'POUR!', hint: 'MOUSE X / → : TILT TO POUR, FILL TO THE LINE', thint: 'DRAG RIGHT TO POUR, LEFT TO STOP', dur: 5,
     move(p) { ctl.move(p); }, down(p) { ctl.move(p); },
     update(dt) {
       c += dt; ctl.update(dt); const u = ctl.ang / MAXT; th = ctl.ang * .4; phi = u > 0 ? u * 1.5 : u * .5;
@@ -252,7 +253,7 @@ reg('tw_pour', sp => {
           if (fill % 6 === 0) { const s = w2s(GX, LINEY + 30, th); burst(s.x, s.y, '#FFC27A', 4, 120); }
           continue;
         }
-        if (p.y >= TABLE - 3 || p.y > 420 || Math.abs(p.x) > 520) {
+        if (p.y >= TABLE - 3 || p.y > 420 || Math.abs(p.x) > 520 + OX) {
           parts.splice(i, 1);
           if (!g.result) {
             spilled++; splT -= 1;
@@ -314,7 +315,7 @@ reg('tw_pour', sp => {
       ctx.restore();
       // spill meter
       const sp0 = clamp(spilled / LIM, 0, 1);
-      box3(20, 20, 200, 24, '#fff', 4, 4); ctx.fillStyle = sp0 > .6 ? '#ff4d4d' : '#FFB35C'; ctx.fillRect(20, 20, 200 * (1 - sp0), 24); txt('NO SPILL', 120, 32, 16, '#fff');
+      box3(20 - OX, 20, 200, 24, '#fff', 4, 4); ctx.fillStyle = sp0 > .6 ? '#ff4d4d' : '#FFB35C'; ctx.fillRect(20 - OX, 20, 200 * (1 - sp0), 24); txt('NO SPILL', 120 - OX, 32, 16, '#fff');
       twMeter(th); vignette(.18);
     }
   };
@@ -328,7 +329,7 @@ reg('tw_dial', sp => {
   let d = 0, c = 0, mode = 0, pa = 0, hold = 0, tickT = .2, th = 0, det = 0, flash = 0;
   const err = () => Math.abs(wrap(d - T));
   const g = {
-    cmd: 'TWIST!', hint: 'MOUSE AROUND THE DIAL / ← → : MATCH THE MARK & HOLD', thint: 'DRAG AROUND THE DIAL TO MATCH THE MARK',
+    wide: true, cmd: 'TWIST!', hint: 'MOUSE AROUND THE DIAL / ← → : MATCH THE MARK & HOLD', thint: 'DRAG AROUND THE DIAL TO MATCH THE MARK',
     dur: 5,
     move(p) { const dx = p.x - W / 2, dy = p.y - (H / 2 + CY); if (Math.hypot(dx, dy) > 30 && !(keys.ArrowLeft || keys.ArrowRight || keys.KeyA || keys.KeyD)) { pa = Math.atan2(dx, -dy) - th; mode = 1; } },
     down(p) { g.move(p); },
@@ -384,7 +385,7 @@ reg('tw_dial', sp => {
       if (hold > 0) { ctx.lineWidth = 12; ctx.strokeStyle = INK; ctx.beginPath(); ctx.arc(0, CY, RR + 28, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * clamp(hold / HOLD, 0, 1)); ctx.stroke(); ctx.lineWidth = 6; ctx.strokeStyle = '#5CFF7A'; ctx.stroke(); }
       ctx.lineCap = 'butt';
       ctx.restore();
-      if (flash > 0) { ctx.globalAlpha = flash; ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; }
+      if (flash > 0) { ctx.globalAlpha = flash; ctx.fillStyle = '#fff'; ctx.fillRect(-OX, 0, VW, H); ctx.globalAlpha = 1; }
       twMeter(th); vignette(.18);
     }
   };

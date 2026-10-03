@@ -8,31 +8,31 @@ const wiiHat = (x, y, u, col = '#5a3b22') => { box(x - 5 * u, y - 3 * u, 10 * u,
 function wiiSave(sp) {
   const grav = 760 * (sp > 1.5 ? 1.15 : 1), BY = 490;
   let tw = mouse.x, tx = mouse.x, caught = 0, stretch = 0, splat = 0, t = 0;
-  const P = { x: 170 + Math.random() * 460, y: 80, vx: 0, vy: 0, rot: 0 };
+  const SR = 250 + OX * .6, P = { x: W / 2 + (Math.random() - .5) * 2 * (SR - 20), y: 80, vx: 0, vy: 0, rot: 0 };
   const g = {
-    cmd: 'SAVE ME!', hint: 'MOUSE / ← → SLIDES THE TRAMPOLINE', thint: 'DRAG LEFT AND RIGHT', dur: 6.2,
+    wide: true, cmd: 'SAVE ME!', hint: 'MOUSE / ← → SLIDES THE TRAMPOLINE', thint: 'DRAG LEFT AND RIGHT', dur: 6.2,
     move(p) { tx = p.x; },
     update(dt) {
       t += dt; stretch = Math.max(0, stretch - dt * 3);
       if (g.result === 'lose') { splat += dt; return; }
       if (keys.ArrowLeft || keys.KeyA) tx -= 700 * dt; if (keys.ArrowRight || keys.KeyD) tx += 700 * dt;
-      tx = Math.max(90, Math.min(710, tx)); tw += (tx - tw) * Math.min(1, 16 * dt);
+      tx = Math.max(90 - OX, Math.min(710 + OX, tx)); tw += (tx - tw) * Math.min(1, 16 * dt);
       if (g.result) return;
       if (t < .6) { P.rot = Math.sin(t * 30) * .15; return; }
       P.vy += grav * dt; P.x += P.vx * dt; P.y += P.vy * dt; P.rot += (P.vx / 60 + .5) * dt * 2;
       if (P.vy > 0 && P.y >= BY - 22 && P.y < BY + 30 && Math.abs(P.x - tw) < 78) {
         P.y = BY - 22; P.vy = -690; stretch = 1; caught++; sfx.boing(); sfx.blip(caught * 4); shake(4, .15); burst(P.x, BY, '#FFE14D', 10, 220); ring(P.x, BY, '#fff', 80, .35); floatText(caught >= 2 ? 'SAVED!' : 'BOING!', P.x, BY - 50, '#fff', 34);
         if (caught >= 2) { g.result = 'win'; P.vx = 0; sfx.sparkle(); confetti(P.x, BY - 40, 24); }
-        else { const tg = 150 + Math.random() * 500; P.vx = (tg - P.x) / (2 * 690 / grav); }
+        else { const tg = W / 2 + (Math.random() - .5) * 2 * SR; P.vx = (tg - P.x) / (2 * 690 / grav); }
       }
-      if (P.x < 40 || P.x > 760) P.vx *= -1;
+      if (P.x < 40 - OX || P.x > 760 + OX) P.vx *= -1;
       if (P.y > 560) { g.result = 'lose'; sfx.splat(); wiiBang(P.x, 540); confetti(P.x, 540, 10); }
     },
     draw(tt) {
       bg('#9BD8FF', '#8ccdf5', tt);
-      box(40, 40, 720, 460, '#e7b08a', 6);
-      for (let r = 0; r < 5; r++) for (let c = 0; c < 8; c++) box(70 + c * 85, 70 + r * 85, 44, 56, (r * 3 + c * 5) % 7 === 0 ? '#FFE14D' : '#6fb7e8', 3);
-      ctx.fillStyle = INK; ctx.fillRect(0, 524, W, 80); ctx.fillStyle = '#8a8f99'; ctx.fillRect(0, 530, W, 80);
+      box(40 - OX, 40, 720 + OX * 2, 460, '#e7b08a', 6);
+      const wk = Math.ceil(OX / 85); for (let r = 0; r < 5; r++) for (let c = -wk; c < 8 + wk; c++) box(70 + c * 85, 70 + r * 85, 44, 56, ((r * 3 + c * 5) % 7 + 7) % 7 === 0 ? '#FFE14D' : '#6fb7e8', 3);
+      ctx.fillStyle = INK; ctx.fillRect(-OX, 524, VW, 80); ctx.fillStyle = '#8a8f99'; ctx.fillRect(-OX, 530, VW, 80);
       const fy = BY + stretch * 22;
       // helpers holding the net
       shadow(tw - 105, 568, 28); shadow(tw + 105, 568, 28); if (g.result !== 'lose') shadow(P.x, 532, Math.max(14, 44 - (BY - P.y) / 9), 7, .22);
@@ -54,7 +54,7 @@ function wiiZap(sp) {
   const cols = ['#C77DFF', '#5CFF7A', '#FF8FAB', '#FFE14D'];
   let sp0 = .5, zaps = 0, laser = 0, lx = 0, ly = 0, esc = null;
   const g = {
-    cmd: 'ZAP!', hint: 'CLICK THE EYES BEFORE THEY ESCAPE', thint: 'TAP THE EYES', dur: 6,
+    wide: true, cmd: 'ZAP!', hint: 'CLICK THE EYES BEFORE THEY ESCAPE', thint: 'TAP THE EYES', dur: 6,
     down(p) {
       if (g.result) return; laser = .12; lx = p.x; ly = p.y;
       const d = doors.find(d => d.op > 0 && !d.z && p.x > d.x - 10 && p.x < d.x + 150 && p.y > d.y && p.y < d.y + 190);
@@ -94,7 +94,7 @@ function wiiZap(sp) {
       }
       if (esc) { const ex = esc.x + 70, ey = esc.y + 100, k = Math.min(1, (esc.life - vis) * 8 + .2); circ(ex, ey, 52 + k * 170, esc.col, 6); ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ex, ey, 34 + k * 110, 0, 7); ctx.fill(); ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(ex, ey, 15 + k * 50, 0, 7); ctx.fill(); }
       if (laser > 0) { ctx.strokeStyle = INK; ctx.lineWidth = 14; ctx.beginPath(); ctx.moveTo(W / 2, H); ctx.lineTo(lx, ly); ctx.stroke(); ctx.strokeStyle = '#FF2E4D'; ctx.lineWidth = 6; ctx.stroke(); circ(lx, ly, 14, '#fff', 3); }
-      for (let i = 0; i < need; i++) circ(40 + i * 30, 570, 10 + (i === zaps - 1 && laser > 0 ? 3 : 0), i < zaps ? '#FF2E4D' : '#fff', 3);
+      for (let i = 0; i < need; i++) circ(40 - OX * .5 + i * 30, 570, 10 + (i === zaps - 1 && laser > 0 ? 3 : 0), i < zaps ? '#FF2E4D' : '#fff', 3);
     }
   };
   return g;
@@ -110,7 +110,7 @@ function wiiDraw(sp) {
     else if (st === 1) { react = tg; if (tg <= lim) { st = 2; g.result = 'win'; sfx.stamp(); sfx.zap(); shake(12, .3); burst(630, 330, '#FFE14D', 18, 340); ring(630, 330, '#fff', 120, .4); sfx.sparkle(); } else { st = 3; g.result = 'lose'; wiiBang(630, 330); } }
   };
   const g = {
-    cmd: 'DRAW!', hint: 'WAIT FOR THE "!" THEN CLICK / SPACE', thint: 'WAIT FOR "!", THEN TAP', dur: 4.6,
+    wide: true, cmd: 'DRAW!', hint: 'WAIT FOR THE "!" THEN CLICK / SPACE', thint: 'WAIT FOR "!", THEN TAP', dur: 4.6,
     key(e) { if (e.code === 'Space') fire(); }, down() { fire(); },
     update(dt) {
       tm += dt; if (g.result) { endT += dt; return; }
@@ -120,8 +120,8 @@ function wiiDraw(sp) {
     draw(tt) {
       bg('#FF9A5C', '#ff8a45', tt);
       ctx.fillStyle = '#FFD166'; ctx.beginPath(); ctx.arc(W / 2, 330, 120, 0, 7); ctx.fill();
-      ctx.fillStyle = INK; ctx.fillRect(0, 440, W, 170); ctx.fillStyle = '#d99a52'; ctx.fillRect(0, 448, W, 170);
-      for (let i = 0; i < 4; i++) { const x = ((tt * 90 + i * 260) % 1000) - 100; circ(x, 520 + Math.sin(tt * 6 + i) * 4, 18, '#8a5a2b', 4); }
+      ctx.fillStyle = INK; ctx.fillRect(-OX, 440, VW, 170); ctx.fillStyle = '#d99a52'; ctx.fillRect(-OX, 448, VW, 170);
+      for (let i = 0; i < 3 + Math.ceil(VW / 400); i++) { const x = ((tt * 90 + i * 260) % (VW + 200)) - 100 - OX; circ(x, 520 + Math.sin(tt * 6 + i) * 4, 18, '#8a5a2b', 4); }
       shadow(170, 444, 90, 18); shadow(630, 444, 90, 18);
       ctx.save(); ctx.translate(170, 440); if (g.result === 'lose') ctx.rotate(-1.2 * Math.min(1, endT * 4)); claude(0, 0, 12, { mood: wiiMood(g) }); wiiHat(0, -108, 12); ctx.restore();
       ctx.save(); ctx.translate(630, 440); if (g.result === 'win') ctx.rotate(1.2 * Math.min(1, endT * 4)); claude(0, 0, 12, { col: '#8a6ad6', mood: g.result === 'win' ? 'sad' : g.result === 'lose' ? 'happy' : null }); wiiHat(0, -108, 12, '#2b2b3a'); ctx.restore();
@@ -141,7 +141,7 @@ function wiiSneak(sp) {
   const hxp0 = () => X0 + p * (BX - 55 - X0);
   const press = () => { if (!g.result) hold = true; }, rel = () => { hold = false; };
   const g = {
-    cmd: 'SNEAK!', hint: 'HOLD TO CREEP · RELEASE WHEN HE LOOKS', thint: 'HOLD TO CREEP, LET GO WHEN HE LOOKS', dur: 6.2,
+    wide: true, cmd: 'SNEAK!', hint: 'HOLD TO CREEP · RELEASE WHEN HE LOOKS', thint: 'HOLD TO CREEP, LET GO WHEN HE LOOKS', dur: 6.2,
     key(e) { if (e.code === 'Space' && !e.repeat) press(); }, keyup(e) { if (e.code === 'Space') rel(); },
     down() { press(); }, up() { rel(); },
     update(dt) {
@@ -158,7 +158,7 @@ function wiiSneak(sp) {
     },
     draw(tt) {
       bg('#B8E0C8', '#a9d6bb', tt);
-      ctx.fillStyle = INK; ctx.fillRect(0, 440, W, 170); ctx.fillStyle = '#6fc27a'; ctx.fillRect(0, 448, W, 170);
+      ctx.fillStyle = INK; ctx.fillRect(-OX, 440, VW, 170); ctx.fillStyle = '#6fc27a'; ctx.fillRect(-OX, 448, VW, 170);
       const look = st === 'look', warn = st === 'warn';
       shadow(655, 446, 110, 14); shadow(BX, 484, 44, 8, .2);
       // dog
@@ -179,7 +179,7 @@ function wiiSneak(sp) {
       ctx.save(); ctx.translate(BX, 470); ctx.rotate(-.3); box(-34, -6, 68, 12, '#fff', 3); circ(-36, -8, 11, '#fff', 3); circ(-36, 8, 11, '#fff', 3); circ(36, -8, 11, '#fff', 3); circ(36, 8, 11, '#fff', 3); ctx.restore();
       // hand
       const hxp = X0 + p * (BX - 55 - X0) + (g.result === 'lose' ? Math.sin(tt * 40) * 4 : 0);
-      box(0, 482, hxp, 24, '#FFCF9F', 4);
+      box(-OX - 20, 482, hxp + OX + 20, 24, '#FFCF9F', 4);
       circ(hxp, 494, 26, '#FFCF9F', 5);
       ctx.strokeStyle = INK; ctx.lineWidth = 3; for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(hxp + 4, 484 + i * 10); ctx.lineTo(hxp + 22, 484 + i * 10); ctx.stroke(); }
       claude(70, 440, 5, { mood: wiiMood(g) });
@@ -195,13 +195,13 @@ function wiiUmbrella(sp) {
   const zw = .2 / Math.pow(sp, .35), zc = .3 + Math.random() * .45, per = 1.7 / sp;
   let t = 0, cur = 0, open = 0, wet = 0; const drops = [];
   const g = {
-    cmd: 'UMBRELLA!', hint: 'CLICK / SPACE WHEN THE BAR IS GREEN', thint: 'TAP WHEN THE BAR IS GREEN', dur: 4.8,
+    wide: true, cmd: 'UMBRELLA!', hint: 'CLICK / SPACE WHEN THE BAR IS GREEN', thint: 'TAP WHEN THE BAR IS GREEN', dur: 4.8,
     key(e) { if (e.code === 'Space') go(); }, down() { go(); },
     update(dt) {
       t += dt;
       const ph = Math.max(0, t - .5) / per; cur = ph ? 1 - Math.abs(((ph + .25) % 1) * 2 - 1) : 0;
       const inten = g.result === 'win' ? 1 : Math.min(1, .25 + t * .22);
-      if (Math.random() < dt * (10 + inten * 60)) drops.push({ x: 120 + Math.random() * 560, y: 130, v: 500 + Math.random() * 200 });
+      if (Math.random() < dt * (10 + inten * 60) * VW / W) drops.push({ x: 120 - OX + Math.random() * (560 + OX * 2), y: 130, v: 500 + Math.random() * 200 });
       for (let i = drops.length - 1; i >= 0; i--) {
         const d = drops[i]; d.y += d.v * dt;
         if (open > .8 && Math.abs(d.x - 400) < 95 && d.y > 330 - 40 * Math.sin(Math.abs(d.x - 400) / 95)) { drops.splice(i, 1); continue; }
@@ -213,9 +213,9 @@ function wiiUmbrella(sp) {
     },
     draw(tt) {
       bg('#5A6B8C', '#536383', tt);
-      ctx.fillStyle = INK; ctx.fillRect(0, 500, W, 110); ctx.fillStyle = '#3e4a63'; ctx.fillRect(0, 508, W, 110);
-      for (let i = 0; i < 3; i++) { ctx.fillStyle = '#7e93b8'; ctx.beginPath(); ctx.ellipse(200 + i * 200, 530 + (i % 2) * 20, 50, 8, 0, 0, 7); ctx.fill(); }
-      for (const [cx, cy, r] of [[180, 90, 60], [260, 70, 75], [340, 95, 60], [470, 80, 70], [560, 70, 75], [640, 95, 58]]) circ(cx, cy, r, '#4a4f66', 4);
+      ctx.fillStyle = INK; ctx.fillRect(-OX, 500, VW, 110); ctx.fillStyle = '#3e4a63'; ctx.fillRect(-OX, 508, VW, 110);
+      for (let i = -Math.ceil(OX / 200); i < 3 + Math.ceil(OX / 200); i++) { ctx.fillStyle = '#7e93b8'; ctx.beginPath(); ctx.ellipse(200 + i * 200, 530 + (Math.abs(i) % 2) * 20, 50, 8, 0, 0, 7); ctx.fill(); }
+      for (let k = -Math.ceil(OX / 500); k <= Math.ceil(OX / 500); k++) for (const [cx, cy, r] of [[180, 90, 60], [260, 70, 75], [340, 95, 60], [470, 80, 70], [560, 70, 75], [640, 95, 58]]) circ(cx + k * 500, cy, r, '#4a4f66', 4);
       ctx.strokeStyle = '#cfe6ff'; ctx.lineWidth = 3; for (const d of drops) { ctx.beginPath(); ctx.moveTo(d.x, d.y); ctx.lineTo(d.x - 3, d.y - 16); ctx.stroke(); }
       shadow(400, 504, 70, 10, .3);
       // spy
@@ -251,7 +251,7 @@ function wiiPop(sp) {
   const push = e => { if (g.result || !up || (e && e.repeat)) return; up = false; s = Math.min(1, s + inc); wob = .25; snd(220 + s * 700, .09, 'triangle', .08, 0, 260 + s * 800); noise(.06, .03, 1500, 3000, 'highpass'); burst(430, 395, '#fff', 3, 120); if (s >= 1) { g.result = 'win'; pop = .001; sfx.stamp(); sfx.pop(); sfx.sparkle(); shake(14, .35); ring(520, 300, '#FF4D6D', 200, .5); burst(520, 300, '#FF4D6D', 22, 380); confetti(400, 250, 60); } };
   const pull = () => { up = true; };
   const g = {
-    cmd: 'POP IT!', hint: 'PUMP: PRESS AND RELEASE SPACE / CLICK', thint: 'TAP TAP TAP TO PUMP', dur: 5.8,
+    wide: true, cmd: 'POP IT!', hint: 'PUMP: PRESS AND RELEASE SPACE / CLICK', thint: 'TAP TAP TAP TO PUMP', dur: 5.8,
     key(e) { if (e.code === 'Space') push(e); }, keyup(e) { if (e.code === 'Space') pull(); }, down() { push(); }, up() { pull(); },
     update(dt) {
       wob = Math.max(0, wob - dt); hy += ((up ? 0 : 1) - hy) * Math.min(1, 22 * dt);
@@ -259,7 +259,7 @@ function wiiPop(sp) {
     },
     draw(tt) {
       bg('#FFE066', '#ffd93d', tt);
-      ctx.fillStyle = INK; ctx.fillRect(0, 540, W, 70); ctx.fillStyle = '#7bd389'; ctx.fillRect(0, 546, W, 70);
+      ctx.fillStyle = INK; ctx.fillRect(-OX, 540, VW, 70); ctx.fillStyle = '#7bd389'; ctx.fillRect(-OX, 546, VW, 70);
       shadow(410, 546, 60, 9, .25); shadow(520, 548, 30 + s * 60, 8, .2); shadow(150, 544, 44, 8);
       // hose + pump
       ctx.strokeStyle = INK; ctx.lineWidth = 12; ctx.beginPath(); ctx.moveTo(400, 490); ctx.quadraticCurveTo(500, 520, 520, 420); ctx.stroke(); ctx.strokeStyle = '#8a8f99'; ctx.lineWidth = 5; ctx.stroke();
@@ -287,7 +287,7 @@ function wiiStrike(sp) {
   const GY = 380, band = 52, v = 150 * sp, cx = 250 + Math.random() * 300, ph = Math.random() * 6;
   const T = { x: cx, y: -40 }, trail = []; let t = 0, hit = 0, slash = null, warn = 0, hitDir = 0;
   const g = {
-    cmd: 'STRIKE!', hint: 'SWIPE ACROSS THE COIN IN THE GLOW', thint: 'SWIPE THROUGH THE COIN IN THE GLOW', dur: 5,
+    wide: true, cmd: 'STRIKE!', hint: 'SWIPE ACROSS THE COIN IN THE GLOW', thint: 'SWIPE THROUGH THE COIN IN THE GLOW', dur: 5,
     move(p) {
       if (g.result) return;
       trail.push({ x: p.x, y: p.y, t }); while (trail.length && t - trail[0].t > .13) trail.shift();
@@ -308,13 +308,13 @@ function wiiStrike(sp) {
     },
     draw(tt) {
       bg('#F2E3C6', '#ecd9b4', tt);
-      ctx.fillStyle = INK; ctx.fillRect(0, 500, W, 110); ctx.fillStyle = '#a8703a'; ctx.fillRect(0, 508, W, 110);
-      for (let i = 0; i < 8; i++) { ctx.fillStyle = INK; ctx.fillRect(i * 100 + 4, 508, 4, 100); }
+      ctx.fillStyle = INK; ctx.fillRect(-OX, 500, VW, 110); ctx.fillStyle = '#a8703a'; ctx.fillRect(-OX, 508, VW, 110);
+      for (let i = -Math.ceil(OX / 100); i < 8 + Math.ceil(OX / 100); i++) { ctx.fillStyle = INK; ctx.fillRect(i * 100 + 4, 508, 4, 100); }
       for (const x of [110, 690]) { box(x - 18, 60, 36, 440, '#c0392b', 5); }
       const gl = .55 + Math.sin(tt * 8) * .2;
-      ctx.fillStyle = `rgba(255,225,77,${gl * .5})`; ctx.fillRect(0, GY - band, W, band * 2);
-      ctx.fillStyle = INK; ctx.fillRect(0, GY - band - 3, W, 6); ctx.fillRect(0, GY + band - 3, W, 6);
-      ctx.fillStyle = '#FFE14D'; ctx.fillRect(0, GY - band, W, 4); ctx.fillRect(0, GY + band - 4, W, 4);
+      ctx.fillStyle = `rgba(255,225,77,${gl * .5})`; ctx.fillRect(-OX, GY - band, VW, band * 2);
+      ctx.fillStyle = INK; ctx.fillRect(-OX, GY - band - 3, VW, 6); ctx.fillRect(-OX, GY + band - 3, VW, 6);
+      ctx.fillStyle = '#FFE14D'; ctx.fillRect(-OX, GY - band, VW, 4); ctx.fillRect(-OX, GY + band - 4, VW, 4);
       if (!hit) { shadow(T.x, 520, 30 - Math.min(14, (520 - T.y) / 30), 6, .2); token(T.x, T.y, 34); }
       else {
         const k = Math.min(1, hit * 3), ca = Math.cos(hitDir), sa = Math.sin(hitDir);
@@ -351,7 +351,7 @@ function wiiShave(sp) {
   const need = cells.filter(c => !c.skip).length; let lx = null, ly = 0, cut = 0, mx = W / 2, my = H / 2, cleared = 0, lastC = 0;
   const clearAt = (x, y) => { for (const c of cells) if (!c.f && Math.abs(c.x - x) < RR + 4 && Math.abs(c.y - y) < RR + 4 && Math.hypot(c.x - x, c.y - y) < RR) c.f = .8; };
   const g = {
-    cmd: 'SHAVE!', hint: 'MOUSE OVER THE STUBBLE · AVOID THE MOLE', thint: 'DRAG OVER STUBBLE, AVOID MOLE', dur: hard ? 6 : 6.5,
+    wide: true, cmd: 'SHAVE!', hint: 'MOUSE OVER THE STUBBLE · AVOID THE MOLE', thint: 'DRAG OVER STUBBLE, AVOID MOLE', dur: hard ? 6 : 6.5,
     update(dt) {
       for (const c of cells) if (c.f > 0) c.f = Math.max(.001, c.f - dt * .6);
       cut = Math.max(0, cut - dt);
@@ -394,7 +394,7 @@ function wiiShave(sp) {
 function wiiFan(sp) {
   const grav = 320 * Math.pow(sp, .6), B = { x: 300 + Math.random() * 200, y: 250, vx: 0, vy: 0 }; let lx = mouse.x, ly = mouse.y, spd = 0, wind = 0, t = 0, lw = 0, ph = Math.random() * 6;
   const g = {
-    cmd: 'FAN IT!', hint: 'WAVE THE MOUSE BELOW THE BUTTERFLY', thint: 'WAVE YOUR FINGER BELOW IT', dur: 5.2, timeWin: true,
+    wide: true, cmd: 'FAN IT!', hint: 'WAVE THE MOUSE BELOW THE BUTTERFLY', thint: 'WAVE YOUR FINGER BELOW IT', dur: 5.2, timeWin: true,
     update(dt) {
       t += dt;
       const sx = (Math.abs(mouse.x - lx) + Math.abs(mouse.y - ly) * .5) / Math.max(dt, .001); lx = mouse.x; ly = mouse.y;
@@ -404,15 +404,15 @@ function wiiFan(sp) {
       wind = near ? Math.min(1, spd / 1300) : 0;
       B.vy += (grav - wind * 1700) * dt; B.vx += (-dx * (near ? .4 : 0) * wind * .02 * 60 + Math.sin(t * 1.7 + ph) * 60) * dt;
       B.vy = Math.max(-380, Math.min(440, B.vy)); B.vx *= Math.pow(.3, dt);
-      B.x += B.vx * dt; B.y += B.vy * dt; B.x = Math.max(60, Math.min(740, B.x));
+      B.x += B.vx * dt; B.y += B.vy * dt; B.x = Math.max(60 - OX, Math.min(740 + OX, B.x));
       if (B.y < 80) { B.y = 80; B.vy = Math.abs(B.vy) * .3; }
       if (B.y > 515) { g.result = 'lose'; sfx.splat(); shake(7, .25); burst(B.x, 520, '#FF8FAB', 12); }
       if (wind > .35 && t - lw > .25) { lw = t; sfx.whoosh(true); }
     },
     draw(tt) {
       bg('#BDF2D0', '#aee8c4', tt);
-      ctx.fillStyle = INK; ctx.fillRect(0, 530, W, 80); ctx.fillStyle = '#6fc27a'; ctx.fillRect(0, 538, W, 80);
-      for (let i = 0; i < 9; i++) { const x = 40 + i * 90, h = 30 + (i * 37 % 40); ctx.fillStyle = INK; ctx.fillRect(x - 3, 536 - h, 6, h); circ(x, 536 - h, 14, ['#FF8FAB', '#FFE14D', '#C77DFF'][i % 3], 4); circ(x, 536 - h, 5, '#fff', 0); }
+      ctx.fillStyle = INK; ctx.fillRect(-OX, 530, VW, 80); ctx.fillStyle = '#6fc27a'; ctx.fillRect(-OX, 538, VW, 80);
+      for (let i = -Math.ceil(OX / 90); i < 9 + Math.ceil(OX / 90); i++) { const x = 40 + i * 90, h = 30 + (Math.abs(i * 37) % 40); ctx.fillStyle = INK; ctx.fillRect(x - 3, 536 - h, 6, h); circ(x, 536 - h, 14, ['#FF8FAB', '#FFE14D', '#C77DFF'][(i % 3 + 3) % 3], 4); circ(x, 536 - h, 5, '#fff', 0); }
       shadow(B.x, 534, Math.max(10, 30 - (534 - B.y) / 14), 6, .2);
       const fl = Math.sin(tt * 22) * .8 + .2, dead = g.result === 'lose';
       ctx.save(); ctx.translate(B.x, B.y); ctx.rotate(dead ? 1.2 : B.vx / 400);
@@ -434,7 +434,7 @@ function wiiFan(sp) {
 function wiiTwirl(sp) {
   const CX = 400, CY = 330, PR = 165; let r = 62, spin = 0, w = 0, la = null, ang = 0, crack = 0, t = 0, lw = 0, lc = 0; const fl = [];
   const g = {
-    cmd: 'TWIRL!', hint: 'MOUSE IN CIRCLES · NOT TOO FAST!', thint: 'DRAG IN CIRCLES, NOT TOO FAST', dur: 6.2,
+    wide: true, cmd: 'TWIRL!', hint: 'MOUSE IN CIRCLES · NOT TOO FAST!', thint: 'DRAG IN CIRCLES, NOT TOO FAST', dur: 6.2,
     update(dt) {
       t += dt;
       if (g.result) { for (const f of fl) { f.x += f.vx * dt; f.y += f.vy * dt; f.l -= dt; } return; }
@@ -456,7 +456,7 @@ function wiiTwirl(sp) {
     },
     draw(tt) {
       bg('#FFD6A5', '#ffc891', tt);
-      ctx.fillStyle = INK; ctx.fillRect(0, 520, W, 90); ctx.fillStyle = '#b5835a'; ctx.fillRect(0, 528, W, 90);
+      ctx.fillStyle = INK; ctx.fillRect(-OX, 520, VW, 90); ctx.fillStyle = '#b5835a'; ctx.fillRect(-OX, 528, VW, 90);
       ctx.save(); ctx.setLineDash([14, 10]); ctx.strokeStyle = '#fff'; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(CX, CY, PR + 12, 0, 7); ctx.stroke(); ctx.restore();
       txt('PLATE', CX, CY - PR - 34, 22, '#fff');
       shadow(CX, CY + r * .94 + 14, r * .9, r * .16, .25);
@@ -482,12 +482,12 @@ function wiiTwirl(sp) {
 function wiiRoll(sp) {
   const BY = 470, BR = 48; let tx = Math.max(220, Math.min(580, mouse.x)), bx = tx, gx = bx + (Math.random() < .5 ? -1 : 1) * 10, gv = 0, ang = 0; const ph = Math.random() * 6; let t = 0, lw = 0;
   const g = {
-    cmd: 'ROLL!', hint: 'MOUSE / ← → ROLLS THE BALL UNDER HIM', thint: 'DRAG TO ROLL THE BALL', dur: 5, timeWin: true,
+    wide: true, cmd: 'ROLL!', hint: 'MOUSE / ← → ROLLS THE BALL UNDER HIM', thint: 'DRAG TO ROLL THE BALL', dur: 5, timeWin: true,
     move(p) { tx = p.x; },
     update(dt) {
       t += dt;
       if (keys.ArrowLeft || keys.KeyA) tx -= 600 * dt; if (keys.ArrowRight || keys.KeyD) tx += 600 * dt;
-      tx = Math.max(60, Math.min(740, tx));
+      tx = Math.max(60 - OX, Math.min(740 + OX, tx));
       const old = bx; bx += Math.max(-520 * dt, Math.min(520 * dt, tx - bx)); ang += (bx - old) / BR;
       if (g.result) return;
       const d = gx - bx; gv += (d * 7 * sp + Math.sin(t * 2.1 + ph) * 45 * sp) * dt; gv *= Math.pow(.5, dt); gx += gv * dt;
@@ -496,8 +496,8 @@ function wiiRoll(sp) {
     },
     draw(tt) {
       bg('#FF9EB5', '#ff8fa9', tt);
-      ctx.fillStyle = '#FFE14D'; for (let i = 0; i < 9; i++) { ctx.beginPath(); ctx.moveTo(i * 100, 0); ctx.lineTo(i * 100 + 50, 0); ctx.lineTo(W / 2 + (i - 4) * 12, 120); ctx.fill(); }
-      ctx.fillStyle = INK; ctx.fillRect(0, 516, W, 90); ctx.fillStyle = '#9b6bd1'; ctx.fillRect(0, 524, W, 90);
+      ctx.fillStyle = '#FFE14D'; for (let i = -Math.ceil(OX / 100); i < 9 + Math.ceil(OX / 100); i++) { ctx.beginPath(); ctx.moveTo(i * 100, 0); ctx.lineTo(i * 100 + 50, 0); ctx.lineTo(W / 2 + (i - 4) * 12, 120); ctx.fill(); }
+      ctx.fillStyle = INK; ctx.fillRect(-OX, 516, VW, 90); ctx.fillStyle = '#9b6bd1'; ctx.fillRect(-OX, 524, VW, 90);
       shadow(bx, BY + BR + 6, BR * .95, 9, .28);
       ctx.save(); ctx.translate(bx, BY); ctx.rotate(ang);
       circ(0, 0, BR, '#fff', 5); ctx.fillStyle = '#FF4D6D'; for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, BR, i * 1.57, i * 1.57 + .785); ctx.fill(); }
@@ -513,10 +513,10 @@ function wiiRoll(sp) {
 
 /* 12 ── CLOSE IT!: pull the shutter down before the customer gets in */
 function wiiClose(sp) {
-  const SY0 = 150, SY1 = 466, DX = 300; let sy = SY0, grab = false, g0 = 0, s0 = 0, cx = -40, t = 0, bump = 0, lw = 0;
-  const v = 175 * Math.sqrt(sp);
+  const SY0 = 150, SY1 = 466, DX = 300; let sy = SY0, grab = false, g0 = 0, s0 = 0, cx = -40 - OX, t = 0, bump = 0, lw = 0;
+  const v = 175 * Math.sqrt(sp) * (DX + 40 + OX) / (DX + 40);
   const g = {
-    cmd: 'CLOSE IT!', hint: 'DRAG THE SHUTTER DOWN FAST', thint: 'PULL DOWN FAST', dur: 5,
+    wide: true, cmd: 'CLOSE IT!', hint: 'DRAG THE SHUTTER DOWN FAST', thint: 'PULL DOWN FAST', dur: 5,
     down(p) { if (g.result) return; grab = true; g0 = p.y; s0 = sy; sfx.click(); },
     move(p) { if (grab && !g.result) { sy = Math.max(SY0, Math.min(SY1, s0 + p.y - g0)); } },
     up() { grab = false; },
@@ -530,7 +530,7 @@ function wiiClose(sp) {
     },
     draw(tt) {
       bg('#B5D8FF', '#a3ccf7', tt);
-      ctx.fillStyle = INK; ctx.fillRect(0, 500, W, 110); ctx.fillStyle = '#9aa0ad'; ctx.fillRect(0, 508, W, 110);
+      ctx.fillStyle = INK; ctx.fillRect(-OX, 500, VW, 110); ctx.fillStyle = '#9aa0ad'; ctx.fillRect(-OX, 508, VW, 110);
       box(180, 70, 440, 430, '#FFD6A5', 6); box(210, 150, 380, 330, '#3a2a4a', 4);
       // inside shop
       box(250, 400, 120, 70, '#a8703a', 4); circ(520, 390, 40, '#FFE14D', 4); txt('$', 520, 392, 40, INK);

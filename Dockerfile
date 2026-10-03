@@ -14,6 +14,7 @@ COPY --from=fetch /pb/pocketbase /pb/pocketbase
 COPY pocketbase/pb_migrations /pb/pb_migrations
 COPY pocketbase/pb_hooks /pb/pb_hooks
 COPY index.html /pb/pb_public/index.html
+COPY sw.js /pb/pb_public/sw.js
 COPY css /pb/pb_public/css
 COPY img /pb/pb_public/img
 COPY js /pb/pb_public/js

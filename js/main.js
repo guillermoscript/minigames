@@ -205,6 +205,17 @@ function pickColor(c) {
   }
 }
 
+/* three.js (590 KB) is only for the 3D stage's games: fetched when a 3D game is about to be needed, not at page load */
+let threeP = null;
+const is3D = id => /^td_/.test(id);
+function loadThree() {
+  if (typeof THREE !== 'undefined') return Promise.resolve();
+  return threeP || (threeP = new Promise(res => {
+    const sc = document.createElement('script'); sc.src = 'js/vendor/three.min.js?v=1790992357';
+    sc.onload = sc.onerror = () => res(); document.head.appendChild(sc);   // on error the 3D games fall back (T3.ok stays false)
+  }));
+}
+
 function goTitle() { state = 'title'; st = 0; }
 function goMenu() { state = 'menu'; st = 0; mode = 'stage'; parts.length = 0; }
 function goPractice() { state = 'practice'; st = 0; mode = 'practice'; parts.length = 0; }
@@ -212,14 +223,16 @@ function startStage(i) {
   if (i > save.unlocked - 1) return;
   runRank = null; attempts[i] = (attempts[i] || 0) + 1;
   track('stage_start', { stage: i + 1, stage_name: STAGES[i].name, attempt: attempts[i], unlocked: save.unlocked });
+  if (STAGES[i].pool.some(is3D)) loadThree();
   mode = 'stage'; stageIdx = i; stage = STAGES[i]; lives = 4; played = 0; score = 0; lastOut = null; recent = [];
   state = 'stagein'; st = 0; shownScore = 0; lifeT = 99; jingleGo();
 }
-function startPractice(id) { track('practice_start', { game: id }); mode = 'practice'; practiceId = id; lastOut = null; stage = STAGES[0]; state = 'inter'; st = 0; }
+function startPractice(id) { if (is3D(id)) loadThree(); track('practice_start', { game: id }); mode = 'practice'; practiceId = id; lastOut = null; stage = STAGES[0]; state = 'inter'; st = 0; }
 function toInter() { state = 'inter'; st = 0; if (mode !== 'practice') jingleGo(); }
 
 function beginGame() {
   let s;
+  if (mode === 'practice' && is3D(practiceId) && typeof THREE === 'undefined') { loadThree().then(() => { if (state === 'inter') beginGame(); }); st = -99; return; }   // still downloading: wait on the intro card
   if (mode === 'practice') {
     s = practiceSp; cur = REGMAP[practiceId].fn(s); curId = practiceId; isBoss = false; dur = cur.dur / Math.sqrt(s); I18N.scope = I18N.scopeOf(curId);
   } else if (played >= stage.n) {
@@ -227,6 +240,7 @@ function beginGame() {
   } else {
     const pool = poolOf(stage); let id;
     do { id = pool[Math.random() * pool.length | 0]; } while (recent.includes(id));
+    if (is3D(id) && typeof THREE === 'undefined') { loadThree().then(() => { if (state === 'inter') beginGame(); }); st = -99; return; }
     recent.push(id); if (recent.length > Math.min(6, pool.length - 2)) recent.shift();
     s = speed(); cur = REGMAP[id].fn(s); curId = id; isBoss = false; dur = cur.dur / Math.sqrt(s); I18N.scope = I18N.scopeOf(curId);
   }

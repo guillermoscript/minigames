@@ -7,7 +7,7 @@ const MAX_PLAYERS = 4;
 const ROUNDS = { versus: 6, team: 8, duo: 8 };
 const MODES = ["versus", "team", "duo"];
 const LIVES = 4;
-const PRE_MS = 1400, PRE_MS_DUO = 3600;            // instruction card shown before each microgame (keep in sync with PRE in js/main.js)
+const PRE_MS = 1400, PRE_MS_DUO = 4500;            // instruction card shown before each microgame (keep in sync with PRE in js/main.js)
 const GRACE_MS = 8000;          // a silent player is counted as a loss this long after the round should have ended
 const BETWEEN_MS = 4000;        // results screen minimum time before the next round may start
 const AWARD = [100, 70, 50, 30];
@@ -23,6 +23,10 @@ const GAMES = {
   du_decode: { dur: 15, pts: false, duo: true },
   du_crank: { dur: 14, pts: false, duo: true },
   du_steer: { dur: 15, pts: false, duo: true },
+  du_seesaw: { dur: 14, pts: false, duo: true },
+  du_beat: { dur: 14, pts: false, duo: true },
+  du_guide: { dur: 16, pts: false, duo: true },
+  du_gun: { dur: 15, pts: false, duo: true },
 };
 const GAME_IDS = Object.keys(GAMES).filter((g) => !GAMES[g].duo);
 const DUO_IDS = Object.keys(GAMES).filter((g) => GAMES[g].duo);

@@ -399,32 +399,40 @@ function drawEnd(R) {
 
 /* DUO: who is who. The intro card (before the game starts) shows both players side by side with their role and one short line;
    during play a coloured badge + a frame in YOUR colour keep reminding you which one you are. */
-const DUO_PRE = 3.6;
+const DUO_A = 1.9, DUO_B = 1.7, DUO_C = .9, DUO_PRE = DUO_A + DUO_B + DUO_C;   // YOU (1.9 s) -> YOUR FRIEND (1.7 s) -> GO (.9 s); keep PRE_MS_DUO in pocketbase/pb_hooks/party.js in sync
 function duoMeColor() { const m = me(); return m ? m.color : '#FFE14D'; }
 function duoBadge(pn) {
   const c = duoMeColor();
   ctx.save(); ctx.lineWidth = 8; ctx.strokeStyle = c; ctx.strokeRect(4, 4, W - 8, H - 8); ctx.restore();
-  box(10 - OX, 88, 250, 34, c, 3); txt(t('YOU: {role}', { role: t(cur.roleLabel) }), 20 - OX, 106, 20, INK, 'left', 232);
-  if (cur.roles && pn) txt(t('{name}: {role}', { name: pn.name.toUpperCase(), role: t(cur.roles[1 - cur.role].label) }), 14 - OX, 140, 15, '#fff', 'left', 240);
+  box(10 - OX, 88, 300, 34, c, 3); txt(t('YOU: {role}', { role: t(cur.roleLabel) }), 20 - OX, 106, 20, INK, 'left', 282);
+  if (cur.roles && pn) txt(t('{name}: {role}', { name: pn.name.toUpperCase(), role: t(cur.roles[1 - cur.role].label) }), 14 - OX, 140, 15, '#fff', 'left', 290);
 }
-function drawDuoIntro(left) {   // left = seconds of the intro card still to go
+/* intro card, three beats: 1 what YOU do (animated demo + the control), 2 what your friend does, 3 get ready / GO */
+function drawDuoIntro(left) {
   const R = party.room, m = me(), pn = R.players.find(p => !p.left && p.id !== party.you.id); if (!m || !pn || !cur.roles) return;
-  const k = Math.min(1, (DUO_PRE - left) / .25), pulse = .5 + .5 * Math.sin(now * 8);
-  ctx.save(); ctx.globalAlpha = k;
-  txt('WIN OR LOSE TOGETHER!', W / 2, 62, 32, '#fff', 'center', 700);
-  [[m, cur.roles[cur.role], true, 40], [pn, cur.roles[1 - cur.role], false, 420]].forEach(([p, r, you, x]) => {
-    const y = 110, w = 340, h = 400;
-    box(x + 6, y + 8, w, h, 'rgba(0,0,0,.35)', 0); box(x, y, w, h, '#2b2845', 4);
-    ctx.lineWidth = you ? 8 + pulse * 4 : 5; ctx.strokeStyle = p.color; ctx.strokeRect(x, y, w, h);
-    box(x + 70, y + 14, w - 140, 34, you ? p.color : '#5a5670', 3); txt(you ? 'YOU' : 'YOUR FRIEND', x + w / 2, y + 40, 22, you ? INK : '#fff', 'center', w - 160);
-    claude(x + w / 2, y + 190 - (you ? pulse * 6 : 0), you ? 7 : 5.5, { col: p.color, mood: 'happy' });
-    txt(p.name.toUpperCase(), x + w / 2, y + 232, 26, p.color, 'center', w - 30);
-    txt(r.label, x + w / 2, y + 296, you ? 54 : 44, you ? '#FFE14D' : '#fff', 'center', w - 30);
-    txt(r.short, x + w / 2, y + 350, 22, '#fff', 'center', w - 30);
-  });
-  txt('+', W / 2, 330, 60, '#FFE14D');
-  ctx.fillStyle = '#FFE14D'; ctx.fillRect(40, 540, 720 * (1 - left / DUO_PRE), 10);
-  ctx.restore();
+  const el = DUO_PRE - left, beat = el < DUO_A ? 0 : el < DUO_A + DUO_B ? 1 : 2, bt = beat === 0 ? el : beat === 1 ? el - DUO_A : el - DUO_A - DUO_B;
+  const k = Math.min(1, bt / .22), pop = 1 + (1 - k) * .25, pulse = .5 + .5 * Math.sin(now * 9);
+  const steps = ['YOU', 'YOUR FRIEND', 'GO!'], stepCol = [m.color, pn.color, '#5CFF7A'];
+  steps.forEach((sl, i) => { const x = 150 + i * 250, on = i === beat; ctx.globalAlpha = on ? 1 : .4; box(x - 100, 14, 200, 34, on ? stepCol[i] : '#3a3550', 3); txt(String(i + 1) + ' · ' + t(sl), x, 40, 20, on ? INK : '#fff', 'center', 188); }); ctx.globalAlpha = 1;
+  if (beat < 2) {
+    const you = beat === 0, p = you ? m : pn, r = cur.roles[you ? cur.role : 1 - cur.role];
+    ctx.save(); ctx.translate(W / 2, 330); ctx.scale(pop, pop); ctx.translate(-W / 2, -330); ctx.globalAlpha = k;
+    box(40, 64, 650, 62, p.color, 4); txt(you ? 'YOU DO THIS' : t('{name} DOES THIS', { name: pn.name.toUpperCase() }), 365, 108, 44, INK, 'center', 620);
+    claude(84, 196, 4.6, { col: p.color, mood: 'happy' });
+    txt(r.label, 470, 168, 56, '#FFE14D', 'center', 560); txt(r.short, 470, 212, 26, '#fff', 'center', 560);
+    box(140, 236, 520, 240, '#2b2845', 4); ctx.lineWidth = 6; ctx.strokeStyle = p.color; ctx.strokeRect(140, 236, 520, 240);
+    ctx.save(); ctx.beginPath(); ctx.rect(142, 238, 516, 236); ctx.clip(); ctx.translate(140, 236); try { r.demo(bt + (you ? 0 : 1.3)); } catch (e) {} ctx.restore();
+    box(160, 494, 480, 52, '#fff', 4); txt(r.how, W / 2, 532, 30, INK, 'center', 460);
+    txt(you ? 'YOUR FRIEND DOES THE OTHER PART ON THEIR OWN SCREEN' : 'YOU WATCH - THEY DO THIS ON THEIR SCREEN', W / 2, 584, 17, '#c9c6e0', 'center', 740);
+    ctx.restore();
+  } else {
+    txt('GET READY!', W / 2, 112, 56, '#fff'); [[m, cur.roles[cur.role], 'YOU', 40], [pn, cur.roles[1 - cur.role], null, 420]].forEach(([p, r, tag, x]) => {
+      box(x, 170, 340, 190, '#2b2845', 4); ctx.lineWidth = 7; ctx.strokeStyle = p.color; ctx.strokeRect(x, 170, 340, 190);
+      claude(x + 60, 290, 3.6, { col: p.color, mood: 'happy' }); txt(tag ? t('YOU') : p.name.toUpperCase(), x + 205, 220, 24, p.color, 'center', 200); txt(r.label, x + 205, 280, 34, '#FFE14D', 'center', 200); txt(r.short, x + 205, 326, 17, '#fff', 'center', 200);
+    });
+    ctx.save(); ctx.translate(W / 2, 470); ctx.scale(1 + pulse * .15, 1 + pulse * .15); txt('GO!', 0, 40, 120, '#5CFF7A', 'center', 600); ctx.restore();
+  }
+  ctx.globalAlpha = 1;
 }
 /* in-game overlay for a party round: who has finished (live) + round counter. Called by main.js render() while playing. */
 function drawPartyHud() {

@@ -44,6 +44,18 @@ const BOTS = {
     (g) => { const st = {}; return { tick(T) { if (every(T, st, .09)) g.key({ code: 'Space', repeat: false }); } }; }],
   du_steer: [(g) => ({ tick() { const { p, x } = g.dbg.pos(); let tx = x; const near = g.dbg.ROCK.filter(o => o.p - p > -40 && o.p - p < 230); for (const cand of [x, 90, 250, 400, 550, 710]) { if (near.every(o => Math.abs(o.x - cand) > o.w / 2 + 40)) { tx = cand; break; } } g.move({ x: tx }); } }),
     (g) => { const st = {}; return { tick(T) { if (every(T, st, .17)) g.boost(); } }; }],
+  du_seesaw: [0, 1].map(side => (g) => { let prev = 0; return { tick(T, dt) { const b = g.dbg.ball(), v = (b - prev) / dt; prev = b; const f = b + .35 * v + .3 * g.dbg.wind(); if (side === 0 ? f < -.08 : f > .08) g.key({ code: 'Space' }); else g.keyup({ code: 'Space' }); } }; }),
+  du_beat: [0, 1].map(lane => (g) => ({ tick() { if (g.dbg.notes.some(n => n.lane === lane && !n.hit && Math.abs(n.t - g.c) < .05)) g.tap(); } })),
+  du_guide: [(g) => ({ on(t, d) { if (t === 'sig') g.act(d); } }),
+    (g) => { const st = { last: null, at: -9 }; return { tick(T) {
+      const pos = g.dbg.pos(), key = pos.join(), { pit, flag, C, RW } = g.dbg;
+      if (key === st.last && T - st.at < 1.4) return; st.last = key; st.at = T;
+      const prev = { [key]: null }, q = [pos]; let goal = null;
+      while (q.length && !goal) { const [c, r] = q.shift(); if (r === 0 && c === flag) { goal = [c, r]; break; } for (let d = 0; d < 4; d++) { const nc = c + [-1, 0, 1, 0][d], nr = r + [0, -1, 0, 1][d], k = nc + ',' + nr; if (nc < 0 || nc >= C || nr < 0 || nr >= RW || pit[nr][nc] || k in prev) continue; prev[k] = [c, r, d]; q.push([nc, nr]); } }
+      if (!goal) return; let cur = goal, dir = null; while (prev[cur.join()]) { const pv = prev[cur.join()]; dir = pv[2]; cur = [pv[0], pv[1]]; if (cur.join() === key) break; }
+      if (dir !== null) g.signal(dir); } }; }],
+  du_gun: [(g) => { const st = {}; return { tick(T) { const d = g.dbg; let best = null; for (const t of d.tg) if (d.live(t) && t.c === d.ammo() && (!best || d.ty(t) > d.ty(best))) best = t; if (best) { g.move({ x: best.x }); g.fire(); } } }; },
+    (g) => ({ tick() { const d = g.dbg; let best = null; for (const t of d.tg) if (d.live(t) && (!best || d.ty(t) > d.ty(best))) best = t; if (best && d.ammo() !== best.c) g.pick(best.c); } })],
 };
 const idle = () => ({});
 for (const id of Object.keys(BOTS)) {

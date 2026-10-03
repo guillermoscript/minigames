@@ -592,7 +592,7 @@ function render() {
       livesRow(36 - OX, 66, 2.4, 40, col);
       txt(isBoss ? 'BOSS' : `${played + 1}/${stage.n}`, W + OX - 16, 30, 26, isBoss ? '#FF4D4D' : '#fff', 'right');
       ctx.save(); const sp = 1 + scorePop * .3; ctx.translate(W + OX - 16, 62); ctx.scale(sp, sp); txt(String(Math.round(shownScore)), 0, 0, 22, '#FFE14D', 'right'); ctx.restore();
-    } else if (mode === 'party') drawPartyHud();
+    } else if (mode === 'party') { if (!(pre > 0 && preMax === DUO_PRE)) drawPartyHud(); }
     else txt('PRACTICE', W + OX - 16, 30, 22, '#fff', 'right');
     button(W + OX - 78, 80, 66, 30, mode === 'party' ? 'LEAVE' : mode === 'practice' ? 'EXIT' : 'MENU', exitPlay, { size: 15, fill: 'rgba(255,255,255,.85)' });
     if (pre <= 0) fuse();

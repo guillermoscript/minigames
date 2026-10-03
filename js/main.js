@@ -280,7 +280,7 @@ function beginGame() {
   let s;
   if (mode === 'practice' && is3D(practiceId) && typeof THREE === 'undefined') { loadThree().then(() => { if (state === 'inter') beginGame(); }); st = -99; return; }   // still downloading: wait on the intro card
   if (mode === 'party') {
-    const R = party.room; s = R.sp; const dc = R.mode === 'duo' ? duoCtx(R) : undefined; cur = withSeed(R.seed, () => REGMAP[R.game].fn(s, dc)); curId = R.game; isBoss = false; dur = cur.dur / Math.sqrt(s); I18N.scope = I18N.scopeOf(curId);
+    const R = party.room; s = R.sp; const dc = R.mode === 'duo' ? duoCtx(R) : undefined; cur = withSeed(R.seed, () => partyBuildGame(R, s, dc)); curId = R.game; isBoss = false; dur = cur.dur / Math.sqrt(s); I18N.scope = I18N.scopeOf(curId);
   } else if (mode === 'practice') {
     s = practiceSp; cur = REGMAP[practiceId].fn(s); curId = practiceId; isBoss = false; dur = cur.dur / Math.sqrt(s); I18N.scope = I18N.scopeOf(curId);
   } else if (played >= stage.n) {
@@ -343,7 +343,7 @@ function update(dt) {
     cur.update(dt, tt);
     if (!outcome) {
       if (cur.result) setOutcome(cur.result);
-      else if (tt >= dur) { cur.result = cur.timeWin ? 'win' : 'lose'; setOutcome(cur.result); }
+      else if (tt >= dur && !cur.partyHelper && !cur.partyDraw) { cur.result = cur.timeWin ? 'win' : 'lose'; setOutcome(cur.result); }
     } else if (outT > .95) {
       lastOut = outcome;
       if (mode === 'party') partyLocalDone(outcome);
@@ -573,7 +573,7 @@ function render() {
       if (cur.wide) cur.draw(tt); else { ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip(); cur.draw(tt); ctx.restore(); }
       if (framed) { ctx.lineWidth = 6; ctx.strokeStyle = INK; ctx.strokeRect(-3, -3, W + 6, H + 6); }
     }
-    drawParts();
+    if (!cur.partyDark) drawParts();
     if (!outcome) {
       if (pre > 0 && preMax === DUO_PRE) drawDuoIntro(pre);
       else if (pre > 0) {
@@ -598,7 +598,7 @@ function render() {
     } else if (mode === 'party') { if (!(pre > 0 && preMax === DUO_PRE)) drawPartyHud(); }
     else txt('PRACTICE', W + OX - 16, 30, 22, '#fff', 'right');
     button(W + OX - 78, 80, 66, 30, mode === 'party' ? 'LEAVE' : mode === 'practice' ? 'EXIT' : 'MENU', exitPlay, { size: 15, fill: 'rgba(255,255,255,.85)' });
-    if (pre <= 0) fuse();
+    if (pre <= 0 && !cur.partyHelper && !cur.partyDraw) fuse();
   } else if (state === 'over') {
     bg('#3b0d14', '#4d1119', now);
     const gk = st < .14 ? 2.6 - 1.6 * easeOut(st / .14) : 1;

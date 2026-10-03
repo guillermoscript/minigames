@@ -147,9 +147,9 @@ function onSig(d) {
     if (m.t === 'pong') { gotPong(m.d, 'relay'); return false; }
     return m.t !== 'hb';
   }) });
-  if (S.handler && d.round === S.round) { for (const m of d.m) S.handler(m.t, m.d); return; }
+  if (S.handler && d.round === S.round) { for (const m of d.m) S.handler(m.t, m.d, d.from); return; }
   if (d.round < R.round) return;                                                  // late message from a finished round
-  for (const m of d.m) S.buf.push({ round: d.round, t: m.t, d: m.d });   // partner started first: keep it for my own constructor
+  for (const m of d.m) S.buf.push({ round: d.round, t: m.t, d: m.d, from: d.from });   // partner started first: keep it for my own constructor
   if (S.buf.length > 80) S.buf.splice(0, S.buf.length - 80);
 }
 /* context handed to a DUO microgame: { role: 0|1, partner, send(type, data, latest), onMsg(fn(type, data)), away() } */
@@ -163,12 +163,12 @@ function duoCtx(R) {
       if (latest) { const k = S.q.findIndex(m => m.t === type && m.l); if (k >= 0) { S.q[k].d = data; return; } }
       S.q.push({ t: type, d: data === undefined ? null : data, l: !!latest });
     },
-    onMsg(fn) { S.handler = fn; S.buf.splice(0).forEach(x => x.round === S.round && fn(x.t, x.d)); },
+    onMsg(fn) { S.handler = fn; S.buf.splice(0).forEach(x => x.round === S.round && fn(x.t, x.d, x.from)); },
   };
 }
 const duoAway = () => !!party.room && party.room.mode === 'duo' && party.sig.round === party.room.round && now - party.sig.since > SIG_AWAY && now - party.sig.rx > SIG_AWAY;
 async function sigFlush() {
-  const S = party.sig, R = party.room; if (!R || R.mode !== 'duo' || R.state !== 'round' || S.round !== R.round) { S.q.length = 0; return; }
+  const S = party.sig, R = party.room; if (!R || !['duo', 'lantern'].includes(R.mode) || R.state !== 'round' || S.round !== R.round) { S.q.length = 0; return; }
   if (now - S.hbAt > SIG_HB) { S.hbAt = now; if (!S.q.length) S.q.push({ t: 'hb', d: null, l: true }); }
   const direct = linkUsable();                                                   // DataChannel to the partner: no HTTP round trip
   if (direct) { if (!S.q.length || now - S.last < .03) return; S.last = now; linkSend(R.round, S.q.splice(0, 20)); return; }
@@ -208,7 +208,8 @@ function onRoom(R, old) {
 }
 function startLocalRound(R) {
   party.played = R.round; party.pending = null;
-  if (!REGMAP[R.game]) { party.pending = { round: R.round, r: 'lose', t: 1, pts: 0 }; party.view = 'wait'; state = 'party'; sendReport(); return; }
+  if (partyElimination(R) && me() && me().lives <= 0) { party.view = 'wait'; state = 'party'; st = 0; return; }
+  if (!REGMAP[R.game] && R.game !== 'pc_draw') { party.pending = { round: R.round, r: 'lose', t: 1, pts: 0 }; party.view = 'wait'; state = 'party'; sendReport(); return; }
   mode = 'party'; stage = STAGES[0]; lastOut = null; parts.length = 0;
   party.view = 'play'; jingleGo(); beginGame();
 }
@@ -231,10 +232,11 @@ async function sendReport() {
 function partyUpdate(dt) {
   const R = party.room; if (!R) return;
   if (now - party.lastPoll > (party.sseOK ? 12 : 3)) partyPoll();
-  if (R.mode === 'duo' && state === 'play') sigFlush();
+  if (['duo', 'lantern'].includes(R.mode) && state === 'play') sigFlush();
+  if (partyTurnMode(R) && R.state === 'round' && now - party.lastTick > 2.5) { party.lastTick = now; pcall('tick', { code: R.code }).then(r => { if (r.ok) applyRoom(r.data.room); }); }
   if (party.pending && now - party.lastRep > 1.5) sendReport();
   if (state !== 'party') return;
-  if (R.state === 'round' && !party.pending && now - party.lastTick > 2.5) {          // lets the server close a round a silent player never finished
+  if (!partyTurnMode(R) && R.state === 'round' && !party.pending && now - party.lastTick > 2.5) {          // lets the server close a round a silent player never finished
     party.lastTick = now; pcall('tick', { code: R.code }).then(r => { if (r.ok) applyRoom(r.data.room); });
   }
   if (R.state === 'between' && now - party.seenAt > NEXT_ROUND_S && now - party.lastAdv > 1.5) {
@@ -250,7 +252,7 @@ async function partyAct(action, extra) {
 }
 const canStart = R => { const n = R.players.filter(p => !p.left).length; return R.mode === 'duo' ? n === 2 : n >= 2; };
 const partyStart = () => { if (isHost() && canStart(party.room)) { track('party_start', { mode: party.room.mode, players: party.room.players.length }); partyAct('start'); } };
-const MODE_NEXT = { versus: 'team', team: 'duo', duo: 'versus' };
+const MODE_NEXT = { versus: 'team', team: 'duo', duo: 'survival', survival: 'knockout', knockout: 'lantern', lantern: 'cards', cards: 'balloon', balloon: 'versus' };
 const partyMode = () => partyAct('mode', { mode: MODE_NEXT[party.room.mode] || 'versus' });
 const partyAgain = () => partyAct('again');
 async function partyInvite() {
@@ -266,8 +268,10 @@ function statusDot(x, y, r, s) {
   else if (s === 'lose') { circ(x, y, r, '#FF4D4D', 3); ctx.strokeStyle = INK; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(x - r * .4, y - r * .4); ctx.lineTo(x + r * .4, y + r * .4); ctx.moveTo(x + r * .4, y - r * .4); ctx.lineTo(x - r * .4, y + r * .4); ctx.stroke(); }
   else { circ(x, y, r * (.7 + Math.sin(now * 8) * .08), '#6b6880', 3); }
 }
-const modeLabel = m => m === 'team' ? 'TEAM' : m === 'duo' ? 'DUO' : 'VERSUS';
-const modeBlurb = m => m === 'duo' ? 'TWO PLAYERS · ONE GAME · DIFFERENT ROLES · WIN OR LOSE TOGETHER' : m === 'team' ? 'TEAMWORK: SHARED LIVES · EVERYONE NEEDS TO PULL THEIR WEIGHT' : 'EVERYONE PLAYS THE SAME GAME · FASTEST AND BEST TAKE THE POINTS';
+const partyElimination = R => R.mode === 'survival' || R.mode === 'knockout';
+const partyTeam = R => R.mode === 'team' || R.mode === 'duo' || R.mode === 'lantern';
+const modeLabel = m => m === 'lantern' ? 'LANTERNS' : m === 'cards' ? 'CARDS' : m === 'balloon' ? 'BALLOON' : m === 'survival' ? 'SURVIVAL' : m === 'knockout' ? 'KNOCKOUT' : m === 'team' ? 'TEAM' : m === 'duo' ? 'DUO' : 'VERSUS';
+const modeBlurb = m => m === 'lantern' ? 'ONE PLAYS IN THE DARK · THE OTHERS MOVE THE LIGHTS · 3 SHARED LIVES' : m === 'cards' ? 'DRAW CARDS · BEAT THE PILE TO KEEP IT · STEAL WHILE OTHERS PLAY' : m === 'balloon' ? 'ONE PLAYS · THE OTHERS PUMP · WIN TO PASS THE TURN · AVOID THE POP' : m === 'survival' ? '3 LIVES EACH · FAIL AND LOSE A LIFE · LAST PLAYER STANDING WINS' : m === 'knockout' ? 'ONE LIFE · ONE MISTAKE AND YOU ARE OUT · LAST PLAYER WINS' : m === 'duo' ? 'TWO PLAYERS · ONE GAME · DIFFERENT ROLES · WIN OR LOSE TOGETHER' : m === 'team' ? 'TEAMWORK: SHARED LIVES · EVERYONE NEEDS TO PULL THEIR WEIGHT' : 'EVERYONE PLAYS THE SAME GAME · FASTEST AND BEST TAKE THE POINTS';
 function mini(x, y, p, u) { claude(x, y, u, { col: p.color }); }
 
 function drawParty() {
@@ -319,7 +323,10 @@ function drawLobby(R) {
     }
     ctx.restore();
   }
-  if (isHost()) button(200, 380, 400, 54, t('MODE: {mode}', { mode: t(modeLabel(R.mode)) }), partyMode, { fill: R.mode === 'team' ? '#B49CFF' : R.mode === 'duo' ? '#7BD88F' : '#FFE14D', size: 26 });
+  if (isHost()) Object.keys(MODE_NEXT).forEach((m, i) => {
+    const selected = R.mode === m;
+    button(40 + (i % 4) * 188, 378 + Math.floor(i / 4) * 34, 172, 29, modeLabel(m), () => partyAct('mode', { mode: m }), { fill: selected ? '#FFE14D' : '#B49CFF', size: 17 });
+  });
   else txt(t('MODE: {mode}', { mode: t(modeLabel(R.mode)) }), W / 2, 408, 28, '#FFE14D');
   txt(modeBlurb(R.mode), W / 2, 456, 16, '#ddd', 'center', 760);
   button(40, 488, 230, 74, 'INVITE', partyInvite, { fill: '#4DB8FF', size: 30 });
@@ -335,11 +342,11 @@ function drawWait(R) {
   txt(t('ROUND {n} / {total}', { n: R.round + 1, total: R.total }), W / 2, 44, 36, '#FFE14D');
   const my = R.cur && party.you && R.cur[party.you.id] || party.pending;
   if (my) txt(my.r === 'win' ? 'YOU DID IT!' : 'NOT THIS TIME', W / 2, 120, 44, my.r === 'win' ? '#5CFF7A' : '#FF4D4D');
-  txt('WAITING FOR THE OTHERS...', W / 2, 190, 26, '#fff');
+  txt(partyElimination(R) && me().lives <= 0 ? 'ELIMINATED · WATCH THE OTHERS!' : 'WAITING FOR THE OTHERS...', W / 2, 190, 26, '#fff');
   R.players.filter(p => !p.left).forEach((p, i) => {
     const x = 120, y = 240 + i * 62, c = R.cur && R.cur[p.id];
     box3(x, y, 560, 52, '#35406a', 3, 4); mini(x + 34, y + 48, p, 2.3);
-    txt(p.name, x + 74, y + 27, 22, p.color, 'left', 340); statusDot(x + 520, y + 26, 16, c ? c.r : null);
+    txt(p.name, x + 74, y + 27, 22, p.color, 'left', 340); if (partyElimination(R)) txt(t('{n} LIVES', { n: p.lives }), x + 520, y + 27, 18, p.lives ? '#5CFF7A' : '#FF4D4D'); else statusDot(x + 520, y + 26, 16, c ? c.r : null);
   });
   if (!TOUCH) txt('KEEP CALM - THE ROUND ENDS WHEN EVERYONE IS DONE', W / 2, 560, 16, '#ddd');
   button(14, 10, 130, 44, 'LEAVE', () => partyLeave(), { size: 18, fill: 'rgba(255,255,255,.85)' });
@@ -347,16 +354,16 @@ function drawWait(R) {
 
 function drawBetween(R) {
   const L = R.last; if (!L) return;
-  txt(t('ROUND {n} / {total}', { n: L.round + 1, total: R.total }), W / 2, 36, 30, '#FFE14D');
+  txt(partyTurnMode(R) ? partyTurnLabel(R) : t('ROUND {n} / {total}', { n: L.round + 1, total: R.total }), W / 2, 36, 30, '#FFE14D');
   const g = REGMAP[L.game]; I18N.scope = I18N.scopeOf(L.game); txt(g ? g.name : '', W / 2, 78, 22, '#fff'); I18N.scope = '';
   let y0 = 118;
-  if (R.mode !== 'versus') {
+  if (partyTeam(R)) {
     txt(L.teamWin ? 'TEAM WIN!' : 'TEAM FAILED!', W / 2, 118, 54, L.teamWin ? '#5CFF7A' : '#FF4D4D');
     for (let i = 0; i < 4; i++) claude(W / 2 - 108 + i * 72, 190, 2.6, i < R.lives ? { col: OR } : { col: '#4a4558', mood: 'sad' });
     txt(t('TEAM SCORE {n}', { n: R.teamScore }), W / 2, 214, 24, '#FFE14D'); y0 = 240;
   }
   const rows = L.results.slice().sort((a, b) => b.award - a.award || (a.r === 'win' ? 0 : 1) - (b.r === 'win' ? 0 : 1) || a.t - b.t);
-  const rh = R.mode !== 'versus' ? 62 : 74;
+  const rh = partyTeam(R) ? 62 : 74;
   rows.forEach((x, i) => {
     const p = R.players.find(q => q.id === x.id); if (!p) return;
     const y = y0 + i * rh, k = easeOut((st - i * .1) / .25);
@@ -367,6 +374,9 @@ function drawBetween(R) {
     txt(p.name, 190, y + (rh - 10) / 2, 22, p.color, 'left', 250);
     statusDot(470, y + (rh - 10) / 2, 14, x.r);
     txt(x.pts > 0 ? t('{n} PTS', { n: x.pts }) : x.r === 'win' ? x.t.toFixed(1) + 's' : '-', 540, y + (rh - 10) / 2, 20, '#ddd', 'center', 90);
+    if (partyElimination(R)) txt(t('{n} LIVES', { n: p.lives }), 700, y + (rh - 10) / 2, 22, p.lives ? '#5CFF7A' : '#FF4D4D', 'right', 180);
+    if (R.mode === 'cards') txt(t('{n} CARDS', { n: p.score }), 700, y + (rh - 10) / 2, 22, '#FFE14D', 'right', 180);
+    if (R.mode === 'balloon') txt(R.extra.loser === p.id ? 'POPPED!' : x.r === 'win' ? 'TURN PASSED!' : 'TRY AGAIN!', 700, y + (rh - 10) / 2, 20, '#FFE14D', 'right', 180);
     if (R.mode === 'versus') { txt(x.award ? '+' + x.award : '', 618, y + (rh - 10) / 2, 26, '#FFE14D', 'center', 70); txt(String(p.score), 706, y + (rh - 10) / 2, 26, '#fff', 'right', 60); }
     ctx.restore();
   });
@@ -376,9 +386,10 @@ function drawBetween(R) {
 }
 
 function drawEnd(R) {
-  const team = R.mode !== 'versus', sorted = R.players.filter(p => !p.left).slice().sort((a, b) => b.score - a.score);
+  const team = partyTeam(R), sorted = R.players.filter(p => !p.left).slice().sort((a, b) => (partyElimination(R) ? b.lives - a.lives : 0) || b.score - a.score);
   const cleared = team && R.lives > 0;
-  const head = team ? (cleared ? 'TEAM CLEARED!' : 'GAME OVER') : t('{name} WINS!', { name: sorted[0] ? sorted[0].name.toUpperCase() : '' });
+  const tied = partyElimination(R) && sorted.length > 1 && sorted[0].lives === sorted[1].lives && sorted[0].score === sorted[1].score;
+  const head = R.mode === 'balloon' ? (R.extra.loser ? t('{name} POPPED THE BALLOON!', { name: pName(R, R.extra.loser).toUpperCase() }) : 'DRAW!') : tied ? 'DRAW!' : team ? (cleared ? 'TEAM CLEARED!' : 'GAME OVER') : t('{name} WINS!', { name: sorted[0] ? sorted[0].name.toUpperCase() : '' });
   const gk = st < .14 ? 2.6 - 1.6 * easeOut(st / .14) : 1;
   ctx.save(); ctx.translate(W / 2, 80); ctx.rotate(-.04); ctx.scale(gk, gk); txt(head, 5, 6, 56, INK, 'center', 740); txt(head, 0, 0, 56, team && !cleared ? '#FF4D4D' : '#FFE14D', 'center', 740); ctx.restore();
   if (team) txt(t('TEAM SCORE {n}', { n: R.teamScore }), W / 2, 140, 34, '#fff');
@@ -389,7 +400,7 @@ function drawEnd(R) {
     if (!team) txt('#' + (i + 1), 146, y + 32, 28, '#fff', 'center', 60);
     claude(220, y + 56 - (top ? Math.abs(Math.sin(now * 6)) * 12 : 0), 2.8, { col: p.color, mood: team ? (cleared ? 'happy' : 'sad') : (top ? 'happy' : null) });
     txt(p.name, 262, y + 32, 24, p.color, 'left', 270);
-    if (!team) txt(String(p.score), 666, y + 32, 30, '#fff', 'right', 110);
+    if (!team) txt(R.mode === 'balloon' ? (p.id === R.extra.loser ? 'POPPED!' : 'SAFE!') : R.mode === 'cards' ? t('{n} CARDS', { n: p.score }) : String(p.score), 666, y + 32, 30, '#fff', 'right', 110);
     else if (R.lives > 0) star(660, y + 32, 20, 9, 5, -Math.PI / 2, '#FFE14D', 3);
     ctx.restore();
   });
@@ -446,13 +457,13 @@ function drawPartyHud() {
   act.forEach((p, i) => { const c = R.cur && R.cur[p.id]; claude(36 - OX + i * 44, 74, 1.6, { col: p.color }); if (c) statusDot(48 - OX + i * 44, 44, 9, c.r);
     if (voice.on && talking(p.id === party.you.id ? 'me' : p.id)) { ctx.fillStyle = '#5CFF7A'; ctx.fillRect(18 - OX + i * 44, 78, 36, 4); } });
   if (voice.on) txt(voice.muted ? 'MIC MUTED' : 'MIC ON', W + OX - 16, 84, 14, voice.muted ? '#FFE14D' : '#5CFF7A', 'right');
-  txt(t('ROUND {n} / {total}', { n: R.round + 1, total: R.total }), W + OX - 16, 30, 22, '#fff', 'right');
+  txt(partyTurnMode(R) ? partyTurnLabel(R) : t('ROUND {n} / {total}', { n: R.round + 1, total: R.total }), W + OX - 16, 30, 22, '#fff', 'right');
   if (R.mode === 'duo') {
     const pn = act.find(p => p.id !== party.you.id);
     if (pn && cur && cur.roleLabel) duoBadge(pn);
     if (linkLabel()) txt(linkLabel(), 14 - OX, 162, 13, link.via === 'p2p' ? '#5CFF7A' : '#ddd', 'left', 200);
     if (duoAway() && state === 'play' && !outcome) { ctx.fillStyle = 'rgba(20,16,28,.6)'; ctx.fillRect(-OX, 280, VW, 70); txt(t('{name} IS AWAY', { name: pn ? pn.name.toUpperCase() : '?' }), W / 2, 315, 34, '#FFE14D', 'center', 760); }
   }
-  if (R.mode !== 'versus') txt(t('LIVES {n}', { n: R.lives }), W + OX - 16, 60, 20, '#FF4D9E', 'right');
-  else { const m = me(); if (m) txt(String(m.score), W + OX - 16, 60, 22, '#FFE14D', 'right'); }
+  if (partyTeam(R) || partyElimination(R)) txt(t('LIVES {n}', { n: partyElimination(R) ? me().lives : R.lives }), W + OX - 16, 60, 20, '#FF4D9E', 'right');
+  else { const m = me(); if (m) txt(R.mode === 'cards' ? t('{n} CARDS', { n: m.score }) : R.mode === 'balloon' ? t('PLAYER: {name}', { name: partyActor(R).name }) : String(m.score), W + OX - 16, 60, 22, '#FFE14D', 'right'); }
 }

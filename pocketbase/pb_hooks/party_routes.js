@@ -3,7 +3,7 @@ const P = require(`${__hooks}/party.js`);
 
 const NUM = ["round", "total", "seed", "sp", "roundAt", "betweenAt", "lives", "teamScore", "made"];
 const TXT = ["mode", "state", "host", "game"];
-const JSN = ["players", "keys", "cur", "last"];
+const JSN = ["players", "keys", "cur", "last", "extra"];
 const MAX_ROOMS = 400;
 
 function load(rec) {
@@ -11,7 +11,7 @@ function load(rec) {
   for (const k of NUM) o[k] = rec.getFloat(k);
   for (const k of TXT) o[k] = rec.getString(k);
   for (const k of JSN) { try { o[k] = JSON.parse(rec.getString(k) || "null"); } catch (_) { o[k] = null; } }
-  o.players = o.players || []; o.keys = o.keys || {}; o.cur = o.cur || {};
+  o.players = o.players || []; o.keys = o.keys || {}; o.cur = o.cur || {}; o.extra = o.extra || {};
   return o;
 }
 function store(rec, o) {
@@ -55,10 +55,13 @@ function exec(tx, action, body, auth, now) {
     P.tick(o, now);
   } else {
     P.auth(o, String(body.id || ""), String(body.key || ""));
-    if (action === "leave") { if (P.leave(o, body.id)) { tx.delete(rec); return { ok: true }; } }
+    if (action === "leave") { if (P.leave(o, body.id, now)) { tx.delete(rec); return { ok: true }; } }
     else if (action === "mode") P.setMode(o, body.id, body.mode);
     else if (action === "again") P.again(o, body.id);
     else if (action === "start") P.start(o, body.id, now, rand);
+    else if (action === "draw") P.drawCard(o, body.id, body.round | 0, body.side, now, rand);
+    else if (action === "steal") P.stealCard(o, body.id, body.round | 0, String(body.target || ""));
+    else if (action === "pump") P.pump(o, body.id, body.round | 0, body.count, now);
     else if (action === "report") P.report(o, body.id, body.round | 0, body.r, body.t, body.pts, now);
     else if (action === "advance") P.advance(o, body.round | 0, now, rand);
     else P.fail("Unknown action", 404);

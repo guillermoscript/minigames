@@ -104,3 +104,39 @@ console.log("party.test.js OK");
   v.players[1].left = true; throwsStatus(() => P.vsigPayload(v, "b", "a", "hello"), 403);
 }
 console.log("voice signaling OK");
+
+// Elimination modes: spectators do not hold up rounds; timeout loses a life.
+for (const mode of ['survival', 'knockout']) {
+  const room = P.newRoom('TEST', mode, 0);
+  for (const name of ['A', 'B', 'C']) P.addPlayer(room, { name }, rand);
+  P.start(room, 'a', 1000, rand);
+  const lives = mode === 'survival' ? 3 : 1;
+  assert.equal(room.players[0].lives, lives);
+  for (let round = 0; round < lives; round++) {
+    P.report(room, 'a', room.round, 'win', 1, 5, 2000 + round * 20000);
+    P.report(room, 'b', room.round, 'lose', 1, 0, 2000 + round * 20000);
+    P.tick(room, room.roundAt + P.roundMs(room) + 9000);
+    assert.equal(room.players[1].lives, lives - round - 1);
+    assert.equal(room.players[2].lives, lives - round - 1);
+    assert.equal(room.last.final, round === lives - 1);
+    P.advance(room, room.round, room.betweenAt + 5000, rand);
+  }
+  assert.equal(room.state, 'done');
+  assert.equal(room.players[0].lives, lives);
+  P.again(room, 'a'); P.start(room, 'a', 100000, rand);
+  assert.ok(room.players.every(p => p.lives === lives));
+}
+const spectate = P.newRoom('SPEC', 'knockout', 0);
+for (const name of ['A', 'B', 'C']) P.addPlayer(spectate, { name }, rand);
+P.start(spectate, 'a', 1000, rand);
+P.report(spectate, 'a', 0, 'lose', 1, 0, 2000);
+P.report(spectate, 'b', 0, 'win', 1, 0, 2000);
+P.report(spectate, 'c', 0, 'win', 1, 0, 2000);
+assert.equal(spectate.last.final, false);
+P.advance(spectate, 0, 7000, rand);
+throwsStatus(() => P.report(spectate, 'a', 1, 'win', 1, 0, 8000), 403);
+P.report(spectate, 'b', 1, 'win', 1, 0, 8000);
+P.report(spectate, 'c', 1, 'lose', 1, 0, 8000);
+assert.equal(spectate.state, 'between');
+assert.equal(spectate.last.final, true);
+console.log('elimination modes OK');

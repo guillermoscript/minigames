@@ -446,9 +446,9 @@ function drawPartyHud() {
   if (R.mode === 'duo') {
     const pn = act.find(p => p.id !== party.you.id);
     if (pn && cur && cur.roleLabel) duoBadge(pn);
+    if (linkLabel()) txt(linkLabel(), 14 - OX, 162, 13, link.via === 'p2p' ? '#5CFF7A' : '#ddd', 'left', 200);
     if (duoAway() && state === 'play' && !outcome) { ctx.fillStyle = 'rgba(20,16,28,.6)'; ctx.fillRect(-OX, 280, VW, 70); txt(t('{name} IS AWAY', { name: pn ? pn.name.toUpperCase() : '?' }), W / 2, 315, 34, '#FFE14D', 'center', 760); }
   }
   if (R.mode !== 'versus') txt(t('LIVES {n}', { n: R.lives }), W + OX - 16, 60, 20, '#FF4D9E', 'right');
   else { const m = me(); if (m) txt(String(m.score), W + OX - 16, 60, 22, '#FFE14D', 'right'); }
 }
-    if (linkLabel()) txt(linkLabel(), 14 - OX, 162, 13, link.via === 'p2p' ? '#5CFF7A' : '#ddd', 'left', 200);

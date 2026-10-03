@@ -269,7 +269,39 @@ const api = {
     const sr = await call('GET', COLL + 'scores/records?' + qs({ filter: `(user='${esc(u.id)}')`, perPage: 100, fields: 'stage,score,stars' }));
     if (sr.ok) for (const it of sr.data.items || []) if (it.stage >= 0 && it.stage < p.best.length) { p.best[it.stage] = Math.max(p.best[it.stage], it.score | 0); p.stars[it.stage] = Math.max(p.stars[it.stage], it.stars | 0); }
     const ranks = await Promise.all(p.best.map((b, i) => b > 0 ? stageRank(i, b) : null));
-    return { ok: true, status: 200, data: { username: u.username, color: u.color, joined: u.created, unlocked: p.unlocked, stars: p.stars, best: p.best, total, totalStars: sum(p.stars), rank: await rankP, stageRanks: ranks } };
+    return { ok: true, status: 200, data: { uid: u.id, username: u.username, color: u.color, joined: u.created, unlocked: p.unlocked, stars: p.stars, best: p.best, total, totalStars: sum(p.stars), rank: await rankP, stageRanks: ranks } };
   },
+  /* ---- friends = follows (two follows pointing at each other = mutual friends) ---- */
+  /* { ok, data:{ list:[{uid, username, color, total, following, followsMe, rec}] } }; `rec` = my follow row id (to unfollow) */
+  async friends() {
+    if (!net.user) return { ok: false, status: 401, data: { error: 'Not signed in' } };
+    const uid = net.user.id, f = 'id,from,to,expand.from.username,expand.from.color,expand.from.total,expand.to.username,expand.to.color,expand.to.total';
+    const [a, b] = await Promise.all([
+      call('GET', COLL + 'friends/records?' + qs({ filter: `(from='${esc(uid)}')`, expand: 'to', perPage: 200, sort: '-created', fields: f })),
+      call('GET', COLL + 'friends/records?' + qs({ filter: `(to='${esc(uid)}')`, expand: 'from', perPage: 200, sort: '-created', fields: f }))
+    ]);
+    if (!a.ok) return a;
+    if (!b.ok) return b;
+    const m = new Map(), put = (id, u, patch) => {
+      const cur = m.get(id) || { uid: id, username: '?', color: '#9a98ad', total: 0, following: false, followsMe: false, rec: '' };
+      m.set(id, Object.assign(cur, { username: u.username || cur.username, color: u.color || cur.color, total: u.total | 0 }, patch));
+    };
+    for (const it of a.data.items || []) put(it.to, (it.expand && it.expand.to) || {}, { following: true, rec: it.id });
+    for (const it of b.data.items || []) put(it.from, (it.expand && it.expand.from) || {}, { followsMe: true });
+    return { ok: true, status: 200, data: { list: [...m.values()] } };
+  },
+  /* exact (case-insensitive) username lookup -> { ok, data:{ uid, username } } */
+  async findUser(name) {
+    if (!/^[A-Za-z0-9_-]{1,32}$/.test(name)) return { ok: false, status: 404, data: { error: 'No such player' } };
+    const r = await call('GET', COLL + 'users/records?' + qs({ filter: `(username~'${esc(name)}')`, perPage: 20, fields: 'id,username' }));
+    if (!r.ok) return r;
+    const u = (r.data.items || []).find(x => x.username.toLowerCase() === name.toLowerCase());
+    return u ? { ok: true, status: 200, data: { uid: u.id, username: u.username } } : { ok: false, status: 404, data: { error: 'No such player' } };
+  },
+  async follow(uid) {
+    if (!net.user) return { ok: false, status: 401, data: { error: 'Not signed in' } };
+    return call('POST', COLL + 'friends/records', { from: net.user.id, to: uid });
+  },
+  async unfollow(rec) { return call('DELETE', COLL + 'friends/records/' + rec); },
   flushQueue
 };

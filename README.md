@@ -53,6 +53,8 @@ You get a few seconds per game and a one-word command: **SWAT!**, **JUMP!**, **T
 
 Create a room, share the 4-letter code (or the `/r/CODE` link) and play live. Three modes: **VERSUS** (same microgame, best takes the points), **TEAM** (shared lives) and **DUO**: two players inside *one* microgame with different roles (catch & throw, decode, lever & crank, steer & boost) who win or lose together. DUO needs the PocketBase backend (inputs are relayed live through `POST /api/party/sig`); tests: `node pocketbase/pb_hooks/party.test.js`, `node test/duo.test.js` (bots play both roles headlessly) and `PB=http://127.0.0.1:8090 node test/party.e2e.js` against a running server.
 
+**Friends list.** Signed-in players can follow each other (profile → FOLLOW, or ADD by player name in *MY FRIENDS*). Following someone who follows you back makes you friends; the list has FRIENDS / FOLLOWING / FOLLOWERS tabs. Follows live in the `friends` collection (migration `1790901000_friends.js`, visible only to the two people involved, max 200 follows); test: `PB=http://127.0.0.1:8099 ADMIN=email:password node test/friends.e2e.js` (needs a local superuser, see the file header).
+
 ## 💡 Want a minigame that isn't here yet?
 
 **This game grows with its players.** Every microgame is one small JavaScript function, so adding yours is a very approachable first contribution, even if you have never contributed to open source before.

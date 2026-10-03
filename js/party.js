@@ -79,6 +79,7 @@ async function partyPoll() {
 
 /* ───────────── entering / leaving ───────────── */
 function goParty(from) {
+  if (net.user && !fr.list) loadFriends();
   party.from = from || state; party.view = 'menu'; party.msg = ''; party.busy = false;
   if (party.room) { state = 'party'; st = 0; party.view = roomView(); return; }   // still in a room (e.g. came back to the title): resume it
   state = 'party'; st = 0; mode = 'stage';
@@ -268,8 +269,10 @@ function drawParty() {
 }
 
 function drawPartyMenu() {
-  txt('PLAY WITH FRIENDS', W / 2, 46, 44, '#FFE14D', 'center', 700);
+  txt('PLAY WITH FRIENDS', W / 2, 46, 44, '#FFE14D', 'center', 430);
   button(14, 10, 130, 56, '◄ BACK', () => { goTitle(); }, { size: 22 });
+  button(W + OX - 204, 10, 190, 56, 'MY FRIENDS', goFriends, { size: 20, fill: '#B49CFF' });
+  if (net.user && frPending() > 0) { circ(W + OX - 20, 14, 14, '#FF4D4D', 3); txt(String(frPending()), W + OX - 20, 15, 15, '#fff'); }
   txt('LIVE 5-SECOND MICROGAMES · 2-4 PLAYERS', W / 2, 108, 22, '#fff', 'center', 740);
   button(200, 150, 400, 92, 'CREATE ROOM', partyCreate, { fill: '#5CFF7A', size: 36 });
   txt('OR JOIN WITH A CODE', W / 2, 290, 24, '#fff');

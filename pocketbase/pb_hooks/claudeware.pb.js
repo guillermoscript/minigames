@@ -17,6 +17,13 @@ onRecordAuthWithOAuth2Request((e) => { require(`${__hooks}/lib.js`).onOAuth2(e);
 onRecordCreateRequest((e) => { require(`${__hooks}/lib.js`).checkUser(e.record, true); e.next(); }, "users");
 onRecordUpdateRequest((e) => { require(`${__hooks}/lib.js`).checkUser(e.record, false); e.next(); }, "users");
 
+// friends (follows): cap how many people one account can follow
+onRecordCreateRequest((e) => {
+  const n = $app.countRecords("friends", $dbx.hashExp({ from: e.record.get("from") }));
+  if (n >= 200) throw new BadRequestError("You can follow up to 200 players");
+  e.next();
+}, "friends");
+
 // shared challenge links: /c/<score>/<stage>[/<name>] serves a personalised link preview, then redirects into the game
 routerAdd("GET", "/c/{score}/{stage}", (e) => require(`${__hooks}/lib.js`).challengePage(e));
 routerAdd("GET", "/c/{score}/{stage}/{name}", (e) => require(`${__hooks}/lib.js`).challengePage(e));

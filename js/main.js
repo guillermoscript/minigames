@@ -119,11 +119,13 @@ function syncMusic() {
   if (!want) stopMusic(); else startMusic(want[1], want[2], want[0]);
 }
 /* profile / leaderboard UI state */
-let from = { profile: 'menu', board: 'menu', pview: 'menu' };
+let from = { profile: 'menu', board: 'menu', pview: 'menu', friends: 'party' };
 let pf = { avail: 'loading', busy: false, msg: '', msgCol: '#FF4D4D' };   // Google sign-in screen
 let rn = { on: false, busy: false, msg: '' };                              // CHANGE NAME dialog
 let lb = { tab: 0, page: 0, cache: {} };
 let pv = { name: '', data: null, err: '', loading: false };
+let fr = { tab: 0, page: 0, list: null, loading: false, err: '', add: false, busy: false, msg: '' };   // friends (follows)
+const inFriend = document.getElementById('in-friend');
 const PER_TABS = 6;
 const inName = document.getElementById('in-name'), ov = document.getElementById('ov');
 
@@ -143,6 +145,7 @@ function checkSignIn() {
 }
 function openProfile(name) {
   if (state !== 'pview' && state !== 'profile') from.pview = state;
+  if (net.user && !fr.list) loadFriends();
   track('profile_view', { own: !!net.user && net.user.username === name }); rn.on = false; state = 'pview'; st = 0; pv = { name, data: null, err: '', loading: true };
   api.profile(name).then(r => { if (pv.name !== name) return; pv.loading = false; if (r.ok) pv.data = r.data; else pv.err = r.status === 404 ? 'NO SUCH PLAYER' : 'CAN\'T REACH SERVER'; });
 }
@@ -161,6 +164,8 @@ function back() {
   if (state === 'profile') { state = from.profile; }
   else if (state === 'board') { state = from.board; }
   else if (state === 'pview') { state = from.pview; if (state === 'board') st = 1; }
+  else if (state === 'friends') { state = from.friends; if (state === 'party') party.view = party.room ? roomView() : 'menu'; }
+  if (state === 'friends') loadFriends();
   if (state === 'board') loadBoard(lb.tab);
   st = 0;
 }
@@ -181,7 +186,7 @@ async function doGoogle() {
   }
   OP.identify(r.data.user); track('sign_in', { is_new: !!r.data.isNew });
   await syncProgress(r.data.progress);
-  lb.cache = {};
+  lb.cache = {}; fr.list = null;
   if (r.data.isNew) { say('WELCOME! PICK A NAME & COLOUR', '#5CFF7A'); openProfile(r.data.user.username); }
   else { say(t('WELCOME BACK, {name}!', { name: r.data.user.username.toUpperCase() })); state = from.profile === 'profile' ? 'menu' : from.profile; st = 0; }
 }
@@ -200,12 +205,50 @@ async function doRename() {
   closeRename(); lb.cache = {}; say('NAME CHANGED!');
   openProfile(net.user.username);
 }
-async function doLogout() { closeRename(); await api.logout(); runRank = null; lb.cache = {}; say('LOGGED OUT', '#FFE14D'); state = 'menu'; st = 0; }
+async function doLogout() { closeRename(); fr.list = null; await api.logout(); runRank = null; lb.cache = {}; say('LOGGED OUT', '#FFE14D'); state = 'menu'; st = 0; }
 function pickColor(c) {
   if (net.user && state === 'pview' && pv.name === net.user.username) {
     api.setColor(c).then(r => { if (r.ok) { if (pv.data) pv.data.color = c; lb.cache = {}; } else say('COULD NOT SAVE COLOUR', '#FF4D4D'); });
     net.user.color = c; if (pv.data) pv.data.color = c;
   }
+}
+
+/* ───────────── friends: follow players; two follows pointing at each other = friends ───────────── */
+const FR_PER = 6, FR_TABS = ['FRIENDS {n}', 'FOLLOWING {n}', 'FOLLOWERS {n}'];
+const frRel = uid => (fr.list || []).find(f => f.uid === uid);
+const frOf = tab => (fr.list || []).filter(f => tab === 0 ? f.following && f.followsMe : tab === 1 ? f.following : f.followsMe).sort((a, b) => b.total - a.total || a.username.localeCompare(b.username));
+const frPending = () => (fr.list || []).filter(f => f.followsMe && !f.following).length;   // people who follow me and I don't follow back
+function loadFriends() {
+  if (!net.user || fr.loading) return Promise.resolve();
+  fr.loading = true; fr.err = '';
+  return api.friends().then(r => { fr.loading = false; if (r.ok) fr.list = r.data.list; else fr.err = r.status === 0 ? 'CAN\'T REACH SERVER' : (r.data.error || 'ERROR').toUpperCase(); });
+}
+function goFriends() {
+  if (state !== 'pview') from.friends = state;
+  track('friends_view', { signed_in: !!net.user }); state = 'friends'; st = 0; fr.page = 0; fr.add = false; fr.msg = ''; loadFriends();
+}
+async function followToggle(uid, name) {
+  if (fr.busy) return; fr.busy = true;
+  const rel = frRel(uid), un = !!(rel && rel.following);
+  const r = un ? await api.unfollow(rel.rec) : await api.follow(uid);
+  fr.busy = false;
+  if (!r.ok && !(r.status === 404 && un)) { say(r.status === 0 ? 'CAN\'T REACH SERVER' : r.status === 429 ? 'SLOW DOWN' : (r.data.error || 'ERROR').toUpperCase(), '#FF4D4D'); return; }
+  track(un ? 'unfollow' : 'follow', {});
+  await loadFriends();
+  say(t(un ? 'UNFOLLOWED {name}' : 'FOLLOWING {name}!', { name: String(name).toUpperCase() }), un ? '#FFE14D' : '#5CFF7A');
+}
+function openAddFriend() { fr.add = true; fr.msg = ''; inFriend.value = ''; setTimeout(() => inFriend.focus(), 0); }
+function closeAddFriend() { fr.add = false; inFriend.blur(); }
+async function doAddFriend() {
+  if (fr.busy) return;
+  const n = inFriend.value.trim();
+  if (!/^[A-Za-z0-9_-]{3,16}$/.test(n)) { fr.msg = 'NAME: 3-16 LETTERS, NUMBERS, _ -'; return; }
+  if (net.user && n.toLowerCase() === net.user.username.toLowerCase()) { fr.msg = 'THAT\'S YOU!'; return; }
+  fr.busy = true; fr.msg = 'ONE MOMENT...';
+  const u = await api.findUser(n);
+  fr.busy = false;
+  if (!u.ok) { fr.msg = u.status === 0 ? 'CAN\'T REACH SERVER' : 'NO SUCH PLAYER'; return; }
+  closeAddFriend(); openProfile(u.data.username);
 }
 
 /* three.js (590 KB) is only for the 3D stage's games: fetched when a 3D game is about to be needed, not at page load */
@@ -358,13 +401,14 @@ function googleG(cx, cy, r, grey) {
   ctx.restore();
 }
 function placeInputs() {
-  const showName = state === 'pview' && rn.on && !!net.user, showCode = state === 'party' && party.view === 'menu';
-  ov.style.display = showName || showCode ? 'block' : 'none';
-  inName.style.display = showName ? 'block' : 'none'; inCode.style.display = showCode ? 'block' : 'none';
-  if (!showName && !showCode) return;
+  const showName = state === 'pview' && rn.on && !!net.user, showCode = state === 'party' && party.view === 'menu', showFriend = state === 'friends' && fr.add && !!net.user;
+  ov.style.display = showName || showCode || showFriend ? 'block' : 'none';
+  inName.style.display = showName ? 'block' : 'none'; inCode.style.display = showCode ? 'block' : 'none'; inFriend.style.display = showFriend ? 'block' : 'none';
+  if (!showName && !showCode && !showFriend) return;
   const r = cv.getBoundingClientRect(), k = r.width / VW;
   const put = (el, x, y, w, h) => { const s = el.style; s.left = r.left + (x + OX) * k + 'px'; s.top = r.top + y * k + 'px'; s.width = w * k + 'px'; s.height = h * k + 'px'; s.fontSize = h * k * .5 + 'px'; };
   if (showName) put(inName, 200, 262, 400, 52);
+  else if (showFriend) put(inFriend, 200, 262, 400, 52);
   else put(inCode, 200, 322, 260, 64);
 }
 function hintOf(g) {
@@ -649,6 +693,53 @@ function render() {
     } else txt('LOADING...', W / 2, 320, 36, '#fff');
     if (!TOUCH) txt('◄ ► TAB · ESC BACK', W + OX - 12, 584, 14, '#ddd', 'right');
     if (!net.user && !c.err) button(W + OX - 184, 10, 170, 56, 'PROFILE', goProfile, { size: 22, fill: '#5CFF7A' });
+  } else if (state === 'friends') {
+    bg('#1f2a44', '#26335a', now);
+    txt('FRIENDS', W / 2, 38, 44, '#FFE14D');
+    button(14 - OX, 10, 130, 56, '◄ BACK', back, { size: 22 });
+    if (!net.user) {
+      claude(W / 2, 215, 6, { mood: 'happy' });
+      txt('SIGN IN WITH GOOGLE TO FOLLOW PLAYERS', W / 2, 290, 26, '#fff', 'center', 740);
+      txt('FOLLOW EACH OTHER = FRIENDS', W / 2, 328, 20, '#ddd', 'center', 740);
+      button(250, 380, 300, 64, 'PROFILE', goProfile, { fill: '#5CFF7A', size: 28 });
+    } else {
+      button(W + OX - 184, 10, 170, 56, 'ADD', openAddFriend, { size: 22, fill: '#5CFF7A' });
+      for (let i = 0; i < 3; i++) button(40 + i * 245, 80, 235, 52, t(FR_TABS[i], { n: fr.list ? frOf(i).length : '-' }), () => { fr.tab = i; fr.page = 0; }, { size: 20, fill: i === fr.tab ? '#FFE14D' : '#fff' });
+      const list = frOf(fr.tab), pages = pageCount(list.length, FR_PER);
+      if (fr.list) {
+        if (!list.length) {
+          txt(fr.tab === 0 ? 'NO FRIENDS YET' : fr.tab === 1 ? 'YOU\'RE NOT FOLLOWING ANYONE' : 'NOBODY FOLLOWS YOU YET', W / 2, 280, 30, '#fff', 'center', 740);
+          txt('PRESS ADD OR OPEN SOMEONE\'S PROFILE FROM THE LEADERBOARD', W / 2, 322, 18, '#ddd', 'center', 740);
+        }
+        list.slice(fr.page * FR_PER, fr.page * FR_PER + FR_PER).forEach((f, i) => {
+          const y = 150 + i * 56, act = fr.tab === 2 && !f.following, w = act ? 560 : 720, mut = f.following && f.followsMe;
+          box(40, y, w, 50, i % 2 ? '#35406a' : '#2c3659', 3);
+          claude(80, y + 46, 2.2, { col: f.color });
+          ctx.save(); txt(f.username, 112, y + 25, 22, f.color, 'left', 250); ctx.restore();
+          txt(mut ? '✓ FRIENDS' : f.following ? 'FOLLOWING' : 'FOLLOWS YOU', 395, y + 25, 16, mut ? '#5CFF7A' : f.following ? '#FFE14D' : '#ddd', 'left', 140);
+          txt(String(f.total), 40 + w - 12, y + 25, 20, '#fff', 'right');
+          btns.push({ x: 40, y, w, h: 50, fn: () => openProfile(f.username) });
+          if (act) button(610, y, 150, 50, 'FOLLOW BACK', () => followToggle(f.uid, f.username), { size: 16, fill: '#5CFF7A' });
+        });
+        if (pages > 1) {
+          button(40, 530, 90, 50, '◄', () => { fr.page = (fr.page + pages - 1) % pages; }, { size: 24, fill: '#FFE14D' });
+          button(670, 530, 90, 50, '►', () => { fr.page = (fr.page + 1) % pages; }, { size: 24, fill: '#FFE14D' });
+          txt(t('PAGE {n}/{total}', { n: fr.page + 1, total: pages }), W / 2, 556, 18, '#fff');
+        }
+      } else if (fr.err) {
+        txt(fr.err, W / 2, 300, 30, '#FF4D4D', 'center', 740);
+        button(300, 340, 200, 56, 'RETRY', loadFriends, { size: 24, fill: '#FFE14D' });
+      } else txt('LOADING...', W / 2, 320, 36, '#fff');
+      if (fr.add) {
+        btns = []; ctx.fillStyle = 'rgba(10,8,24,.8)'; ctx.fillRect(-OX, 0, VW, H);
+        box(150, 150, 500, 300, '#2b2757', 6);
+        txt('ADD A FRIEND', W / 2, 195, 40, '#FFE14D');
+        txt('TYPE THEIR PLAYER NAME', W / 2, 232, 17, '#ddd');
+        button(215, 340, 170, 52, fr.busy ? '...' : 'FIND', doAddFriend, { size: 24, fill: '#5CFF7A' });
+        button(415, 340, 170, 52, 'CANCEL', closeAddFriend, { size: 24 });
+        if (fr.msg) txt(fr.msg, W / 2, 418, 18, fr.msg === 'ONE MOMENT...' ? '#fff' : '#FF4D4D', 'center', 470);
+      }
+    }
   } else if (state === 'pview') {
     bg('#2b2757', '#322d66', now);
     button(14 - OX, 10, 130, 56, '◄ BACK', back, { size: 22 });
@@ -659,7 +750,14 @@ function render() {
     } else {
       claude(110, 215, 8, { col: d.color, mood: 'happy' });
       txt(d.username, 210, 110, 52, d.color, 'left', 560);
-      txt(d.rank ? t('RANK #{rank} · TOTAL {total}', { rank: d.rank, total: d.total }) : 'NOT RANKED YET', 210, 165, 28, '#fff', 'left', 580);
+      txt(d.rank ? t('RANK #{rank} · TOTAL {total}', { rank: d.rank, total: d.total }) : 'NOT RANKED YET', 210, 165, 28, '#fff', 'left', 370);
+      if (me) button(590, 150, 190, 50, 'FRIENDS', goFriends, { size: 22, fill: '#5CFF7A' });
+      else if (!net.user) button(560, 150, 220, 50, 'SIGN IN TO FOLLOW', goProfile, { size: 16, fill: '#FFE14D' });
+      else if (fr.list) {
+        const rl = frRel(d.uid), fol = !!(rl && rl.following), mut = fol && rl.followsMe;
+        button(590, 150, 190, 50, fr.busy ? '...' : mut ? '✓ FRIENDS' : fol ? 'FOLLOWING' : rl && rl.followsMe ? 'FOLLOW BACK' : 'FOLLOW', () => followToggle(d.uid, d.username), { size: 22, fill: fol ? '#FFE14D' : '#5CFF7A' });
+        if (rl && rl.followsMe && !fol) txt('FOLLOWS YOU', 685, 238, 15, '#5CFF7A', 'center', 190);
+      }
       stars3(260, 210, Math.min(3, Math.round(d.totalStars / (STAGES.length * 3) * 3)), 18, 48);
       txt(t('{stars}/{max} STARS · {unlocked}/{stages} UNLOCKED', { stars: d.totalStars, max: STAGES.length * 3, unlocked: d.unlocked, stages: STAGES.length }), 340, 210, 18, '#ddd', 'left', 440);
       const cw = 146, ch = 112;
@@ -700,6 +798,7 @@ function render() {
 addEventListener('keydown', e => {
   if (e.target && e.target.tagName === 'INPUT') { // typing in a profile field: don't leak keys into the game
     if (e.target.id === 'in-code') { if (e.code === 'Enter') { e.preventDefault(); joinTyped(); } else if (e.code === 'Escape') e.target.blur(); return; }
+    if (e.target.id === 'in-friend') { if (e.code === 'Enter') { e.preventDefault(); doAddFriend(); } else if (e.code === 'Escape') closeAddFriend(); return; }
     if (e.code === 'Enter') { e.preventDefault(); doRename(); }
     else if (e.code === 'Escape') closeRename();
     return;
@@ -714,11 +813,12 @@ addEventListener('keydown', e => {
   if (e.code === 'Escape') {
     if (sh.on) { sh.on = false; return; }
     if (rn.on) { closeRename(); return; }
+    if (fr.add && state === 'friends') { closeAddFriend(); return; }
     if (mode === 'party' && (state === 'play' || (state === 'party' && party.view !== 'menu' && party.view !== 'lobby'))) return;   // no accidental leaving mid-match
     if (state === 'party') { party.view === 'lobby' ? partyLeave('menu') : goTitle(); return; }
     if (state === 'play' || state === 'inter' || state === 'stagein') exitPlay();
     else if (state === 'menu') goTitle(); else if (state === 'practice') goMenu();
-    else if (state === 'profile' || state === 'board' || state === 'pview') back();
+    else if (state === 'profile' || state === 'board' || state === 'pview' || state === 'friends') back();
     return;
   }
   if (state === 'title' && go) titleGo();
@@ -797,7 +897,7 @@ function loop(ts) {
   const dt = Math.min(.05, (ts - lastTs) / 1000 || 0); lastTs = ts; now += dt; lastDt = dt;
   update(dt); updateFx(dt); syncMusic();
   if (state !== lastState) {                              // screen-change whoosh (not on every microgame)
-    if (['stagein', 'menu', 'practice', 'profile', 'board', 'pview', 'party'].includes(state) || (state === 'inter' && mode === 'stage')) sfx.whoosh(true);
+    if (['stagein', 'menu', 'practice', 'profile', 'board', 'pview', 'party', 'friends'].includes(state) || (state === 'inter' && mode === 'stage')) sfx.whoosh(true);
     lastState = state;
   }
   ctx.setTransform(1, 0, 0, 1, OX, 0); ctx.save(); applyShake(dt); render(); drawFx(); if (sh.on) drawShareMenu(); ctx.restore();

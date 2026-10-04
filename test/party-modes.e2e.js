@@ -4,6 +4,7 @@
 const assert = require('node:assert/strict');
 const base = process.env.PB || 'http://127.0.0.1:8099';
 const post = async (action, data) => { const response = await fetch(base + '/api/party/' + action, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }); return { status: response.status, data: await response.json() }; };
+const { PRE_MS_TURN } = require('../pocketbase/pb_hooks/party.js');
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function setup(mode, count = 2) {
   let result = await post('create', { name: 'Modes A', mode }); assert.equal(result.status, 200);
@@ -25,9 +26,9 @@ async function setup(mode, count = 2) {
   const balloon = await setup('balloon', 4);
   try {
     let result = await balloon.call('pump', 0, { round: 0, count: 8 }); assert.equal(result.status, 403);
-    await sleep(2300);
+    await sleep(PRE_MS_TURN + 810);
     let room = balloon.room;
-    for (let i = 0; room.state === 'round' && i < 16; i++) {
+    for (let i = 0; room.state === 'round' && i < 24; i++) {
       for (const seat of [1, 2, 3]) {
         result = await balloon.call('pump', seat, { round: 0, count: 8 });
         if (result.status === 409) break;

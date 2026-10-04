@@ -327,7 +327,12 @@ function sigPayload(room, id, round, m) {
   const p = player(room, id);
   if (!p || p.left || (elimination(room) && p.lives <= 0)) fail("Not in this round", 403);
   if (!Array.isArray(m) || !m.length || m.length > SIG_COUNT) fail("Bad message", 400);
-  const out = m.map((x) => ({ t: String((x && x.t) || "").slice(0, 12), d: x && x.d !== undefined ? x.d : null }));
+  const out = m.map((x) => {
+    const o = { t: String((x && x.t) || "").slice(0, 12), d: x && x.d !== undefined ? x.d : null };
+    if (x && Number.isSafeInteger(x.n) && x.n > 0) { o.n = x.n; o.l = x.l === true;
+      if (typeof x.v === "string" && /^[a-z0-9]{1,24}$/.test(x.v)) o.v = x.v; }
+    return o;
+  });
   let hasFrame = false;
   for (const x of out) {
     if (x.t === "frame") {
@@ -337,7 +342,7 @@ function sigPayload(room, id, round, m) {
       continue;
     }
     if (room.mode === "duo") continue; // Preserve the DUO games' existing custom relay inputs.
-    if (x.t === "hb" || x.t === "ping" || x.t === "pong") continue;
+    if (x.t === "hb" || x.t === "ping" || x.t === "pong" || x.t === "_net_ping" || x.t === "_net_pong") continue;
     if (!turnMode(room)) fail("Inputs unavailable in this mode", 409);
     if (id === room.extra.actor) {
       if (room.mode === "lantern" && ["move", "down", "up", "key", "keyup"].includes(x.t)) {

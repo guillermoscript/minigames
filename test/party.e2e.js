@@ -44,9 +44,10 @@ const ok=(c,m)=>{if(!c){console.log('FAIL',m);process.exitCode=1}else console.lo
  const sg=(who,round,m)=>post('sig',{code:dcode,id:who.id,key:who.key,round,m});
  ok((await sg(dA,0,[{t:'x',d:1}])).s===409,'sig before the round starts -> 409');
  ok((await post('start',{code:dcode,id:'a',key:dA.key})).j.room.state==='round','duo start');
- const s1=await sg(dA,0,[{t:'bx',d:123},{t:'drop',d:{id:1,x:50}}]); ok(s1.s===200&&s1.j.n>=1,'sig relayed to '+s1.j.n+' subscriber(s)');
+ const s1=await sg(dA,0,[{t:'bx',d:123,n:1,l:true},{t:'drop',d:{id:1,x:50},n:2,l:false}]); ok(s1.s===200&&s1.j.n>=1,'sig relayed to '+s1.j.n+' subscriber(s)');
  await new Promise(r=>setTimeout(r,500));
  ok(got.B.length===1&&got.B[0].from==='a'&&got.B[0].round===0&&got.B[0].m.length===2&&got.B[0].m[0].t==='bx'&&got.B[0].m[0].d===123,'partner B received the batch in order: '+JSON.stringify(got.B[0]||null).slice(0,120));
+ ok(got.B[0].m[0].n===1&&got.B[0].m[0].l===true&&got.B[0].m[1].n===2&&got.B[0].m[1].l===false,'relay preserves retry identities and latest-state flags');
  await sg(dB,0,[{t:'end',d:'win'}]); await new Promise(r=>setTimeout(r,400));
  ok(got.A.some(x=>x.from==='b'&&x.m[0].t==='end'),'partner A received B\'s message');
  ok((await sg({id:'a',key:'bad'},0,[{t:'x'}])).s===403,'sig with a bad key -> 403');
@@ -57,11 +58,11 @@ const ok=(c,m)=>{if(!c){console.log('FAIL',m);process.exitCode=1}else console.lo
  const dr=await (await fetch(B+'/api/collections/rooms/records/'+did)).json(); ok(!('keys' in dr),'duo room record still hides keys');
  ok(!JSON.stringify(dr).includes('"bx"'),'inputs are not stored in the room record');
  ok((await post('start',{code:dcode,id:'a',key:dA.key})).s===409,'cannot restart a running room');
- // rate limit: /api/party/sig has its own rule (1500/min per IP); the generic /api/ rule (600/min) must not hit it
+ // rate limit: /api/party/sig has its own rule (7200/min per IP); the generic /api/ rule (600/min) must not hit it
  let limited=0,passed=0; const t0=Date.now(); for(let i=0;i<700;i++){const r=await fetch(B+'/api/party/sig',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:dcode,id:'a',key:dA.key,round:0,m:[{t:'p',d:i}]})}); if(r.status===429)limited++; else passed++; }
  ok(limited===0&&passed===700,'700 sig requests in '+((Date.now()-t0)/1000).toFixed(1)+'s are not rate limited (own rule)');
- let lim2=0; for(let i=0;i<900;i++){const r=await fetch(B+'/api/party/sig',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:dcode,id:'a',key:dA.key,round:0,m:[{t:'p',d:i}]})}); if(r.status===429)lim2++; }
- ok(lim2>0,'sustained flooding past 1500/min is rate limited ('+lim2+' x 429)');
+ let lim2=0; for(let i=0;i<6600;i++){const r=await fetch(B+'/api/party/sig',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:dcode,id:'a',key:dA.key,round:0,m:[{t:'p',d:i}]})}); if(r.status===429)lim2++; }
+ ok(lim2>0,'sustained flooding past 7200/min is rate limited ('+lim2+' x 429)');
  // ---- voice-chat signaling (/api/party/vsig): valid in any room state, only for members ----
  const vs=(who,body)=>post('vsig',Object.assign({code:dcode,id:who.id,key:who.key},body));
  ok((await vs(dA,{to:'*',k:'hello'})).s===200,'vsig hello accepted');

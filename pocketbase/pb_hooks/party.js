@@ -137,6 +137,7 @@ function start(room, id, now, rand) {
   room.players.forEach((p) => { p.score = 0; p.lives = room.mode === "knockout" ? 1 : 3; });
   room.extra = {};
   delete room.keys._gameBag;
+  delete room.keys._roomGameBag;
   if (turnMode(room)) {
     room.extra.actor = active(room)[0].id;
     if (room.mode === "lantern") room.lives = 3;
@@ -164,9 +165,21 @@ function takeTurnGame(room, rand) {
   }
   return room.keys._gameBag.pop();
 }
+// Shared room modes use a shuffled bag too, so every catalog game appears before a repeat.
+// Keep using the existing per-round picker when fewer than two games are available.
+function takeRoomGame(room, rand, ids) {
+  const prev = room.game;
+  if (!Array.isArray(room.keys._roomGameBag) || !room.keys._roomGameBag.length) {
+    const bag = ids.slice();
+    for (let i = bag.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [bag[i], bag[j]] = [bag[j], bag[i]]; }
+    if (bag.length > 1 && bag[bag.length - 1] === prev) [bag[0], bag[bag.length - 1]] = [bag[bag.length - 1], bag[0]];
+    room.keys._roomGameBag = bag;
+  }
+  return room.keys._roomGameBag.pop();
+}
 function beginRound(room, now, rand) {
-  const prev = room.game, ids = room.mode === "duo" ? DUO_IDS : GAME_IDS, pool = ids.filter((g) => g !== prev);
-  room.game = room.mode === "cards" ? (room.extra.phase === "draw" ? "pc_draw" : room.extra.remaining[0]) : turnMode(room) ? takeTurnGame(room, rand) : pool[Math.floor(rand() * pool.length)];
+  const ids = room.mode === "duo" ? DUO_IDS : GAME_IDS;
+  room.game = room.mode === "cards" ? (room.extra.phase === "draw" ? "pc_draw" : room.extra.remaining[0]) : turnMode(room) ? takeTurnGame(room, rand) : takeRoomGame(room, rand, ids);
   room.seed = 1 + Math.floor(rand() * 2147483646);
   room.sp = +(1 + Math.min(room.round, 12) * 0.07).toFixed(2);
   room.state = "round"; room.roundAt = now; room.cur = {};

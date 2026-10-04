@@ -40,6 +40,11 @@ for (const mode of ['lantern', 'balloon']) {
   for (let i = 0; i < 3; i++) assert.equal(new Set(seen.slice(i * 156, (i + 1) * 156)).size, 156);
   assert.ok(!('keys' in P.publicRoom(room)));
 }
+for (const mode of ['versus', 'team', 'survival', 'knockout']) {
+  const room = make(mode), seen = [room.game];
+  for (let i = 1; i < P.GAME_IDS.length * 3; i++) { room.game = P.takeRoomGame(room, rand, P.GAME_IDS); assert.notEqual(room.game, seen.at(-1)); seen.push(room.game); }
+  for (let i = 0; i < 3; i++) assert.equal(new Set(seen.slice(i * P.GAME_IDS.length, (i + 1) * P.GAME_IDS.length)).size, P.GAME_IDS.length);
+}
 for (let i = 0; i < 10; i++) {
   const room = make('cards'), games = room.keys._deck.filter(id => id !== 'play');
   assert.equal(room.keys._deck.length, 24); assert.equal(games.length, 16); assert.equal(new Set(games).size, 16);

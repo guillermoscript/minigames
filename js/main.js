@@ -291,8 +291,8 @@ function beginGame() {
   } else if (played >= stage.n) {
     s = stage.sp0 + Math.floor(stage.n / 2) * .1; cur = BOSSES[stage.boss](s, stage); curId = 'boss:' + stage.boss; isBoss = true; dur = cur.dur;
   } else {
-    const pool = poolOf(stage); let id;
-    do { id = pool[Math.random() * pool.length | 0]; } while (recent.includes(id));
+    const pool = poolOf(stage), available = pool.filter(id => !recent.includes(id));
+    const id = available[Math.random() * available.length | 0];
     if (is3D(id) && typeof THREE === 'undefined') { loadThree().then(() => { if (state === 'inter') beginGame(); }); st = -99; return; }
     recent.push(id); if (recent.length > Math.min(6, pool.length - 2)) recent.shift();
     s = speed(); cur = REGMAP[id].fn(s); curId = id; isBoss = false; dur = cur.dur / Math.sqrt(s); I18N.scope = I18N.scopeOf(curId);

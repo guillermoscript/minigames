@@ -5,6 +5,8 @@
    permission is asked until the player turns the mic on. Everything fails soft; the game never depends on it.
    Only STUN is configured: players behind very strict networks may not connect (a TURN server would fix that). */
 const VOICE_ICE = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }];
+// Deployments can supply temporary TURN credentials before opening a connection.
+const rtcIceServers = () => Array.isArray(window.CLAUDEWARE_ICE_SERVERS) && window.CLAUDEWARE_ICE_SERVERS.length ? window.CLAUDEWARE_ICE_SERVERS : VOICE_ICE;
 const voice = { on: false, muted: false, busy: false, stream: null, peers: {}, mutedBy: {}, talkAt: {}, an: {}, ac: null };
 const vnow = () => performance.now() / 1000;
 const vsend = (to, k, d) => { if (party.room && party.you) pcall('vsig', Object.assign(auth(), { to, k, d })); };
@@ -80,7 +82,7 @@ function closePeer(id) {
 }
 function peerOf(id) {
   let p = voice.peers[id]; if (p) return p;
-  const pc = new RTCPeerConnection({ iceServers: VOICE_ICE });
+  const pc = new RTCPeerConnection({ iceServers: rtcIceServers() });
   p = voice.peers[id] = { pc, offered: false, pend: [], audio: null };
   if (voice.stream) voice.stream.getTracks().forEach(tr => pc.addTrack(tr, voice.stream)); else pc.addTransceiver('audio', { direction: 'recvonly' });   // mic off: still hear the others
   pc.onicecandidate = e => { if (e.candidate) vsend(id, 'ice', e.candidate.toJSON ? e.candidate.toJSON() : e.candidate); };

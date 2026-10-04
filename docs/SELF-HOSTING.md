@@ -119,3 +119,13 @@ The stage count is 10 (indices 0..9). To change it, update all of:
 - on an already-deployed database, edit the `scores.stage` max and the `users.unlocked` max in the admin UI (`/_/` > Collections), because migrations only run once;
 - `pocketbase/pb_hooks/lib.js`: `STAGE_MAX` (and `SCORE_MAX` if per-stage max score changes);
 - `js/stages.js` in the frontend.
+
+## Multiplayer transport
+
+Rooms establish a WebRTC data mesh for up to four players, independently of microphone permission. When every peer is healthy, controls use unordered latest-state updates and reliable event delivery. If a peer is unavailable, HTTP/SSE relays controls instead. Screens use separate HTTP requests, so a slow screen upload cannot serialize local input behind it. JPEG encoding uses `toBlob` where available, with one encoder at a time and a 150 ms capture interval (300 ms when measured RTT exceeds 250 ms).
+
+Deploy the frontend and hooks together and restart PocketBase. Migration `1791150000_party_transport_rate.js` allows 7200 signal requests/minute per IP for four players sharing a network, plus 1200 WebRTC setup requests/minute. The generic API limit remains unchanged. Ensure the reverse proxy does not buffer `/api/realtime`.
+
+The default ICE configuration remains STUN. If your deployment already issues temporary TURN credentials, assign its `RTCIceServer[]` to `window.CLAUDEWARE_ICE_SERVERS` before connecting to a room; data and voice connections both use this configuration. Include STUN entries too if desired. Do not embed the TURN shared secret or permanent account credentials in static JavaScript. This change does not provision a TURN server or credential issuer; restrictive networks still fall back to HTTP/SSE until those are configured.
+
+Transport regression checks: `node test/party-network.test.js` and `node test/party-capture.test.js`. For a running isolated PocketBase, run `PB=http://127.0.0.1:8099 node test/party.e2e.js` and `PB=http://127.0.0.1:8099 node test/party-spectators.e2e.js`. These exercise the real relay and SSE broker; they do not replace latency measurements between real devices on Wi-Fi/mobile networks.

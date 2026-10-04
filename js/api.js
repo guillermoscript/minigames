@@ -164,9 +164,9 @@ const api = {
     const o = r.data.oauth2 || {}, g = o.enabled ? (o.providers || []).find(p => p.name === 'google' && p.authURL) : null;
     return { ok: true, status: 200, available: !!g, provider: g || null };
   },
-  /* Full flow. `popup` must be a blank window opened synchronously inside the click handler (popup blockers).
+  /* Full flow. Pass a popup for desktop, or a same-tab navigation callback on mobile.
      Resolves { ok, data:{ user, progress, isNew } } | { ok:false, cancelled?, unavailable?, data:{error} } */
-  async googleSignIn(popup) {
+  async googleSignIn(popup, navigate) {
     const closePopup = () => { try { popup && !popup.closed && popup.close(); } catch (e) {} };
     const fail = (msg, extra) => { closePopup(); return Object.assign({ ok: false, status: 0, data: { error: msg } }, extra); };
     const m = await api.authMethods();
@@ -181,7 +181,11 @@ const api = {
     const cleanup = () => { clearTimeout(timer); oauthWait = null; rt.close(); closePopup(); };
     try {
       const url = g.authURL.replace(/([?&])state=[^&]*/, '$1state=' + encodeURIComponent(rt.clientId)) + encodeURIComponent(redirectURL);
-      try { popup.location.href = url; } catch (e) { cleanup(); return fail('Could not open Google'); }
+      try {
+        if (navigate) navigate(url);
+        else if (popup) popup.location.href = url;
+        else { cleanup(); return fail('Could not open Google'); }
+      } catch (e) { cleanup(); return fail('Could not open Google'); }
       const ev = await Promise.race([evP, cancelled]);
       if (ev.cancelled) { cleanup(); return fail('Sign-in cancelled', { cancelled: true }); }
       cleanup();

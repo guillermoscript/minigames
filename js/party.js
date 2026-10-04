@@ -39,12 +39,13 @@ function partyIdentity() {
   return g;
 }
 async function pcall(action, body) {
+  const controller = new AbortController(), timer = setTimeout(() => controller.abort(), action === 'sig' ? 2500 : 10000);
   try {
     const h = { 'Content-Type': 'application/json' }; if (net.token) h.Authorization = net.token;
-    const r = await fetch(API_BASE + '/api/party/' + action, { method: 'POST', headers: h, body: JSON.stringify(body || {}) });
+    const r = await fetch(API_BASE + '/api/party/' + action, { method: 'POST', headers: h, signal: controller.signal, body: JSON.stringify(body || {}) });
     let j = {}; try { j = await r.json(); } catch (e) {}
     return { ok: r.ok, status: r.status, data: j };
-  } catch (e) { return { ok: false, status: 0, data: { error: 'Server unreachable' } }; }
+  } catch (e) { return { ok: false, status: 0, data: { error: 'Server unreachable' } }; } finally { clearTimeout(timer); }
 }
 const auth = () => ({ code: party.room.code, id: party.you.id, key: party.you.key });
 const me = () => party.room && party.you ? party.room.players.find(p => p.id === party.you.id) : null;
@@ -117,6 +118,7 @@ let PINVITE_USED = false;
 const inviteOpen = () => !!PINVITE && !PINVITE_USED;
 
 function partyCleanup() {
+  sigSeen.clear();
   voiceStop(false); linkClose(); link.tries = 0; link.tryFor = ''; partyDisconnect(); party.sig = { q: [], buf: [], busy: false, last: 0, hbAt: 0, round: -1, handler: null, rx: 0, since: 0 }; party.watch = { round: -1, frames: {}, target: null }; party.room = null; party.you = null; party.pending = null; party.played = -1; saveSession();
 }
 function partyLeave(to) {
@@ -140,7 +142,17 @@ addEventListener('pagehide', e => {
    Players of a DUO round exchange small input messages {t: type, d: data} through POST /api/party/sig; the server pushes them to the
    other player over the realtime connection (topic rooms/<id>/sig). One request in flight at a time keeps the order, and a message
    type sent with `latest` replaces an older queued one (positions), so slow links just send fewer, fresher updates. */
-const SIG_GAP = .1, SIG_HB = .5, SIG_AWAY = 2;
+const SIG_GAP = .05, SIG_HB = .5, SIG_AWAY = 2;
+let sigSequence = 0;
+const sigEpoch = Math.random().toString(36).slice(2, 10);
+const sigSeen = new Map();
+function sigStamp(m) { if (!m.n) { m.n = ++sigSequence; m.v = sigEpoch; } return m; }
+function sigRestore(S, batch, R) {
+  if (party.sig !== S || !party.room || party.room.id !== R.id || party.room.round !== R.round || party.room.state !== 'round' || S.round !== R.round) return false;
+  const retry = batch.filter(m => !m.l || !S.q.some(q => q.l && q.t === m.t));
+  S.q.unshift(...retry);
+  return true;
+}
 // Spectators receive images only: they never run a friend's game or submit its result.
 function partyReceiveFrame(from, data, round) {
   const R = party.room, p = R && R.players.find(p => p.id === from && !p.left);
@@ -163,19 +175,25 @@ function partySendFrame(data) {
   if (!R || R.state !== 'round' || R.mode === 'duo') return;              // DUO: both seats are playing and nobody else can be in the round, so no one watches; frames would only clog the input link
   if (S.round !== R.round) {
     if (R.mode === 'duo' || partyTurnMode(R)) return;
-    Object.assign(S, { q: [], buf: [], round: R.round, handler: null, last: 0, hbAt: now });
+    Object.assign(S, { q: [], buf: [], round: R.round, handler: null, busy: false, frameBusy: false, retryAt: 0, frameRetry: 0, last: 0, hbAt: now });
   }
   const old = S.q.find(m => m.t === 'frame' && m.l);
-  if (old) old.d = data;
+  if (old) { old.d = data; delete old.n; }
   else S.q.push({ t: 'frame', d: data, l: true });
 }
 function onSig(d) {
   const S = party.sig, R = party.room; if (!R || !d || !Array.isArray(d.m) || d.from === (party.you && party.you.id)) return;
   S.rx = now;
   d = Object.assign({}, d, { m: d.m.filter(m => {                                // hb / ping / pong are ours, not the game's
+    if (Number.isSafeInteger(m.n) && m.n > 0) {
+      const key = d.from + ':' + d.round + ':' + (m.v || '') + ':' + (m.l ? m.t : m.n);
+      if (sigSeen.has(key) && (!m.l || sigSeen.get(key) >= m.n)) return false;
+      sigSeen.set(key, m.n);
+      if (sigSeen.size > 1024) sigSeen.delete(sigSeen.keys().next().value);
+    }
     if (m.t === 'frame') { partyReceiveFrame(d.from, m.d, d.round); return partyTurnMode(R); }
-    if (m.t === 'ping') { S.q.unshift({ t: 'pong', d: m.d, l: true }); return false; }
-    if (m.t === 'pong') { gotPong(m.d, 'relay'); return false; }
+    if (m.t === '_net_ping') { S.q.unshift({ t: '_net_pong', d: m.d, l: true }); return false; }
+    if (m.t === '_net_pong') { gotPong(m.d, 'relay'); return false; }
     return m.t !== 'hb';
   }) });
   if (S.handler && d.round === S.round) { for (const m of d.m) S.handler(m.t, m.d, d.from); return; }
@@ -186,12 +204,12 @@ function onSig(d) {
 /* context handed to a DUO microgame: { role: 0|1, partner, send(type, data, latest), onMsg(fn(type, data)), away() } */
 function duoCtx(R) {
   const S = party.sig, act = R.players.filter(p => !p.left), i = act.findIndex(p => p.id === party.you.id), pn = act.find(p => p.id !== party.you.id);
-  Object.assign(S, { q: [], busy: false, last: 0, hbAt: now, round: R.round, handler: null, rx: now, since: now });
+  Object.assign(S, { q: [], busy: false, frameBusy: false, retryAt: 0, frameRetry: 0, last: 0, hbAt: now, round: R.round, handler: null, rx: now, since: now });
   S.buf = S.buf.filter(x => x.round === R.round);
   return {
     role: (i + R.round) % 2, roles: 2, partner: pn ? { name: pn.name, color: pn.color } : null,
     send(type, data, latest) {
-      if (latest) { const k = S.q.findIndex(m => m.t === type && m.l); if (k >= 0) { S.q[k].d = data; return; } }
+      if (latest) { const k = S.q.findIndex(m => m.t === type && m.l); if (k >= 0) { S.q[k].d = data; delete S.q[k].n; return; } }
       S.q.push({ t: type, d: data === undefined ? null : data, l: !!latest });
     },
     onMsg(fn) { S.handler = fn; S.buf.splice(0).forEach(x => x.round === S.round && fn(x.t, x.d, x.from)); },
@@ -199,15 +217,45 @@ function duoCtx(R) {
 }
 const duoAway = () => !!party.room && party.room.mode === 'duo' && party.sig.round === party.room.round && now - party.sig.since > SIG_AWAY && now - party.sig.rx > SIG_AWAY;
 async function sigFlush() {
-  const S = party.sig, R = party.room; if (!R || R.state !== 'round' || S.round !== R.round) { S.q.length = 0; return; }
+  const S = party.sig, R = party.room && Object.assign({}, party.room);
+  if (!R || R.state !== 'round' || S.round !== R.round) { S.q.length = 0; return; }
   if (now - S.hbAt > SIG_HB) { S.hbAt = now; if (!S.q.length) S.q.push({ t: 'hb', d: null, l: true }); }
-  const direct = linkUsable();                                                   // DataChannel to the partner: no HTTP round trip
-  if (direct) { if (!S.q.length || now - S.last < .03) return; S.last = now; linkSend(R.round, S.q.splice(0, 20)); return; }
-  if (S.busy || !S.q.length || now - S.last < SIG_GAP) return;
-  const m = []; let size = 0;
-  while (S.q.length && m.length < 10) { const n = JSON.stringify(S.q[0]).length; if (m.length && size + n > 440) break; size += n; const it = S.q.shift(); m.push({ t: it.t, d: it.d }); }
-  S.busy = true; S.last = now;
-  try { const r = await pcall('sig', Object.assign(auth(), { round: R.round, m })); if (r.status === 404) roomGone(); } finally { S.busy = false; }
+  // Frames have their own request: encoding/uploading a screen must never hold up inputs.
+  const frames = S.q.filter(m => m.t === 'frame');
+  if (frames.length && !S.frameBusy && now >= (S.frameRetry || 0)) {
+    S.q = S.q.filter(m => m.t !== 'frame');
+    const batch = [sigStamp(frames[frames.length - 1])], credentials = auth();
+    S.frameBusy = batch;
+    pcall('sig', Object.assign(credentials, { round: R.round, m: batch })).then(r => {
+      if (!r.ok && (r.status === 0 || r.status === 429 || r.status >= 500)) { if (sigRestore(S, batch, R)) S.frameRetry = now + .5; }
+      if (r.status === 404 && party.room && party.room.id === R.id) roomGone();
+    }).finally(() => { if (S.frameBusy === batch) S.frameBusy = false; });
+  }
+  const inputs = S.q.filter(m => m.t !== 'frame');
+  if (!inputs.length || now < (S.retryAt || 0)) return;
+  if (linkUsable()) {
+    if (now - S.last < .02) return;
+    S.last = now;
+    const batch = inputs.slice(0, 20).map(sigStamp), sent = linkSend(R.round, batch);
+    S.q = S.q.filter(m => !sent.includes(m));
+    return;
+  }
+  if (S.busy || now - S.last < SIG_GAP) return;
+  const batch = []; let size = 0;
+  for (const it of inputs) {
+    sigStamp(it);
+    const n = JSON.stringify(it).length;
+    if (batch.length && (batch.length >= 10 || size + n > 500)) break;
+    size += n; batch.push(it);
+  }
+  S.q = S.q.filter(m => !batch.includes(m));
+  const credentials = auth();
+  S.busy = batch; S.last = now;
+  try {
+    const r = await pcall('sig', Object.assign(credentials, { round: R.round, m: batch }));
+    if (!r.ok && (r.status === 0 || r.status === 429 || r.status >= 500)) { if (sigRestore(S, batch, R)) S.retryAt = now + (r.status === 429 ? 1 : .25); }
+    if (r.status === 404 && party.room && party.room.id === R.id) roomGone();
+  } finally { if (S.busy === batch) S.busy = false; }
 }
 
 /* ───────────── room state machine ───────────── */
@@ -242,7 +290,7 @@ function onRoom(R, old) {
 function startLocalRound(R) {
   party.played = R.round; party.pending = null;
   party.watch = { round: R.round, roomId: R.id, frames: {}, target: null };
-  if (!partyTurnMode(R) && R.mode !== 'duo') Object.assign(party.sig, { q: [], buf: [], busy: false, last: 0, hbAt: now, round: R.round, handler: null, rx: now, since: now });
+  if (!partyTurnMode(R) && R.mode !== 'duo') Object.assign(party.sig, { q: [], buf: [], busy: false, frameBusy: false, retryAt: 0, frameRetry: 0, last: 0, hbAt: now, round: R.round, handler: null, rx: now, since: now });
   if (partyElimination(R) && me() && me().lives <= 0) { party.view = 'wait'; state = 'party'; st = 0; return; }
   if (!REGMAP[R.game] && R.game !== 'pc_draw') { party.pending = { round: R.round, r: 'lose', t: 1, pts: 0 }; party.view = 'wait'; state = 'party'; sendReport(); return; }
   mode = 'party'; stage = STAGES[0]; lastOut = null; parts.length = 0;

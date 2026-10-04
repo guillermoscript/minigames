@@ -1,4 +1,30 @@
 'use strict';
+// Async JPEG encoding keeps compression off the game's synchronous draw path.
+// One encoder per canvas and a round/seat guard prevent stale work from being queued.
+function partyCaptureFrame(canvas, metadata, send) {
+  if (canvas.partyEncoding) return;
+  const room = party.room, round = room && room.round, seat = party.you && party.you.id;
+  if (!room || !party.you) return;
+  const deliver = image => {
+    if (typeof image === 'string' && image.length < 60000 && party.room && party.room.id === room.id && party.room.round === round && party.room.state === 'round' && party.you && party.you.id === seat) send(Object.assign({ image }, metadata));
+  };
+  if (typeof canvas.toBlob !== 'function' || typeof FileReader === 'undefined') {
+    try { deliver(canvas.toDataURL('image/jpeg', .42)); } catch (_) {}
+    return;
+  }
+  canvas.partyEncoding = true;
+  try {
+    canvas.toBlob(blob => {
+      if (!blob) { canvas.partyEncoding = false; return; }
+      const reader = new FileReader();
+      reader.onload = () => { canvas.partyEncoding = false; deliver(reader.result); };
+      reader.onerror = reader.onabort = () => { canvas.partyEncoding = false; };
+      try { reader.readAsDataURL(blob); } catch (_) { canvas.partyEncoding = false; }
+    }, 'image/jpeg', .42);
+  } catch (_) { canvas.partyEncoding = false; }
+}
+const partyFrameGap = () => typeof linkMs === 'function' && linkMs() > 250 ? .3 : .15;
+
 /* Turn-based party modes reuse the existing seeded microgames. The server owns turns,
    cards and the balloon; The actor broadcasts the game view; assistants relay light positions or use server actions. */
 function partyStartSteal(target, round) {
@@ -153,12 +179,11 @@ function partyWrapGame(base, R, sp) {
     if (mine) {
       partyGameScope(() => { base.draw(gameTime); if (typeof drawParts === 'function') drawParts(); }, pointer);
       // Capture the actor's rendered game before darkness and controls. Helpers never simulate RNG or outcomes.
-      if (elapsed - frameAt >= .3 && capture.getContext && capture.toDataURL) {
+      if (elapsed - frameAt >= partyFrameGap() && !capture.partyEncoding && capture.getContext && capture.toDataURL) {
         frameAt = elapsed;
         try {
           capture.getContext('2d').drawImage(cv, view.x + OX, view.y, view.w, view.h, 0, 0, 400, 300);
-          const image = capture.toDataURL('image/jpeg', .48);
-          if (image.length < 60000) relay.send('frame', { image, cmd: instruction, hint: base.hint || '', time: Math.max(0, base.dur / Math.sqrt(sp) - gameTime), duration: base.dur / Math.sqrt(sp) }, true);
+          partyCaptureFrame(capture, { cmd: instruction, hint: base.hint || '', time: Math.max(0, base.dur / Math.sqrt(sp) - gameTime), duration: base.dur / Math.sqrt(sp) }, data => relay.send('frame', data, true));
         } catch (_) { /* Tainted third-party canvases cannot be broadcast. */ }
       }
       if (dark) {
@@ -245,17 +270,16 @@ function partySpectatorGame(base, R, sp) {
   let capture = null, frameAt = -Infinity;
   base.draw = function (...args) {
     const value = draw.apply(this, args);
-    if (typeof partySendFrame !== 'function' || now - frameAt < .3) return value;
+    if (typeof partySendFrame !== 'function' || now - frameAt < partyFrameGap() || capture && capture.partyEncoding) return value;
     frameAt = now;
     try {
       if (!capture) { capture = document.createElement('canvas'); capture.width = 400; capture.height = 300; }
       if (!capture.getContext || !capture.toDataURL) return value;
       capture.getContext('2d').drawImage(cv, OX, 0, W, H, 0, 0, 400, 300);
-      const image = capture.toDataURL('image/jpeg', .48);
-      if (typeof image === 'string' && image.length < 60000) partySendFrame({
-        image, cmd: base.cmd || '', hint: base.hint || '',
+      partyCaptureFrame(capture, {
+        cmd: base.cmd || '', hint: base.hint || '',
         time: Math.max(0, base.dur / Math.sqrt(sp) - (Number(args[0]) || 0)),
-      });
+      }, partySendFrame);
     } catch (_) { /* A game canvas unavailable for capture must still keep playing. */ }
     return value;
   };

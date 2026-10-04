@@ -138,6 +138,14 @@ python3 -m http.server 8000
 
 Open <http://localhost:8000>. Guest play works from there. Accounts, leaderboards and cloud saves need the PocketBase backend, which is documented in [docs/SELF-HOSTING.md](docs/SELF-HOSTING.md) along with deployment, Google sign-in and the database rules.
 
+## Install the app (PWA)
+
+On supported browsers, use **INSTALL APP** on the title screen or stage menu. On iPhone/iPad, open the site in Safari and choose **Share → Add to Home Screen**. The installed game opens in its own window. Installation requires HTTPS (or localhost for development).
+
+After the first visit finishes downloading the offline files, guest stages and practice work without internet, including the 3D games. Accounts, cloud saves, leaderboards, party rooms and voice chat require a connection. Files are refreshed from the network when online; browser storage cleanup can remove the offline copy.
+
+Deploy `manifest.webmanifest`, `sw.js` and `img/icons/` alongside the game. Docker and `pocketbase/dev.sh` include them automatically. To verify locally, serve the folder, open it once, wait for the service worker to activate, switch DevTools to offline, and reload `/` and `/?lang=es`.
+
 ## Project layout
 
 ```

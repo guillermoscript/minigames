@@ -9,6 +9,9 @@
 <title>Claude Ware</title>
 <meta name="description" data-i18n-content="Claude Ware: a fast-paced WarioWare-style game with 100+ five-second microgames, 18 stages and bosses. Play free in your browser, with optional profiles and global leaderboards." content="Claude Ware: a fast-paced WarioWare-style game with 100+ five-second microgames, 18 stages and bosses. Play free in your browser, with optional profiles and global leaderboards.">
 <meta name="application-name" content="Claude Ware">
+<meta name="apple-mobile-web-app-title" content="Claude Ware">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="img/icons/icon-180.png">
 <link rel="canonical" href="https://claudeware.guille.tech/">
 <meta property="og:site_name" content="Claude Ware">
 <meta property="og:title" data-i18n-content="Claude Ware: 100+ five-second microgames" content="Claude Ware: 100+ five-second microgames">
@@ -41,6 +44,7 @@
 <input id="in-code" type="text" maxlength="4" placeholder="CODE" data-i18n-attr="placeholder:CODE,aria-label:Room code" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" enterkeyhint="go" aria-label="Room code" style="display:none;text-transform:uppercase;letter-spacing:.2em;text-align:center">
 <input id="in-friend" type="text" maxlength="16" placeholder="PLAYER NAME" data-i18n-attr="placeholder:PLAYER NAME,aria-label:Player name" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" aria-label="Player name" style="display:none">
 </div>
+<button id="pwa-install" type="button" hidden></button>
 <div id="rot" data-i18n="Rotate your phone for a bigger screen">&#8635; Rotate your phone for a bigger screen</div>
 <script src="js/core.js?v=1790992357"></script>
 <script src="js/i18n/es/ui.js?v=1791030500"></script>
@@ -133,6 +137,6 @@
 <script src="js/party-modes.js?v=1791036300"></script>
 <script>I18N.apply();</script>
 <script src="js/main.js?v=1791034500"></script>
-<script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js?v=1").catch(() => {}));</script>
+<script src="js/pwa.js?v=1790992357"></script>
 </body>
 </html>

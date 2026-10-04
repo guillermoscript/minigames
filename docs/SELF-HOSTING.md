@@ -33,7 +33,7 @@ English is the source language and the English text is the key: `txt('SPLAT!')`,
    pocketbase/dev.sh            # http://127.0.0.1:8090  (admin UI: /_/)
    ```
    Google login needs credentials first, see "Google sign-in" below (`cp .env.example .env`, fill in; `dev.sh` loads `.env`). Without them the game works in guest mode.
-   `dev.sh` copies only `index.html`, `css/`, `img/` and `js/` into `pocketbase/pb_public/` (so `research/`, `pocketbase/` etc. are never served) and starts PocketBase with data in `pocketbase/pb_data/`. Re-run it after editing the game files (`pocketbase/dev.sh sync` just refreshes the copy). Env: `HTTP=127.0.0.1:8091`, `DIR=/some/data/dir`.
+   `dev.sh` copies only `index.html`, `manifest.webmanifest`, `sw.js`, `css/`, `img/` and `js/` into `pocketbase/pb_public/` (so `research/`, `pocketbase/` etc. are never served) and starts PocketBase with data in `pocketbase/pb_data/`. Re-run it after editing the game files (`pocketbase/dev.sh sync` just refreshes the copy). Env: `HTTP=127.0.0.1:8091`, `DIR=/some/data/dir`.
 3. Create the operator (superuser) account, once, for the admin UI:
    ```sh
    pocketbase/pocketbase superuser upsert you@example.com 'a-long-password' --dir=pocketbase/pb_data

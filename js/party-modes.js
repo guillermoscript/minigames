@@ -44,13 +44,69 @@ async function partyMoveAction(action, data, expectedRound) {
   else if (r.status === 404) roomGone();
   else if (r.status !== 409) say(partyErr(r), '#FF4D4D');
 }
-function partyCardTable(R, interactive) {
-  const all = R.players.filter(p => !p.left), w = 720 / all.length;
+// Card mode has its own quieter typography and rounded surfaces.
+function partyCardPanel(x, y, w, h, fill, radius = 16, stroke = '') {
+  const r = Math.min(radius, w / 2, h / 2);
+  ctx.save(); ctx.beginPath();
+  ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r); ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y); ctx.closePath();
+  ctx.fillStyle = fill; ctx.fill();
+  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1; ctx.stroke(); }
+  ctx.restore();
+}
+function partyCardText(s, x, y, size, fill = '#F3F1E9', align = 'center', maxW = 0, weight = 600) {
+  s = t(s); ctx.save();
+  ctx.font = `${weight} ${size}px "Helvetica Neue", Arial, sans-serif`;
+  if (maxW) { const measured = ctx.measureText(s).width; if (measured > maxW) ctx.font = `${weight} ${size * maxW / measured}px "Helvetica Neue", Arial, sans-serif`; }
+  ctx.textAlign = align; ctx.textBaseline = 'middle'; ctx.fillStyle = fill; ctx.fillText(s, x, y); ctx.restore();
+}
+function partyCardBackdrop() {
+  ctx.save();
+  const gradient = ctx.createLinearGradient(0, 0, 800, 600);
+  gradient.addColorStop(0, '#101D2B'); gradient.addColorStop(.6, '#123538'); gradient.addColorStop(1, '#10212E');
+  ctx.fillStyle = gradient; ctx.fillRect(-OX, 0, VW, H);
+  ctx.strokeStyle = 'rgba(178,211,191,.055)'; ctx.lineWidth = 1;
+  for (let y = 0; y < 600; y += 24) { ctx.beginPath(); ctx.moveTo(-OX, y); ctx.lineTo(VW, y); ctx.stroke(); }
+  ctx.beginPath(); ctx.ellipse(400, 322, 365, 192, 0, 0, Math.PI * 2); ctx.stroke();
+  ctx.restore();
+}
+function partyCardButton(x, y, w, h, label, fn, fill = '#E9C989', color = '#182B32', size = 16) {
+  // Keep the game's existing pointer dispatcher, then paint the custom surface.
+  ctx.save(); ctx.globalAlpha = 0;
+  button(x, y, w, h, '', fn, { fill });
+  ctx.restore();
+  const hover = typeof mouse !== 'undefined' && mouse.x >= x && mouse.x <= x + w && mouse.y >= y && mouse.y <= y + h;
+  partyCardPanel(x, y + 3, w, h, '#091A24', 12);
+  partyCardPanel(x, y, w, h, fill, 12, hover ? '#FFEDD1' : '');
+  if (hover) partyCardPanel(x, y, w, h, 'rgba(255,255,255,.08)', 12);
+  partyCardText(label, x + w / 2, y + h / 2, size, color, 'center', w - 20, 700);
+}
+function partyCardArt(x, y, w, h, face = false) {
+  ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 18; ctx.shadowOffsetY = 10;
+  partyCardPanel(x, y, w, h, '#F3EBD8', 13); ctx.restore();
+  partyCardPanel(x + 5, y + 5, w - 10, h - 10, face ? '#F3EBD8' : '#203C4B', 9);
+  partyCardPanel(x + 12, y + 12, w - 24, h - 24, face ? '#F3EBD8' : '#203C4B', 5, '#B89C68');
+  ctx.save(); ctx.strokeStyle = face ? '#D9CCB3' : 'rgba(233,201,137,.15)'; ctx.lineWidth = 1;
+  for (let d = 24; d < w - 18; d += 14) { ctx.beginPath(); ctx.moveTo(x + d, y + 18); ctx.lineTo(x + w - 18, y + h - d); ctx.stroke(); }
+  ctx.restore();
+  const cx = x + w / 2, cy = y + h / 2;
+  partyCardPanel(cx - w * .24, cy - w * .30, w * .48, w * .60, face ? '#F3EBD8' : '#203C4B', 8, '#B89C68');
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate(Math.PI / 4);
+  ctx.fillStyle = '#E9C989'; ctx.fillRect(-w * .1, -w * .1, w * .2, w * .2); ctx.restore();
+  partyCardText('✦', x + 24, y + 27, Math.min(17, w * .23), '#B89C68');
+  partyCardText('✦', x + w - 24, y + h - 27, Math.min(17, w * .23), '#B89C68');
+}
+function partyCardTable(R) {
+  const all = R.players.filter(p => !p.left), w = 736 / all.length;
   all.forEach((p, i) => {
-    const x = 40 + i * w, can = interactive && p.id !== party.you.id && p.score > 0 && R.extra.stolen[party.you.id] !== R.round;
-    if (can) button(x + 3, 518, w - 6, 68, t('STEAL: {name}', { name: p.name }), () => partyStartSteal(p.id, R.round), { size: 18, fill: p.color });
-    else { box(x + 3, 518, w - 6, 68, '#302b50', 3); txt(p.name, x + w / 2, 539, 17, p.color, 'center', w - 12); }
-    txt(t('{n} CARDS', { n: p.score }), x + w / 2, 572, 19, can ? INK : '#FFE14D', 'center', w - 12);
+    const x = 32 + i * w, active = p.id === R.extra.actor;
+    partyCardPanel(x + 4, 521, w - 8, 59, active ? '#28484A' : '#172F39', 13, active ? '#BBA477' : '#304952');
+    circ(x + 24, 541, 6, p.color, 0);
+    partyCardText(p.id === party.you.id ? t('{name} · YOU', { name: p.name }) : p.name, x + 40, 541, 14, '#E5ECE8', 'left', w - 54);
+    partyCardText(t('{n} CARDS', { n: p.score }), x + 23, 562, 15, '#E9C989', 'left', w - 42);
+    if (active) partyCardText('●', x + w - 21, 564, 9, '#E9C989');
   });
 }
 function partyBalloon(R, large) {
@@ -80,17 +136,37 @@ function partyDrawGame(R) {
     hint: mine ? 'CHOOSE A DECK · ARROWS OR TAP' : t('{name} IS DRAWING', { name: actor.name }),
     update() {},
     draw() {
-      bg('#26304b', '#392d59', now);
-      txt(partyCardReveal(R), 400, 76, 19, '#F28CB1', 'center', 720);
-      txt('CARD TABLE', 400, 122, 42, '#FFE14D');
-      txt(t('{n} MICROGAMES IN THE PILE', { n: R.extra.pile.length }), 400, 184, 25, '#fff');
-      txt(t('{n} CARDS IN THE POT', { n: R.extra.pot }), 400, 223, 21, '#F28CB1');
-      for (const [x, side, label] of [[180, 'left', 'LEFT DECK'], [430, 'right', 'RIGHT DECK']]) {
-        for (let i = 2; i >= 0; i--) box(x + i * 5, 268 - i * 5, 190, 150, '#493e7c', 4);
-        star(x + 95, 324, 34, 17, 5, -.2, '#FFE14D', 3);
-        if (mine) button(x, 369, 190, 54, busy ? 'ONE MOMENT...' : label, () => choose(side), { size: 21, fill: '#B49CFF' });
+      const current = party.room, pile = current.extra.pile.length, pot = current.extra.pot;
+      partyCardBackdrop();
+      partyCardText('CARD HEIST', 32, 35, 19, '#E9C989', 'left', 240, 700);
+      partyCardPanel(612, 20, 156, 30, '#1F3942', 15);
+      partyCardText(partyTurnLabel(current), 690, 35, 13, '#C7D6D3', 'center', 140);
+      partyCardText(mine ? 'YOUR TURN · PICK A CARD' : t('{name} IS DRAWING', { name: actor.name }), 400, 88, 31, '#F3F1E9', 'center', 730, 700);
+      partyCardText(mine ? 'TAP EITHER DECK · BOTH ARE FACE DOWN' : 'WATCH THE TABLE · YOUR TURN IS COMING', 400, 121, 14, '#94AAA9', 'center', 730, 400);
+      for (const [x, side, label, key] of [[78, 'left', 'DRAW LEFT', '← / A'], [560, 'right', 'DRAW RIGHT', '→ / D']]) {
+        const lift = mine && !busy ? Math.sin(now * 1.8 + (side === 'left' ? 0 : .8)) * 2 : 0;
+        if (mine && !busy) partyCardButton(x, 170, 162, 218, '', () => choose(side), '#203C4B');
+        for (let i = 2; i >= 0; i--) {
+          ctx.save(); ctx.translate(x + 81, 279); ctx.rotate((side === 'left' ? -1 : 1) * (i * .055 + .025));
+          partyCardArt(-81 + i * 3, -109 - i * 4 + lift, 162, 218); ctx.restore();
+        }
+        if (mine && !busy) partyCardButton(x - 5, 409, 172, 45, label, () => choose(side));
+        else { partyCardPanel(x - 5, 409, 172, 45, '#28404A', 12); partyCardText(busy ? 'ONE MOMENT...' : 'WAITING', x + 81, 432, 15, '#94AAA9'); }
+        if (mine) partyCardText(key, x + 81, 475, 12, '#94AAA9', 'center', 160, 400);
       }
-      txt(mine ? 'MICROGAME CARDS STACK UP · PLAY CARD STARTS THE CHALLENGE' : t('{name} IS DRAWING', { name: actor.name }), 400, 470, 18, '#fff', 'center', 740);
+      partyCardPanel(284, 174, 232, 222, 'rgba(12,27,37,.72)', 24, '#365158');
+      partyCardText('THE PRIZE', 400, 200, 12, '#A9BFBB', 'center', 210, 600);
+      partyCardText(pile + pot, 400, 258, 64, '#E9C989', 'center', 210, 700);
+      partyCardText('CARDS TO WIN', 400, 303, 12, '#A9BFBB', 'center', 210, 400);
+      partyCardPanel(304, 326, 192, 1, '#365158', 0);
+      partyCardText(t('PILE {n} · POT {pot}', { n: pile, pot }), 400, 349, 15, '#D4DEDA', 'center', 205, 500);
+      partyCardText('WIN EVERY MICROGAME', 400, 377, 11, '#99CBB2', 'center', 210);
+      partyCardText('FAIL = LOSE YOUR CARDS', 400, 417, 11, '#D3A3A2', 'center', 220, 400);
+      partyCardText(partyCardReveal(current) || 'MOST CARDS AT THE END WINS', 400, 494, 12, '#A9BFBB', 'center', 720, 400);
+      // Compact rule strip replaces the large tutorial panels.
+      partyCardText('1 · DRAW', 315, 454, 11, '#E9C989');
+      partyCardText('2 · BUILD', 400, 454, 11, '#94AAA9');
+      partyCardText('3 · PLAY', 484, 454, 11, '#94AAA9');
       partyCardTable(party.room, false);
     },
     key(e) { if (e.repeat) return; if (e.code === 'ArrowLeft' || e.code === 'KeyA') choose('left'); if (e.code === 'ArrowRight' || e.code === 'KeyD' || e.code === 'Space') choose('right'); },
@@ -169,9 +245,12 @@ function partyWrapGame(base, R, sp) {
   };
   g.draw = gameTime => {
     const current = party.room;
-    bg('#26304b', '#392d59', now);
-    box(6, 115, 594, 448, '#14101c', 5);
-    box(12, 120, 584, 440, actor.color, 4);
+    const label = R.mode === 'cards' ? partyCardText : txt;
+    if (R.mode === 'cards') partyCardBackdrop(); else bg('#26304b', '#392d59', now);
+    if (R.mode === 'cards') {
+      partyCardPanel(8, 116, 592, 448, '#0B1C29', 16, '#486164');
+      partyCardPanel(12, 120, 584, 440, '#1F3942', 12);
+    } else { box(6, 115, 594, 448, '#14101c', 5); box(12, 120, 584, 440, actor.color, 4); }
     // Chunky television bezel keeps the microgame and the surrounding party props in one stage.
     circ(590, 110, 5, '#7BD88F', 0);
     ctx.save(); ctx.beginPath(); ctx.rect(view.x, view.y, view.w, view.h); ctx.clip();
@@ -198,61 +277,71 @@ function partyWrapGame(base, R, sp) {
     } else {
       ctx.fillStyle = '#19172d'; ctx.fillRect(0, 0, W, H);
       if (frame) ctx.drawImage(frame, 0, 0, W, H);
-      if (!frame || now - frameTime > 3) txt('CONNECTING TO THE PLAYER...', 400, 300, 28, '#FFE14D', 'center', 740);
+      if (!frame || now - frameTime > 3) label('CONNECTING TO THE PLAYER...', 400, 300, 28, R.mode === 'cards' ? '#E9C989' : '#FFE14D', 'center', 740);
       if (R.mode === 'lantern') { ctx.strokeStyle = me().color; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(lx, ly, 125, 0, Math.PI * 2); ctx.stroke(); }
     }
     ctx.restore();
-    txt(instruction, 302, 28, 24, '#FFE14D', 'center', 550);
-    txt(t('{name} IS PLAYING', { name: actor.name }), 302, 59, 23, actor.color, 'center', 560);
-    if (mine) txt(base.hint || '', 302, 89, 17, '#fff', 'center', 552);
+    label(instruction, 302, 28, 24, R.mode === 'cards' ? '#E9C989' : '#FFE14D', 'center', 550);
+    label(t('{name} IS PLAYING', { name: actor.name }), 302, 59, 23, actor.color, 'center', 560);
+    if (mine) label(base.hint || '', 302, 89, 17, '#fff', 'center', 552);
     const seconds = mine ? Math.max(0, base.dur / Math.sqrt(sp) - gameTime) : Math.max(0, sharedTime - (now - sharedClockAt));
     const clockDuration = mine ? base.dur / Math.sqrt(sp) : sharedDuration;
-    txt(modeLabel(R.mode), 692, 28, 19, '#FFE14D', 'center', 168);
-    txt(t('{n} SECONDS', { n: Math.ceil(seconds) }), 692, 66, 19, seconds < 2 ? '#F28CB1' : '#fff', 'center', 168);
-    if (R.mode === 'lantern') txt(t('{n} TEAM LIVES', { n: current.lives }), 692, 97, 16, '#7BD88F', 'center', 168);
+    label(modeLabel(R.mode), 692, 28, 19, R.mode === 'cards' ? '#E9C989' : '#FFE14D', 'center', 168);
+    label(t('{n} SECONDS', { n: Math.ceil(seconds) }), 692, 66, 19, seconds < 2 ? '#F28CB1' : '#fff', 'center', 168);
+    if (R.mode === 'lantern') label(t('{n} TEAM LIVES', { n: current.lives }), 692, 97, 16, '#7BD88F', 'center', 168);
     box(16, 107, 576, 6, '#14101c', 0);
     box(16, 107, 576 * Math.max(0, Math.min(1, seconds / clockDuration)), 6, seconds < 2 ? '#F28CB1' : '#7BD88F', 0);
-    txt(mine ? 'YOU PLAY' : R.mode === 'lantern' ? 'YOU LIGHT' : R.mode === 'balloon' ? 'YOU PUMP' : 'YOU STEAL', 692, 142, 20, '#FFE14D', 'center', 166);
+    label(mine ? 'YOU PLAY' : R.mode === 'lantern' ? 'YOU LIGHT' : R.mode === 'balloon' ? 'YOU PUMP' : 'YOU STEAL', 692, 142, 20, R.mode === 'cards' ? '#E9C989' : '#FFE14D', 'center', 166);
     const teammates = current.players.filter(p => !p.left && p.id !== actor.id);
-    txt(mine ? 'YOUR TEAMMATES' : 'HELPER TEAM', 692, 176, 15, '#fff', 'center', 164);
-    teammates.forEach((p, i) => txt(p.name, 692, 199 + i * 21, 15, p.color, 'center', 164));
+    if (R.mode !== 'cards') { label(mine ? 'YOUR TEAMMATES' : 'HELPER TEAM', 692, 176, 15, '#fff', 'center', 164);
+    teammates.forEach((p, i) => label(p.name, 692, 199 + i * 21, 15, p.color, 'center', 164)); }
     if (R.mode === 'balloon') {
       partyBalloon(current, false);
       const squash = Math.max(0, 1 - (elapsed - lastTap) / .2);
       box(665, 421, 54, 23, '#B49CFF', 3);
-      ctx.save(); ctx.strokeStyle = '#FFE14D'; ctx.lineWidth = 7;
+      ctx.save(); ctx.strokeStyle = R.mode === 'cards' ? '#E9C989' : '#FFE14D'; ctx.lineWidth = 7;
       ctx.beginPath(); ctx.moveTo(692, 422); ctx.lineTo(692, 400 + squash * 16);
       ctx.moveTo(670, 400 + squash * 16); ctx.lineTo(714, 400 + squash * 16); ctx.stroke(); ctx.restore();
-      txt('PASS IT BY WINNING!', 692, 548, 15, '#fff', 'center', 168);
-      txt('POP = LOSE THE TURN', 692, 567, 14, '#F28CB1', 'center', 168);
+      label('PASS IT BY WINNING!', 692, 548, 15, '#fff', 'center', 168);
+      label('POP = LOSE THE TURN', 692, 567, 14, '#F28CB1', 'center', 168);
       if (!mine) button(608, 452, 176, 76, 'PUMP! SPACE / TAP', tap, { size: 20, fill: '#F28CB1' });
-      else txt('OTHERS ARE PUMPING', 692, 487, 16, '#FFE14D', 'center', 168);
+      else label('OTHERS ARE PUMPING', 692, 487, 16, R.mode === 'cards' ? '#E9C989' : '#FFE14D', 'center', 168);
     } else if (R.mode === 'cards') {
-      txt(t('{n} CARDS AT STAKE', { n: current.extra.pile.length + current.extra.pot }), 692, 305, 19, '#FFE14D', 'center', 168);
-      txt(t('{n} MICROGAMES TO GO', { n: current.extra.remaining.length }), 692, 345, 17, '#fff', 'center', 168);
-      txt('WIN TO KEEP THE PILE', 692, 396, 15, '#fff', 'center', 168);
       const attempt = current.extra.stealing && current.extra.stealing[party.you.id];
-      if (!mine && attempt && attempt.round === round) {
-        box(610, 405, 172, 10, '#14101c', 0);
-        ctx.fillStyle = '#B49CFF'; ctx.fillRect(610, 405, 172 * Math.max(0, Math.min(1, 1 - (attempt.readyAt - Date.now()) / 1200)), 10);
-      }
-      txt(!mine && attempt && attempt.round === round ? 'STEALING...' : !mine && current.extra.stolen[party.you.id] === round ? 'CARD STOLEN! WAIT FOR THE NEXT GAME' : 'OTHERS CAN STEAL', 692, 427, 15, '#F28CB1', 'center', 168);
-      for (let i = 2; i >= 0; i--) { box(650 + i * 4, 258 - i * 3, 76, 32, '#B49CFF', 2); }
-      txt(current.extra.pile.length + current.extra.pot, 688, 275, 21, INK);
+      const stealing = !mine && attempt && attempt.round === round;
+      const stolen = !mine && current.extra.stolen[party.you.id] === round;
+      const pending = !mine && party.stealBusy && party.stealBusy.round === round;
+      const targets = current.players.filter(p => !p.left && p.id !== party.you.id && p.score > 0);
+      partyCardPanel(608, 169, 176, 124, '#142C36', 18, '#365158');
+      label('THE PRIZE', 696, 188, 15, '#B9DCD0');
+      label(current.extra.pile.length + current.extra.pot, 696, 223, 40, R.mode === 'cards' ? '#E9C989' : '#FFE14D');
+      label(t('{n} MICROGAMES TO GO', { n: current.extra.remaining.length }), 696, 258, 14, '#fff', 'center', 164);
+      const total = current.extra.pile.length, done = total - current.extra.remaining.length;
+      box(618, 278, 156, 5, '#304950', 0);
+      box(618, 278, 156 * (total ? done / total : 0), 5, '#7BD88F', 0);
+      label(mine ? 'WIN EVERY GAME' : stolen ? 'CARD STOLEN!' : stealing ? 'STEALING...' : pending ? 'ONE MOMENT...' : 'PICK A RIVAL', 696, 315, 19, stolen ? '#7BD88F' : R.mode === 'cards' ? '#E9C989' : '#FFE14D', 'center', 172);
+      label(mine ? 'FAIL = LOSE YOUR CARDS' : stolen ? 'WAIT FOR THE NEXT GAME' : '1 CARD PER MICROGAME', 696, 343, 13, mine ? '#F28CB1' : '#fff', 'center', 170);
+      if (stealing) {
+        const victim = current.players.find(p => p.id === attempt.target);
+        label(victim ? victim.name : '', 696, 368, 16, '#F28CB1', 'center', 164);
+        box(618, 388, 156, 12, '#10232D', 0);
+        box(618, 388, 156 * Math.max(0, Math.min(1, 1 - (attempt.readyAt - Date.now()) / 1200)), 12, '#F28CB1', 0);
+      } else label(mine ? 'RIVALS CAN STEAL FROM YOU' : stolen ? '+1 TO YOUR COLLECTION' : targets.length ? 'TAP TO STEAL · 1.2s' : 'NO RIVAL HAS CARDS YET', 696, 381, 13, '#B9DCD0', 'center', 170);
       current.players.filter(p => !p.left).forEach((p, i) => {
-        const can = !mine && p.id !== party.you.id && p.score > 0 && current.extra.stolen[party.you.id] !== round;
-        const label = t('{name}: {n} CARDS', { name: p.name, n: p.score });
-        if (can) button(608, 444 + i * 32, 176, 31, label, () => partyStartSteal(p.id, round), { size: 15, fill: p.color });
-        else txt(label, 692, 460 + i * 32, 15, p.color, 'center', 168);
+        const y = 411 + i * 41;
+        const can = !mine && !stealing && !stolen && !pending && p.id !== party.you.id && p.score > 0;
+        const targetLabel = can ? t('STEAL · {name} · {n}', { name: p.name, n: p.score }) : t('{name}: {n} CARDS', { name: p.name, n: p.score });
+        if (can) partyCardButton(608, y, 176, 36, targetLabel, () => partyStartSteal(p.id, round), '#C8DCD2', '#183B3C', 14);
+        else { partyCardPanel(608, y, 176, 36, '#1E3540', 10); label(targetLabel, 696, y + 18, 14, p.color, 'center', 164); }
       });
     } else {
-      txt(mine ? 'YOUR FRIENDS MOVE THE LIGHT' : 'MOVE THE LIGHT', 692, 310, 19, '#FFE14D', 'center', 166);
-      txt(mine ? 'PLAY INSIDE THE LIGHT' : 'MOUSE / TOUCH', 692, 344, 16, '#fff', 'center', 166);
-      txt(mine ? 'FOLLOW YOUR GAME CONTROLS' : 'OR ARROW KEYS', 692, 371, 16, '#fff', 'center', 166);
-      txt('KEEP THE ACTION LIT!', 692, 425, 15, '#FFE14D', 'center', 168);
-      txt('WIN TOGETHER', 692, 470, 18, '#7BD88F', 'center', 168);
+      label(mine ? 'YOUR FRIENDS MOVE THE LIGHT' : 'MOVE THE LIGHT', 692, 310, 19, R.mode === 'cards' ? '#E9C989' : '#FFE14D', 'center', 166);
+      label(mine ? 'PLAY INSIDE THE LIGHT' : 'MOUSE / TOUCH', 692, 344, 16, '#fff', 'center', 166);
+      label(mine ? 'FOLLOW YOUR GAME CONTROLS' : 'OR ARROW KEYS', 692, 371, 16, '#fff', 'center', 166);
+      label('KEEP THE ACTION LIT!', 692, 425, 15, R.mode === 'cards' ? '#E9C989' : '#FFE14D', 'center', 168);
+      label('WIN TOGETHER', 692, 470, 18, '#7BD88F', 'center', 168);
     }
-    if (!mine) txt(g.hint, 400, 580, 17, '#fff', 'center', 770);
+    if (!mine) label(g.hint, 400, 580, 17, '#fff', 'center', 770);
   };
   for (const type of ['move', 'down', 'up', 'key', 'keyup']) g[type] = data => {
     if (mine) invoke(type, data);

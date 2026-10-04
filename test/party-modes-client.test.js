@@ -98,3 +98,25 @@ timedCards.extra.stealing.b.readyAt = Date.now() - 1;
 timedHelper.update(.1, .2); timedHelper.update(.1, .3);
 assert.equal(sb.pendingMoves.length, 1); assert.equal(sb.pendingMoves[0].action, 'steal');
 assert.equal(sb.pendingMoves[0].data.target, 'a');
+
+// Only eligible rivals are actionable; a pending, active or completed steal locks the targets.
+const stealButtons = []; sb.button = (...args) => stealButtons.push(args);
+sb.party.stealBusy = null;
+const controlsRoom = makeRoom('cards'), controlsHelper = build(controlsRoom, 'b');
+controlsHelper.draw(0);
+assert.equal(stealButtons.length, 2, 'rivals with cards can be selected');
+stealButtons.length = 0;
+sb.party.stealBusy = { target: 'a', round: 0 };
+controlsHelper.draw(0); assert.equal(stealButtons.length, 0, 'pending action disables targets');
+sb.party.stealBusy = null;
+controlsRoom.extra.stealing = { b: { target: 'a', round: 0, readyAt: Date.now() + 1200 } };
+controlsHelper.draw(0); assert.equal(stealButtons.length, 0, 'active steal disables targets');
+controlsRoom.extra.stealing = {}; controlsRoom.extra.stolen.b = 0;
+controlsHelper.draw(0); assert.equal(stealButtons.length, 0, 'one steal per microgame');
+controlsRoom.round = 1; controlsRoom.extra.stolen = {};
+const nextHelper = build(controlsRoom, 'b'); nextHelper.draw(0);
+assert.equal(stealButtons.length, 2, 'next microgame unlocks eligible targets');
+stealButtons.length = 0;
+controlsRoom.players.forEach(p => { p.score = 0; });
+nextHelper.draw(0); assert.equal(stealButtons.length, 0, 'empty collections cannot be stolen');
+console.log('card controls: eligible targets and pending/active/completed steal states OK');

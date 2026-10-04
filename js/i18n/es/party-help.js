@@ -166,3 +166,46 @@ I18N.add('es', {
 });
 
 I18N.add('es', {'STEALING...': 'ROBANDO...', 'Stealing takes 1.2 seconds. Watch the progress bar.': 'Robar tarda 1,2 segundos. Mira la barra de progreso.', 'Air from each pump is balanced for 2, 3 or 4 players.': 'El aire de cada bombeo se ajusta para 2, 3 o 4 jugadores.'});
+
+// Card table and stealing feedback.
+I18N.add('es', {
+  "CARD HEIST": "ROBA CARTAS",
+  "YOUR TURN · PICK A CARD": "TU TURNO · SACA UNA CARTA",
+  "TAP EITHER DECK · BOTH ARE FACE DOWN": "TOCA UN MAZO · AMBOS ESTÁN BOCA ABAJO",
+  "WATCH THE TABLE · YOUR TURN IS COMING": "OBSERVA LA MESA · PRONTO TE TOCA",
+  "1 · DRAW": "1 · SACA",
+  "PICK EITHER DECK": "ELIGE CUALQUIER MAZO",
+  "2 · BUILD": "2 · ACUMULA",
+  "MICROGAME = ADD TO PILE": "MINIJUEGO = CRECE EL MONTÓN",
+  "3 · PLAY": "3 · JUEGA",
+  "PLAY CARD = BEAT THE PILE": "CARTA JUGAR = SUPERA EL MONTÓN",
+  "DRAW LEFT": "SACAR IZQUIERDA",
+  "DRAW RIGHT": "SACAR DERECHA",
+  "WAITING": "ESPERANDO",
+  "THE PRIZE": "EL PREMIO",
+  "CARDS TO WIN": "CARTAS EN JUEGO",
+  "PILE {n} · POT {pot}": "MONTÓN {n} · BOTE {pot}",
+  "WIN EVERY MICROGAME": "GANA TODOS LOS MINIJUEGOS",
+  "FAIL = LOSE YOUR CARDS": "SI FALLAS, PIERDES TUS CARTAS",
+  "MOST CARDS AT THE END WINS": "GANA QUIEN TERMINE CON MÁS CARTAS",
+  "{name} · YOU": "{name} · TÚ",
+  "WIN EVERY GAME": "GANA TODOS LOS RETOS",
+  "PICK A RIVAL": "ELIGE UN RIVAL",
+  "1 CARD PER MICROGAME": "1 CARTA POR MINIJUEGO",
+  "WAIT FOR THE NEXT GAME": "ESPERA AL SIGUIENTE RETO",
+  "CARD STOLEN!": "¡CARTA ROBADA!",
+  "RIVALS CAN STEAL FROM YOU": "LOS RIVALES PUEDEN ROBARTE",
+  "+1 TO YOUR COLLECTION": "+1 PARA TU COLECCIÓN",
+  "TAP TO STEAL · 1.2s": "TOCA PARA ROBAR · 1,2 s",
+  "NO RIVAL HAS CARDS YET": "AÚN NO HAY CARTAS QUE ROBAR",
+  "STEAL · {name} · {n}": "ROBAR · {name} · {n}"
+});
+I18N.add('es', {
+  'YOU STEAL': 'TE TOCA ROBAR',
+  'YOU PLAY': 'TE TOCA JUGAR',
+  '{n} SECONDS': '{n} SEGUNDOS',
+  '{name}: {n} CARDS': '{name}: {n} CARTAS',
+  '{n} CARDS': '{n} CARTAS',
+  'STEALING...': 'ROBANDO...',
+  'CONNECTING TO THE PLAYER...': 'CONECTANDO CON EL JUGADOR...',
+});

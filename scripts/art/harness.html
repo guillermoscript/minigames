@@ -1,0 +1,83 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&display=swap">
+<style>html,body{margin:0;background:#000}canvas{display:block}</style></head>
+<body><canvas id="c" width="800" height="600"></canvas>
+<script>
+/* SOLO render harness. Pin the viewport to 800x600 before core.js runs fitScreen() (OX = 0, VW = 800). */
+const REPO = new URL('../../', location.href).href;                       // repo root (this file lives in scripts/art/)
+window.__errs = [];
+addEventListener('error', e => window.__errs.push(String(e.message)));
+/* loadScripts(['js/games/wave1.js', ...]) -> Promise; i18n.js + core.js always first */
+window.loadScripts = async function (list) {
+  const all = ['js/i18n.js', 'js/core.js', ...list];
+  for (const s of all) await new Promise((ok, bad) => { const el = document.createElement('script'); el.src = s.startsWith('file:') || s.startsWith('/') ? (s.startsWith('/') ? 'file://' + s : s) : REPO + s; el.onload = ok; el.onerror = () => bad(new Error('load ' + s)); document.body.appendChild(el); });
+  if (document.fonts) { try { await document.fonts.load('700 20px Fredoka'); await document.fonts.ready; } catch (e) {} }
+  return 'ok';
+};
+/* build a game: id = a REGMAP id, or 'boss:<name>' (BOSSES[name](sp, stage); stage = STAGES[stageIdx] if stages.js is loaded) */
+function build(id, sp, seed, stageIdx) {
+  if (id.startsWith('boss:')) {
+    const name = id.slice(5), st = (typeof STAGES !== 'undefined' && (STAGES.find(s => s.boss === name) || STAGES[stageIdx || 0])) || { bossHp: 10 };
+    return withSeed(seed, () => BOSSES[name](sp, st));
+  }
+  if (!REGMAP[id]) throw new Error('no game ' + id);
+  return withSeed(seed, () => REGMAP[id].fn(sp));
+}
+/* step(g, T, opts): runs the main.js play loop with a fixed dt. inputs(g, T, dt, api) is called every step before update:
+   api = { down(x,y), move(x,y), up(x,y), key(code), keyup(code), once(tag) } (once(tag) is true the first time it is asked) */
+function run(id, sp, until, inputs, opts) {
+  opts = opts || {};
+  const dt = opts.dt || 1 / 60, seed = opts.seed == null ? 77 : opts.seed;
+  parts.length = 0; fxs.length = 0; shakeT = 0; for (const k in keys) delete keys[k];
+  now = 0;
+  const g = build(id, sp, seed, opts.stage);
+  const dur = g.boss ? g.dur : g.dur / Math.sqrt(sp);
+  const fired = new Set();
+  const api = {
+    down: (x, y) => { mouse = { x, y }; g.down && g.down({ x, y, touch: false }); },
+    move: (x, y) => { mouse = { x, y }; g.move && g.move({ x, y, touch: false }); },
+    up: (x, y) => { g.up && g.up({ x, y, touch: false }); },
+    key: code => { keys[code] = true; g.key && g.key({ code, key: code.replace(/^(Key|Digit)/, '').toLowerCase(), repeat: false, preventDefault() {} }); },
+    keyup: code => { delete keys[code]; g.keyup && g.keyup({ code, key: code, preventDefault() {} }); },
+    once: tag => fired.has(tag) ? false : (fired.add(tag), true),
+  };
+  let T = 0, outT = -1, res = null;
+  while (T < until - 1e-9) {
+    T += dt; now = T;
+    if (inputs && !res) inputs(g, T, dt, api);
+    g.update(dt, T);
+    updateParts(dt); updateFx(dt); if (shakeT > 0) shakeT -= dt;
+    if (!res) {
+      if (g.result) { res = g.result; outT = 0; }
+      else if (T >= dur && !opts.noTimeout) { g.result = g.timeWin ? 'win' : 'lose'; res = g.result; outT = 0; }
+    } else outT += dt;
+  }
+  return { g, T, res, outT, dur };
+}
+/* shot(id, sp, t, inputs, opts) -> info; draws the frame at time t onto #c.
+   opts: { seed, dt, stage, stamp: true (draw main.js's NICE!/FAIL! stamp), hint: true (top hint line), vig: true (main.js's .22 vignette), fx: true } */
+window.shot = function (id, sp, at, inputs, opts) {
+  opts = opts || {};
+  if (typeof inputs === 'string') inputs = inputs.trim() ? (0, eval)('(' + inputs + ')') : null;
+  const r = run(id, sp, at, inputs, opts), g = r.g;
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height); ctx.fillStyle = '#000'; ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.save();
+  if (g.wide) g.draw(r.T); else { ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip(); g.draw(r.T); ctx.restore(); }
+  if (opts.fx !== false) drawParts();
+  if (opts.hint && !r.res) txt(g.hint, W / 2, 36, 24, '#fff', 'center', 520);
+  if (opts.stamp && r.res && r.outT < .95) {
+    const outT = r.outT, win = r.res === 'win', easeOut = k => 1 - (1 - k) * (1 - k);
+    const sc = outT < .14 ? 2.6 - 1.6 * easeOut(outT / .14) : 1 + Math.max(0, .12 - (outT - .14)) * 1.2, lab = t(win ? 'NICE!' : 'FAIL!'), cc = win ? '#5CFF7A' : '#FF4D4D';
+    ctx.save(); ctx.translate(W / 2, H / 2); ctx.rotate(-.1); ctx.scale(sc, sc); ctx.globalAlpha = Math.min(1, outT / .06);
+    ctx.font = '900 150px "Arial Black", Impact, sans-serif'; const tw = Math.min(700, ctx.measureText(lab).width) + 50;
+    ctx.fillStyle = 'rgba(20,16,28,.55)'; ctx.fillRect(-tw / 2 + 8, -78, tw, 176);
+    ctx.lineWidth = 10; ctx.strokeStyle = cc; ctx.strokeRect(-tw / 2, -88, tw, 176); ctx.lineWidth = 3; ctx.strokeStyle = INK; ctx.strokeRect(-tw / 2 - 8, -96, tw + 16, 192);
+    txt(lab, 0, 4, 150, cc, 'center', tw - 30); ctx.restore();
+  }
+  if (opts.fx !== false) drawFx();
+  if (opts.vig) vignette(.22);
+  if (opts.fuse) { const left = r.dur - r.T, y = H - 23; ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.fillRect(-OX, H - 46, VW, 46); ctx.fillStyle = INK; ctx.fillRect(20 - OX, y - 10, W + 2 * OX - 86, 20); circ(W + OX - 40, y, 19, '#2b2b3a', 4); if (!r.res && left < 2) txt(Math.ceil(left) + '', W + OX - 40, y - 34, 30, '#FF4D4D'); }
+  ctx.restore();
+  return { result: r.res, t: +r.T.toFixed(3), outT: +r.outT.toFixed(3), dur: +r.dur.toFixed(3), cmd: g.cmd, errs: window.__errs.slice() };
+};
+</script></body></html>

@@ -53,4 +53,35 @@ for (const id of ['a', 'b']) { const game = build(cards, id); game.draw(0); game
 const versus = makeRoom('versus'), mash = build(versus, 'a');
 for (let i = 0; i < 30; i++) mash.key({ code: 'Space', repeat: false });
 mash.update(.1, .1); assert.equal(mash.timeWin, true);
+// Passive spectator capture leaves every competitive game and DUO input channel untouched.
+const passiveFrames = []; sb.partySendFrame = data => passiveFrames.push(data);
+vm.runInContext(`REGMAP.scene_passive = { fn: (sp, dc) => {
+  const game = { dur: 8, wide: true, result: 'win', cmd: 'WATCH', hint: 'AIM', update() {}, key() {}, draw(t, extra) { if (this !== game) throw new Error('draw lost receiver'); globalThis.passiveDraw = { t, extra }; return 17; } };
+  if (dc) dc.onMsg(() => {});
+  return game;
+} };`, sb);
+for (const mode of ['versus', 'team', 'survival', 'knockout', 'duo']) {
+  const room = makeRoom(mode); room.game = 'scene_passive'; room.sp = 4;
+  let handlerCount = 0;
+  sb.passiveDC = { onMsg: () => handlerCount++, send() {} };
+  sb.party.room = room; sb.party.you.id = 'a';
+  sb.duoCtx = () => { throw new Error('Passive capture must not reset the DUO relay'); };
+  const game = vm.runInContext('partyBuildGame(party.room, party.room.sp, passiveDC)', sb);
+  assert.equal(handlerCount, 1); assert.equal(game.wide, true); assert.equal(game.dur, 8); assert.equal(game.result, 'win');
+  const originalKey = game.key, originalUpdate = game.update;
+  vm.runInContext('now += 1', sb);
+  const before = passiveFrames.length;
+  assert.equal(game.draw(1.25, 'argument'), 17);
+  assert.equal(sb.passiveDraw.extra, 'argument');
+  assert.equal(passiveFrames.length, before + 1); assert.equal(passiveFrames.at(-1).time, 2.75);
+  assert.ok(passiveFrames.at(-1).image.startsWith('data:image/jpeg;base64,'));
+  game.draw(1.3); assert.equal(passiveFrames.length, before + 1, 'snapshot cadence is bounded');
+  assert.equal(game.key, originalKey); assert.equal(game.update, originalUpdate);
+}
+const originalCreate = sb.document.createElement;
+sb.document.createElement = () => { throw new Error('canvas unavailable'); };
+const failingRoom = makeRoom('versus'); failingRoom.game = 'scene_passive';
+const safeGame = build(failingRoom, 'a'); vm.runInContext('now += 1', sb);
+assert.equal(safeGame.draw(1), 17, 'capture failures never stop the game');
+sb.document.createElement = originalCreate;
 console.log('party modes client: rendering, role isolation, shared scenes, visual snapshots, light relay and accelerated verdicts OK');

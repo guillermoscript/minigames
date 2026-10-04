@@ -6,7 +6,7 @@ let seed = 17;
 const rand = () => (seed = seed * 16807 % 2147483647) / 2147483647;
 const make = mode => {
   const r = P.newRoom('TEST', mode, 0);
-  ['A', 'B', 'C'].forEach(name => P.addPlayer(r, { name }, rand));
+  (mode === 'duo' ? ['A', 'B'] : ['A', 'B', 'C']).forEach(name => P.addPlayer(r, { name }, rand));
   P.start(r, 'a', 1000, rand); return r;
 };
 const rejects = (fn, status) => assert.throws(fn, e => e instanceof P.PartyError && e.status === status);
@@ -33,7 +33,7 @@ const frame = { t: 'frame', d: { image: 'data:image/jpeg;base64,' + 'A'.repeat(1
 const beforeFrame = JSON.stringify(light);
 assert.equal(P.sigPayload(light, 'a', 0, [frame]).m[0].d.image, frame.d.image);
 assert.equal(JSON.stringify(light), beforeFrame, 'visual relay never persists in room');
-rejects(() => P.sigPayload(light, 'b', 0, [frame]), 400);
+rejects(() => P.sigPayload(light, 'b', 0, [frame]), 403);
 rejects(() => P.sigPayload(light, 'a', 0, [{ t: 'frame', d: { image: 'data:image/png;base64,AAAA' } }]), 400);
 rejects(() => P.sigPayload(light, 'a', 0, [{ t: 'frame', d: { image: 'data:image/jpeg;base64,' + 'A'.repeat(60000) } }]), 400);
 rejects(() => P.sigPayload(light, 'a', 0, [frame, frame, frame, frame, frame, frame]), 413);
@@ -103,3 +103,32 @@ for (const mode of ['lantern', 'cards', 'balloon']) {
   P.leave(leaveRoom, 'b', 9000); assert.equal(leaveRoom.state, 'done');
 }
 console.log('party turn modes OK');
+
+// Spectator frames remain read-only, authenticated, and available in every multiplayer mode.
+const spectatorFrame = { t: 'frame', d: { image: 'data:image/jpeg;base64,' + 'A'.repeat(59000) } };
+for (const mode of P.MODES) {
+  const r = make(mode), sender = P.turnMode(r) ? r.extra.actor : 'a';
+  const before = JSON.stringify(r), payload = P.sigPayload(r, sender, r.round, [spectatorFrame]);
+  assert.equal(payload.from, sender); assert.equal(payload.m[0].d.image, spectatorFrame.d.image);
+  assert.equal(JSON.stringify(r), before, `${mode}: a frame must not mutate the room`);
+  r.cur[sender] = { r: 'win', t: 1, pts: 0 }; // Final outcome can still appear before round completion.
+  assert.equal(P.sigPayload(r, sender, r.round, [spectatorFrame]).from, sender);
+  rejects(() => P.sigPayload(r, 'unknown', r.round, [spectatorFrame]), 403);
+  rejects(() => P.sigPayload(r, sender, r.round + 1, [spectatorFrame]), 409);
+  rejects(() => P.sigPayload(r, sender, r.round, [{ t: 'frame', d: { image: 'data:image/png;base64,AAAA' } }]), 400);
+  rejects(() => P.sigPayload(r, sender, r.round, [{ t: 'frame', d: { image: 'data:image/jpeg;base64,' + 'A'.repeat(60000) } }]), 400);
+  rejects(() => P.sigPayload(r, sender, r.round, [spectatorFrame, spectatorFrame]), 413);
+  if (P.turnMode(r)) rejects(() => P.sigPayload(r, 'b', r.round, [spectatorFrame]), 403);
+  if (mode === 'survival' || mode === 'knockout') {
+    r.players[0].lives = 0;
+    rejects(() => P.sigPayload(r, sender, r.round, [spectatorFrame]), 403);
+  }
+  r.players.find(p => p.id === sender).left = true;
+  rejects(() => P.sigPayload(r, sender, r.round, [spectatorFrame]), 403);
+}
+const relayDuo = make('duo');
+assert.equal(P.sigPayload(relayDuo, 'a', relayDuo.round, [{ t: 'custom', d: { role: 0 } }]).m[0].t, 'custom');
+rejects(() => P.sigPayload(relayDuo, 'a', relayDuo.round, [{ t: 'custom', d: 'A'.repeat(513) }]), 413);
+const normal = make('versus');
+rejects(() => P.sigPayload(normal, 'a', normal.round, [{ t: 'down', d: { x: 10, y: 20 } }]), 409);
+console.log('spectator frames across all multiplayer modes OK');

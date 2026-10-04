@@ -21,6 +21,7 @@ const party = {
   pending: null,         // my result for the current round, until the server has it
   seenAt: 0, lastPoll: 0, lastTick: 0, lastAdv: 0, lastRep: 0,
   from: 'title',
+  watch: { round: -1, frames: {}, target: null },
   sig: { q: [], buf: [], busy: false, last: 0, hbAt: 0, round: -1, handler: null, rx: 0, since: 0 },   // DUO live relay state (see duoCtx)
 };
 const inCode = document.getElementById('in-code');
@@ -115,7 +116,7 @@ let PINVITE_USED = false;
 const inviteOpen = () => !!PINVITE && !PINVITE_USED;
 
 function partyCleanup() {
-  voiceStop(false); linkClose(); link.tries = 0; link.tryFor = ''; partyDisconnect(); party.sig = { q: [], buf: [], busy: false, last: 0, hbAt: 0, round: -1, handler: null, rx: 0, since: 0 }; party.room = null; party.you = null; party.pending = null; party.played = -1; saveSession();
+  voiceStop(false); linkClose(); link.tries = 0; link.tryFor = ''; partyDisconnect(); party.sig = { q: [], buf: [], busy: false, last: 0, hbAt: 0, round: -1, handler: null, rx: 0, since: 0 }; party.watch = { round: -1, frames: {}, target: null }; party.room = null; party.you = null; party.pending = null; party.played = -1; saveSession();
 }
 function partyLeave(to) {
   voiceStop(true); if (party.room && party.you) pcall('leave', auth());
@@ -139,10 +140,39 @@ addEventListener('pagehide', e => {
    other player over the realtime connection (topic rooms/<id>/sig). One request in flight at a time keeps the order, and a message
    type sent with `latest` replaces an older queued one (positions), so slow links just send fewer, fresher updates. */
 const SIG_GAP = .1, SIG_HB = .5, SIG_AWAY = 2;
+// Spectators receive images only: they never run a friend's game or submit its result.
+function partyReceiveFrame(from, data, round) {
+  const R = party.room, p = R && R.players.find(p => p.id === from && !p.left);
+  if (!R || R.state !== 'round' || round !== R.round || !p || from === (party.you && party.you.id)) return;
+  if (partyElimination(R) && p.lives <= 0 || partyTurnMode(R) && from !== R.extra.actor) return;
+  if (!data || data.cmd !== undefined && (typeof data.cmd !== 'string' || data.cmd.length > 120) || typeof data.image !== 'string' || data.image.length > 60000 || !/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(data.image)) return;
+  if (party.watch.round !== round || party.watch.roomId !== R.id) party.watch = { round, roomId: R.id, frames: {}, target: null };
+  const watch = party.watch, previous = watch.frames[from], entry = { image: previous && previous.image, at: previous && previous.at, cmd: typeof data.cmd === 'string' ? data.cmd.slice(0, 120) : '', time: Number.isFinite(data.time) ? Math.max(0, data.time) : 0 };
+  watch.frames[from] = entry;
+  const image = new Image();
+  image.onload = () => {
+    const room = party.room, seat = room && room.players.find(p => p.id === from && !p.left);
+    if (party.watch !== watch || watch.frames[from] !== entry || !room || room.state !== 'round' || room.round !== round || room.id !== watch.roomId || !seat || partyElimination(room) && seat.lives <= 0) return;
+    entry.image = image; entry.at = now;
+  };
+  image.src = data.image;
+}
+function partySendFrame(data) {
+  const R = party.room, S = party.sig;
+  if (!R || R.state !== 'round') return;
+  if (S.round !== R.round) {
+    if (R.mode === 'duo' || partyTurnMode(R)) return;
+    Object.assign(S, { q: [], buf: [], round: R.round, handler: null, last: 0, hbAt: now });
+  }
+  const old = S.q.find(m => m.t === 'frame' && m.l);
+  if (old) old.d = data;
+  else S.q.push({ t: 'frame', d: data, l: true });
+}
 function onSig(d) {
-  const S = party.sig, R = party.room; if (!R || !d || !d.m || d.from === (party.you && party.you.id)) return;
+  const S = party.sig, R = party.room; if (!R || !d || !Array.isArray(d.m) || d.from === (party.you && party.you.id)) return;
   S.rx = now;
   d = Object.assign({}, d, { m: d.m.filter(m => {                                // hb / ping / pong are ours, not the game's
+    if (m.t === 'frame') { partyReceiveFrame(d.from, m.d, d.round); return partyTurnMode(R); }
     if (m.t === 'ping') { S.q.unshift({ t: 'pong', d: m.d, l: true }); return false; }
     if (m.t === 'pong') { gotPong(m.d, 'relay'); return false; }
     return m.t !== 'hb';
@@ -168,7 +198,7 @@ function duoCtx(R) {
 }
 const duoAway = () => !!party.room && party.room.mode === 'duo' && party.sig.round === party.room.round && now - party.sig.since > SIG_AWAY && now - party.sig.rx > SIG_AWAY;
 async function sigFlush() {
-  const S = party.sig, R = party.room; if (!R || !['duo', 'lantern', 'cards', 'balloon'].includes(R.mode) || R.state !== 'round' || S.round !== R.round) { S.q.length = 0; return; }
+  const S = party.sig, R = party.room; if (!R || R.state !== 'round' || S.round !== R.round) { S.q.length = 0; return; }
   if (now - S.hbAt > SIG_HB) { S.hbAt = now; if (!S.q.length) S.q.push({ t: 'hb', d: null, l: true }); }
   const direct = linkUsable();                                                   // DataChannel to the partner: no HTTP round trip
   if (direct) { if (!S.q.length || now - S.last < .03) return; S.last = now; linkSend(R.round, S.q.splice(0, 20)); return; }
@@ -209,6 +239,8 @@ function onRoom(R, old) {
 }
 function startLocalRound(R) {
   party.played = R.round; party.pending = null;
+  party.watch = { round: R.round, roomId: R.id, frames: {}, target: null };
+  if (!partyTurnMode(R) && R.mode !== 'duo') Object.assign(party.sig, { q: [], buf: [], busy: false, last: 0, hbAt: now, round: R.round, handler: null, rx: now, since: now });
   if (partyElimination(R) && me() && me().lives <= 0) { party.view = 'wait'; state = 'party'; st = 0; return; }
   if (!REGMAP[R.game] && R.game !== 'pc_draw') { party.pending = { round: R.round, r: 'lose', t: 1, pts: 0 }; party.view = 'wait'; state = 'party'; sendReport(); return; }
   mode = 'party'; stage = STAGES[0]; lastOut = null; parts.length = 0;
@@ -238,7 +270,7 @@ async function sendReport() {
 function partyUpdate(dt) {
   const R = party.room; if (!R) return;
   if (now - party.lastPoll > (party.sseOK ? 12 : 3)) partyPoll();
-  if (['duo', 'lantern', 'cards', 'balloon'].includes(R.mode) && state === 'play') sigFlush();
+  if (state === 'play') sigFlush();
   if (partyTurnMode(R) && R.state === 'round' && now - party.lastTick > 2.5) { party.lastTick = now; pcall('tick', { code: R.code }).then(r => { if (r.ok) applyRoom(r.data.room); }); }
   if (party.pending && now - party.lastRep > 1.5) sendReport();
   if (state !== 'party') return;
@@ -381,16 +413,33 @@ function drawLobby(R) {
 }
 
 function drawWait(R) {
-  txt(t('ROUND {n} / {total}', { n: R.round + 1, total: R.total }), W / 2, 44, 36, '#FFE14D');
   const my = R.cur && party.you && R.cur[party.you.id] || party.pending;
-  if (my) txt(my.r === 'win' ? 'YOU DID IT!' : 'NOT THIS TIME', W / 2, 120, 44, my.r === 'win' ? '#5CFF7A' : '#FF4D4D');
-  txt(party.view === 'loading' ? 'LOADING 3D GAME...' : partyElimination(R) && me().lives <= 0 ? 'ELIMINATED · WATCH THE OTHERS!' : 'WAITING FOR THE OTHERS...', W / 2, 190, 26, '#fff');
-  R.players.filter(p => !p.left).forEach((p, i) => {
-    const x = 120, y = 240 + i * 62, c = R.cur && R.cur[p.id];
-    box3(x, y, 560, 52, '#35406a', 3, 4); mini(x + 34, y + 48, p, 2.3);
-    txt(p.name, x + 74, y + 27, 22, p.color, 'left', 340); if (partyElimination(R)) txt(t('{n} LIVES', { n: p.lives }), x + 520, y + 27, 18, p.lives ? '#5CFF7A' : '#FF4D4D'); else statusDot(x + 520, y + 26, 16, c ? c.r : null);
+  txt(t('ROUND {n} / {total}', { n: R.round + 1, total: R.total }), W / 2, 36, 28, '#FFE14D');
+  txt(party.view === 'loading' ? 'LOADING 3D GAME...' : partyElimination(R) && me().lives <= 0 ? 'YOU ARE OUT · KEEP WATCHING' : my ? my.r === 'win' ? 'YOU DID IT! WATCH YOUR FRIENDS' : 'ROUND FINISHED · WATCH YOUR FRIENDS' : 'WATCH YOUR FRIENDS PLAY', W / 2, 78, 23, '#fff', 'center', 740);
+  const friends = R.players.filter(p => !p.left && p.id !== party.you.id);
+  const alive = friends.filter(p => !partyElimination(R) || p.lives > 0), playing = alive.filter(p => !R.cur[p.id]);
+  const watch = party.watch;
+  if (!alive.some(p => p.id === watch.target) || !watch.manual && playing.length && !playing.some(p => p.id === watch.target)) {
+    const candidates = playing.length ? playing : alive;
+    watch.target = (candidates.find(p => watch.frames[p.id] && watch.frames[p.id].image) || candidates[0] || {}).id || null;
+  }
+  const target = alive.find(p => p.id === watch.target), frame = watch.round === R.round && watch.frames[watch.target];
+  txt(target ? t('WATCHING: {name}', { name: target.name }) : 'WAITING FOR THE NEXT ROUND', 296, 119, 22, target ? target.color : '#ddd', 'center', 550);
+  box3(16, 140, 560, 424, target ? target.color : '#35406a', 4, 4);
+  ctx.fillStyle = '#19172d'; ctx.fillRect(20, 144, 552, 414);
+  if (frame && frame.image) {
+    ctx.drawImage(frame.image, 20, 144, 552, 414);
+    if (!R.cur[target.id] && now - frame.at > 3) { box(20, 144, 552, 42, 'rgba(0,0,0,.8)', 0); txt('RECONNECTING TO THE PLAYER...', 296, 165, 18, '#FFE14D', 'center', 530); }
+  } else txt('CONNECTING TO THE PLAYER...', 296, 351, 24, '#FFE14D', 'center', 530);
+  txt(frame && frame.cmd || '', 296, 582, 18, '#fff', 'center', 552);
+  txt('CHOOSE WHO TO WATCH', 686, 126, 16, '#FFE14D', 'center', 188);
+  friends.forEach((p, i) => {
+    const y = 154 + i * 124, dead = partyElimination(R) && p.lives <= 0, c = R.cur && R.cur[p.id];
+    if (!dead) button(592, y, 188, 64, p.name, () => { watch.target = p.id; watch.manual = true; }, { size: 20, fill: p.id === watch.target ? '#FFE14D' : p.color });
+    else { box3(592, y, 188, 64, '#35406a', 3, 3); txt(p.name, 686, y + 32, 20, '#aaa', 'center', 176); }
+    txt(dead ? 'ELIMINATED' : c ? 'FINISHED' : 'PLAYING NOW', 686, y + 88, 17, dead ? '#F28CB1' : c ? '#ddd' : '#7BD88F', 'center', 180);
+    if (partyElimination(R)) txt(t('{n} LIVES', { n: p.lives }), 686, y + 109, 15, '#ddd');
   });
-  if (!TOUCH) txt('KEEP CALM - THE ROUND ENDS WHEN EVERYONE IS DONE', W / 2, 560, 16, '#ddd');
   button(14, 10, 130, 44, 'LEAVE', () => partyLeave(), { size: 18, fill: 'rgba(255,255,255,.85)' });
 }
 

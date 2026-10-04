@@ -218,6 +218,29 @@ function partyWrapGame(base, R, sp) {
   };
   return g;
 }
+// Passive spectators watch rendered pixels; the game keeps its original input, state and DUO channel.
+function partySpectatorGame(base, R, sp) {
+  if (base.partyScene || base.partyDraw || typeof base.draw !== 'function') return base;
+  const draw = base.draw;
+  let capture = null, frameAt = -Infinity;
+  base.draw = function (...args) {
+    const value = draw.apply(this, args);
+    if (typeof partySendFrame !== 'function' || now - frameAt < .3) return value;
+    frameAt = now;
+    try {
+      if (!capture) { capture = document.createElement('canvas'); capture.width = 400; capture.height = 300; }
+      if (!capture.getContext || !capture.toDataURL) return value;
+      capture.getContext('2d').drawImage(cv, OX, 0, W, H, 0, 0, 400, 300);
+      const image = capture.toDataURL('image/jpeg', .48);
+      if (typeof image === 'string' && image.length < 60000) partySendFrame({
+        image, cmd: base.cmd || '', hint: base.hint || '',
+        time: Math.max(0, base.dur / Math.sqrt(sp) - (Number(args[0]) || 0)),
+      });
+    } catch (_) { /* A game canvas unavailable for capture must still keep playing. */ }
+    return value;
+  };
+  return base;
+}
 function partyBuildGame(R, sp, dc) {
   if (R.game === 'pc_draw') return partyDrawGame(R);
   if (partyTurnMode(R) && R.extra.actor !== party.you.id) return partyWrapGame({}, R, sp);
@@ -226,5 +249,5 @@ function partyBuildGame(R, sp, dc) {
     const update = base.update;
     base.update = (dt, t) => { update(dt, t); base.timeWin = base.pts >= base.need; };
   }
-  return partyTurnMode(R) ? partyWrapGame(base, R, sp) : base;
+  return partyTurnMode(R) ? partyWrapGame(base, R, sp) : partySpectatorGame(base, R, sp);
 }

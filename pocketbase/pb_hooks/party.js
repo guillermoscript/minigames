@@ -312,26 +312,33 @@ function again(room, id) {
 }
 
 const SIG_MAX = 512, SIG_FRAME_MAX = 65536, SIG_COUNT = 10;
-/* Live relay for DUO inputs and turn-mode game snapshots/light positions.
+/* Live relay for DUO inputs, spectator snapshots in every mode and lantern light positions.
    Payloads are authenticated and forwarded, never stored in the room record. */
 function sigPayload(room, id, round, m) {
-  if (!(room.mode === "duo" || turnMode(room)) || room.state !== "round" || round !== room.round) fail("Round is over", 409);
+  if (!MODES.includes(room.mode) || room.state !== "round" || round !== room.round) fail("Round is over", 409);
   const p = player(room, id);
-  if (!p || p.left) fail("Not in this round", 403);
+  if (!p || p.left || (elimination(room) && p.lives <= 0)) fail("Not in this round", 403);
   if (!Array.isArray(m) || !m.length || m.length > SIG_COUNT) fail("Bad message", 400);
   const out = m.map((x) => ({ t: String((x && x.t) || "").slice(0, 12), d: x && x.d !== undefined ? x.d : null }));
-  if (turnMode(room)) for (const x of out) {
+  let hasFrame = false;
+  for (const x of out) {
+    if (x.t === "frame") {
+      if (turnMode(room) && id !== room.extra.actor) fail("Not your turn", 403);
+      if (!x.d || typeof x.d.image !== "string" || x.d.image.length > 60000 || !/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(x.d.image)) fail("Bad frame", 400);
+      hasFrame = true;
+      continue;
+    }
+    if (room.mode === "duo") continue; // Preserve the DUO games' existing custom relay inputs.
     if (x.t === "hb" || x.t === "ping" || x.t === "pong") continue;
+    if (!turnMode(room)) fail("Inputs unavailable in this mode", 409);
     if (id === room.extra.actor) {
-      if (x.t === "frame") {
-        if (!x.d || typeof x.d.image !== "string" || x.d.image.length > 60000 || !/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(x.d.image)) fail("Bad frame", 400);
-      } else if (room.mode === "lantern" && ["move", "down", "up", "key", "keyup"].includes(x.t)) {
+      if (room.mode === "lantern" && ["move", "down", "up", "key", "keyup"].includes(x.t)) {
         if (x.t === "key" || x.t === "keyup") { if (!x.d || typeof x.d.code !== "string" || x.d.code.length > 24) fail("Bad key", 400); }
         else if (!x.d || !Number.isFinite(x.d.x) || !Number.isFinite(x.d.y)) fail("Bad position", 400);
       } else fail("Bad input", 400);
     } else if (room.mode !== "lantern" || x.t !== "light" || !x.d || !Number.isFinite(x.d.x) || !Number.isFinite(x.d.y)) fail("Bad light", 400);
   }
-  if (JSON.stringify(out).length > (turnMode(room) ? SIG_FRAME_MAX : SIG_MAX)) fail("Message too big", 413);
+  if (JSON.stringify(out).length > (hasFrame || turnMode(room) ? SIG_FRAME_MAX : SIG_MAX)) fail("Message too big", 413);
   return { from: id, round, m: out };
 }
 

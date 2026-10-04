@@ -45,6 +45,10 @@ run(`party.you = { id: 'a', key: 'secret' }; party.room = { id: 'room', code: 'A
   run(`onSig({from: 'b', round: 1, m: [{t: '_net_ping', d: 10}]});`);
   assert.equal(received.length, 1);
   run('party.sig.q = [];');
+  // DUO has no spectators; shared-screen modes upload independently of controls.
+  run(`partySendFrame({image: 'data:image/jpeg;base64,YQ=='});`);
+  assert.equal(run('party.sig.q.length'), 0, 'DUO does not generate unused screen traffic');
+  run("party.room.mode='lantern'; party.room.extra={actor:'a'};");
   // Start a screen upload, then send an input while the upload remains pending.
   run(`partySendFrame({image: 'data:image/jpeg;base64,YQ=='}); sigFlush();`);
   assert.equal(calls.length, 1);

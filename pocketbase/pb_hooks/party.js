@@ -19,7 +19,7 @@ const GAMES = {
   pt_sync: { dur: 5, pts: true },
   pt_memo: { dur: 8, pts: false },
   pt_grab: { dur: 7, pts: true },
-  /* DUO games: two players, two roles, ONE shared verdict - keep in sync with js/games/du1.js */
+  /* DUO games: two players, two roles, ONE shared verdict - keep in sync with js/games/du1.js and js/games/duo/*.js */
   du_catch: { dur: 14, pts: false, duo: true },
   du_decode: { dur: 15, pts: false, duo: true },
   du_crank: { dur: 14, pts: false, duo: true },
@@ -28,6 +28,11 @@ const GAMES = {
   du_beat: { dur: 14, pts: false, duo: true },
   du_guide: { dur: 16, pts: false, duo: true },
   du_gun: { dur: 15, pts: false, duo: true },
+  /* one file per game in js/games/duo/ */
+  du_hippo: { dur: 15, pts: false, duo: true },
+  du_legs: { dur: 15, pts: false, duo: true },
+  du_shield: { dur: 15, pts: false, duo: true },
+  du_panic: { dur: 15, pts: false, duo: true },
 };
 const TURN_CATALOG = require(typeof __hooks === "string" ? `${__hooks}/party_catalog.js` : "./party_catalog.js");
 Object.assign(GAMES, TURN_CATALOG);

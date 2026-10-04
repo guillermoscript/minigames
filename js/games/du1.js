@@ -211,11 +211,11 @@ function duDecode(sp, D) {
       if (!reader && !g.result && g.c >= g.limit) g.finish('lose');
     },
     msg(t, d) {
-      if (t === 'ping' && !reader) { pings.push({ s: d, c: g.c }); snd(330 + d * 90, .2, 'triangle', .07); }
+      if (t === 'sym' && !reader) { pings.push({ s: d, c: g.c }); snd(330 + d * 90, .2, 'triangle', .07); }
       else if (t === 'press' && reader) { at = d.at; if (!d.ok) { wrongT = .5; sfx.miss(); } else snd(330 + d.s * 90, .15, 'triangle', .06); }
     },
     ping(s) {
-      if (!reader || g.result || g.c - lastPing < .22) return; lastPing = g.c; pingGlow = s; pingT = .2; D.send('ping', s); snd(330 + s * 90, .15, 'triangle', .06);
+      if (!reader || g.result || g.c - lastPing < .22) return; lastPing = g.c; pingGlow = s; pingT = .2; D.send('sym', s); snd(330 + s * 90, .15, 'triangle', .06);
     },
     press(s) {
       if (reader || g.result || g.c < .15) return;
@@ -602,5 +602,9 @@ function duGun(sp, D) {
   return g;
 }
 reg('du_gun', duGun, 'GUNNER & LOADER'); REGMAP.du_gun.duo = true;
+
+/* shared kit for the DUO games that live one per file in js/games/duo/*.js (loaded after this file). A game there adds its
+   intro-card text and demos to DUO.INFO / DUO.DEMOS under its id, then calls DUO.wire(g, D, judgeRole, sp, id) like the ones above. */
+window.DUO = { PUR, PUR2, YEL, GRN, RED, BLU, PNK, ORG, LIL, clamp, mkR, END_SLACK, LAG, SOLO, duBg, duWin, duLose, duMood, duBar, track, wire, rolePick, demoFinger, demoCoin, INFO: DUINFO, DEMOS };
 
 })();

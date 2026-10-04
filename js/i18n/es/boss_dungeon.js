@@ -1,0 +1,19 @@
+'use strict';
+I18N.add('es', {
+  'PICK THE CORRECT SPELLING!': '¡ELIGE LA PALABRA BIEN ESCRITA!',
+  'TAP THE CORRECT SPELLING!': '¡TOCA LA PALABRA BIEN ESCRITA!',
+  'GLITCH SLIME': 'SLIME GLITCH',
+  'HP': 'PV',
+  'COMMAND?': '¿COMANDO?',
+  'ATTACK': 'ATACAR',
+  'MAGIC': 'MAGIA',
+  'DEFEND': 'DEFENDER',
+  'ITEM': 'OBJETO',
+  'FIRE': 'FUEGO',
+  'POTION': 'POCIÓN',
+  'SLASH!': '¡CORTE!',
+  'KO!': '¡KO!',
+  'TYPO!': '¡ERRATA!',
+  'TOO SLOW!': '¡MUY LENTO!',
+  'HA HA!': '¡JA JA!',
+});

@@ -124,8 +124,9 @@ let pf = { avail: 'loading', busy: false, msg: '', msgCol: '#FF4D4D' };   // Goo
 let rn = { on: false, busy: false, msg: '' };                              // CHANGE NAME dialog
 let lb = { tab: 0, page: 0, cache: {} };
 let pv = { name: '', data: null, err: '', loading: false };
-let fr = { tab: 0, page: 0, list: null, loading: false, err: '', add: false, busy: false, msg: '' };   // friends (follows)
+let fr = { tab: 0, page: 0, list: null, loading: false, err: '', add: false, busy: false, msg: '', found: null };   // friends (follows)
 const inFriend = document.getElementById('in-friend');
+inFriend.addEventListener('input', () => { fr.found = null; fr.msg = ''; });
 const PER_TABS = 6;
 const inName = document.getElementById('in-name'), ov = document.getElementById('ov');
 
@@ -219,7 +220,7 @@ function pickColor(c) {
 }
 
 /* ───────────── friends: follow players; two follows pointing at each other = friends ───────────── */
-const FR_PER = 6, FR_TABS = ['FRIENDS {n}', 'FOLLOWING {n}', 'FOLLOWERS {n}'];
+const FR_PER = 5, FR_TABS = ['FRIENDS {n}', 'FOLLOWING {n}', 'FOLLOWERS {n}'];
 const frRel = uid => (fr.list || []).find(f => f.uid === uid);
 const frOf = tab => (fr.list || []).filter(f => tab === 0 ? f.following && f.followsMe : tab === 1 ? f.following : f.followsMe).sort((a, b) => b.total - a.total || a.username.localeCompare(b.username));
 const frPending = () => (fr.list || []).filter(f => f.followsMe && !f.following).length;   // people who follow me and I don't follow back
@@ -242,8 +243,8 @@ async function followToggle(uid, name) {
   await loadFriends();
   say(t(un ? 'UNFOLLOWED {name}' : 'FOLLOWING {name}!', { name: String(name).toUpperCase() }), un ? '#FFE14D' : '#5CFF7A');
 }
-function openAddFriend() { fr.add = true; fr.msg = ''; inFriend.value = ''; setTimeout(() => inFriend.focus(), 0); }
-function closeAddFriend() { fr.add = false; inFriend.blur(); }
+function openAddFriend() { fr.add = true; fr.msg = ''; fr.found = null; inFriend.value = ''; setTimeout(() => inFriend.focus(), 0); }
+function closeAddFriend() { fr.add = false; fr.msg = ''; fr.found = null; inFriend.blur(); }
 async function doAddFriend() {
   if (fr.busy) return;
   const n = inFriend.value.trim();
@@ -252,8 +253,8 @@ async function doAddFriend() {
   fr.busy = true; fr.msg = 'ONE MOMENT...';
   const u = await api.findUser(n);
   fr.busy = false;
-  if (!u.ok) { fr.msg = u.status === 0 ? 'CAN\'T REACH SERVER' : 'NO SUCH PLAYER'; return; }
-  closeAddFriend(); openProfile(u.data.username);
+  if (!u.ok) { fr.found = null; fr.msg = u.status === 0 ? 'CAN\'T REACH SERVER' : 'NO SUCH PLAYER'; return; }
+  fr.found = u.data; fr.msg = '';
 }
 
 /* three.js (590 KB) is only for the 3D stage's games: fetched when a 3D game is about to be needed, not at page load */
@@ -414,7 +415,7 @@ function placeInputs() {
   const r = cv.getBoundingClientRect(), k = r.width / VW;
   const put = (el, x, y, w, h) => { const s = el.style; s.left = r.left + (x + OX) * k + 'px'; s.top = r.top + y * k + 'px'; s.width = w * k + 'px'; s.height = h * k + 'px'; s.fontSize = h * k * .5 + 'px'; };
   if (showName) put(inName, 200, 262, 400, 52);
-  else if (showFriend) put(inFriend, 200, 262, 400, 52);
+  else if (showFriend) put(inFriend, 165, 82, 430, 52);
   else put(inCode, 200, 322, 260, 64);
 }
 function hintOf(g) {
@@ -714,23 +715,32 @@ function render() {
       txt('FOLLOW EACH OTHER = FRIENDS', W / 2, 328, 20, '#ddd', 'center', 740);
       button(250, 380, 300, 64, 'PROFILE', goProfile, { fill: '#5CFF7A', size: 28 });
     } else {
-      button(W + OX - 184, 10, 170, 56, 'ADD', openAddFriend, { size: 22, fill: '#5CFF7A' });
-      for (let i = 0; i < 3; i++) button(40 + i * 245, 80, 235, 52, t(FR_TABS[i], { n: fr.list ? frOf(i).length : '-' }), () => { fr.tab = i; fr.page = 0; }, { size: 20, fill: i === fr.tab ? '#FFE14D' : '#fff' });
+      txt('SEARCH BY PLAYER NAME', 40, 100, 17, '#ddd', 'left');
+      button(610, 82, 150, 52, fr.busy && !fr.found ? 'SEARCHING...' : 'SEARCH', doAddFriend, { size: 20, fill: '#5CFF7A' });
+      for (let i = 0; i < 3; i++) button(40 + i * 245, 145, 235, 48, t(FR_TABS[i], { n: fr.list ? frOf(i).length : '-' }), () => { fr.tab = i; fr.page = 0; }, { size: 18, fill: i === fr.tab ? '#FFE14D' : '#fff' });
+      if (fr.msg) txt(fr.msg, W / 2, 207, 18, fr.msg === 'ONE MOMENT...' ? '#fff' : '#FF4D4D', 'center', 470);
+      if (fr.found) {
+        const rel = frRel(fr.found.uid), following = !!(rel && rel.following);
+        box(40, 184, 720, 58, '#222b4c', 3);
+        txt(fr.found.username, 60, 213, 22, '#fff', 'left', 350);
+        button(570, 188, 175, 48, following ? '✓ FOLLOWING' : rel && rel.followsMe ? 'FOLLOW BACK' : 'FOLLOW',
+          () => following ? openProfile(fr.found.username) : followToggle(fr.found.uid, fr.found.username), { size: 17, fill: following ? '#FFE14D' : '#5CFF7A' });
+      }
       const list = frOf(fr.tab), pages = pageCount(list.length, FR_PER);
       if (fr.list) {
         if (!list.length) {
-          txt(fr.tab === 0 ? 'NO FRIENDS YET' : fr.tab === 1 ? 'YOU\'RE NOT FOLLOWING ANYONE' : 'NOBODY FOLLOWS YOU YET', W / 2, 280, 30, '#fff', 'center', 740);
-          txt('PRESS ADD OR OPEN SOMEONE\'S PROFILE FROM THE LEADERBOARD', W / 2, 322, 18, '#ddd', 'center', 740);
+          txt(fr.tab === 0 ? 'NO FRIENDS YET' : fr.tab === 1 ? 'YOU\'RE NOT FOLLOWING ANYONE' : 'NOBODY FOLLOWS YOU YET', W / 2, 300, 27, '#fff', 'center', 740);
+          txt('SEARCH FOR A PLAYER ABOVE TO GET STARTED', W / 2, 338, 17, '#ddd', 'center', 740);
         }
         list.slice(fr.page * FR_PER, fr.page * FR_PER + FR_PER).forEach((f, i) => {
-          const y = 150 + i * 56, act = fr.tab === 2 && !f.following, w = act ? 560 : 720, mut = f.following && f.followsMe;
-          box(40, y, w, 50, i % 2 ? '#35406a' : '#2c3659', 3);
+          const y = 258 + i * 48, act = fr.tab === 2 && !f.following, w = act ? 560 : 720, mut = f.following && f.followsMe;
+          box(40, y, w, 44, i % 2 ? '#35406a' : '#2c3659', 3);
           claude(80, y + 46, 2.2, { col: f.color });
-          ctx.save(); txt(f.username, 112, y + 25, 22, f.color, 'left', 250); ctx.restore();
-          txt(mut ? '✓ FRIENDS' : f.following ? 'FOLLOWING' : 'FOLLOWS YOU', 395, y + 25, 16, mut ? '#5CFF7A' : f.following ? '#FFE14D' : '#ddd', 'left', 140);
-          txt(String(f.total), 40 + w - 12, y + 25, 20, '#fff', 'right');
-          btns.push({ x: 40, y, w, h: 50, fn: () => openProfile(f.username) });
-          if (act) button(610, y, 150, 50, 'FOLLOW BACK', () => followToggle(f.uid, f.username), { size: 16, fill: '#5CFF7A' });
+          ctx.save(); txt(f.username, 112, y + 22, 20, f.color, 'left', 250); ctx.restore();
+          txt(mut ? '✓ FRIENDS' : f.following ? 'FOLLOWING' : 'FOLLOWS YOU', 395, y + 22, 15, mut ? '#5CFF7A' : f.following ? '#FFE14D' : '#ddd', 'left', 140);
+          txt(String(f.total), 40 + w - 12, y + 22, 18, '#fff', 'right');
+          btns.push({ x: 40, y, w, h: 44, fn: () => openProfile(f.username) });
+          if (act) button(610, y, 150, 44, 'FOLLOW BACK', () => followToggle(f.uid, f.username), { size: 15, fill: '#5CFF7A' });
         });
         if (pages > 1) {
           button(40, 530, 90, 50, '◄', () => { fr.page = (fr.page + pages - 1) % pages; }, { size: 24, fill: '#FFE14D' });

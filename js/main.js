@@ -343,7 +343,8 @@ function update(dt) {
     cur.update(dt, tt);
     if (!outcome) {
       if (cur.result) setOutcome(cur.result);
-      else if (tt >= dur && !cur.partyHelper && !cur.partyDraw) { cur.result = cur.timeWin ? 'win' : 'lose'; setOutcome(cur.result); }
+      else if (tt >= dur && !cur.partyHelper && !cur.partyDraw && !(cur.duoWait && tt < dur + DUO_WAIT)) {   // DUO: the non-judge waits for the judge's verdict so both screens show the same ending
+        cur.result = cur.timeWin ? 'win' : 'lose'; setOutcome(cur.result); }
     } else if (outT > .95) {
       lastOut = outcome;
       if (mode === 'party') partyLocalDone(outcome);

@@ -1,0 +1,24 @@
+'use strict';
+/* DUO · DUET (du_beat). Scope 'du' is shared with du1.js and the other duo_*.js files: 'DUET', 'YOU', 'YOUR FRIEND' live in du1.js,
+   'SPACE' and 'PERFECT!' keep the same translation as duo_hippo.js / duo_keys.js. */
+I18N.add('es', {
+  'LEFT SINGER': 'CANTANTE IZQUIERDO',
+  'RIGHT SINGER': 'CANTANTE DERECHO',
+  'SING!': '¡CANTA!',
+  'TAP / CLICK / SPACE WHEN YOUR NOTE HITS THE RING - EXTRA TAPS SOUND SOUR!': 'TOCA / CLIC / ESPACIO CUANDO TU NOTA LLEGUE AL ARO - ¡LOS TOQUES DE MÁS DESAFINAN!',
+  'TAP WHEN YOUR NOTE HITS THE RING - EXTRA TAPS SOUND SOUR!': 'TOCA CUANDO TU NOTA LLEGUE AL ARO - ¡LOS TOQUES DE MÁS DESAFINAN!',
+  'SING YOUR NOTES ON THE BEAT': 'CANTA TUS NOTAS A RITMO',
+  'TAP AS YOUR NOTE HITS THE RING': 'TOCA CUANDO TU NOTA LLEGUE AL ARO',
+  'PERFECT!': '¡PERFECTO!',
+  'GOOD': 'BIEN',
+  'MISS': 'FALLO',
+  'SOUR!': '¡DESAFINAS!',
+  'EARLY': 'PRONTO',
+  'LATE': 'TARDE',
+  'TOO EARLY': 'DEMASIADO PRONTO',
+  'APPLAUSE': 'APLAUSOS',
+  'BRAVO!': '¡BRAVO!',
+  'ENCORE!': '¡OTRA!',
+  'BOOO!': '¡BUUU!',
+  'SPACE': 'ESPACIO',
+}, 'du');

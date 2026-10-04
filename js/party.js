@@ -509,7 +509,7 @@ function drawEnd(R) {
 
 /* DUO: who is who. The intro card (before the game starts) shows both players side by side with their role and one short line;
    during play a coloured badge + a frame in YOUR colour keep reminding you which one you are. */
-const DUO_A = 1.9, DUO_B = 1.7, DUO_C = .9, DUO_PRE = DUO_A + DUO_B + DUO_C;   // YOU (1.9 s) -> YOUR FRIEND (1.7 s) -> GO (.9 s); keep PRE_MS_DUO in pocketbase/pb_hooks/party.js in sync
+const DUO_A = 1.9, DUO_B = 1.7, DUO_C = .9, DUO_PRE = DUO_A + DUO_B + DUO_C, DUO_WAIT = 1.5;   // YOU (1.9 s) -> YOUR FRIEND (1.7 s) -> GO (.9 s); keep PRE_MS_DUO in pocketbase/pb_hooks/party.js in sync
 function duoMeColor() { const m = me(); return m ? m.color : '#FFE14D'; }
 function duoBadge(pn) {
   const c = duoMeColor();

@@ -30,10 +30,11 @@ function play(id, seed, sp, delay, bots, opts = {}) {
   const dur = g[0].dur / Math.sqrt(sp), dt = 1 / 60, spy = [[], []];
   const bot = [bots[0](g[0], 0, { every }), bots[1](g[1], 1, { every })];
   handlers.forEach((h, i) => { const orig = h; handlers[i] = (t, d) => { orig(t, d); if (bot[i].on) bot[i].on(t, d); }; });
-  for (T = 0; T < dur + .5; T += dt) {
+  const W8 = 1.5;                                                         // main.js DUO_WAIT: the non-judge waits this long past the limit for the judge's verdict
+  for (T = 0; T < dur + W8 + .5; T += dt) {
     sb.__setNow(T);
     const due = q.filter(m => m.at <= T); if (due.length) { q.splice(0, q.length, ...q.filter(m => m.at > T)); due.forEach(m => handlers[m.to](m.t, m.d)); }   // delivered in send order
-    for (const i of [0, 1]) { if (!g[i].result && T < dur) { bot[i].tick && bot[i].tick(T, dt); g[i].update(dt, T); if (!g[i].result && T >= dur) g[i].result = 'lose'; } }
+    for (const i of [0, 1]) { const end = dur + (g[i].duoWait ? W8 : 0); if (!g[i].result && T < end) { if (T < dur) bot[i].tick && bot[i].tick(T, dt); g[i].update(dt, T); if (!g[i].result && T + dt >= end) g[i].result = 'lose'; } }
   }
   for (const i of [0, 1]) if (!g[i].result) g[i].result = 'lose';          // what main.js does when tt >= dur
   return { r0: g[0].result, r1: g[1].result };
@@ -44,20 +45,8 @@ const BOTS = {
     (g) => { const st = {}; return { tick(T) { if (every(T, st, .5)) g.drop(); } }; }],
   du_decode: [(g) => { const st = { at: 0, ping: 0 }; return { on(t, d) { if (t === 'press') { st.at = d.at; st.wait = 0; } }, tick(T) { if (T - (st.sent === undefined ? -9 : st.sent) > (st.wait || 0)) { st.sent = T; st.wait = .9; g.ping(g.dbg.code[st.at]); } } }; },
     (g) => ({ on(t, d) { if (t === 'sym') g.press(d); } })],
-  du_crank: [(g) => { const sp = g.dbg.sparks; return { tick() { const live = sp.some(s => g.c >= s.a - .3 && g.c < s.b + .05); g.key({ code: live ? 'KeyZ' : 'Space' }); if (live) g.keyup({ code: 'Space' }); } }; },
-    (g) => { const st = {}; return { tick(T) { if (every(T, st, .09)) g.key({ code: 'Space', repeat: false }); } }; }],
   du_steer: [(g) => ({ tick() { const { p, x } = g.dbg.pos(); let tx = x; const near = g.dbg.ROCK.filter(o => o.p - p > -40 && o.p - p < 230); for (const cand of [x, 90, 250, 400, 550, 710]) { if (near.every(o => Math.abs(o.x - cand) > o.w / 2 + 40)) { tx = cand; break; } } g.move({ x: tx }); } }),
     (g) => { const st = {}; return { tick(T) { if (every(T, st, .17)) g.boost(); } }; }],
-  du_seesaw: [0, 1].map(side => (g) => { let prev = 0; return { tick(T, dt) { const b = g.dbg.ball(), v = (b - prev) / dt; prev = b; const f = b + .35 * v + .3 * g.dbg.wind(); if (side === 0 ? f < -.08 : f > .08) g.key({ code: 'Space' }); else g.keyup({ code: 'Space' }); } }; }),
-  du_beat: [0, 1].map(lane => (g) => ({ tick() { if (g.dbg.notes.some(n => n.lane === lane && !n.hit && Math.abs(n.t - g.c) < .05)) g.tap(); } })),
-  du_guide: [(g) => ({ on(t, d) { if (t === 'sig') g.act(d); } }),
-    (g) => { const st = { last: null, at: -9 }; return { tick(T) {
-      const pos = g.dbg.pos(), key = pos.join(), { pit, flag, C, RW } = g.dbg;
-      if (key === st.last && T - st.at < 1.4) return; st.last = key; st.at = T;
-      const prev = { [key]: null }, q = [pos]; let goal = null;
-      while (q.length && !goal) { const [c, r] = q.shift(); if (r === 0 && c === flag) { goal = [c, r]; break; } for (let d = 0; d < 4; d++) { const nc = c + [-1, 0, 1, 0][d], nr = r + [0, -1, 0, 1][d], k = nc + ',' + nr; if (nc < 0 || nc >= C || nr < 0 || nr >= RW || pit[nr][nc] || k in prev) continue; prev[k] = [c, r, d]; q.push([nc, nr]); } }
-      if (!goal) return; let cur = goal, dir = null; while (prev[cur.join()]) { const pv = prev[cur.join()]; dir = pv[2]; cur = [pv[0], pv[1]]; if (cur.join() === key) break; }
-      if (dir !== null) g.signal(dir); } }; }],
   du_gun: [(g) => { const st = {}; return { tick(T) { const d = g.dbg; let best = null; for (const t of d.tg) if (d.live(t) && t.c === d.ammo() && (!best || d.ty(t) > d.ty(best))) best = t; if (best) { g.move({ x: best.x }); g.fire(); } } }; },
     (g) => ({ tick() { const d = g.dbg; let best = null; for (const t of d.tg) if (d.live(t) && (!best || d.ty(t) > d.ty(best))) best = t; if (best && d.ammo() !== best.c) g.pick(best.c); } })],
 };

@@ -38,9 +38,9 @@ const CANS = [                                                // pivot, resting 
   { x: 760, y: 296, rest: Math.PI, sw: 1.42, st: 80, bx: 760, by: 238 },
   { x: 652, y: 112, rest: Math.PI / 2, sw: 1.2, st: 52, bx: 706, by: 158, rock: 1 },   // hangs from a little asteroid
 ];
-const BARREL = 50, RH = 30, RS = 72, HALF = 50 * DEG, ORB = 13, NEED = 5, LIVES = 3;
+const BARREL = 50, RH = 30, RS = 72, HALF = 56 * DEG, ORB = 13, NEED = 5, LIVES = 3;
 const LOCK = .36, TELE = .8, GRACE = .42, RING_WAIT = .4, KO_T = 2, INV = .35, FB = .15, CLK_WIN = 2.5;
-const PAIR = .8, PGAP = .3, IV0 = .74, IV1 = .5, SPREAD = .12;     // pincer odds + gap, volley interval at the start / end, aim spread
+const PAIR = .62, PGAP = .34, IV0 = .98, IV1 = .66, SPREAD = .12;     // pincer odds + gap, volley interval at the start / end, aim spread
 const START = [400, 356];
 const PANEL = { x: 322, y: 64, w: 286, h: 50 };
 const heartX = i => PANEL.x + 214 + i * 25, starX = i => PANEL.x + 28 + i * 34;
@@ -429,17 +429,17 @@ const S = {
 const KO_AT = [[128, 346], [672, 226], [552, 154]];     // where each cannon's "KO!" pops: beside its own cannon, toward the wall (clear of the HUD, the panel and the arena centre)
 function duShield(sp, D) {
   D = D || DUO.SOLO; const R = mkR(), pilot = D.role === 0, TS = Math.sqrt(sp);
-  const V = 390 * TS, RV = 1.35 * V, VMAX = 205 * TS, RESP = 3.1, ROT = 6.4;
+  const V = 335 * TS, RV = 1.35 * V, VMAX = 205 * TS, RESP = 3.1, ROT = 6.4;
   /* the shared level: the volley schedule + the star spots (the same R() draws for both roles). Volleys come faster as the round goes
      on, and from ~2.6 s half of them are PINCERS: a second cannon on another wall fires .3 s after the first, so a shield that stays
      put (or just spins) can never cover both. */
   const shots = [];
-  { let u = 1.15, last = -1, n = 0; while (u < 17.5) {
+  { let u = 1.15, last = -1, n = 0; while (u < 24.5) {
       const a = R(), two = R() < PAIR, b = R(), j1 = R(), j2 = R(), gap = R();
       let c1 = Math.floor(a * 3); if (c1 === last) c1 = (c1 + 1) % 3; const c2 = (c1 + 1 + Math.floor(b * 2)) % 3;
       shots.push({ i: n++, c: c1, t: u / TS, j: j1 });
-      if (two && u > 2.6) shots.push({ i: n++, c: c2, t: (u + PGAP) / TS, j: j2 });
-      last = c1; u += lerp(IV0, IV1, clamp((u - 2) / 10, 0, 1)) + gap * .22; } }
+      if (two && u > 3.2) shots.push({ i: n++, c: c2, t: (u + PGAP) / TS, j: j2 });
+      last = c1; u += lerp(IV0, IV1, clamp((u - 2) / 14, 0, 1)) + gap * .22; } }
   shots.forEach(s => { s.a = null; s.st = 'wait'; s.toff = 0; s.cross = null; });
   const side0 = R() < .5 ? 0 : 1;
   const goals = Array.from({ length: NEED }, (_, k) => {
@@ -572,7 +572,7 @@ function duShield(sp, D) {
     else { kr = held.R - held.L; if (kr) { ptr = null; if (!armed) armT = now; armed = true; } }
   }
   const g = {
-    c: 0, dur: 15, pts: 0,
+    c: 0, dur: 22, pts: 0,
     cmd: pilot ? 'FLY!' : 'GUARD!', roleLabel: pilot ? 'PILOT' : 'SHIELD',
     hint: pilot ? 'FLY TO THE STARS! (MOUSE / ARROWS)' : 'BLOCK THE SHOTS! (MOUSE / ◄ ►)',
     thint: pilot ? 'DRAG TO FLY TO THE STARS!' : 'TOUCH WHERE THE SHOTS COME FROM!',

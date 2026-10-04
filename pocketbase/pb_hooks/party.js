@@ -25,14 +25,20 @@ const GAMES = {
   du_crank: { dur: 14, pts: false, duo: true },
   du_steer: { dur: 15, pts: false, duo: true },
   du_seesaw: { dur: 14, pts: false, duo: true },
-  du_beat: { dur: 14, pts: false, duo: true },
+  du_beat: { dur: 13, pts: false, duo: true },
   du_guide: { dur: 16, pts: false, duo: true },
   du_gun: { dur: 15, pts: false, duo: true },
   /* one file per game in js/games/duo/ */
-  du_hippo: { dur: 15, pts: false, duo: true },
+  du_hippo: { dur: 19, pts: false, duo: true },
   du_legs: { dur: 15, pts: false, duo: true },
-  du_shield: { dur: 15, pts: false, duo: true },
+  du_shield: { dur: 22, pts: false, duo: true },
   du_panic: { dur: 15, pts: false, duo: true },
+  du_rails: { dur: 15, pts: false, duo: true },
+  du_crane: { dur: 15, pts: false, duo: true },
+  du_granny: { dur: 15, pts: false, duo: true },
+  du_hose: { dur: 15, pts: false, duo: true },
+  du_keys: { dur: 15, pts: false, duo: true },
+  du_barber: { dur: 15, pts: false, duo: true },
 };
 const TURN_CATALOG = require(typeof __hooks === "string" ? `${__hooks}/party_catalog.js` : "./party_catalog.js");
 Object.assign(GAMES, TURN_CATALOG);
@@ -204,7 +210,8 @@ function finishRound(room, now) {
     winners.forEach((x, i) => { x.award = AWARD[Math.min(i, AWARD.length - 1)]; });
   } else if (room.mode === "duo") {
     teamWin = winners.length >= 1;                                 // one shared verdict: the judge of each game reports it, the partner may only have timed out
-    res.forEach((x) => { x.award = teamWin ? 100 : 0; });
+    const tw = teamWin ? Math.min.apply(null, winners.map((w) => w.t)) : 0;
+    res.forEach((x) => { x.award = teamWin ? 100 : 0; x.r = teamWin ? "win" : "lose"; x.t = tw; });   // both seats show the team's verdict
     if (teamWin) room.teamScore += 200 + Math.max(0, Math.round((g.dur - Math.min.apply(null, winners.map((w) => w.t))) * 10)); else room.lives--;
   } else {
     const need = act.length >= 3 ? act.length - 1 : act.length;

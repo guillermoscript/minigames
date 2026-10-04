@@ -440,7 +440,7 @@ try { addEventListener('blur', () => FOCUSN++); document.addEventListener('visib
 function duHippo(sp, D) {
   D = D || DUO.SOLO; const R = mkR(), feeder = D.role === 0, TS = Math.sqrt(sp);
   const N = 26, NEED = 6, SICKMAX = 3;
-  const FIRST = 1.0 / TS, SLIDE = .5 / TS, AUTO = 1.6 / TS, FLIGHT = .95 / TS, GRACE = .12, HOLDMAX = 1.2;
+  const FIRST = 1.0 / TS, SLIDE = .45 / TS, AUTO = 2.2 / TS, FLIGHT = 1.15 / Math.sqrt(TS), GRACE = .22, SHUT = .14, HOLDMAX = 1.2;   // a slow lob, a late chomp still counts, a skull bag gives a beat to shut
   /* the bag queue: same on both screens. Rules: the first bag is food; the 6th food comes by bag 10; the 3rd trash comes BEFORE the 6th food,
      so a hippo that just keeps its mouth open (or a feeder who never warns) always throws up before it can win */
   let kind = [];
@@ -504,7 +504,7 @@ function duHippo(sp, D) {
   }
 
   const g = {
-    c: 0, dur: 15, pts: 0,
+    c: 0, dur: 19, pts: 0,
     cmd: feeder ? 'FEED!' : 'OPEN WIDE!', roleLabel: feeder ? 'FEEDER' : 'HIPPO',
     hint: feeder ? 'CLICK / SPACE: TOSS - TRASH INSIDE? WARN FIRST (W)' : 'HOLD CLICK / SPACE TO OPEN - SHUT IT FOR SKULLS!',
     thint: feeder ? 'TAP TO TOSS - TRASH INSIDE? TAP THE SKULL FIRST' : 'HOLD TO OPEN - SHUT IT FOR SKULLS!',
@@ -552,7 +552,7 @@ function duHippo(sp, D) {
           if (g.c >= land - .06 && open) f.seen = true;
           if (g.c < land) continue;
           if (!kind[f.id]) { if (f.seen) resolve(f, 'chomp'); else if (g.c >= land + GRACE) resolve(f, 'bonk'); }
-          else { if (f.atLand === undefined) f.atLand = open; if (!f.atLand) resolve(f, 'block'); else if (g.c >= land + .08) resolve(f, open ? 'sick' : 'block'); }
+          else { if (f.atLand === undefined) f.atLand = open; if (!f.atLand) resolve(f, 'block'); else if (g.c >= land + SHUT) resolve(f, open ? 'sick' : 'block'); }
           if (ending) break;
         }
         if (!g.result) { if (ending && g.c >= Math.min(ending.at, g.limit)) g.finish(ending.res); else if (!ending && g.c >= g.limit) g.finish('lose'); }
@@ -693,7 +693,7 @@ function duHippo(sp, D) {
         if (TOUCH) txt('TOSS', TOSS_B[0] + 118, TOSS_B[1] + 48 + o2, 32, '#fff', 'center', 100);
         else { txt('TOSS', TOSS_B[0] + 118, TOSS_B[1] + 38 + o2, 30, '#fff', 'center', 100); keyCap(TOSS_B[0] + 118, TOSS_B[1] + 70 + o2, 'SPACE'); }
       } else {
-        const hd = !g.result && holding(), skullNear = !g.result && !!nx && nx.w && nx.t0 + nx.T - T < .75;   // only the NEXT bag to land counts
+        const hd = !g.result && holding(), skullNear = !g.result && !!nx && nx.w && nx.t0 + nx.T - T < .9;   // only the NEXT bag to land counts
         const col = skullNear ? (hd ? '#ff4d5e' : '#ff8a94') : hd ? '#5CFF7A' : '#ffd23f', dk = skullNear ? '#b8283a' : hd ? '#23a046' : '#c99512';
         const o = plate(HOLD_B, col, dk, hd, skullNear && hd);
         mouthIcon(HOLD_B[0] + 64, HOLD_B[1] + 50 + o, mo, skullNear);

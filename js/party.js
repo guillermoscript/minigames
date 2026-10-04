@@ -207,7 +207,7 @@ function duoCtx(R) {
   Object.assign(S, { q: [], busy: false, frameBusy: false, retryAt: 0, frameRetry: 0, last: 0, hbAt: now, round: R.round, handler: null, rx: now, since: now });
   S.buf = S.buf.filter(x => x.round === R.round);
   return {
-    role: (i + R.round) % 2, roles: 2, partner: pn ? { name: pn.name, color: pn.color } : null,
+    role: (i + R.round) % act.length, roles: act.length, players: act.map((p, j) => ({ ...p, role: (j + R.round) % act.length })), partner: pn ? { name: pn.name, color: pn.color } : null,
     send(type, data, latest) {
       if (latest) { const k = S.q.findIndex(m => m.t === type && m.l); if (k >= 0) { S.q[k].d = data; delete S.q[k].n; return; } }
       S.q.push({ t: type, d: data === undefined ? null : data, l: !!latest });
@@ -338,7 +338,7 @@ async function partyAct(action, extra) {
   if (r.status === 404) roomGone(); else say(partyErr(r), '#FF4D4D');
   return false;
 }
-const canStart = R => { const n = R.players.filter(p => !p.left).length; return R.mode === 'duo' ? n === 2 : n >= 2; };
+const canStart = R => { const n = R.players.filter(p => !p.left).length; return n >= 2; };
 const partyStart = () => { if (isHost() && canStart(party.room)) { track('party_start', { mode: party.room.mode, players: party.room.players.length }); partyAct('start'); } };
 const MODE_NEXT = { versus: 'team', team: 'duo', duo: 'survival', survival: 'knockout', knockout: 'lantern', lantern: 'cards', cards: 'balloon', balloon: 'versus' };
 const partyMode = () => partyAct('mode', { mode: MODE_NEXT[party.room.mode] || 'versus' });
@@ -358,13 +358,13 @@ function statusDot(x, y, r, s) {
 }
 const partyElimination = R => R.mode === 'survival' || R.mode === 'knockout';
 const partyTeam = R => R.mode === 'team' || R.mode === 'duo' || R.mode === 'lantern';
-const modeLabel = m => m === 'lantern' ? 'LANTERNS' : m === 'cards' ? 'CARDS' : m === 'balloon' ? 'BALLOON' : m === 'survival' ? 'SURVIVAL' : m === 'knockout' ? 'KNOCKOUT' : m === 'team' ? 'TEAM' : m === 'duo' ? 'DUO' : 'VERSUS';
-const modeBlurb = m => m === 'lantern' ? 'ONE PLAYS IN THE DARK · THE OTHERS MOVE THE LIGHTS · 3 SHARED LIVES' : m === 'cards' ? 'DRAW CARDS · BEAT THE PILE TO KEEP IT · STEAL WHILE OTHERS PLAY' : m === 'balloon' ? 'ONE PLAYS · THE OTHERS PUMP · WIN TO PASS THE TURN · AVOID THE POP' : m === 'survival' ? '3 LIVES EACH · FAIL AND LOSE A LIFE · LAST PLAYER STANDING WINS' : m === 'knockout' ? 'ONE LIFE · ONE MISTAKE AND YOU ARE OUT · LAST PLAYER WINS' : m === 'duo' ? 'TWO PLAYERS · ONE GAME · DIFFERENT ROLES · WIN OR LOSE TOGETHER' : m === 'team' ? 'TEAMWORK: SHARED LIVES · EVERYONE NEEDS TO PULL THEIR WEIGHT' : 'EVERYONE PLAYS THE SAME GAME · FASTEST AND BEST TAKE THE POINTS';
+const modeLabel = m => m === 'lantern' ? 'LANTERNS' : m === 'cards' ? 'CARDS' : m === 'balloon' ? 'BALLOON' : m === 'survival' ? 'SURVIVAL' : m === 'knockout' ? 'KNOCKOUT' : m === 'team' ? 'TEAM' : m === 'duo' ? 'DUO / CREW' : 'VERSUS';
+const modeBlurb = m => m === 'lantern' ? 'ONE PLAYS IN THE DARK · THE OTHERS MOVE THE LIGHTS · 3 SHARED LIVES' : m === 'cards' ? 'DRAW CARDS · BEAT THE PILE TO KEEP IT · STEAL WHILE OTHERS PLAY' : m === 'balloon' ? 'ONE PLAYS · THE OTHERS PUMP · WIN TO PASS THE TURN · AVOID THE POP' : m === 'survival' ? '3 LIVES EACH · FAIL AND LOSE A LIFE · LAST PLAYER STANDING WINS' : m === 'knockout' ? 'ONE LIFE · ONE MISTAKE AND YOU ARE OUT · LAST PLAYER WINS' : m === 'duo' ? '2-4 PLAYERS · ONE GAME · DIFFERENT ROLES · WIN OR LOSE TOGETHER' : m === 'team' ? 'TEAMWORK: SHARED LIVES · EVERYONE NEEDS TO PULL THEIR WEIGHT' : 'EVERYONE PLAYS THE SAME GAME · FASTEST AND BEST TAKE THE POINTS';
 /* Each mode explains the actor, the companions and the stakes before anyone starts. */
 const PARTY_HELP = {
   versus: ['EVERYONE PLAYS', 'EVERYONE: PLAY THE SAME MICROGAME', 'RACE: FINISH FAST TO EARN MORE POINTS', 'WIN: THE HIGHEST SCORE AFTER 6 ROUNDS', 'FOLLOW THE MICROGAME CONTROLS'],
   team: ['WIN TOGETHER', 'EVERYONE: PLAY THEIR MICROGAME', 'HELP: EVERY SUCCESS HELPS THE WHOLE TEAM', 'GOAL: CLEAR 8 ROUNDS WITH SHARED LIVES', 'FOLLOW THE MICROGAME CONTROLS'],
-  duo: ['TWO ROLES, ONE TEAM', 'YOU: DO THE ROLE SHOWN BEFORE EACH GAME', 'PARTNER: DO THE OTHER HALF OF THE PUZZLE', 'GOAL: CLEAR 8 ROUNDS TOGETHER', 'EXACTLY 2 PLAYERS · WATCH THE ROLE DEMO'],
+  duo: ['SHARED ROLES', 'YOU: DO THE ROLE SHOWN BEFORE EACH GAME', 'PARTNER: DO THE OTHER HALF OF THE PUZZLE', 'GOAL: CLEAR 8 ROUNDS TOGETHER', '2-4 PLAYERS · WATCH THE ROLE DEMO'],
   survival: ['LAST ONE STANDING', 'EVERYONE: PLAY THE SAME MICROGAME', 'FAIL: LOSE ONE OF YOUR 3 LIVES', 'WIN: BE THE LAST PLAYER WITH LIVES', 'ELIMINATED PLAYERS WATCH UNTIL THE END'],
   knockout: ['ONE MISTAKE AND OUT', 'EVERYONE: PLAY THE SAME MICROGAME', 'FAIL: YOUR ONLY LIFE IS GONE', 'WIN: BE THE LAST PLAYER STANDING', 'ELIMINATED PLAYERS WATCH UNTIL THE END'],
   lantern: ['LIGHT THE WAY TOGETHER', 'PLAYER: BEAT THE MICROGAME IN THE DARK', 'FRIENDS: MOVE THEIR LIGHTS TO HELP THEM SEE', 'GOAL: CLEAR 12 ROUNDS WITH 3 SHARED LIVES', 'LIGHT: MOUSE / DRAG / ARROW KEYS'],
@@ -460,7 +460,7 @@ function drawLobby(R) {
   button(174, 547, 206, 43, 'INVITE FRIENDS', partyInvite, { fill: '#4DB8FF', size: 20 });
   if (isHost()) {
     if (canStart(R)) button(400, 547, 376, 43, t('START {mode}', { mode: t(modeLabel(R.mode)) }), partyStart, { fill: '#5CFF7A', size: 27 });
-    else { box3(400, 547, 376, 43, '#4a5065', 4, 4); txt(R.mode === 'duo' ? 'DUO NEEDS EXACTLY 2' : 'NEED 2+ PLAYERS', 588, 569, 20, '#ddd', 'center', 352); }
+    else { box3(400, 547, 376, 43, '#4a5065', 4, 4); txt('NEED 2+ PLAYERS', 588, 569, 20, '#ddd', 'center', 352); }
   } else { box3(400, 547, 376, 43, '#4a5065', 4, 4); txt(t('WAITING FOR {name} TO START', { name: pName(R, R.host).toUpperCase() }), 588, 569, 17, '#ddd', 'center', 352); }
 }
 
@@ -563,10 +563,11 @@ function duoBadge(pn) {
   const c = duoMeColor();
   ctx.save(); ctx.lineWidth = 8; ctx.strokeStyle = c; ctx.strokeRect(4, 4, W - 8, H - 8); ctx.restore();
   box(10 - OX, 88, 300, 34, c, 3); txt(t('YOU: {role}', { role: t(cur.roleLabel) }), 20 - OX, 106, 20, INK, 'left', 282);
-  if (cur.roles && pn) txt(t('{name}: {role}', { name: pn.name.toUpperCase(), role: t(cur.roles[1 - cur.role].label) }), 14 - OX, 140, 15, '#fff', 'left', 290);
+  if (!cur.crew && cur.roles && pn) txt(t('{name}: {role}', { name: pn.name.toUpperCase(), role: t(cur.roles[1 - cur.role].label) }), 14 - OX, 140, 15, '#fff', 'left', 290);
 }
 /* intro card, three beats: 1 what YOU do (animated demo + the control), 2 what your friend does, 3 get ready / GO */
 function drawDuoIntro(left) {
+  if (cur.crew) { drawCrewIntro(left); return; }
   const R = party.room, m = me(), pn = R.players.find(p => !p.left && p.id !== party.you.id); if (!m || !pn || !cur.roles) return;
   const el = DUO_PRE - left, beat = el < DUO_A ? 0 : el < DUO_A + DUO_B ? 1 : 2, bt = beat === 0 ? el : beat === 1 ? el - DUO_A : el - DUO_A - DUO_B;
   const k = Math.min(1, bt / .22), pop = 1 + (1 - k) * .25, pulse = .5 + .5 * Math.sin(now * 9);

@@ -64,7 +64,7 @@ P.start(m, "a", 0, rand); assert.equal(m.state, "round");
 
 // --- DUO: exactly 2 players, rotating roles, one shared verdict, relay validation, partner leaving ---
 const d = P.newRoom("DUOO", "duo", 0); P.addPlayer(d, { name: "A" }, rand); P.addPlayer(d, { name: "B" }, rand); P.addPlayer(d, { name: "C" }, rand);
-throwsStatus(() => P.start(d, "a", 0, rand), 409);             // 3 players: not allowed
+// Three and four players are checked in test/crew.test.js.
 P.leave(d, "c");
 P.start(d, "a", 0, rand); assert.equal(d.mode, "duo"); assert.equal(d.total, 8); assert.ok(P.DUO_IDS.includes(d.game));
 assert.equal(P.roleOf(d, "a"), 0); assert.equal(P.roleOf(d, "b"), 1);

@@ -11,11 +11,11 @@ const PARTY_GUIDE = {
     win: 'Reach round 8 with lives remaining.', lose: 'Too few successes cost one shared life.',
     you: 'Play your minigame using the controls shown before it starts.', friends: 'Your friends play their games too. Everyone contributes to the shared score.',
     tips: ['Try Versus first if your group is learning the controls.', 'The team can afford one failure with 3 or 4 players.', 'All players succeeding gives your team bonus points.'] },
-  duo: { color: '#4DB8FF', kind: 'COOPERATE', format: 'TWO ROLES',
-    steps: ['Exactly 2 players share one minigame.', 'Watch the role demo: each player has a different job.', 'Work together through 8 rounds. Roles change between games.'],
+  duo: { color: '#4DB8FF', kind: 'COOPERATE', format: 'SHARED ROLES',
+    steps: ['2 to 4 players share one minigame.', 'Watch the role demo: each player has a different job.', 'Work together through 8 rounds. Roles change between games.'],
     win: 'Clear 8 rounds together.', lose: 'A failed round costs one of 4 shared lives.',
-    you: 'Follow your role demo. Your controls depend on your assigned job.', friends: 'Your partner does the other half. Both roles are needed to solve the game.',
-    tips: ['Best for a pair who want to cooperate.', 'Do your own job instead of copying your partner.', 'Use voice chat if you want to coordinate.'] },
+    you: 'Follow your role demo. Your controls depend on your assigned job.', friends: 'Everyone has a role. All players are needed to solve the game.',
+    tips: ['Best for friends who want to cooperate.', 'Do your own job instead of copying your partner.', 'Use voice chat if you want to coordinate.'] },
   survival: { color: '#FFB86B', kind: 'COMPETE', format: 'ALL AT ONCE',
     steps: ['Each player starts with 3 lives.', 'Play the minigames. Every failure removes one of your lives.', 'At zero lives, choose a friend to watch while the others continue.'],
     win: 'Be the last player with lives remaining.', lose: 'Lose all 3 lives and become a spectator.',
@@ -86,7 +86,7 @@ function drawPartyGuide(R) {
   ctx.fillStyle = guide.color; ctx.fillRect(292, 158, 484, 5);
   txt(modeLabel(m), 312, 188, 29, guide.color, 'left', 350);
   partyModeIcon(m, 738, 197, 30, guide.color);
-  const badges = [m === 'duo' ? '2 PLAYERS' : '2-4 PLAYERS', guide.kind, guide.format];
+  const badges = ['2-4 PLAYERS', guide.kind, guide.format];
   badges.forEach((label, i) => { const x = 312 + i * 146; box(x, 218, 138, 26, '#171c34', 0); txt(label, x + 69, 231, 12, '#fff', 'center', 132); });
   PARTY_GUIDE_TABS.forEach((label, i) => button(312 + i * 146, 261, 136, 32, label, () => { party.guideTab = i; }, { size: 13, fill: tab === i ? guide.color : '#414c70', col: tab === i ? INK : '#fff' }));
   if (tab === 0 || tab === 2) {

@@ -12,7 +12,7 @@ function registrations() {
   const files = [...html.matchAll(/<script src="(js\/games\/[^"?]+)(?:\?[^" ]*)?"/g)].map(m => m[1]);
   for (const file of files) {
     if (file.endsWith('/td_core.js') || file.endsWith('/du1.js')) continue; // keep the original reg3 callback, not the WebGL fallback
-    if (file.startsWith('js/games/duo/')) continue;                          // DUO-only games (they need du1.js's kit): never in the shared catalog
+    if (file === 'js/games/crew.js' || file.startsWith('js/games/duo/')) continue;                          // DUO-only games (they need du1.js's kit): never in the shared catalog
     vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), sandbox, { filename: file });
   }
   return captured;

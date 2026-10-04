@@ -42,12 +42,12 @@ rejects(() => P.sigPayload(light, 'a', 0, [frame, frame, frame, frame, frame, fr
 const balloon = make('balloon');
 rejects(() => P.pump(balloon, 'a', 0, 8, 4000), 403);
 P.pump(balloon, 'b', 0, 999, 2000); assert.equal(balloon.extra.balloon, 0);
-P.pump(balloon, 'b', 0, 999, balloon.roundAt + P.PRE_MS_TURN + 1000); assert.equal(balloon.extra.balloon, 8);
-P.pump(balloon, 'b', 0, 999, balloon.roundAt + P.PRE_MS_TURN + 1000); assert.equal(balloon.extra.balloon, 8);
+P.pump(balloon, 'b', 0, 999, balloon.roundAt + P.PRE_MS_TURN + 1000); assert.equal(balloon.extra.balloon, 4);
+P.pump(balloon, 'b', 0, 999, balloon.roundAt + P.PRE_MS_TURN + 1000); assert.equal(balloon.extra.balloon, 4);
 verdict(balloon, true); next(balloon); assert.equal(balloon.extra.actor, 'b');
 verdict(balloon, false); next(balloon); assert.equal(balloon.extra.actor, 'b');
 balloon.keys._balloonLimit = balloon.extra.balloon + 1;
-P.pump(balloon, 'a', balloon.round, 1, balloon.roundAt + P.PRE_MS_TURN + 1000);
+P.pump(balloon, 'a', balloon.round, 2, balloon.roundAt + P.PRE_MS_TURN + 1000);
 assert.equal(balloon.extra.loser, 'b'); assert.equal(balloon.last.final, true);
 rejects(() => P.pump(balloon, 'c', balloon.round, 1, balloon.roundAt + P.PRE_MS_TURN + 1100), 409);
 next(balloon); assert.equal(balloon.state, 'done');
@@ -74,7 +74,13 @@ assert.equal(cards.game, 'pc_draw'); assert.equal(cards.extra.actor, 'a');
 P.drawCard(cards, 'a', cards.round, 'left', cards.roundAt + 2000, rand);
 P.drawCard(cards, 'b', cards.round, 'left', cards.roundAt + 2000, rand);
 // Assistants steal once per microgame. Active player cannot steal or report from another seat.
-P.stealCard(cards, 'a', cards.round, 'c'); P.stealCard(cards, 'a', cards.round, 'c');
+const stealAt = cards.roundAt + P.PRE_MS_TURN + 10;
+P.stealCard(cards, 'a', cards.round, 'c', stealAt);
+assert.equal(cards.players[0].score, 0); assert.equal(cards.players[2].score, 2);
+P.stealCard(cards, 'a', cards.round, 'c', stealAt + 1199);
+assert.equal(cards.players[0].score, 0);
+P.stealCard(cards, 'a', cards.round, 'c', stealAt + 1200);
+P.stealCard(cards, 'a', cards.round, 'c', stealAt + 1300);
 assert.equal(cards.players[0].score, 1); assert.equal(cards.players[2].score, 1);
 rejects(() => P.stealCard(cards, 'b', cards.round, 'c'), 403);
 rejects(() => P.report(cards, 'a', cards.round, 'win', 1, 0, 9000), 403);
@@ -132,3 +138,12 @@ rejects(() => P.sigPayload(relayDuo, 'a', relayDuo.round, [{ t: 'custom', d: 'A'
 const normal = make('versus');
 rejects(() => P.sigPayload(normal, 'a', normal.round, [{ t: 'down', d: { x: 10, y: 20 } }]), 409);
 console.log('spectator frames across all multiplayer modes OK');
+
+// Equal total pumping effort has the same effect for 2, 3 and 4 participants.
+for (const n of [2, 3, 4]) {
+  const r = P.newRoom('SIZE', 'balloon', 0);
+  for (let i = 0; i < n; i++) P.addPlayer(r, { name: String.fromCharCode(65 + i) }, () => .5);
+  P.start(r, 'a', 1000, () => .5);
+  for (const p of r.players.filter(p => p.id !== r.extra.actor)) P.pump(r, p.id, r.round, 8, r.roundAt + P.PRE_MS_TURN + 1000);
+  assert.ok(Math.abs(r.extra.balloon - 8) < 1e-9);
+}

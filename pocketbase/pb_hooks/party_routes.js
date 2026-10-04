@@ -60,7 +60,7 @@ function exec(tx, action, body, auth, now) {
     else if (action === "again") P.again(o, body.id);
     else if (action === "start") P.start(o, body.id, now, rand);
     else if (action === "draw") P.drawCard(o, body.id, body.round | 0, body.side, now, rand);
-    else if (action === "steal") P.stealCard(o, body.id, body.round | 0, String(body.target || ""));
+    else if (action === "steal") P.stealCard(o, body.id, body.round | 0, String(body.target || ""), now);
     else if (action === "pump") P.pump(o, body.id, body.round | 0, body.count, now);
     else if (action === "report") P.report(o, body.id, body.round | 0, body.r, body.t, body.pts, now);
     else if (action === "advance") P.advance(o, body.round | 0, now, rand);

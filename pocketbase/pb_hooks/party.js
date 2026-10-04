@@ -164,6 +164,7 @@ function beginRound(room, now, rand) {
   room.seed = 1 + Math.floor(rand() * 2147483646);
   room.sp = +(1 + Math.min(room.round, 12) * 0.07).toFixed(2);
   room.state = "round"; room.roundAt = now; room.cur = {};
+  if (room.mode === "cards") room.extra.stealing = {};
 }
 
 const roundMs = (room) => Math.round(GAMES[room.game].dur / Math.sqrt(room.sp) * 1000) + (room.mode === "duo" ? PRE_MS_DUO : turnMode(room) ? PRE_MS_TURN : PRE_MS);
@@ -269,13 +270,20 @@ function drawCard(room, id, round, side, now, rand) {
   }
   room.round++; beginRound(room, now, rand);
 }
-function stealCard(room, id, round, target) {
+function stealCard(room, id, round, target, now) {
   checkTurnAction(room, id, round, "cards");
   const e = room.extra, victim = player(room, target);
   if (e.phase !== "challenge" || id === e.actor || id === target) fail("Cannot steal now", 403);
   if (!victim || victim.left || victim.score <= 0) fail("No cards to steal", 409);
   if (e.stolen[id] === round) return;
-  e.stolen[id] = round; victim.score--; player(room, id).score++;
+  if (!Number.isFinite(now)) fail("Invalid action time", 400);
+  if (now < room.roundAt + PRE_MS_TURN) return;
+  const attempts = e.stealing || (e.stealing = {}), attempt = attempts[id];
+  if (!attempt || attempt.round !== round || attempt.target !== target) {
+    attempts[id] = { round, target, readyAt: now + 1200 }; return;
+  }
+  if (now < attempt.readyAt) return;
+  e.stolen[id] = round; delete attempts[id]; victim.score--; player(room, id).score++;
 }
 function pump(room, id, round, count, now) {
   checkTurnAction(room, id, round, "balloon");
@@ -286,7 +294,7 @@ function pump(room, id, round, count, now) {
   const allowance = Math.min(8, Math.floor((now - prev) / 100));
   const accepted = Math.min(allowance, Math.max(0, Math.min(8, Math.floor(Number(count) || 0))));
   if (accepted <= 0) return;
-  e.pumps[id] = now; e.balloon += accepted;
+  e.pumps[id] = now; e.balloon += accepted / Math.max(1, active(room).length - 1);
   if (e.balloon >= room.keys._balloonLimit) {
     e.loser = e.actor; room.cur[e.actor] = { r: "lose", t: 0, pts: 0 }; finishTurn(room, now);
   }

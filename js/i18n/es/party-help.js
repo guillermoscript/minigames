@@ -164,3 +164,5 @@ I18N.add('es', {
   "The balloon keeps growing between turns.": "El globo sigue creciendo entre turnos.",
   "A failure adds air too, so winning quickly matters.": "Fallar también añade aire: conviene ganar rápido."
 });
+
+I18N.add('es', {'STEALING...': 'ROBANDO...', 'Stealing takes 1.2 seconds. Watch the progress bar.': 'Robar tarda 1,2 segundos. Mira la barra de progreso.', 'Air from each pump is balanced for 2, 3 or 4 players.': 'El aire de cada bombeo se ajusta para 2, 3 o 4 jugadores.'});

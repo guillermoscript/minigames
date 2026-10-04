@@ -20,3 +20,12 @@ canvas { display: block; cursor: crosshair; touch-action: none; }
 }
 #ov input::placeholder { color: #9a98ad; }
 #ov input:focus { background: #FFF6C2; box-shadow: 4px 4px 0 #14101c, 0 0 0 4px #FFE14D; }
+/* Install action is only visible on the title and stage menu. */
+#pwa-install {
+  position: fixed; top: max(10px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%);
+  z-index: 10; padding: 10px 14px; min-height: 44px; border: 3px solid #14101c;
+  border-radius: 12px; background: #FFE14D; color: #14101c;
+  font: 700 13px/1.2 system-ui, sans-serif; cursor: pointer; touch-action: manipulation;
+}
+#pwa-install[hidden] { display: none; }
+#pwa-install:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }

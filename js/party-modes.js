@@ -1,6 +1,13 @@
 'use strict';
 /* Turn-based party modes reuse the existing seeded microgames. The server owns turns,
    cards and the balloon; The actor broadcasts the game view; assistants relay light positions or use server actions. */
+function partyStartSteal(target, round) {
+  if (party.stealBusy) return;
+  party.stealBusy = { target, round, at: now, completing: false };
+  partyMoveAction('steal', { target }, round).finally(() => {
+    if (!party.room || party.room.round !== round || !party.room.extra.stealing || !party.room.extra.stealing[party.you.id]) party.stealBusy = null;
+  });
+}
 const partyTurnMode = R => ['lantern', 'cards', 'balloon'].includes(R.mode);
 const partyActor = R => R.players.find(p => p.id === R.extra.actor);
 const partyTurnLabel = R => R.mode === 'cards' ? t('{n} CARDS LEFT', { n: R.extra.deck }) : R.mode === 'balloon' ? t('TURN {n}', { n: R.round + 1 }) : t('ROUND {n} / {total}', { n: R.round + 1, total: R.total });
@@ -15,7 +22,7 @@ function partyCardTable(R, interactive) {
   const all = R.players.filter(p => !p.left), w = 720 / all.length;
   all.forEach((p, i) => {
     const x = 40 + i * w, can = interactive && p.id !== party.you.id && p.score > 0 && R.extra.stolen[party.you.id] !== R.round;
-    if (can) button(x + 3, 518, w - 6, 68, t('STEAL: {name}', { name: p.name }), () => partyMoveAction('steal', { target: p.id }, R.round), { size: 18, fill: p.color });
+    if (can) button(x + 3, 518, w - 6, 68, t('STEAL: {name}', { name: p.name }), () => partyStartSteal(p.id, R.round), { size: 18, fill: p.color });
     else { box(x + 3, 518, w - 6, 68, '#302b50', 3); txt(p.name, x + w / 2, 539, 17, p.color, 'center', w - 12); }
     txt(t('{n} CARDS', { n: p.score }), x + w / 2, 572, 19, can ? INK : '#FFE14D', 'center', w - 12);
   });
@@ -115,6 +122,14 @@ function partyWrapGame(base, R, sp) {
   };
   g.update = (dt, time) => {
     elapsed += dt;
+    const attempt = party.room && party.room.extra.stealing && party.room.extra.stealing[party.you.id];
+    if (!mine && R.mode === 'cards' && attempt && attempt.round === round && party.room.state === 'round') {
+      const busy = party.stealBusy;
+      if (Date.now() >= attempt.readyAt && (!busy || !busy.completing)) {
+        party.stealBusy = { target: attempt.target, round, completing: true };
+        partyMoveAction('steal', { target: attempt.target }, round).finally(() => { party.stealBusy = null; });
+      }
+    } else if (party.stealBusy && party.stealBusy.round !== round) party.stealBusy = null;
     if (mine) { partyGameScope(() => base.update(dt, time), pointer); g.result = base.result; g.pts = base.pts; g.timeWin = base.timeWin; }
     if (!mine && R.mode === 'lantern') {
       lx = Math.max(0, Math.min(W, lx + ((held.ArrowRight || held.KeyD ? 1 : 0) - (held.ArrowLeft || held.KeyA ? 1 : 0)) * dt * 440));
@@ -191,13 +206,18 @@ function partyWrapGame(base, R, sp) {
       txt(t('{n} CARDS AT STAKE', { n: current.extra.pile.length + current.extra.pot }), 692, 305, 19, '#FFE14D', 'center', 168);
       txt(t('{n} MICROGAMES TO GO', { n: current.extra.remaining.length }), 692, 345, 17, '#fff', 'center', 168);
       txt('WIN TO KEEP THE PILE', 692, 396, 15, '#fff', 'center', 168);
-      txt(!mine && current.extra.stolen[party.you.id] === round ? 'CARD STOLEN! WAIT FOR THE NEXT GAME' : 'OTHERS CAN STEAL', 692, 427, 15, '#F28CB1', 'center', 168);
+      const attempt = current.extra.stealing && current.extra.stealing[party.you.id];
+      if (!mine && attempt && attempt.round === round) {
+        box(610, 405, 172, 10, '#14101c', 0);
+        ctx.fillStyle = '#B49CFF'; ctx.fillRect(610, 405, 172 * Math.max(0, Math.min(1, 1 - (attempt.readyAt - Date.now()) / 1200)), 10);
+      }
+      txt(!mine && attempt && attempt.round === round ? 'STEALING...' : !mine && current.extra.stolen[party.you.id] === round ? 'CARD STOLEN! WAIT FOR THE NEXT GAME' : 'OTHERS CAN STEAL', 692, 427, 15, '#F28CB1', 'center', 168);
       for (let i = 2; i >= 0; i--) { box(650 + i * 4, 258 - i * 3, 76, 32, '#B49CFF', 2); }
       txt(current.extra.pile.length + current.extra.pot, 688, 275, 21, INK);
       current.players.filter(p => !p.left).forEach((p, i) => {
         const can = !mine && p.id !== party.you.id && p.score > 0 && current.extra.stolen[party.you.id] !== round;
         const label = t('{name}: {n} CARDS', { name: p.name, n: p.score });
-        if (can) button(608, 444 + i * 32, 176, 31, label, () => partyMoveAction('steal', { target: p.id }, round), { size: 15, fill: p.color });
+        if (can) button(608, 444 + i * 32, 176, 31, label, () => partyStartSteal(p.id, round), { size: 15, fill: p.color });
         else txt(label, 692, 460 + i * 32, 15, p.color, 'center', 168);
       });
     } else {

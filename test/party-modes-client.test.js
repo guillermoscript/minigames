@@ -85,3 +85,16 @@ const safeGame = build(failingRoom, 'a'); vm.runInContext('now += 1', sb);
 assert.equal(safeGame.draw(1), 17, 'capture failures never stop the game');
 sb.document.createElement = originalCreate;
 console.log('party modes client: rendering, role isolation, shared scenes, visual snapshots, light relay and accelerated verdicts OK');
+
+// Stealing completes only after the server deadline, once despite repeated updates.
+sb.duoCtx = () => ({ send() {}, onMsg() {} });
+const timedCards = makeRoom('cards');
+const timedHelper = build(timedCards, 'b');
+const moves = [];
+vm.runInContext('partyMoveAction = (action, data, round) => { pendingMoves.push({ action, data, round }); return new Promise(() => {}); };', sb);
+timedCards.extra.stealing = { b: { round: 0, target: 'a', readyAt: Date.now() + 10000 } };
+timedHelper.update(.1, .1); assert.equal(sb.pendingMoves.length, 0);
+timedCards.extra.stealing.b.readyAt = Date.now() - 1;
+timedHelper.update(.1, .2); timedHelper.update(.1, .3);
+assert.equal(sb.pendingMoves.length, 1); assert.equal(sb.pendingMoves[0].action, 'steal');
+assert.equal(sb.pendingMoves[0].data.target, 'a');

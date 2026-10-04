@@ -35,12 +35,12 @@ const PARTY_GUIDE = {
     steps: ['Take turns choosing a card from either deck.', 'Minigame cards build a pile. A PLAY card makes you complete that pile.', 'Win the whole pile to collect it. Friends can steal while you play.'],
     win: 'Have the most cards when the deck runs out.', lose: 'Fail the pile and your cards go into the pot.',
     you: 'Draw: tap a deck or use left/right arrows. Challenge: play the minigames.', friends: 'Watch the player and tap a rival with cards to steal one per minigame.',
-    tips: ['The deck has 24 cards: 16 minigames and 8 PLAY cards.', 'You must win every game in the pile to collect the reward.', 'The pot is collected by the next player who completes a pile.'] },
+    tips: ['The deck has 24 cards: 16 minigames and 8 PLAY cards.', 'You must win every game in the pile to collect the reward.', 'Stealing takes 1.2 seconds. Watch the progress bar.'] },
   balloon: { color: '#F28CB1', kind: 'PARTY TURNS', format: 'SHARED SCREEN',
     steps: ['One player plays a minigame while the others watch.', 'The others pump up the balloon beside the live game.', 'Win to pass the turn. Fail and you must keep playing.'],
     win: 'Make it pop on another player’s turn.', lose: 'The balloon pops during your turn.',
     you: 'When playing, beat the minigame to pass the turn before the balloon pops.', friends: 'Tap the pump or press Space repeatedly. You can watch the game as you inflate.',
-    tips: ['A simple party mode: one plays, everyone else pumps.', 'The balloon keeps growing between turns.', 'A failure adds air too, so winning quickly matters.'] }
+    tips: ['A simple party mode: one plays, everyone else pumps.', 'The balloon keeps growing between turns.', 'Air from each pump is balanced for 2, 3 or 4 players.'] }
 };
 const PARTY_GUIDE_TABS = ['HOW TO PLAY', 'CONTROLS', 'GOOD TO KNOW'];
 function partyGuideMode(R) { return !isHost() && party.previewMode || R.mode; }

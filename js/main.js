@@ -170,20 +170,16 @@ function back() {
   if (state === 'board') loadBoard(lb.tab);
   st = 0;
 }
-/* Start OAuth from the user gesture. Mobile browsers use a same-tab redirect,
-   which avoids their stricter popup blockers; desktop keeps the popup flow. */
+/* Google uses the same tab on every device. */
 async function doGoogle() {
-  if (pf.busy) return;
-  if (pf.avail === 'no') return;
-  const mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '') ||
-    (navigator.userAgentData && navigator.userAgentData.mobile);
-  let w = null;
-  if (!mobile) {
-    try { w = window.open('', 'claudeware-google', 'popup=yes,width=500,height=680'); } catch (e) {}
-    if (!w) { pf.msg = 'POPUP BLOCKED - TRY AGAIN'; pf.msgCol = '#FF4D4D'; return; }
-  }
+  if (pf.busy || pf.avail === 'no') return;
+  persist();
   pf.busy = true; pf.msg = 'WAITING FOR GOOGLE...'; pf.msgCol = '#fff';
-  const r = await api.googleSignIn(w, mobile ? url => { location.href = url; } : null);
+  const r = await api.googleSignIn();
+  if (r.redirecting) return;
+  await finishGoogle(r);
+}
+async function finishGoogle(r) {
   pf.busy = false;
   if (!r.ok) {
     if (r.unavailable) pf.avail = 'no';
@@ -927,3 +923,10 @@ function loop(ts) {
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
+
+// Resume only after the game and profile UI have been initialized.
+api.completeGoogleSignIn().then(r => {
+  if (!r) return;
+  if (!r.ok) { from.profile = 'menu'; state = 'profile'; st = 0; checkSignIn(); }
+  return finishGoogle(r);
+});

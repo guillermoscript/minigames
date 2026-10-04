@@ -49,7 +49,7 @@ English is the source language and the English text is the key: `txt('SPLAT!')`,
   `/pb/pocketbase superuser upsert you@example.com 'strong-password'`, then sign in at `https://your-domain/_/`.
   (Alternatively open the one-time installer link PocketBase prints in the logs.)
 - **Environment** (Environment tab): `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (optional if you configure Google in the admin UI), optional `ALLOWED_EMAIL_DOMAINS`. Redeploy/restart after changing them.
-- Domain: HTTPS on, container port 8090. Google requires the redirect URI `https://DOMAIN/api/oauth2-redirect`.
+- Domain: HTTPS on, container port 8090. Google requires the redirect URI `https://DOMAIN/?oauth_callback=google`.
 - Healthcheck: `GET /api/health` (built into the image).
 - Behind the proxy, PocketBase reads the client IP from `X-Forwarded-For` (set in the migration under Settings > Application > User IP proxy headers) for rate limiting. If you expose the container directly (no proxy) clear that setting.
 - Build args: `PB_VERSION` (default 0.40.4); `TARGETARCH` is automatic.
@@ -69,7 +69,7 @@ Accounts can ONLY be created through Google OAuth2 (`users.createRule = @request
 2. APIs & Services > **OAuth consent screen** (Google Auth Platform > Branding): app name, support email, user type External, scopes `email` and `profile` (defaults), then publish the app to Production (in Testing mode only listed test users can sign in).
 3. APIs & Services > Credentials > Create credentials > **OAuth client ID** > application type **Web application**.
 4. **Authorized JavaScript origins**: `https://DOMAIN` (local dev: `http://127.0.0.1:8090`).
-5. **Authorized redirect URIs**: `https://DOMAIN/api/oauth2-redirect` (local dev: `http://127.0.0.1:8090/api/oauth2-redirect`). This is PocketBase's built-in redirect endpoint; no extra page is needed.
+5. **Authorized redirect URIs**: `https://DOMAIN/?oauth_callback=google` (local dev: `http://127.0.0.1:8090/?oauth_callback=google`). The game handles the callback itself. Register the exact URL used to start sign-in; if the game URL contains query parameters (such as `lang=es`) or uses `/index.html`, register that full callback URL too.
 6. Copy the Client ID and Client secret.
 
 ### Giving PocketBase the credentials (pick one)
@@ -86,7 +86,7 @@ New Google users get a username from their Google name (sanitised to `[A-Za-z0-9
 
 **Existing password users** are kept (data untouched) but can no longer log in with a password. To keep a legacy account, the person signs in with Google using the same email as the old record (PocketBase links an OAuth2 login to an existing record with the same email; this linking was not tested here); otherwise they start a new account.
 
-Frontend contract (PocketBase JS SDK): `pb.collection('users').authWithOAuth2({ provider: 'google' })` (popup via `/api/oauth2-redirect`), or manually `GET /api/collections/users/auth-methods` > `oauth2.providers[0].authURL` (+ `state`, `codeVerifier`; redirect URI is appended by the SDK) and then `POST /api/collections/users/auth-with-oauth2` with `{provider, code, codeVerifier, redirectURL}`. No CSP / COOP headers are set, so the popup and `window.opener` flow work.
+Frontend follows PocketBase's [manual code exchange](https://pocketbase.io/docs/authentication/): fetch `GET /api/collections/users/auth-methods`, preserve Google's `state` and `codeVerifier` in tab-scoped `sessionStorage`, and navigate to `authURL + encodeURIComponent(redirectURL)`. On return, verify state and expiry, then `POST /api/collections/users/auth-with-oauth2` with `{provider, code, codeVerifier, redirectURL}`. The redirect URL must match the authorization request exactly. This uses no popup or realtime connection. Existing deployments must add the game callback URL in Google Cloud's authorized redirect URIs before using the new flow.
 
 ## Collections and rules
 

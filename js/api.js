@@ -121,28 +121,11 @@ const enqueue = item => {
 const maxArr = (a, b, n) => Array.from({ length: n }, (_, i) => Math.max(a[i] | 0, b[i] | 0));
 const sum = a => (Array.isArray(a) ? a : []).reduce((s, x) => s + (x | 0), 0);
 
-/* ---- Google OAuth via PocketBase's built-in flow (same mechanism as the official JS SDK's authWithOAuth2) ----
-   1. open realtime SSE (/api/realtime) -> clientId, subscribe to "@oauth2"
-   2. send the popup to Google with state=clientId and redirect_uri=<origin>/api/oauth2-redirect
-   3. PocketBase's redirect endpoint pushes {state,code,error} to our SSE stream; we then POST auth-with-oauth2. */
-let oauthWait = null; // cancels the sign-in currently waiting for Google
-function oauthRealtime(onEvent) {
-  return new Promise((resolve, reject) => {
-    const es = new EventSource(API_BASE + '/api/realtime');
-    const close = () => { try { es.close(); } catch (e) {} };
-    es.addEventListener('PB_CONNECT', async ev => {
-      const clientId = ev.lastEventId;
-      try {
-        const r = await fetch(API_BASE + '/api/realtime', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clientId, subscriptions: ['@oauth2'] }) });
-        if (!r.ok) throw new Error('subscribe ' + r.status);
-        resolve({ clientId, close });
-      } catch (e) { close(); reject(e); }
-    });
-    es.addEventListener('@oauth2', ev => { try { onEvent(JSON.parse(ev.data)); } catch (e) {} });
-    es.onerror = () => { if (es.readyState === 2) { close(); reject(new Error('sse')); } }; // CLOSED before connecting
-    setTimeout(() => reject(new Error('sse timeout')), 10000);
-  });
-}
+/* Manual OAuth2 code exchange: preserve PKCE/state across same-tab navigation.
+   The callback is the game URL, not PocketBase's realtime popup endpoint. */
+const OAUTH_KEY = 'claudeware-google-oauth-v1';
+let oauthAttempt = 0;
+const oauthFailure = error => ({ ok: false, status: 0, data: { error } });
 
 const api = {
   /* merge server progress into local `save` (max); also uploads stage scores the server doesn't have yet */
@@ -164,40 +147,56 @@ const api = {
     const o = r.data.oauth2 || {}, g = o.enabled ? (o.providers || []).find(p => p.name === 'google' && p.authURL) : null;
     return { ok: true, status: 200, available: !!g, provider: g || null };
   },
-  /* Full flow. Pass a popup for desktop, or a same-tab navigation callback on mobile.
-     Resolves { ok, data:{ user, progress, isNew } } | { ok:false, cancelled?, unavailable?, data:{error} } */
-  async googleSignIn(popup, navigate) {
-    const closePopup = () => { try { popup && !popup.closed && popup.close(); } catch (e) {} };
-    const fail = (msg, extra) => { closePopup(); return Object.assign({ ok: false, status: 0, data: { error: msg } }, extra); };
+  async googleSignIn(navigate = url => location.assign(url)) {
+    const attempt = ++oauthAttempt;
     const m = await api.authMethods();
-    if (!m.ok) return fail(m.status === 429 ? 'Slow down' : 'Server unreachable');
-    if (!m.available) return fail('Sign-in not available right now', { unavailable: true });
-    const g = m.provider, redirectURL = (API_BASE || location.origin) + '/api/oauth2-redirect';
-    let waiter, rt;
-    const evP = new Promise(res => { waiter = res; });
-    try { rt = await oauthRealtime(waiter); } catch (e) { return fail('Server unreachable'); }
-    const cancelled = new Promise(res => { oauthWait = () => res({ cancelled: true }); });
-    const timer = setTimeout(() => oauthWait && oauthWait(), 10 * 60000);
-    const cleanup = () => { clearTimeout(timer); oauthWait = null; rt.close(); closePopup(); };
+    if (attempt !== oauthAttempt) return Object.assign(oauthFailure('Sign-in cancelled'), { cancelled: true });
+    if (!m.ok) return { ok: false, status: m.status, data: { error: m.error || 'Server unreachable' } };
+    if (!m.available) return Object.assign(oauthFailure('Sign-in not available right now'), { unavailable: true });
+    const g = m.provider;
+    const redirect = new URL(location.href);
+    redirect.searchParams.set('oauth_callback', 'google');
+    redirect.hash = '';
+    const redirectURL = redirect.href;
     try {
-      const url = g.authURL.replace(/([?&])state=[^&]*/, '$1state=' + encodeURIComponent(rt.clientId)) + encodeURIComponent(redirectURL);
-      try {
-        if (navigate) navigate(url);
-        else if (popup) popup.location.href = url;
-        else { cleanup(); return fail('Could not open Google'); }
-      } catch (e) { cleanup(); return fail('Could not open Google'); }
-      const ev = await Promise.race([evP, cancelled]);
-      if (ev.cancelled) { cleanup(); return fail('Sign-in cancelled', { cancelled: true }); }
-      cleanup();
-      if (ev.error) return { ok: false, status: 0, cancelled: true, data: { error: /denied/i.test(ev.error) ? 'Sign-in cancelled' : 'Google said no - try again' } };
-      if (!ev.code || ev.state !== rt.clientId) return { ok: false, status: 0, data: { error: 'Sign-in could not be verified - try again' } };
-      const r = await call('POST', COLL + 'users/auth-with-oauth2', { provider: g.name, code: ev.code, codeVerifier: g.codeVerifier, redirectURL });
-      if (!r.ok) return r;
-      setSession(r.data.token, r.data.record);
-      return { ok: true, status: 200, data: { user: net.user, progress: progressOfRec(r.data.record), isNew: !!(r.data.meta && r.data.meta.isNew) } };
-    } finally { cleanup(); }
+      // sessionStorage keeps the verifier in this tab and survives the Google round trip.
+      sessionStorage.setItem(OAUTH_KEY, JSON.stringify({ name: g.name, state: g.state, codeVerifier: g.codeVerifier, redirectURL, created: Date.now() }));
+      navigate(g.authURL + encodeURIComponent(redirectURL));
+      return { ok: true, redirecting: true };
+    } catch (e) {
+      try { sessionStorage.removeItem(OAUTH_KEY); } catch (_) {}
+      return oauthFailure('Could not open Google');
+    }
   },
-  cancelOAuth() { if (oauthWait) oauthWait(); },
+  async completeGoogleSignIn() {
+    const url = new URL(location.href);
+    if (url.searchParams.get('oauth_callback') !== 'google') return null;
+    const code = url.searchParams.get('code'), state = url.searchParams.get('state'), error = url.searchParams.get('error');
+    let pending;
+    try {
+      pending = JSON.parse(sessionStorage.getItem(OAUTH_KEY));
+      sessionStorage.removeItem(OAUTH_KEY);
+    } catch (_) {}
+    // Remove credentials from the address bar before any network exchange.
+    for (const key of ['oauth_callback', 'code', 'state', 'error', 'error_description', 'error_uri', 'scope', 'authuser', 'prompt', 'hd']) url.searchParams.delete(key);
+    history.replaceState(null, '', url.href);
+    if (!pending || !state || pending.state !== state || !pending.codeVerifier ||
+        !Number.isFinite(pending.created) || Date.now() - pending.created > 10 * 60000 || pending.created > Date.now()) {
+      return oauthFailure('Sign-in could not be verified - try again');
+    }
+    if (error) return Object.assign(oauthFailure(error === 'access_denied' ? 'Sign-in cancelled' : 'Google said no - try again'), { cancelled: error === 'access_denied' });
+    if (!code) return oauthFailure('Sign-in could not be verified - try again');
+    const r = await call('POST', COLL + 'users/auth-with-oauth2', {
+      provider: pending.name, code, codeVerifier: pending.codeVerifier, redirectURL: pending.redirectURL
+    }, 30000);
+    if (!r.ok) return r;
+    setSession(r.data.token, r.data.record);
+    return { ok: true, status: 200, data: { user: net.user, progress: progressOfRec(r.data.record), isNew: !!(r.data.meta && r.data.meta.isNew) } };
+  },
+  cancelOAuth() {
+    ++oauthAttempt;
+    try { sessionStorage.removeItem(OAUTH_KEY); } catch (_) {}
+  },
   async rename(name) {
     if (!net.user) return { ok: false, status: 401, data: { error: 'Not signed in' } };
     if (!/^[A-Za-z0-9_-]{3,16}$/.test(name)) return { ok: false, status: 400, data: { error: 'Name: 3-16 letters, numbers, _ -' } };

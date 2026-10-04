@@ -4,7 +4,7 @@ const vm = require('vm'), fs = require('fs'), assert = require('assert');
 const src = fs.readFileSync(__dirname + '/../js/api.js', 'utf8');
 
 function world(opts = {}) {
-  const store = {}, calls = [], esList = [];
+  const store = {}, session = opts.session || {}, calls = [], esList = [];
   const server = Object.assign({ oauth: true, exchange: 200, patch: 200, patchBody: null }, opts);
   class ES {
     constructor(url) { this.url = url; this.l = {}; this.readyState = 1; esList.push(this); setTimeout(() => this.emit('PB_CONNECT', { lastEventId: 'cid1' }), 1); }
@@ -21,59 +21,78 @@ function world(opts = {}) {
     return json(404, {});
   };
   const ctx = { console, setTimeout, clearTimeout, setInterval: () => 0, clearInterval, addEventListener() {}, AbortController, EventSource: ES, fetch,
-    location: { origin: 'https://game.test', search: '' }, STAGES: [1, 2, 3],
+    URL, Date, history: { replaceState(_, __, url) { ctx.location.href = url; } },
+    sessionStorage: { getItem: k => session[k] || null, setItem: (k, v) => { session[k] = String(v); }, removeItem: k => { delete session[k]; } },
+    location: { origin: 'https://game.test', search: '', href: opts.href || 'https://game.test/', assign(url) { ctx.location.href = url; } }, STAGES: [1, 2, 3],
     localStorage: { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } } };
   ctx.window = ctx; vm.createContext(ctx);
   vm.runInContext(src + '\n;globalThis.__x = { api, net };', ctx);
   const popup = { closed: false, loc: '', location: { set href(v) { popup.loc = v; popup.onNav && popup.onNav(v); } }, close() { popup.closed = true; } };
-  return { api: ctx.__x.api, net: ctx.__x.net, calls, esList, popup, store };
+  return { api: ctx.__x.api, net: ctx.__x.net, calls, esList, popup, store, session, ctx };
 }
 const tick = ms => new Promise(r => setTimeout(r, ms));
 const tests = [];
 const T = (n, f) => tests.push([n, f]);
 
-T('auth-methods disabled -> unavailable, popup closed, no realtime', async () => {
+const pendingKey = 'claudeware-google-oauth-v1';
+async function callback(opts = {}, query = 'state=S&code=CODE') {
+  const first = world();
+  assert.ok((await first.api.googleSignIn()).redirecting);
+  return world({ ...opts, session: first.session, href: 'https://game.test/?oauth_callback=google&' + query });
+}
+T('disabled provider does not navigate or connect realtime', async () => {
   const w = world({ oauth: false });
-  assert.deepStrictEqual((await w.api.authMethods()).available, false);
-  const r = await w.api.googleSignIn(w.popup);
-  assert.ok(!r.ok && r.unavailable && w.popup.closed && !w.esList.length);
+  const r = await w.api.googleSignIn();
+  assert.ok(!r.ok && r.unavailable && !w.esList.length);
+  assert.strictEqual(w.ctx.location.href, 'https://game.test/');
 });
-T('auth-methods enabled', async () => { const m = await world().api.authMethods(); assert.ok(m.ok && m.available && m.provider.name === 'google'); });
-T('popup success: state=clientId, redirect to /api/oauth2-redirect, exchange body, session stored', async () => {
-  const w = world({ isNew: true });
-  w.popup.onNav = () => setTimeout(() => w.esList[0].emit('@oauth2', { data: JSON.stringify({ state: 'cid1', code: 'CODE' }) }), 5);
-  const r = await w.api.googleSignIn(w.popup);
-  assert.ok(r.ok && r.data.isNew && r.data.user.username === 'google_ann' && r.data.progress.unlocked === 3);
-  const u = new URL(w.popup.loc);
-  assert.strictEqual(u.searchParams.get('state'), 'cid1');
-  assert.strictEqual(u.searchParams.get('redirect_uri'), 'https://game.test/api/oauth2-redirect');
+T('same-tab redirect keeps provider state and PKCE in tab storage', async () => {
+  const w = world(); assert.ok((await w.api.googleSignIn()).redirecting);
+  const u = new URL(w.ctx.location.href);
+  assert.strictEqual(u.searchParams.get('state'), 'S');
   assert.strictEqual(u.searchParams.get('code_challenge'), 'C');
-  assert.deepStrictEqual(w.calls.find(c => /subscribe|realtime/.test(c.path) && c.method === 'POST').body, { clientId: 'cid1', subscriptions: ['@oauth2'] });
-  assert.deepStrictEqual(w.calls.find(c => /oauth2$/.test(c.path)).body, { provider: 'google', code: 'CODE', codeVerifier: 'V', redirectURL: 'https://game.test/api/oauth2-redirect' });
-  assert.strictEqual(w.net.token, 'T'); assert.ok(JSON.parse(w.store['claudeware-profile-v2']).token === 'T');
-  assert.ok(w.popup.closed && w.esList[0].readyState === 2);
+  assert.strictEqual(u.searchParams.get('redirect_uri'), 'https://game.test/?oauth_callback=google');
+  assert.strictEqual(JSON.parse(w.session[pendingKey]).codeVerifier, 'V');
+  assert.ok(!w.esList.length && !w.net.user);
 });
-T('state mismatch rejected, no exchange', async () => {
-  const w = world();
-  w.popup.onNav = () => setTimeout(() => w.esList[0].emit('@oauth2', { data: JSON.stringify({ state: 'evil', code: 'CODE' }) }), 5);
-  const r = await w.api.googleSignIn(w.popup);
-  assert.ok(!r.ok && !w.calls.some(c => /auth-with-oauth2/.test(c.path)) && !w.net.user);
+T('callback after reload exchanges exact redirectURL and saves session', async () => {
+  const w = await callback({ isNew: true });
+  const r = await w.api.completeGoogleSignIn();
+  assert.ok(r.ok && r.data.isNew && r.data.progress.unlocked === 3);
+  assert.deepStrictEqual(w.calls[0].body, { provider: 'google', code: 'CODE', codeVerifier: 'V', redirectURL: 'https://game.test/?oauth_callback=google' });
+  assert.strictEqual(w.net.token, 'T');
+  assert.ok(JSON.parse(w.store['claudeware-profile-v2']).token === 'T');
+  assert.ok(!w.session[pendingKey] && !w.esList.length);
+  assert.strictEqual(w.ctx.location.href, 'https://game.test/');
+  assert.strictEqual(await w.api.completeGoogleSignIn(), null);
 });
-T('provider error (access_denied) -> cancelled', async () => {
-  const w = world();
-  w.popup.onNav = () => setTimeout(() => w.esList[0].emit('@oauth2', { data: JSON.stringify({ state: 'cid1', error: 'access_denied' }) }), 5);
-  const r = await w.api.googleSignIn(w.popup);
-  assert.ok(!r.ok && r.cancelled && !w.net.user);
+T('missing, expired, mismatched or replayed state never exchanges', async () => {
+  for (const kind of ['missing', 'expired', 'mismatch']) {
+    const w = await callback({}, kind === 'mismatch' ? 'state=evil&code=CODE' : 'state=S&code=CODE');
+    if (kind === 'missing') delete w.session[pendingKey];
+    if (kind === 'expired') { const p = JSON.parse(w.session[pendingKey]); p.created -= 11 * 60000; w.session[pendingKey] = JSON.stringify(p); }
+    assert.ok(!(await w.api.completeGoogleSignIn()).ok && !w.calls.length && !w.net.user);
+    assert.ok(!w.session[pendingKey]);
+  }
 });
-T('user cancel button', async () => {
-  const w = world(); const p = w.api.googleSignIn(w.popup); await tick(30); w.api.cancelOAuth();
-  const r = await p; assert.ok(!r.ok && r.cancelled && w.popup.closed && w.esList[0].readyState === 2);
+T('Google cancellation is handled after return', async () => {
+  const w = await callback({}, 'state=S&error=access_denied');
+  const r = await w.api.completeGoogleSignIn(); assert.ok(!r.ok && r.cancelled && !w.calls.length);
 });
-T('exchange failure -> friendly error, no session', async () => {
-  const w = world({ exchange: 400 });
-  w.popup.onNav = () => setTimeout(() => w.esList[0].emit('@oauth2', { data: JSON.stringify({ state: 'cid1', code: 'X' }) }), 5);
-  const r = await w.api.googleSignIn(w.popup);
+T('cancel while methods are loading prevents navigation', async () => {
+  const w = world(); const promise = w.api.googleSignIn(); w.api.cancelOAuth();
+  assert.ok((await promise).cancelled); assert.strictEqual(w.ctx.location.href, 'https://game.test/');
+});
+T('blocked session storage prevents starting unusable OAuth flow', async () => {
+  const w = world(); w.ctx.sessionStorage.setItem = () => { throw Error('blocked'); };
+  assert.ok(!(await w.api.googleSignIn()).ok); assert.strictEqual(w.ctx.location.href, 'https://game.test/');
+});
+T('exchange failure returns error without saving session', async () => {
+  const w = await callback({ exchange: 400 }); const r = await w.api.completeGoogleSignIn();
   assert.ok(!r.ok && /Google sign-in failed/.test(r.data.error) && !w.net.user);
+});
+T('normal game boot has no OAuth request', async () => {
+  const w = world(); assert.strictEqual(await w.api.completeGoogleSignIn(), null); assert.ok(!w.calls.length);
 });
 T('rename success / taken / invalid / rate limit', async () => {
   const w = world(); w.net.user = { id: 'u1', username: 'google_ann', color: '#fff' }; w.net.token = 'T';
@@ -95,7 +114,7 @@ T('guest unaffected: no session, nothing stored, submitScore is a no-op, mergePr
 });
 T('server unreachable on sign-in', async () => {
   const w = world(); const orig = w.api.authMethods; w.api.authMethods = async () => ({ ok: false, status: 0, available: false });
-  const r = await w.api.googleSignIn(w.popup); assert.ok(!r.ok && /unreachable/i.test(r.data.error) && w.popup.closed);
+  const r = await w.api.googleSignIn(); assert.ok(!r.ok && /unreachable/i.test(r.data.error));
 });
 
 (async () => {

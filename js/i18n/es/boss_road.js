@@ -1,0 +1,9 @@
+'use strict';
+I18N.add('es', {
+  'STEER! STAY ON THE ROAD!': '¡GIRA! ¡NO TE SALGAS!',
+  'DRAG TO STEER!': '¡ARRASTRA PARA GIRAR!',
+  'FOREST RALLY': 'RALLY DEL BOSQUE',
+  'FINISH': 'META',
+  'FINISH!': '¡META!',
+  'WIPEOUT!': '¡TROMPO!',
+});

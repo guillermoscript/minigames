@@ -1,0 +1,16 @@
+'use strict';
+I18N.add('es', {
+  'CLICK/SPACE AS BALL HITS RING': 'CLIC/ESPACIO AL LLEGAR AL ARO',
+  'TAP AS BALL HITS RING': 'TOCA AL LLEGAR AL ARO',
+  'HITS': 'HITS',
+  'STRIKES': 'STRIKES',
+  'STRIKE!': '¡STRIKE!',
+  'NICE HIT!': '¡BUEN BATAZO!',
+  'HOME RUN!': '¡JONRÓN!',
+  'TOO EARLY!': '¡MUY PRONTO!',
+  'TOO LATE!': '¡MUY TARDE!',
+  'FASTBALL!': '¡RECTA!',
+  'CHANGE-UP!': '¡CAMBIO!',
+  'TRICK PITCH!': '¡TRAMPA!',
+  'HA HA!': '¡JA JA!',
+});

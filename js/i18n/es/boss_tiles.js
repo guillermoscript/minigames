@@ -1,0 +1,11 @@
+'use strict';
+I18N.add('es', {
+  'SLIDE INTO ORDER (OR ↑↓←→)!': '¡DESLIZA Y ORDENA (O ↑↓←→)!',
+  'SLIDE THE TILES INTO ORDER!': '¡ORDENA LAS FICHAS DESLIZANDO!',
+  'MOVES {n}': 'MOVIMIENTOS {n}',
+  'GOAL': 'META',
+  'GENIUS!': '¡GENIO!',
+  'TOO SLOW!': '¡MUY LENTO!',
+  'IMPOSSIBLE!': '¡IMPOSIBLE!',
+  'SOLVE IT, EARTHLING!': '¡RESUÉLVELO, TERRÍCOLA!',
+});

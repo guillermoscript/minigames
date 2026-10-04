@@ -1,0 +1,32 @@
+'use strict';
+/* DUO · WOBBLE WALK (du_legs): every string drawn by js/games/duo/legs.js. Scope 'du' is shared with du1.js and the other duo_*.js:
+   keys that already exist there ('WALK!', 'YOU', 'HOLD', 'START', 'FRIEND', 'LET GO!', 'ONE AT A TIME!') keep exactly the same translation. */
+I18N.add('es', {
+  'WOBBLE WALK': 'CAMINATA TAMBALEANTE',
+  'WALK!': '¡CAMINA!',
+  'LEFT LEG': 'PIERNA IZQUIERDA',
+  'RIGHT LEG': 'PIERNA DERECHA',
+  'HOLD = LIFT · LET GO ON A STONE · TAKE TURNS': 'MANTÉN = LEVANTA · SUELTA EN PIEDRA · ¡TÚRNENSE!',
+  'STEP WITH THE LEFT LEG': 'DA PASOS CON LA IZQUIERDA',
+  'STEP WITH THE RIGHT LEG': 'DA PASOS CON LA DERECHA',
+  'HOLD, LET GO ON A STONE': 'MANTÉN, SUELTA EN UNA PIEDRA',
+  'HOLD': 'MANTÉN',
+  'LET GO!': '¡SUELTA!',
+  'STEP!': '¡PASO!',
+  'KEEP GOING': 'SIGUE',
+  'TOO FAR!': '¡MUY LEJOS!',
+  'YOUR TURN!': '¡TU TURNO!',
+  "FRIEND'S TURN": 'TURNO DE TU AMIGO',
+  'YOU': 'TÚ',
+  'FRIEND': 'AMIGO',
+  'SPLOOSH!': '¡CHAPUZÓN!',
+  'WHOA!': '¡UYYY!',
+  'ONE AT A TIME!': '¡DE UNO EN UNO!',
+  'BLUB!': '¡GLUB!',
+  'GLUB...': 'GLU GLU...',
+  'MAX!': '¡TOPE!',
+  'YAY!': '¡BIEN!',
+  'MADE IT!': '¡LO LOGRARON!',
+  'START': 'INICIO',
+  'GOAL': 'META',
+}, 'du');

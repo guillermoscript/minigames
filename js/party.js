@@ -160,7 +160,7 @@ function partyReceiveFrame(from, data, round) {
 }
 function partySendFrame(data) {
   const R = party.room, S = party.sig;
-  if (!R || R.state !== 'round') return;
+  if (!R || R.state !== 'round' || R.mode === 'duo') return;              // DUO: both seats are playing and nobody else can be in the round, so no one watches; frames would only clog the input link
   if (S.round !== R.round) {
     if (R.mode === 'duo' || partyTurnMode(R)) return;
     Object.assign(S, { q: [], buf: [], round: R.round, handler: null, last: 0, hbAt: now });

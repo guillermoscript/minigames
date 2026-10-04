@@ -505,8 +505,7 @@ const BOSSES = {
   /* a long word to type */
   type(sp, s) {
     const g = gType(sp, s.bossWord || 'REFACTOR');
-    g.cmd = 'BOSS!'; g.hint = 'TYPE THE WORD!'; g.thint = 'TAP THE LETTERS'; g.dur = 12; g.boss = true;
-    const d = g.draw; g.draw = t => { d(t); vignette(.3); };
+    g.cmd = 'BOSS!'; g.hint = 'TYPE THE WORD!'; g.thint = 'TAP THE LETTERS'; g.dur = 12; g.boss = true;   // g.boss = the night throne-room look (wave1.js W1A.type)
     return g;
   },
   /* a bigger swarm of bouncing bugs */

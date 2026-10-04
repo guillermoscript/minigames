@@ -118,6 +118,24 @@ const W3K = (() => {
     else { X.arc(0, -21, 6, .25 * Math.PI, .75 * Math.PI); X.stroke(); }
     X.restore(); X.lineCap = 'butt';
   };
+  /* (RACE / SOLVE / SORT) a soft ground shadow, a white key cap (desktop control hint), a dust puff, light rays */
+  K.shade = (x, y, rx, ry, a = .25) => { X.fillStyle = `rgba(20,16,28,${a})`; el(x, y, rx, ry); X.fill(); };
+  K.keyCap = (s, x, y) => {
+    X.font = '700 15px Fredoka, "Helvetica Neue", Arial, sans-serif'; const w = Math.max(26, X.measureText(s).width + 14);
+    rr(x - w / 2, y - 12, w, 24, 6); ink('#fff', 2.5); X.fillStyle = INK; X.textAlign = 'center'; X.textBaseline = 'middle'; X.fillText(s, x, y + 1);
+  };
+  K.puff = (x, y, r, a = 1, col = '#f4ead8') => {
+    if (a <= 0) return; X.save(); X.globalAlpha = clamp(a, 0, 1);
+    const c = [[-r * .6, 0, r * .62], [0, -r * .35, r * .75], [r * .6, 0, r * .6], [0, r * .2, r * .6]];
+    for (const [a2, b, q] of c) { X.beginPath(); X.arc(x + a2, y + b, q, 0, TAU); ink(null, 3); }
+    for (const [a2, b, q] of c) { X.beginPath(); X.arc(x + a2, y + b, q, 0, TAU); X.fillStyle = col; X.fill(); }
+    X.fillStyle = 'rgba(255,255,255,.55)'; el(x - r * .25, y - r * .5, r * .35, r * .2, -.4); X.fill(); X.restore();
+  };
+  K.rays = (x, y, r, T, a = .5, col = '255,240,150') => {
+    X.save(); X.translate(x, y); X.rotate(T * .6); X.fillStyle = `rgba(${col},${a})`;
+    for (let i = 0; i < 12; i++) { X.rotate(TAU / 12); X.beginPath(); X.moveTo(-r * .12, r * .25); X.lineTo(r * .12, r * .25); X.lineTo(0, r); X.fill(); }
+    X.restore();
+  };
   return K;
 })();
 
@@ -368,10 +386,12 @@ function gDrag(sp) {
   return g;
 }
 
-/* 15 ── RACE: alternate ← → (or A D) to outrun the bug */
+/* 15 ── RACE: sports day at the village track. Claude (sweatband on) sprints against a smug ladybug in
+   running shoes while the crowd and a gum-chewing cow watch from the bleachers. Alternate ← → (or A D). */
 function gRace(sp) {
   let me = 0, rival = 0, last = '', shk = 0, clock = 0;
   const rate = 100 / (5 * .88 / Math.sqrt(sp)), x0 = 80 - OX, kx = (620 + OX * 2) / 100, fx = 724 + OX;
+  let stepAt = -9, endAt = -1;          // cosmetic only (art): last good step, when the verdict landed
   const g = {
     wide: true, cmd: 'RACE!', hint: 'ALTERNATE LEFT AND RIGHT', thint: 'TAP LEFT / RIGHT SIDE', dur: 5,
     down(p) { g.key({ code: p.x < W / 2 ? 'ArrowLeft' : 'ArrowRight' }); },
@@ -379,26 +399,187 @@ function gRace(sp) {
       const k = (e.code === 'ArrowLeft' || e.code === 'KeyA') ? 'L' : (e.code === 'ArrowRight' || e.code === 'KeyD') ? 'R' : '';
       if (!k) return;
       if (k === last) { shk = .15; sfx.miss(); return; }
-      last = k; me += 5; sfx.blip(me / 8); burst(x0 + Math.min(me, 100) * kx - 30, 330, '#d9a066', 3, 140);
+      last = k; me += 5; stepAt = clock; sfx.blip(me / 8); burst(x0 + Math.min(me, 100) * kx - 30, 330, '#d9a066', 3, 140);
       if (me >= 100) { g.result = 'win'; sfx.coin(); sfx.sparkle(); shake(5, .2); floatText('WINNER!', 400, 250, '#fff', 48); confetti(fx, 240, 30); }
     },
     update(dt) {
       clock += dt; shk = Math.max(0, shk - dt);
+      if (g.result && endAt < 0) endAt = clock;
       if (g.result) return;
       rival += rate * dt; if (rival >= 100) { g.result = 'lose'; sfx.buzz(); shake(6, .25); }
     },
-    draw(t) {
-      bg('#FFD166', '#ffc54d', t);
-      for (const ly of [150, 330]) { ctx.fillStyle = INK; ctx.fillRect(-OX, ly - 4, VW, 188); ctx.fillStyle = '#d9a066'; ctx.fillRect(-OX, ly, VW, 180); }
-      for (let r = 0; r < 12; r++) for (let c = 0; c < 2; c++) { ctx.fillStyle = (r + c) % 2 ? '#fff' : INK; ctx.fillRect(fx + c * 16, 150 + r * 15, 16, 15); ctx.fillRect(fx + c * 16, 330 + r * 15, 16, 15); }
-      const mx = x0 + Math.min(me, 100) * kx + Math.sin(now * 80) * shk * 20, rx = x0 + Math.min(rival, 100) * kx;
-      shadow(mx, 372, 46, 12); shadow(rx, 450, 40, 10);
-      claude(mx, 300, 8, { run: g.result ? null : now, mood: g.result === 'win' ? 'happy' : g.result === 'lose' ? 'sad' : null });
-      drawBug(rx, 420, Math.PI / 2, 1.3, now);
-      txt('YOU', 50 - OX, 175, 24); txt('BUG', 50 - OX, 355, 24);
+    draw() {
+      const K = W3K, { rr, el, ink, TAU, ease, outBack, clamp } = K, X = ctx, T = clock;
+      const won = g.result === 'win', lost = g.result === 'lose', rk = endAt < 0 ? 0 : clock - endAt;
+      if (!RACE_SKY || RACE_SKY.width !== VW) {
+        RACE_SKY = K.bake(VW, H, c => { c.translate(OX, 0); raceSky(); });
+        RACE_WALL = K.bake(VW, H, c => { c.translate(OX, 0); raceWall(); });
+        RACE_FG = K.bake(VW, H, c => { c.translate(OX, 0); raceGround(fx); });
+      }
+      const mx0 = x0 + Math.min(me, 100) * kx + Math.sin(now * 80) * shk * 20, mx = lost ? mx0 + (x0 - 30 - mx0) * ease(rk / .45) : mx0, rx = x0 + Math.min(rival, 100) * kx;
+      const lead = won ? mx : lost ? rx : (me >= rival ? mx : rx), ahead = me > rival;
+      X.drawImage(RACE_SKY, -OX, 0);
+      const span = VW + 260;
+      K.cloud(((now * 9 + 300) % span) - OX - 130, 58, .7); K.cloud(((now * 6 + 820) % span) - OX - 130, 76, .55);
+      X.drawImage(RACE_WALL, -OX, 0);
+      // the crowd on the bleachers: everyone follows the leader with their eyes; they bounce when a runner crosses the line
+      const HC = ['#ffd6a5', '#c9c3d6', '#9be564', '#ffb4a2', '#8fd3ff', '#f3a283', '#e3ac66', '#ffe98a', '#c792ea'];
+      for (let r = 0; r < 2; r++) {
+        const yb = 142 + r * 46;
+        for (let i = 0, hx = -OX + 22 + r * 21; hx < W + OX; i++, hx += 42) {
+          if (r === 1 && hx > 520 && hx < 620) continue;               // the cow's seat
+          const id = r * 50 + i, hh = K.hash(id), col = HC[(hh * HC.length) | 0];
+          const hop = g.result ? Math.abs(Math.sin(rk * 10 + id)) * (won ? 7 : 3) : Math.max(0, Math.sin(now * 5 + id * 1.7)) * 1.5;
+          const hy = yb - 12 - hop;
+          X.fillStyle = col; rr(hx - 16, hy + 6, 32, 22, 9); ink(col, 2.5);
+          el(hx, hy - 3, 13, 12.5); ink(col, 2.5);
+          const hat = (K.hash(id + 9) * 5) | 0;
+          if (hat === 1) { X.beginPath(); X.moveTo(hx - 8, hy - 11); X.lineTo(hx, hy - 27); X.lineTo(hx + 8, hy - 11); X.closePath(); ink(K.hash(id + 3) > .5 ? '#ff5c8a' : '#4db8ff', 2); }
+          else if (hat === 2) { rr(hx - 11, hy - 16, 22, 8, 4); ink('#ff4d5e', 2); rr(hx + 2, hy - 11, 14, 4, 2); ink('#ff4d5e', 1.5); }
+          else if (hat === 3) { X.beginPath(); X.arc(hx - 6, hy - 13, 4, 0, TAU); X.arc(hx + 6, hy - 13, 4, 0, TAU); ink(col, 2); }
+          const lx = clamp((lead - hx) / 160, -1, 1) * 1.6;
+          if (won && K.hash(id + 5) > .5) { X.strokeStyle = INK; X.lineWidth = 2; for (const s of [-4, 4]) { X.beginPath(); X.arc(hx + s, hy - 2, 2.6, Math.PI * 1.1, Math.PI * 1.9); X.stroke(); } }
+          else for (const s of [-4, 4]) { X.fillStyle = '#fff'; el(hx + s, hy - 3, 3.2, 3.6); X.fill(); X.fillStyle = INK; el(hx + s + lx, hy - 3, 1.7, 2); X.fill(); }
+          if (won) { X.fillStyle = INK; el(hx, hy + 4, 3, 2.4); X.fill(); }
+        }
+      }
+      X.drawImage(RACE_FG, -OX, 0);
+      // the background gag: a cow in the front row with a foam finger, blowing bubble gum that keeps popping on its face
+      {
+        const cx = 570, cy = 160 - (won ? Math.abs(Math.sin(rk * 9)) * 8 : 0), cyc = (now * .45) % 1, bub = won ? 0 : lost ? clamp(rk * 2.5, 0, 1) : cyc < .8 ? ease(cyc / .8) : 0;
+        const popped = lost || (!won && cyc >= .8), pa = popped ? (lost ? 1 : 1 - (cyc - .8) / .2) : 0;
+        X.save(); X.translate(570, 190); X.scale(1.25, 1.25); X.translate(-570, -190);
+        X.save(); X.translate(cx + 30, cy + 6); X.rotate(.35 + (won ? Math.sin(now * 14) * .35 : Math.sin(now * 3) * .12)); X.scale(.8, .8);
+        rr(-4, -10, 8, 16, 3); ink('#fff', 2.5);
+        X.beginPath(); X.moveTo(-11, -12); X.lineTo(-13, -40); X.quadraticCurveTo(-12, -52, -4, -52); X.lineTo(-2, -66); X.quadraticCurveTo(4, -74, 8, -66); X.lineTo(10, -40); X.lineTo(12, -12); X.closePath(); ink('#FFE14D', 3);
+        X.fillStyle = 'rgba(255,255,255,.5)'; el(-6, -44, 2.5, 8); X.fill(); X.restore();
+        rr(cx - 24, cy + 4, 48, 24, 10); ink('#fff', 3);
+        for (const s of [-1, 1]) { X.beginPath(); X.moveTo(cx + s * 12, cy - 18); X.quadraticCurveTo(cx + s * 22, cy - 30, cx + s * 18, cy - 36); X.lineWidth = 8; X.strokeStyle = INK; X.stroke(); X.lineWidth = 3.5; X.strokeStyle = '#fff3c4'; X.stroke(); }
+        for (const s of [-1, 1]) { X.save(); X.translate(cx + s * 24, cy - 10); X.rotate(s * (.5 + Math.sin(now * 4) * .15)); el(0, 0, 10, 5); ink('#fff', 2.5); X.restore(); }
+        el(cx, cy - 6, 21, 18); ink('#fff', 3);
+        X.save(); el(cx, cy - 6, 21, 18); X.clip(); X.fillStyle = INK; el(cx - 13, cy - 16, 9, 7, .4); X.fill(); el(cx + 16, cy + 2, 6, 5); X.fill(); X.restore();
+        const chew = Math.sin(now * 9) * 1.5;
+        el(cx, cy + 6 + chew * .3, 15, 9 + chew * .2); ink('#ffb4c8', 2.5);
+        X.fillStyle = '#c25b7a'; el(cx - 5, cy + 4, 2, 2.5); X.fill(); el(cx + 5, cy + 4, 2, 2.5); X.fill();
+        const cm = won ? 'happy' : popped && pa > .4 ? 'bonk' : 'idle';
+        K.eye(cx - 8, cy - 10, 5, cm, [clamp((lead - cx) / 200, -1, 1), .3], now, 0); K.eye(cx + 8, cy - 10, 5, cm, [clamp((lead - cx) / 200, -1, 1), .3], now, 1);
+        if (bub > .05 && !popped) { X.beginPath(); X.arc(cx + 3, cy + 14 + bub * 6, 3 + bub * 15, 0, TAU); ink('#ff8fc0', 2.5); X.fillStyle = 'rgba(255,255,255,.6)'; el(cx - 2 - bub * 5, cy + 10 + bub * 2, 2 + bub * 3, 1.5 + bub * 2, -.5); X.fill(); }
+        if (popped && pa > 0) { X.save(); X.globalAlpha = clamp(pa, 0, 1); X.fillStyle = '#ff8fc0'; X.strokeStyle = INK; X.lineWidth = 2; for (const [a, b, r] of [[-12, 2, 7], [10, -4, 6], [0, 10, 8], [-4, -14, 5], [14, 8, 5]]) { el(cx + a, cy + b, r, r * .8); X.stroke(); X.fill(); } X.restore(); }
+        if (won) for (let i = 0; i < 3; i++) { const q = (rk * .9 + i / 3) % 1; K.heart(cx - 22 + i * 22, cy - 40 - q * 30, .55, Math.sin(q * Math.PI)); }
+        X.restore();
+      }
+      // the finish tape: Claude or the bug snaps it, and the two ends flap from the posts
+      {
+        const tx = fx + 16;
+        if (!g.result) { X.beginPath(); X.moveTo(tx, 216); X.quadraticCurveTo(tx + 6 + Math.sin(now * 3) * 4, 341, tx, 466); X.lineCap = 'round'; X.lineWidth = 11; X.strokeStyle = INK; X.stroke(); X.lineWidth = 5; X.strokeStyle = '#ff4d5e'; X.stroke(); }
+        else {
+          const k = ease(rk / .3), fl = Math.sin(rk * 14) * 10 * Math.max(.25, 1 - rk);
+          K.line([[tx, 216], [tx + 30 * k + fl * .4, 260], [tx + 60 * k + fl, 296 - 20 * k]], 5, '#ff4d5e');
+          K.line([[tx, 466], [tx + 30 * k - fl * .4, 430], [tx + 64 * k - fl, 396 + 30 * k]], 5, '#ff4d5e');
+        }
+        for (const py of [216, 466]) { rr(tx - 6, py - 14, 12, 28, 5); ink('#fff', 3); X.beginPath(); X.arc(tx, py - 16, 6, 0, TAU); ink('#ffd23f', 2.5); }
+      }
+      // light rays behind whoever crossed the line first
+      if (g.result) K.rays(won ? mx : rx, won ? 290 : 400, 150 * ease(rk / .25), now, .45);
+      // the bug: runs upright in sneakers, smug while ahead, sweating while behind; trophy on its win, dizzy on its loss
+      {
+        const sc = 1.05, fy = 448, bounce = g.result ? 0 : Math.abs(Math.sin(now * 16)) * 5, jump = lost ? Math.abs(Math.sin(rk * 9)) * 14 : 0;
+        K.shade(rx, fy, 36, 8);
+        const by = fy - 40 * sc - bounce - jump, rot = g.result ? 0 : .22;
+        for (const s of [-1, 1]) {                       // sneakers
+          const kk = g.result ? 0 : Math.sin(now * 16 + (s > 0 ? Math.PI : 0)) * 8;
+          rr(rx + s * 10 - 9 + kk + (won ? s * 6 : 0), fy - 10 - jump - Math.max(0, kk) * .5, 22, 11, 5); ink('#fff', 2.5); X.fillStyle = '#4db8ff'; rr(rx + s * 10 - 9 + kk + (won ? s * 6 : 0), fy - 4 - jump - Math.max(0, kk) * .5, 22, 5, 2.5); X.fill();
+        }
+        const mood = won ? 'dizzy' : lost ? 'rasp' : ahead ? 'panic' : (Math.floor(now * 2) % 2 ? 'smug' : 'rasp');
+        K.bug(rx, by, rot, sc, g.result ? 0 : now, { mood, T: now, look: ahead && !g.result ? [1, 0] : [-1, -.2] });
+        if ((ahead && !g.result) || won) K.sweat(rx + 26, by - 44, 1, now);
+        if (won) for (let s = 0; s < 3; s++) { const a = now * 7 + s * TAU / 3; K.star(rx + Math.cos(a) * 30, by - 62 + Math.sin(a) * 8, 7, 3, 5, a, '#FFE14D', 2); }
+        if (lost) {                                       // the bug raises a tiny trophy
+          const k = outBack(rk / .3); X.save(); X.translate(rx, by - 72 * sc); X.scale(k, k); X.rotate(Math.sin(now * 10) * .1);
+          X.beginPath(); X.moveTo(-14, -20); X.lineTo(14, -20); X.quadraticCurveTo(14, 2, 0, 4); X.quadraticCurveTo(-14, 2, -14, -20); X.closePath(); ink('#FFE14D', 3);
+          for (const s of [-1, 1]) { X.beginPath(); X.arc(s * 15, -12, 6, s > 0 ? -1.4 : Math.PI - 1.7, s > 0 ? 1.7 : Math.PI + 1.4, s < 0); X.lineWidth = 6; X.strokeStyle = INK; X.stroke(); X.lineWidth = 2.5; X.strokeStyle = '#FFE14D'; X.stroke(); }
+          rr(-4, 3, 8, 7, 2); ink('#e8b423', 2); rr(-10, 9, 20, 7, 3); ink('#a5622c', 2);
+          X.fillStyle = 'rgba(255,255,255,.55)'; el(-6, -14, 3, 5, -.3); X.fill(); X.restore();
+        }
+      }
+      // Claude: pumping arms + a red sweatband; breaks the tape with a medal on the win, on the loss it faceplants and skids all the way back to the start line (clear of the centre stamp)
+      {
+        const u = 7, cy = 330, running = !g.result && clock - stepAt < .3, k = Math.sin(now * 16);
+        const jump = won ? Math.abs(Math.sin(rk * 9)) * 18 : running ? Math.abs(k) * 4 : 0;
+        K.shade(mx, cy + 2, 46, 9);
+        if (!lost && !won && me < rival - 8) K.sweat(mx + 40, cy - 60, 1.2, now);
+        X.save(); X.translate(mx, cy - jump);
+        if (lost) { const f = ease(rk / .22); X.translate(5 * u * f, 0); X.rotate(f * 1.35); X.translate(-5 * u * f, 0); }
+        if (won) { const w = Math.sin(now * 14) * .3; K.arms(u, -.45 + w, .45 - w, ease(rk / .2)); }
+        else if (lost) K.arms(u, -2.4, 2.4, 1);
+        else if (running) K.arms(u, -.2 + k * .9, .2 + k * .9, 1);
+        else K.arms(u, -.9, .9, .8);
+        claude(0, 0, u, { run: running ? now : null, mood: won || (ahead && !lost) ? 'happy' : lost ? 'sad' : null });
+        // sweatband with fluttering tails
+        rr(-6 * u - 2, -8.8 * u, 12 * u + 4, 1.4 * u, 3); ink('#ff4d5e', 2.5);
+        const fl = Math.sin(now * 20) * 4;
+        X.beginPath(); X.moveTo(-6 * u, -8.3 * u); X.lineTo(-6 * u - 18, -8.3 * u - 6 + fl); X.lineTo(-6 * u - 14, -8.3 * u + 4 + fl * .5); X.closePath(); ink('#ff4d5e', 2);
+        X.fillStyle = 'rgba(255,255,255,.4)'; rr(-6 * u, -8.7 * u, 12 * u, 3, 1.5); X.fill();
+        if (won) {                                         // gold medal on a blue ribbon
+          const m = outBack((rk - .15) / .3);
+          if (m > 0) { X.strokeStyle = INK; X.lineWidth = 6; X.beginPath(); X.moveTo(-14, -7 * u); X.lineTo(0, -3.6 * u); X.lineTo(14, -7 * u); X.stroke(); X.strokeStyle = '#4db8ff'; X.lineWidth = 3; X.stroke(); X.save(); X.translate(0, -3 * u); X.scale(m, m); X.beginPath(); X.arc(0, 0, 9, 0, TAU); ink('#FFE14D', 3); K.star(0, 0, 5, 2.2, 5, -Math.PI / 2, '#fff3a0', 0); X.restore(); }
+        }
+        X.restore();
+        if (lost) { const q = clamp(rk / .5, 0, 1); K.puff(mx + 50 - q * 20, cy - 8 - q * 16, 16 + q * 10, 1 - q); K.puff(mx + 80 + q * 10, cy - 4 - q * 10, 12 + q * 8, 1 - q); if (rk > .3) for (let s = 0; s < 3; s++) { const a = now * 7 + s * TAU / 3; K.star(mx + 62 + Math.cos(a) * 26, cy - 22 + Math.sin(a) * 7, 7, 3, 5, a, '#FFE14D', 2); } }
+        if (!lost) K.tag(mx, cy - 9 * u - 30 - jump + Math.sin(now * 3) * 2);
+      }
+      vignette(.16);
     }
   };
   return g;
+}
+/* RACE's baked layers: sky; the bleachers' back wall; then benches, lawn, track, start + finish lines */
+let RACE_SKY = null, RACE_WALL = null, RACE_FG = null;
+function raceSky() {
+  const X = W3K.cx(), sky = X.createLinearGradient(0, 0, 0, 120); sky.addColorStop(0, '#36b0ea'); sky.addColorStop(.6, '#86d8fb'); sky.addColorStop(1, '#d6f7ff');
+  X.fillStyle = sky; X.fillRect(-OX, 0, VW, 130);
+}
+function raceWall() {
+  const K = W3K, { rr, ink } = K, X = K.cx(), L = -OX, R = W + OX;
+  // bunting across the top of the stand
+  rr(L - 10, 94, VW + 20, 110, 6); ink('#5a8fd6', 4);
+  X.fillStyle = '#4a7cc2'; for (let x = L; x < R; x += 46) X.fillRect(x, 98, 20, 100);
+  X.fillStyle = 'rgba(255,255,255,.18)'; X.fillRect(L, 98, VW, 6);
+  X.strokeStyle = INK; X.lineWidth = 3; X.beginPath(); X.moveTo(L - 10, 82);
+  for (let x = L; x <= R + 40; x += 40) X.quadraticCurveTo(x - 20, 92, x, 82);
+  X.stroke();
+  const FC = ['#ff4d5e', '#FFE14D', '#4fd06a', '#4db8ff', '#ff9f43', '#c792ea'];
+  for (let i = 0, x = L + 10; x < R; i++, x += 40) { X.beginPath(); X.moveTo(x, 86); X.lineTo(x + 20, 86); X.lineTo(x + 10, 104); X.closePath(); ink(FC[i % FC.length], 2); }
+}
+function raceGround(fx) {
+  const K = W3K, { rr, el, ink, TAU } = K, X = K.cx(), L = -OX, R = W + OX;
+  // three bench rows (the crowd sits behind them)
+  for (let r = 0; r < 2; r++) { const yb = 142 + r * 46; rr(L - 10, yb, VW + 20, 13, 4); ink('#d9944f', 3); X.fillStyle = '#a5622c'; X.fillRect(L, yb + 8, VW, 4); X.fillStyle = 'rgba(255,255,255,.25)'; X.fillRect(L, yb + 2, VW, 3); }
+  // lawn + a hard ink horizon
+  const gr = X.createLinearGradient(0, 200, 0, 600); gr.addColorStop(0, '#8fdc5c'); gr.addColorStop(1, '#5fb944');
+  X.fillStyle = gr; X.fillRect(L, 200, VW, 400); X.fillStyle = INK; X.fillRect(L, 198, VW, 4);
+  X.save(); X.beginPath(); X.rect(L, 202, VW, 398); X.clip(); X.strokeStyle = 'rgba(255,255,255,.12)'; X.lineWidth = 22; for (let x = L - 400; x < R; x += 70) { X.beginPath(); X.moveTo(x, 600); X.lineTo(x + 400, 202); X.stroke(); } X.restore();
+  // the running track: two lanes of red tartan with white lines
+  X.fillStyle = INK; X.fillRect(L, 218, VW, 254);
+  X.fillStyle = '#e0714a'; X.fillRect(L, 222, VW, 246);
+  X.fillStyle = '#c95a37'; X.fillRect(L, 456, VW, 12); X.fillRect(L, 336, VW, 8);
+  X.fillStyle = 'rgba(255,255,255,.14)'; for (let x = L; x < R; x += 9) for (let y = 226; y < 456; y += 9) if (((x + y) / 9 | 0) % 3 === 0) X.fillRect(x, y, 2, 2);
+  X.fillStyle = '#fff'; X.fillRect(L, 226, VW, 5); X.fillRect(L, 341, VW, 5); X.fillRect(L, 458, VW, 5);
+  // start line
+  X.fillRect(80 - OX - 56, 231, 6, 227);
+  // checkered finish strip
+  for (let r = 0; r < 16; r++) for (let c = 0; c < 2; c++) { X.fillStyle = (r + c) % 2 ? '#fff' : INK; X.fillRect(fx + c * 16, 231 + r * 14.3, 16, 14.3); }
+  // tufts, flowers, hay bales on the infield
+  X.strokeStyle = '#3f8f35'; X.lineWidth = 3; X.lineCap = 'round';
+  for (let i = 0; i < 16; i++) { const x = L + K.hash(i + 7) * VW, y = 488 + K.hash(i + 70) * 50; X.beginPath(); X.moveTo(x - 5, y - 6); X.lineTo(x - 2, y + 2); X.moveTo(x, y - 9); X.lineTo(x, y + 2); X.moveTo(x + 5, y - 6); X.lineTo(x + 2, y + 2); X.stroke(); }
+  for (let i = 0; i < 7; i++) { const x = L + 30 + K.hash(i + 200) * (VW - 60), y = 492 + K.hash(i + 300) * 36; for (let p = 0; p < 5; p++) { X.beginPath(); X.arc(x + Math.cos(p * 1.257) * 5, y + Math.sin(p * 1.257) * 5, 3.5, 0, TAU); ink('#fff', 1.5); } X.beginPath(); X.arc(x, y, 3, 0, TAU); ink('#FFE14D', 1.5); }
+  for (const bx of [L + 70, R - 180]) {
+    rr(bx - 46, 488, 92, 44, 10); ink('#f2c94c', 4);
+    X.fillStyle = '#d9a93a'; rr(bx - 46, 518, 92, 14, 6); X.fill();
+    X.strokeStyle = '#c4902a'; X.lineWidth = 2; for (let i = 0; i < 6; i++) { X.beginPath(); X.moveTo(bx - 40 + i * 15, 494); X.lineTo(bx - 34 + i * 15, 512); X.stroke(); }
+    X.strokeStyle = '#a5622c'; X.lineWidth = 4; X.beginPath(); X.moveTo(bx - 20, 488); X.lineTo(bx - 20, 532); X.moveTo(bx + 20, 488); X.lineTo(bx + 20, 532); X.stroke();
+    X.fillStyle = 'rgba(255,255,255,.35)'; el(bx - 26, 494, 12, 3, -.1); X.fill();
+  }
 }
 
 /* 16 ── WAIT: press only when the light turns green */
@@ -472,7 +653,8 @@ function gRps(sp) {
   return g;
 }
 
-/* 18 ── SOLVE: quick maths (1 2 3 or click) */
+/* 18 ── SOLVE: a TV quiz show. A walrus host reads the sum off a bulb board, Claude buzzes from the contestant
+   podium, and a wrong answer tips the gunge bucket. Quick maths (1 2 3 or click). */
 function gMath(sp) {
   let a = 2 + Math.random() * 8 | 0, b = 2 + Math.random() * 7 | 0, op = ['+', '-', 'x'][sp > 1.5 ? Math.random() * 3 | 0 : Math.random() * 2 | 0];
   if (op === '-' && b > a) [a, b] = [b, a];
@@ -480,6 +662,7 @@ function gMath(sp) {
   const ans = op === '+' ? a + b : op === '-' ? a - b : a * b;
   const opts = [ans]; while (opts.length < 3) { const v = ans + ((Math.random() * 7 | 0) - 3); if (v >= 0 && !opts.includes(v)) opts.push(v); }
   shuffle(opts); let picked = -1, pk = 1;
+  let endAt = -1;                       // cosmetic only (art): when the verdict landed (in `now` time)
   const choose = i => {
     if (g.result) return; picked = i; g.result = opts[i] === ans ? 'win' : 'lose'; pk = 0;
     if (g.result === 'win') { sfx.hit(); sfx.coin(); burst(200 + i * 220, 405, '#5CFF7A', 14); ring(200 + i * 220, 405, '#fff', 90); floatText('NICE!', 400, 260, '#fff'); } else { sfx.buzz(); shake(6, .22); burst(200 + i * 220, 405, '#FF4D4D', 10); }
@@ -488,49 +671,332 @@ function gMath(sp) {
     wide: true, cmd: 'SOLVE!', hint: 'PICK THE ANSWER (1 2 3)', thint: 'TAP THE ANSWER', dur: 5,
     key(e) { const v = +e.key; if (v >= 1 && v <= 3) choose(v - 1); },
     down(p) { const i = Math.floor((p.x - 100) / 220); if (i >= 0 && i < 3 && p.x - 100 - i * 220 <= 200 && p.y > 340 && p.y < 470) choose(i); },
-    update(dt) { pk = Math.min(1, pk + dt * 5); },
-    draw(t) {
-      bg('#C0F0A0', '#b0e690', t);
-      txt(`${a} ${op} ${b} = ?`, W / 2, 170, 110, '#fff');
-      for (let i = 0; i < 3; i++) {
-        const show = g.result && (opts[i] === ans || i === picked);
-        const pop = i === picked ? 1 + Math.sin(pk * Math.PI) * .1 : 1; ctx.save(); ctx.translate(200 + i * 220, 405); ctx.scale(pop, pop); ctx.translate(-200 - i * 220, -405);
-        box3(100 + i * 220, 340, 200, 130, show ? (opts[i] === ans ? '#5CFF7A' : '#FF4D4D') : '#fff', 5, show ? 3 : 6);
-        txt(String(opts[i]), 200 + i * 220, 405, 72, show ? '#fff' : INK); ctx.restore();
+    update(dt) { pk = Math.min(1, pk + dt * 5); if (g.result && endAt < 0) endAt = now; },
+    draw() {
+      const K = W3K, { rr, el, ink, TAU, ease, outBack, clamp } = K, X = ctx;
+      const won = g.result === 'win', lost = g.result === 'lose', rk = endAt < 0 ? 0 : now - endAt;
+      if (!QUIZ_BG || QUIZ_BG.width !== VW) QUIZ_BG = K.bake(VW, H, c => { c.translate(OX, 0); quizStage(); });
+      X.drawImage(QUIZ_BG, -OX, 0);
+      // the question board: a bulb marquee; the bulbs chase while you think, go rainbow on the win and dead red on the fail
+      {
+        const n = 34;
+        for (let i = 0; i < n; i++) {
+          const q = i / n, per = 2 * (520 + 200), d = q * per;
+          const bx = d < 520 ? 140 + d : d < 720 ? 660 : d < 1240 ? 660 - (d - 720) : 140, by = d < 520 ? 66 : d < 720 ? 66 + (d - 520) : d < 1240 ? 266 : 266 - (d - 1240);
+          const on = won ? 1 : lost ? (i % 2 ? .25 : 1) : (Math.floor(now * 8) + i) % 3 === 0 ? 1 : .35;
+          const col = won ? `hsl(${(i * 30 + now * 600) % 360},90%,62%)` : lost ? '#ff4d5e' : '#FFE14D';
+          X.beginPath(); X.arc(bx, by, 6.5, 0, TAU); ink(on > .5 ? col : '#8a7a3a', 2);
+          if (on > .5) { X.fillStyle = 'rgba(255,255,255,.7)'; X.beginPath(); X.arc(bx - 2, by - 2, 2, 0, TAU); X.fill(); }
+        }
+        txt(`${a} ${op} ${b} = ?`, W / 2, 168, 96, '#fff', 'center', 450);
       }
-      shadow(W / 2, 566, 40, 10); claude(W / 2, 560, 5, { mood: g.result === 'win' ? 'happy' : g.result === 'lose' ? 'sad' : null });
+      // the host: a walrus in a bow tie behind the right podium, reading the card and reacting to the answer
+      {
+        const hx = 728, hy = 236 + Math.sin(now * 3.1) * 2 + (won ? -Math.abs(Math.sin(rk * 9)) * 8 : 0), shakeH = lost ? Math.sin(rk * 18) * .12 * Math.max(0, 1 - rk) : 0;
+        X.save(); X.translate(hx, hy); X.rotate(shakeH);
+        const BODY = K.pEl(0, 76, 52, 56); K.cel(BODY, '#b98a6a', '#8d6247', 6, 0, 4.5); K.glint(BODY, -22, 40, 10, 16, .3, -.3);
+        rr(-30, 46, 60, 60, 14); X.fillStyle = '#fff'; X.fill();                                   // shirt front
+        X.beginPath(); X.moveTo(-20, 52); X.lineTo(0, 62); X.lineTo(-20, 72); X.closePath(); ink('#ff4d5e', 2.5);
+        X.beginPath(); X.moveTo(20, 52); X.lineTo(0, 62); X.lineTo(20, 72); X.closePath(); ink('#ff4d5e', 2.5);
+        X.beginPath(); X.arc(0, 62, 5, 0, TAU); ink('#b8283a', 2);
+        const HEAD = K.pEl(0, 0, 40, 36); K.cel(HEAD, '#c99a78', '#9b6f50', 5, 2, 4.5); K.glint(HEAD, -16, -20, 12, 7, .35, -.5);
+        for (const s of [-1, 1]) { X.beginPath(); X.moveTo(s * 9, 16); X.quadraticCurveTo(s * 11, 44 + (won ? -6 : 0), s * 5, 50 + (won ? -6 : 0)); X.lineTo(s * 3, 18); X.closePath(); ink('#fff8e8', 2.5); }
+        for (const s of [-1, 1]) { el(s * 13, 12, 15, 12); ink('#e8c39b', 3); }
+        X.fillStyle = '#8d6247'; for (const [dx, dy] of [[-18, 10], [-11, 15], [-20, 17], [11, 15], [18, 10], [20, 17]]) { X.beginPath(); X.arc(dx, dy, 1.6, 0, TAU); X.fill(); }
+        el(0, 3, 9, 6); ink('#3d2a22', 2); X.fillStyle = 'rgba(255,255,255,.6)'; el(-3, 1, 3, 1.6); X.fill();
+        const hm = won ? 'happy' : lost ? 'bonk' : 'idle', look = picked >= 0 ? [clamp((200 + picked * 220 - hx) / 200, -1, 1), .6] : [-.9, .5];
+        K.eye(-14, -14, 8, hm, look, now, 0); K.eye(14, -14, 8, hm, look, now, 1);
+        X.strokeStyle = INK; X.lineWidth = 4; X.lineCap = 'round'; X.beginPath();
+        const br = won ? -6 : lost ? 4 : Math.sin(now * 2) > .6 ? -4 : 0;
+        X.moveTo(-22, -28 + br); X.lineTo(-8, -26 - (lost ? -3 : 0)); X.moveTo(22, -28 + br); X.lineTo(8, -26 - (lost ? -3 : 0)); X.stroke();
+        // a microphone in one flipper, a stack of cue cards in the other
+        X.save(); X.translate(-44, 54); X.rotate(-.5 + (won ? Math.sin(now * 12) * .3 : 0));
+        rr(-5, -32, 10, 34, 4); ink('#5a5274', 2.5); X.beginPath(); X.arc(0, -36, 10, 0, TAU); ink('#c9ced6', 3);
+        X.strokeStyle = 'rgba(20,16,28,.35)'; X.lineWidth = 1.5; for (let i = -1; i <= 1; i++) { X.beginPath(); X.moveTo(-8, -36 + i * 4); X.lineTo(8, -36 + i * 4); X.stroke(); }
+        X.restore();
+        el(-44, 60, 13, 10, -.4); ink('#b98a6a', 3);
+        if (!won) { X.save(); X.translate(46, 44); X.rotate(.25); rr(-14, -20, 28, 36, 4); ink('#fff3c4', 3); X.fillStyle = '#c98443'; for (let i = 0; i < 3; i++) X.fillRect(-8, -12 + i * 8, 16, 2.5); X.restore(); }
+        el(44, 56, 13, 10, .4); ink('#b98a6a', 3);
+        X.restore();
+        if (won) for (let i = 0; i < 5; i++) {                              // the cue cards fly up like confetti
+          const q = clamp(rk / 1.1, 0, 1), vx = (K.hash(i + 11) - .5) * 260, vy = -360 - K.hash(i + 22) * 180;
+          const cx2 = hx + 46 + vx * q, cy2 = hy + 44 + vy * q + 620 * q * q;
+          X.save(); X.translate(cx2, cy2); X.rotate(q * (6 + i) * (i % 2 ? 1 : -1)); rr(-12, -16, 24, 32, 4); ink('#fff3c4', 2.5); X.restore();
+        }
+        if (lost) K.sweat(hx + 34, hy - 36, 1.2, now);
+      }
+      // the three answer podiums (same hit boxes as always: 100 + i * 220, y 340..470)
+      for (let i = 0; i < 3; i++) {
+        const show = g.result && (opts[i] === ans || i === picked), right = opts[i] === ans, x = 100 + i * 220, cx = x + 100;
+        const pop = i === picked ? 1 + Math.sin(pk * Math.PI) * .1 : 1, press = i === picked && pk < 1 ? 6 : 0;
+        X.save(); X.translate(cx, 405); X.scale(pop, pop); X.translate(-cx, -405);
+        const off = g.result && !show;
+        const [face, base] = show ? (right ? ['#4fd06a', '#24803a'] : ['#ff4d5e', '#b8283a']) : off ? ['#d3cfe0', '#8f88a6'] : ['#6a5ae0', '#3a2d9a'];
+        if (off) X.globalAlpha = .8;
+        rr(x, 349, 200, 121, 20); ink(base, 4);
+        rr(x, 340 + press, 200, 121 - press - 9, 20); ink(face, 4);
+        X.fillStyle = 'rgba(255,255,255,.3)'; rr(x + 14, 346 + press, 172, 8, 4); X.fill();
+        rr(x + 22, 356 + press, 156, 72, 14); ink(show ? (right ? '#145c28' : '#6e1622') : off ? '#a9a3bb' : '#1d1840', 3);
+        X.fillStyle = 'rgba(255,255,255,.12)'; rr(x + 28, 360 + press, 70, 10, 5); X.fill();
+        txt(String(opts[i]), cx, 393 + press, 60, show && right && won ? '#FFE14D' : '#fff');
+        if (show && !right) { X.lineCap = 'round'; for (const [w, c] of [[9, INK], [4, '#fff']]) { X.lineWidth = w; X.strokeStyle = c; X.beginPath(); X.moveTo(cx + 54, 364 + press); X.lineTo(cx + 70, 380 + press); X.moveTo(cx + 70, 364 + press); X.lineTo(cx + 54, 380 + press); X.stroke(); } }
+        for (let j = 0; j < 7; j++) {                                        // a row of bulbs under the screen
+          const lit = show && right ? Math.sin(now * 20 + j) > 0 : !g.result && (Math.floor(now * 6) + j + i) % 4 === 0;
+          X.beginPath(); X.arc(x + 40 + j * 20, 440 + press, 4.5, 0, TAU); ink(lit ? '#FFE14D' : 'rgba(255,255,255,.35)', 1.5);
+        }
+        if (!TOUCH) K.keyCap(String(i + 1), cx, 458 + press * .5);
+        X.globalAlpha = 1; X.restore();
+      }
+      // Claude on the contestant podium (left); the gunge bucket hangs over it from the lighting rig
+      {
+        const cx = 58, cy = 336, u = 5.2, jump = won ? Math.abs(Math.sin(rk * 9)) * 16 : 0;
+        const tip = lost ? ease(rk / .2) * 2.1 : 0, pour = lost ? clamp((rk - .12) / .25, 0, 1) : 0, cover = lost ? clamp((rk - .25) / .3, 0, 1) : 0;
+        if (won) K.rays(cx, cy - 30, 120 * ease(rk / .25), now, .45);
+        X.save(); X.translate(cx, cy - jump);
+        const br = Math.sin(now * 3.1) * .025; X.scale(1 - br, 1 + br);
+        if (won) { const w = Math.sin(now * 14) * .3; K.arms(u, -.45 + w, .45 - w, ease(rk / .2)); }
+        else if (lost) K.arms(u, -2.5, 2.5, 1);
+        else K.arms(u, -.5, .4 + Math.sin(now * 5) * .1, 1);
+        claude(0, 0, u, { mood: won ? 'happy' : lost ? 'sad' : null });
+        X.restore();
+        if (!won && !lost) K.sweat(cx + 36, cy - 50, 1, now);
+        // the gunge (drawn over Claude): a stream from the bucket, then a green blob dripping down
+        if (pour > 0 && pour < 1 || (lost && rk < .55)) { X.beginPath(); X.moveTo(cx - 12, 216); X.quadraticCurveTo(cx - 4, 260, cx - 8, cy - 48); X.lineCap = 'round'; X.lineWidth = 24 * (1 - Math.max(0, (rk - .4) / .15)) + 4; X.strokeStyle = INK; X.stroke(); X.lineWidth = Math.max(1, 24 * (1 - Math.max(0, (rk - .4) / .15)) - 4); X.strokeStyle = '#7fd34a'; X.stroke(); }
+        if (cover > 0) {
+          X.save(); X.translate(cx, cy);
+          X.beginPath(); X.moveTo(-46, -30); X.quadraticCurveTo(-48, -54, -20, -52); X.quadraticCurveTo(0, -62, 22, -52); X.quadraticCurveTo(48, -54, 46, -30);
+          for (let d = 0; d < 6; d++) { const dx = 40 - d * 16, len = (8 + K.hash(d + 40) * 22) * cover + Math.sin(now * 3 + d) * 2; X.lineTo(dx, -30 + len * .3); X.quadraticCurveTo(dx - 4, -30 + len, dx - 8, -30 + len * .3); }
+          X.closePath(); ink('#7fd34a', 3.5); X.fillStyle = 'rgba(255,255,255,.4)'; el(-22, -48, 9, 3.5, -.2); X.fill();
+          for (let d = 0; d < 3; d++) { const q = (rk * 1.3 + d / 3) % 1; X.beginPath(); X.arc(-30 + d * 30, -20 + q * 40, 4, 0, TAU); X.globalAlpha = 1 - q; ink('#7fd34a', 1.5); X.globalAlpha = 1; }
+          X.restore();
+        }
+        // the bucket on its rig
+        X.save(); X.translate(cx - 12, 172); X.rotate(-tip);
+        K.line([[-16, -14], [0, -26], [16, -14]], 2.5, '#c9ced6');
+        X.beginPath(); X.moveTo(-22, -14); X.lineTo(22, -14); X.lineTo(17, 34); X.lineTo(-17, 34); X.closePath(); ink('#c9ced6', 4);
+        X.fillStyle = '#8f9cb3'; X.beginPath(); X.moveTo(10, -14); X.lineTo(22, -14); X.lineTo(17, 34); X.lineTo(8, 34); X.closePath(); X.fill();
+        X.fillStyle = 'rgba(255,255,255,.5)'; rr(-16, -8, 5, 30, 2.5); X.fill();
+        if (pour < 1) { el(0, -14, 20, 4.5); ink('#7fd34a', 2); }
+        X.restore();
+        if (!lost) K.tag(cx, cy - 9 * u - 26 - jump + Math.sin(now * 3) * 2);
+      }
+      // the audience in the dark: backs of heads bobbing; a fan with a heart sign; on the win they cheer
+      for (let i = 0, x = -OX + 30; x < W + OX; i++, x += 58) {
+        const hop = won ? Math.abs(Math.sin(rk * 10 + i)) * 10 : lost ? Math.abs(Math.sin(rk * 14 + i)) * 4 : Math.sin(now * 2 + i) * 1.5;
+        const hy = 528 - hop + (i % 2) * 6;
+        rr(x - 26, hy + 8, 52, 40, 16); ink('#2a2050', 3); el(x, hy, 19, 20); ink('#2a2050', 3);
+        X.fillStyle = 'rgba(160,140,255,.35)'; el(x - 7, hy - 9, 6, 9, -.4); X.fill();
+        if (won) for (const s of [-1, 1]) K.line([[x + s * 20, hy + 12], [x + s * 30, hy - 22 - Math.sin(now * 16 + i) * 5]], 6, '#2a2050');
+        if (i === 3) {                                                         // the fan's sign: a heart and a pixel Claude
+          const sy = hy - 30 - (won ? Math.abs(Math.sin(rk * 10)) * 10 : 0);
+          K.line([[x, hy - 8], [x, sy + 20]], 4, '#e3ac66');
+          X.save(); X.translate(x, sy); X.rotate(Math.sin(now * 3) * .1 + (won ? Math.sin(now * 16) * .25 : 0));
+          rr(-34, -22, 68, 44, 6); ink('#fff', 3);
+          K.heart(-14, 2, .8, 1);
+          X.fillStyle = OR; X.fillRect(4, -8, 22, 14); X.fillRect(2, -4, 26, 5); X.fillStyle = INK; X.fillRect(9, -5, 3, 4); X.fillRect(18, -5, 3, 4);
+          X.restore();
+        }
+      }
+      if (won) for (let i = 0; i < 26; i++) {                                // streamers from the rig
+        const q = ((rk * .9 + K.hash(i)) % 1), x = -OX + K.hash(i + 3) * VW, y = 150 + q * 390;
+        X.save(); X.translate(x + Math.sin(rk * 6 + i) * 12, y); X.rotate(rk * 8 + i); X.fillStyle = ['#ff5c8a', '#FFE14D', '#4db8ff', '#5CFF7A'][i % 4]; X.strokeStyle = INK; X.lineWidth = 2; X.beginPath(); X.rect(-3, -9, 6, 18); X.stroke(); X.fill(); X.restore();
+      }
+      vignette(.2);
     }
   };
   return g;
 }
+/* SOLVE's baked stage: purple wall, velvet curtains + valance, spotlight beams, the marquee frame and screen,
+   the contestant podium, the lighting rig the bucket hangs from, the stage floor */
+let QUIZ_BG = null;
+function quizStage() {
+  const K = W3K, { rr, el, ink, TAU } = K, X = K.cx(), L = -OX, R = W + OX;
+  const wall = X.createLinearGradient(0, 0, 0, 470); wall.addColorStop(0, '#2a1f63'); wall.addColorStop(1, '#5a3fae');
+  X.fillStyle = wall; X.fillRect(L, 0, VW, 480);
+  X.fillStyle = 'rgba(255,255,255,.05)'; for (let x = L; x < R; x += 60) X.fillRect(x, 0, 28, 480);
+  X.fillStyle = 'rgba(255,225,77,.35)'; for (let x = L + 20; x < R; x += 60) for (let y = 300; y < 470; y += 40) { X.beginPath(); X.arc(x, y, 2.5, 0, TAU); X.fill(); }
+  // spotlight beams onto the podiums
+  X.save(); X.globalCompositeOperation = 'lighter';
+  for (const bx of [58, 200, 420, 640]) { X.fillStyle = 'rgba(255,240,190,.07)'; X.beginPath(); X.moveTo(bx + 60, 50); X.lineTo(bx + 90, 50); X.lineTo(bx + 60, 470); X.lineTo(bx - 50, 470); X.fill(); }
+  X.restore();
+  // stage floor: planks + a hard ink edge
+  const fl = X.createLinearGradient(0, 470, 0, 600); fl.addColorStop(0, '#b97a46'); fl.addColorStop(1, '#8a5530');
+  X.fillStyle = fl; X.fillRect(L, 470, VW, 130); X.fillStyle = INK; X.fillRect(L, 468, VW, 4);
+  X.strokeStyle = 'rgba(80,40,20,.45)'; X.lineWidth = 2; for (let y = 492; y < 600; y += 24) { X.beginPath(); X.moveTo(L, y); X.lineTo(R, y); X.stroke(); }
+  for (let y = 472, r = 0; y < 600; y += 24, r++) for (let x = L + (r % 2) * 70; x < R; x += 140) { X.beginPath(); X.moveTo(x, y); X.lineTo(x, y + 20); X.stroke(); }
+  // curtains at both sides, then the valance with gold fringe
+  const curtain = (x0, w, flip) => {
+    X.save(); X.translate(x0, 0); if (flip) X.scale(-1, 1);
+    const p = new Path2D(); p.moveTo(-200, 0); p.lineTo(w, 0); p.quadraticCurveTo(w - 30, 220, w - 6, 300); p.quadraticCurveTo(w - 30, 380, w + 4, 476); p.lineTo(-200, 476); p.closePath();
+    K.cel(p, '#d23a52', '#9e2238', -8, 0, 4.5);
+    X.save(); X.clip(p); X.strokeStyle = 'rgba(110,20,40,.55)'; X.lineWidth = 4; for (let k = -170; k < w; k += 26) { X.beginPath(); X.moveTo(k, 0); X.quadraticCurveTo(k + 8, 240, k - 4, 476); X.stroke(); }
+    X.fillStyle = 'rgba(255,255,255,.18)'; X.fillRect(w - 26, 0, 8, 476); X.restore();
+    X.beginPath(); X.ellipse(w - 12, 300, 10, 16, 0, 0, TAU); ink('#ffd23f', 3);
+    X.restore();
+  };
+  curtain(L + OX + 18, 0, false); curtain(R - OX - 18, 0, true);
+  X.save(); X.beginPath(); X.moveTo(L - 10, 0); X.lineTo(R + 10, 0); X.lineTo(R + 10, 34);
+  for (let x = R; x > L - 40; x -= 40) X.quadraticCurveTo(x - 20, 56, x - 40, 34);
+  X.closePath(); X.lineWidth = 8; X.strokeStyle = INK; X.lineJoin = 'round'; X.stroke(); X.fillStyle = '#c42f48'; X.fill();
+  X.fillStyle = 'rgba(255,255,255,.15)'; X.fillRect(L, 6, VW, 6); X.restore();
+  for (let x = L - 20; x < R + 20; x += 40) { X.beginPath(); X.arc(x, 48, 4, 0, TAU); ink('#ffd23f', 1.5); }
+  // the question board
+  rr(124, 54, 552, 226, 28); ink('#c99512', 5); rr(124, 50, 552, 222, 28); ink('#ffd23f', 5);
+  X.fillStyle = 'rgba(255,255,255,.35)'; rr(140, 56, 520, 6, 3); X.fill();
+  rr(160, 86, 480, 160, 14); ink('#1d1840', 4);
+  X.save(); rr(160, 86, 480, 160, 14); X.clip(); X.fillStyle = 'rgba(255,255,255,.04)'; for (let y = 88; y < 246; y += 6) X.fillRect(160, y, 480, 2);
+  X.fillStyle = 'rgba(255,255,255,.08)'; X.beginPath(); X.moveTo(160, 86); X.lineTo(330, 86); X.lineTo(250, 246); X.lineTo(160, 246); X.fill(); X.restore();
+  // contestant podium + the lighting rig arm that holds the gunge bucket
+  const pod = new Path2D(); pod.moveTo(14, 336); pod.lineTo(102, 336); pod.lineTo(96, 470); pod.lineTo(20, 470); pod.closePath();
+  K.cel(pod, '#4db8ff', '#2f7fc0', 6, 0, 4); K.glint(pod, 34, 350, 10, 40, .3, 0);
+  rr(10, 328, 96, 14, 6); ink('#ffd23f', 3.5);
+  K.star(58, 402, 20, 9, 5, -Math.PI / 2, '#FFE14D', 3);
+  K.line([[L - 10, 128], [80, 128]], 9, '#8f9cb3'); K.line([[46, 128], [46, 146]], 4, '#8f9cb3');
+  X.beginPath(); X.arc(80, 128, 8, 0, TAU); ink('#c9ced6', 3);
+}
 
-/* 19 ── SORT: click the numbers in order (mouse) */
+/* 19 ── SORT: a pool hall table seen from above. Pot the numbered balls in order (mouse): each one rolls into
+   the nearest pocket and pops up in the ball-return tray. Claude leans on the cue; the hall cat bats at the balls. */
 function gSort(sp) {
   const n = sp > 1.5 ? 6 : 5;
   const cells = shuffle([...Array(12).keys()]).slice(0, n);
   const balls = cells.map((c, i) => ({ v: i + 1, x: 100 - OX + (c % 4) * (VW - 200) / 3 + (Math.random() - .5) * 40, y: 160 + (c / 4 | 0) * 135 + (Math.random() - .5) * 30, done: false, sh: 0, pk: 1 }));
   shuffle(balls); let next = 1;
   const cols = ['#ff6b6b', '#4DB8FF', '#ffd23f', '#9be564', '#c792ea', '#ff9f43'];
+  let endAt = -1, lastPot = -9;          // cosmetic only (art): when the verdict landed / the last ball was potted (in `now` time)
   const g = {
     wide: true, cmd: 'SORT!', hint: 'CLICK 1, 2, 3... IN ORDER', thint: 'TAP 1, 2, 3... IN ORDER', dur: 5,
     down(p) {
       for (const b of balls) if (!b.done && Math.hypot(p.x - b.x, p.y - b.y) < 44) {
-        if (b.v === next) { b.done = true; b.pk = 0; next++; sfx.pop(); sfx.blip(next * 2); burst(b.x, b.y, cols[b.v - 1], 8); floatText('+1', b.x, b.y - 40, '#fff', 30); if (next > n) { g.result = 'win'; sfx.coin(); sfx.sparkle(); ring(b.x, b.y, '#fff', 100); } }
+        if (b.v === next) { b.done = true; b.pk = 0; next++; lastPot = now; sfx.pop(); sfx.blip(next * 2); burst(b.x, b.y, cols[b.v - 1], 8); floatText('+1', b.x, b.y - 40, '#fff', 30); if (next > n) { g.result = 'win'; sfx.coin(); sfx.sparkle(); ring(b.x, b.y, '#fff', 100); } }
         else { b.sh = .3; sfx.miss(); shake(3, .12); }
         return;
       }
     },
-    update(dt) { balls.forEach(b => { b.sh = Math.max(0, b.sh - dt); b.pk = Math.min(1, b.pk + dt * 4); }); },
-    draw(t) {
-      bg('#FFB4A2', '#ffa690', t);
-      for (const b of balls) {
-        const sx = Math.sin(now * 70) * b.sh * 30;
-        const s = 1 + Math.sin(b.pk * Math.PI) * .25; shadow(b.x + sx + 4, b.y + 44, 34 * s, 9);
-        ctx.save(); ctx.translate(b.x + sx, b.y); ctx.scale(s, s); circ(0, 0, 40, b.done ? '#5CFF7A' : cols[b.v - 1], 5); ctx.fillStyle = 'rgba(255,255,255,.4)'; ctx.beginPath(); ctx.ellipse(-12, -16, 10, 6, -.6, 0, 7); ctx.fill(); txt(String(b.v), 0, 3, 46); ctx.restore();
+    update(dt) { balls.forEach(b => { b.sh = Math.max(0, b.sh - dt); b.pk = Math.min(1, b.pk + dt * 4); }); if (g.result && endAt < 0) endAt = now; },
+    draw() {
+      const K = W3K, { rr, el, ink, TAU, ease, outBack, clamp } = K, X = ctx;
+      const won = g.result === 'win', lost = g.result === 'lose', rk = endAt < 0 ? 0 : now - endAt;
+      if (!POOL_BG || POOL_BG.width !== VW) POOL_BG = K.bake(VW, H, c => { c.translate(OX, 0); poolTable(); });
+      X.drawImage(POOL_BG, -OX, 0);
+      const pockets = poolPockets(), mp = TOUCH ? null : mouse;
+      // Claude at the head of the table (bottom-left), drawn under the balls so it never hides one; leaning on the cue; it cheers each pot, twirls the cue on the win,
+      // and on the fail the cue ball pops off the table and bonks it on the head
+      {
+        const cx = 72 - OX, cy = 534, u = 5, cheer = clamp(1 - (now - lastPot) / .35, 0, 1);
+        const jump = won ? Math.abs(Math.sin(rk * 9)) * 14 : cheer * Math.sin(cheer * Math.PI) * 8, br = Math.sin(now * 3.1) * .025;
+        K.shade(cx, cy + 2, 38, 7);
+        // the cue (a long stick resting on Claude's shoulder; twirls on the win)
+        X.save(); X.translate(cx - 40, cy - 40 - jump); X.rotate(won ? Math.sin(rk * 14) * .5 : Math.sin(now * 2) * .04);   // kept on the rail, clear of the balls
+        K.line([[0, 40], [0, -80]], 7, '#e3ac66'); K.line([[0, 40], [0, 6]], 9, '#5a3a22'); K.line([[0, -78], [0, -84]], 7, '#4db8ff');
+        X.restore();
+        X.save(); X.translate(cx, cy - jump); X.scale(1 - br, 1 + br);
+        if (won) { const w = Math.sin(now * 14) * .3; K.arms(u, -.45 + w, .45 - w, ease(rk / .2)); }
+        else if (lost) K.arms(u, -2.6, 2.6, ease(rk / .25));
+        else K.arms(u, -.3 + Math.sin(now * 9) * .25 * (cheer > 0 ? 0 : 1), .35, 1);
+        claude(0, 0, u, { mood: won || cheer > 0 ? 'happy' : lost ? 'sad' : null });
+        X.restore();
+        if (lost) {                                        // the cue ball hops up out of the table and drops on Claude's head
+          const q = clamp(rk / .45, 0, 1), bx = cx + 120 - q * 120, by = cy - 120 - Math.sin(q * Math.PI) * 160 + q * 50;
+          if (q < 1) { X.save(); X.translate(bx, by); X.scale(.45, .45); poolBall(0, '#fff', 0, 0); X.restore(); }
+          else {
+            X.save(); X.translate(cx + 14 + Math.min(1, (rk - .45) * 3) * 50, cy - 50 + Math.min(1, (rk - .45) * 3) * 50 - Math.sin(Math.min(1, (rk - .45) * 3) * Math.PI) * 40); X.scale(.45, .45); poolBall(0, '#fff', 0, 0); X.restore();
+            for (let s = 0; s < 3; s++) { const a = now * 8 + s * TAU / 3; K.star(cx + Math.cos(a) * 30, cy - 58 + Math.sin(a) * 8, 7, 3, 5, a, '#FFE14D', 2); }
+          }
+          K.sweat(cx + 30, cy - 56, 1.1, now);
+        }
       }
+      // the balls: cel-shaded billiard balls with a white number disc; a potted ball rolls into the nearest pocket
+      for (const b of balls) {
+        if (b.done) {
+          const k = ease(b.pk); if (k >= 1) continue;
+          let pp = pockets[0], best = 1e9; for (const q of pockets) { const d = Math.hypot(q[0] - b.x, q[1] - b.y); if (d < best) { best = d; pp = q; } }
+          const x = b.x + (pp[0] - b.x) * k, y = b.y + (pp[1] - b.y) * k;
+          X.save(); X.translate(x, y); X.scale(1 - k * .55, 1 - k * .55); poolBall(b.v, cols[b.v - 1], k * 9, 0); X.restore();
+          continue;
+        }
+        const sx = Math.sin(now * 70) * b.sh * 30;
+        K.shade(b.x + sx + 6, b.y + 8, 40, 38, .3);
+        X.save(); X.translate(b.x + sx, b.y);
+        if (lost) { const j = Math.abs(Math.sin(rk * 10 + b.v)) * 8; X.translate(0, -j); }
+        poolBall(b.v, cols[b.v - 1], 0, b.sh);
+        X.restore();
+      }
+      // the ball-return tray in the foot rail: the potted balls line up in order
+      {
+        const w = n * 34 + 20, tx = 400 - w / 2;
+        if (won) K.rays(400, 535, 170 * ease(rk / .25), now, .5);
+        rr(tx, 520, w, 30, 12); ink('#5a3a22', 3.5); X.fillStyle = 'rgba(255,255,255,.12)'; rr(tx + 8, 523, w - 16, 5, 2.5); X.fill();
+        for (let i = 0; i < n; i++) {
+          const bx = tx + 27 + i * 34, b = balls.find(q => q.v === i + 1), inT = b.done ? outBack((b.pk - .7) / .3) : 0;
+          X.fillStyle = 'rgba(0,0,0,.35)'; el(bx, 535, 13, 10); X.fill();
+          if (inT > 0) { const gold = won && Math.sin(now * 12 - i) > .3; X.save(); X.translate(bx, 535 - (won ? Math.abs(Math.sin(rk * 10 - i * .6)) * 6 : 0)); X.scale(inT * .33, inT * .33); poolBall(i + 1, gold ? '#FFE14D' : cols[i], 0, 0); X.restore(); }
+        }
+      }
+      // the background gag: the hall cat lies on the foot rail, tail swishing, batting a paw at the nearest ball
+      {
+        const cx = 610 + OX, cy = 528, near = mp ? Math.hypot(mp.x - cx, mp.y - cy) < 140 : false;
+        let tgt = null, bd = 1e9; for (const b of balls) if (!b.done) { const d = Math.hypot(b.x - cx, b.y - cy); if (d < bd) { bd = d; tgt = b; } }
+        const swat = !g.result && Math.sin(now * 2.3) > .7, sit = won ? ease(rk / .3) : 0;
+        X.save(); X.translate(cx, cy - sit * 14);
+        X.beginPath(); X.moveTo(34, -4); X.quadraticCurveTo(70, -10 + Math.sin(now * 5) * 14, 64, -40 + Math.sin(now * 4) * 10); X.lineCap = 'round'; X.lineWidth = 14; X.strokeStyle = INK; X.stroke(); X.lineWidth = 7; X.strokeStyle = '#ff9f43'; X.stroke();
+        const BODY = K.pEl(10, -6, 36, 16); K.cel(BODY, '#ffb25e', '#d9822f', 4, 3, 4); K.glint(BODY, -4, -14, 12, 4, .35, -.2);
+        X.save(); X.clip(BODY); X.strokeStyle = '#d9822f'; X.lineWidth = 4; for (const s of [0, 12, 24]) { X.beginPath(); X.moveTo(s, -22); X.lineTo(s - 4, -8); X.stroke(); } X.restore();
+        const pa = swat ? Math.sin(now * 2.3 * 6) * .5 : won ? Math.sin(now * 16) * .6 : 0, ang = tgt ? Math.atan2(tgt.y - (cy - 20), tgt.x - (cx - 30)) : -2;
+        X.save(); X.translate(-22, -10); X.rotate(won ? -1.9 + pa : ang * .4 - .8 + pa); rr(-5, -28 - (swat ? 6 : 0), 10, 30, 5); ink('#ffb25e', 3); el(0, -30 - (swat ? 6 : 0), 7, 6); ink('#ffd9a8', 2.5); X.restore();
+        const HEAD = K.pEl(-30, -24, 20, 17);
+        for (const s of [-1, 1]) { X.beginPath(); X.moveTo(-30 + s * 6, -36); X.lineTo(-30 + s * 17, -48); X.lineTo(-30 + s * 19, -30); X.closePath(); ink('#ffb25e', 3); X.fillStyle = '#ff9ac2'; X.beginPath(); X.moveTo(-30 + s * 10, -36); X.lineTo(-30 + s * 16, -43); X.lineTo(-30 + s * 16, -34); X.fill(); }
+        K.cel(HEAD, '#ffb25e', '#d9822f', 3, 3, 3.5);
+        const cm = lost ? 'happy' : won ? 'happy' : near ? 'panic' : 'idle', look = tgt ? [clamp((tgt.x - cx) / 200, -1, 1), clamp((tgt.y - cy) / 200, -1, 1)] : [0, 0];
+        K.eye(-37, -26, 5.5, cm, look, now, 0); K.eye(-23, -26, 5.5, cm, look, now, 1);
+        X.fillStyle = '#ff5c8a'; X.beginPath(); X.moveTo(-33, -17); X.lineTo(-27, -17); X.lineTo(-30, -14); X.closePath(); X.fill();
+        X.strokeStyle = INK; X.lineWidth = 1.6; X.beginPath(); for (const s of [-1, 1]) { X.moveTo(-30 + s * 6, -15); X.lineTo(-30 + s * 22, -18); X.moveTo(-30 + s * 6, -13); X.lineTo(-30 + s * 22, -11); } X.stroke();
+        if (lost) { X.beginPath(); X.arc(-30, -12, 5, 0, Math.PI); ink('#ff7aa8', 1.5); }
+        X.fillStyle = 'rgba(255,110,165,.55)'; el(-42, -19, 3.5, 2.2); X.fill(); el(-18, -19, 3.5, 2.2); X.fill();
+        X.restore();
+        if (won) for (let i = 0; i < 3; i++) { const q = (rk * .8 + i / 3) % 1; K.heart(cx - 46 + i * 22 - q * 10, cy - 64 - q * 30, .6, Math.sin(q * Math.PI)); }
+        if (lost && rk > .5) for (let i = 0; i < 2; i++) { const q = (rk * 1.4 + i / 2) % 1; X.save(); X.globalAlpha = 1 - q; X.translate(cx - 60 - q * 20, cy - 50 - q * 24); X.rotate(-.3); X.font = '900 20px "Arial Black", Impact, sans-serif'; X.lineWidth = 5; X.strokeStyle = INK; X.strokeText('♪', 0, 0); X.fillStyle = '#fff'; X.fillText('♪', 0, 0); X.restore(); }
+      }
+      if (won) pockets.forEach((q, i) => { if (q[1] < 100) return; const k = (rk * 1.5 + i * .13) % 1; K.star(q[0], q[1] - k * 50, 12 * Math.sin(k * Math.PI), 5, 4, k * 3, '#FFE14D', 2); });
+      vignette(.18);
     }
   };
   return g;
+}
+/* SORT's art: the six pockets, one billiard ball (v 0 = the white cue ball), and the baked table + floor */
+let POOL_BG = null;
+function poolPockets() { const L = -OX + 30, R = W + OX - 30; return [[L, 86], [400, 80], [R, 86], [L, 500], [400, 506], [R, 500]]; }
+function poolBall(v, col, spin, sh) {
+  const K = W3K, X = ctx, P = K.pEl(0, 0, 40, 40);
+  K.cel(P, col, sh > 0 ? '#b8283a' : 'rgba(20,16,28,.28)', 5, 5, 4);
+  if (sh > 0) { X.save(); X.clip(P); X.fillStyle = col; K.el(-5, -5, 40, 40); X.fill(); X.restore(); }
+  if (v) {
+    X.save(); X.rotate(spin); K.el(0, 1, 21, 20); K.ink('#fff', 2.5);
+    X.font = '900 26px "Arial Black", Impact, sans-serif'; X.textAlign = 'center'; X.textBaseline = 'middle'; X.fillStyle = INK; X.fillText(String(v), 0, 3); X.restore();
+  }
+  K.glint(P, -14, -18, 11, 6, .55, -.6);
+  if (sh > 0) { X.strokeStyle = INK; X.lineWidth = 3.5; X.lineCap = 'round'; X.beginPath(); X.moveTo(-16, -26); X.lineTo(-5, -21); X.moveTo(16, -26); X.lineTo(5, -21); X.stroke(); }
+}
+function poolTable() {
+  const K = W3K, { rr, el, ink, TAU } = K, X = K.cx(), L = -OX, R = W + OX;
+  // pub floor: wooden planks
+  X.fillStyle = '#8a5530'; X.fillRect(L, 0, VW, H);
+  X.strokeStyle = 'rgba(40,20,10,.35)'; X.lineWidth = 2; for (let x = L; x < R; x += 44) { X.beginPath(); X.moveTo(x, 0); X.lineTo(x, H); X.stroke(); }
+  X.fillStyle = 'rgba(255,255,255,.06)'; for (let x = L + 4; x < R; x += 88) X.fillRect(x, 0, 14, H);
+  // table shadow, wooden rail (cel), green cushions, felt with the lamp's pool of light
+  X.fillStyle = 'rgba(20,16,28,.35)'; rr(L + 14, 70, VW - 16, 470, 30); X.fill();
+  const rail = new Path2D(); rail.roundRect ? rail.roundRect(L + 4, 58, VW - 8, 472, 28) : rail.rect(L + 4, 58, VW - 8, 472);
+  K.cel(rail, '#b06d33', '#7a4520', 0, -6, 5);
+  X.strokeStyle = 'rgba(255,255,255,.18)'; X.lineWidth = 3; X.beginPath(); X.moveTo(L + 30, 64); X.lineTo(R - 30, 64); X.stroke();
+  X.fillStyle = '#f3e2b8'; for (let i = 1; i < 8; i++) { if (i === 4) continue; const x = L + 30 + (VW - 60) * i / 8; X.beginPath(); X.arc(x, 71, 3.5, 0, TAU); X.fill(); X.beginPath(); X.arc(x, 517, 3.5, 0, TAU); X.fill(); }
+  for (const y of [190, 293, 396]) { X.beginPath(); X.arc(L + 17, y, 3.5, 0, TAU); X.fill(); X.beginPath(); X.arc(R - 17, y, 3.5, 0, TAU); X.fill(); }
+  rr(L + 28, 82, VW - 56, 424, 10); ink('#1e7a45', 4);
+  const felt = X.createRadialGradient(400, 290, 40, 400, 290, Math.max(420, VW * .55)); felt.addColorStop(0, '#4fc77f'); felt.addColorStop(.6, '#2fa866'); felt.addColorStop(1, '#1f8a50');
+  rr(L + 38, 92, VW - 76, 404, 6); X.fillStyle = felt; X.fill(); X.lineWidth = 3; X.strokeStyle = 'rgba(20,16,28,.5)'; X.stroke();
+  // head string + spot (decor only)
+  X.strokeStyle = 'rgba(255,255,255,.18)'; X.lineWidth = 2; X.beginPath(); X.moveTo(L + 38 + (VW - 76) * .25, 94); X.lineTo(L + 38 + (VW - 76) * .25, 494); X.stroke();
+  // pockets
+  for (const [x, y] of poolPockets()) { X.beginPath(); X.arc(x, y, 24, 0, TAU); ink('#14101c', 4); X.fillStyle = '#3a2a1a'; X.beginPath(); X.arc(x, y - 3, 18, Math.PI, TAU); X.fill(); X.strokeStyle = '#d9a86a'; X.lineWidth = 3; X.beginPath(); X.arc(x, y, 27, 0, TAU); X.stroke(); }
 }
 
 /* 20 ── FIND IT: the cup shuffle (mouse) */

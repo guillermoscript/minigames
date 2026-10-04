@@ -243,7 +243,7 @@ After that, new games and restyled old ones use the kit instead of a ninth copy.
 - [ ] The HUD zones are clear (top hint at y ≈ 36, top-left lives, top-right counter).
 - [ ] The palette comes from the table above. Gold `#FFE14D`, go `#5CFF7A` and danger `#ff4d5e` mean the same thing everywhere.
 
-## 12. Restyling an existing game (lessons from stage 1, BUG HUNT)
+## 12. Restyling an existing game (lessons from stages 1–2, BUG HUNT and KEYBOARD KINGDOM)
 
 Use these rules when you re-art an old solo game; the process is the skill `.claude/skills/restyle-stage`.
 Every point here was a real review finding.
@@ -254,6 +254,7 @@ Every point here was a real review finding.
   Decorative randomness uses its own source (a hash of the index, or a separate `mulberry32` seeded from a constant), never the game's RNG.
 - Some constructors are reused elsewhere (`gDodge(sp, extra)` is also the stage-5 boss). Keep their signatures and check those callers too.
 - Never drop functional UI while redrawing. A boss **must** still show its health (bosses.js `bug` lost its bar once).
+- When a boss just wraps a game constructor (`BOSSES.type` → `gType`), give it its own look inside the constructor keyed on `g.boss` (stage 2: a night throne room and a bigger king), and drop the wrapper's extra `vignette()` so it isn't applied twice. Check that long boss words still clear the props.
 
 **Screen zones `main.js` paints on top of you.** Always render with `--fuse --hint` to see them.
 - **Bottom band, y > 552:** a 45 % black fuse strip runs the full width, with the bomb at (W+OX−40, 577) and the red countdown digit at about y 540 in the last 2 s.
@@ -273,6 +274,8 @@ Every point here was a real review finding.
 - In find-the-odd-one games, no prop may overlap any candidate at any column count (check high `sp`).
 - A hat or accessory must not cover a character's eyes. The face carries the joke.
 - Don't stack 3+ labels in one spot (game badge + stamp + sign).
+- Draw characters and props **before** the clickable targets, so a raised arm or cue never covers a ball the player must hit (stage 2 sort).
+- A wrong-answer mark (X, splat) must not hide *what* was picked. Keep it small and in a corner of the chosen item.
 
 **Payoffs that read.**
 - A lose gag needs its victim visible: draw the thing being ruined (cake, sandwich) *after* the culprit, or move the culprit beside it.
@@ -282,6 +285,9 @@ Every point here was a real review finding.
 - The background gag must be on screen during a normal round (most wins happen in 1–4 s), not only late in the timer.
 - Repeated characters (a class photo, windows of tenants) get distinct hats or faces. Copy-paste silhouettes kill the joke.
 - Faces should react **during** play (hover, danger, last seconds), not only at the verdict.
+- The outro ends at `outT > .95`. A payoff that lands later is never seen, so time arcs and landings to finish by ≈ 0.8 s. Route throws *around* the stamp (low and flat, or a high arc over it) instead of through the centre.
+- A character that runs off-screen must reach `W + OX + 40` (or `-OX - 40`), not move at a fixed speed. On a 16:9 screen OX ≈ 133, so a fixed 120 px/s exit is still visible when the round ends.
+- A moving sprite faces the way it moves (check `dir` against the sign of its x velocity on win *and* loss).
 
 **Verify.** Render each game at start, mid, a real win and a real loss (scripted `--inputs`), at sp 1 and sp 2, with `--fuse --hint --stamp`.
 Put them next to the DUO reference sheets and the `--rev=HEAD` before frames. Then run `node test/party-catalog.test.js`, `node scripts/party-catalog.js --check`, `node test/i18n.test.js` and `node --check` on each file.
@@ -289,6 +295,7 @@ Put them next to the DUO reference sheets and the `--rev=HEAD` before frames. Th
 ## References (best example of each rule)
 
 - Restyled solo games (stage 1): `js/games/wave1.js` (swat picnic, spot class photo), `wave2.js` (count apartment block, slice kitchen), `wave3.js` (whack cheese, dodge bed), `bosses.js` `bug` (picnic boss with a wooden health sign).
+- Restyled solo games (stage 2): `wave1.js` `W1A.type` (throne room, plus a night variant for the boss), `wave2.js` `W2COPY` (the king's arrow dance), `wave3.js` race (stadium), math (TV quiz with a walrus host), sort (pool table), `wave4.js` maze (hedge maze with a guard).
 
 - Layered daylight scene and baking: `js/games/duo/hippo.js` `buildBg()`, `sky()`, `waterFront()`. Parallax layers: `js/games/duo/legs.js` `buildSky()`, `buildWorld()`, `mkC()`/`onto()`.
 - Interior scene: `js/games/duo/granny.js` `buildBg()` (wallpaper, planks, rug, night window).

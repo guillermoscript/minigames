@@ -692,33 +692,265 @@ function gSlice(sp) {
   return g;
 }
 
-/* 11 ── COPY: press the arrows in order (arrow keys or WASD) */
+/* 11 ── COPY: press the arrows in order (arrow keys or WASD)
+   Scene: the throne room of Keyboard Kingdom. The King (a big keycap in a crown and a curly moustache) points his sceptre at
+   the royal dance scroll; Claude the court dancer, in a sweatband, copies every move on the palace dance pad while the royal
+   corgi chases its own tail. Win: the King laughs and claps, roses fly, a wax seal stamps the scroll. Fail: the King goes red
+   and lobs a tomato at Claude's face. */
+const W2COPY = (() => {
+  const K = W2K, TAU = Math.PI * 2, KX = 690, CX = 400, CY = 474, VY = 140;
+  let BG = null, KW = -1;
+  const PAD = [[3, 262, 494, 84, 30], [0, 352, 512, 84, 32], [2, 448, 512, 84, 32], [1, 538, 494, 84, 30]];   // dir, x, y, w, h (a DDR row: left, up, down, right)
+  const fx = (xb, y) => 400 + (xb - 400) * (y - VY) / (600 - VY);                 // floor ray through xb at the bottom
+  function build() {
+    KW = VW;
+    BG = K.layer(X => {
+      // lilac castle wall with stone blocks (gradients are fine on walls)
+      const wg = X.createLinearGradient(0, 0, 0, 330); wg.addColorStop(0, '#c9b4f2'); wg.addColorStop(1, '#f0d6f7');
+      X.fillStyle = wg; X.fillRect(-OX, 0, VW, 330);
+      X.strokeStyle = 'rgba(110,70,170,.16)'; X.lineWidth = 3;
+      for (let y = 84, r = 0; y < 300; y += 34, r++) { X.beginPath(); X.moveTo(-OX, y); X.lineTo(W + OX, y); X.stroke(); for (let x = -OX + (r % 2) * 40; x < W + OX; x += 80) { X.beginPath(); X.moveTo(x, y); X.lineTo(x, y + 34); X.stroke(); } }
+      // gold moulding under the ceiling (below the hint line)
+      K.rr(-OX - 10, 60, VW + 20, 14, 6); K.ink('#ffd23f', 3.5); X.fillStyle = '#c99512'; X.fillRect(-OX, 69, VW, 4); X.fillStyle = 'rgba(255,255,255,.45)'; X.fillRect(-OX, 63, VW, 3);
+      // a tall arched window on the left (sky inside, clouds drift through it live)
+      const win = new Path2D(); win.moveTo(22, 300); win.lineTo(22, 132); win.arc(62, 132, 40, Math.PI, 0); win.lineTo(102, 300); win.closePath();
+      X.lineWidth = 14; X.strokeStyle = INK; X.stroke(win); X.lineWidth = 8; X.strokeStyle = '#e3d6f5'; X.stroke(win);
+      const sg = X.createLinearGradient(0, 92, 0, 300); sg.addColorStop(0, '#36b0ea'); sg.addColorStop(.6, '#86d8fb'); sg.addColorStop(1, '#d6f7ff'); X.fillStyle = sg; X.fill(win);
+      X.save(); X.clip(win); X.fillStyle = '#87d19b'; K.el(40, 300, 70, 34); X.fill(); X.strokeStyle = '#4f9a6a'; X.lineWidth = 3; X.stroke(); X.restore();
+      // wide screens: royal banners on the extra wall
+      for (const bx of [-60, 860]) {
+        X.beginPath(); X.moveTo(bx - 34, 80); X.lineTo(bx + 34, 80); X.lineTo(bx + 34, 250); X.lineTo(bx, 226); X.lineTo(bx - 34, 250); X.closePath(); K.ink('#6EA8FE', 4);
+        X.fillStyle = '#4a7fd6'; X.fillRect(bx + 22, 84, 10, 150);
+        X.beginPath(); X.moveTo(bx - 18, 160); X.lineTo(bx - 18, 136); X.lineTo(bx - 8, 148); X.lineTo(bx, 132); X.lineTo(bx + 8, 148); X.lineTo(bx + 18, 136); X.lineTo(bx + 18, 160); X.closePath(); K.ink('#ffd23f', 3);
+        K.rr(bx - 44, 72, 88, 12, 6); K.ink('#d9944f', 3);
+      }
+      // wooden wainscot
+      K.rr(-OX - 10, 286, VW + 20, 46, 4); K.ink('#d9944f', 4); X.fillStyle = '#a5622c'; X.fillRect(-OX, 322, VW, 6); X.fillStyle = 'rgba(255,255,255,.25)'; X.fillRect(-OX, 291, VW, 4);
+      X.strokeStyle = '#b06d33'; X.lineWidth = 3; for (let x = -OX + 20; x < W + OX; x += 70) { K.rr(x, 298, 50, 20, 4); X.stroke(); }
+      // the throne (gold frame, red velvet)
+      const back = K.rrP(KX - 78, 222, 156, 230, 30);
+      X.fillStyle = 'rgba(20,16,28,.25)'; X.save(); X.translate(6, 8); X.fill(back); X.restore();
+      K.cel(back, '#ffd23f', '#c99512', 5, 0, 5); K.glint(back, KX - 46, 250, 18, 30, 'rgba(255,255,255,.5)');
+      K.cel(K.rrP(KX - 58, 242, 116, 196, 22), '#e8434f', '#b8283a', 4, 0, 3.5);
+      X.fillStyle = 'rgba(255,255,255,.18)'; for (let i = 0; i < 3; i++) for (let j = 0; j < 4; j++) { X.beginPath(); X.arc(KX - 34 + i * 34, 270 + j * 44, 4, 0, TAU); X.fill(); }
+      for (const s of [-1, 1]) { X.beginPath(); X.arc(KX + s * 70, 222, 13, 0, TAU); K.ink('#ffd23f', 4); X.fillStyle = 'rgba(255,255,255,.6)'; K.el(KX + s * 70 - 4, 218, 4, 3, -.5); X.fill(); }
+      X.beginPath(); X.moveTo(KX - 22, 228); X.lineTo(KX - 22, 204); X.lineTo(KX - 10, 216); X.lineTo(KX, 196); X.lineTo(KX + 10, 216); X.lineTo(KX + 22, 204); X.lineTo(KX + 22, 228); X.closePath(); K.ink('#ffd23f', 4);
+      X.beginPath(); X.arc(KX, 216, 5, 0, TAU); K.ink('#6EA8FE', 2);
+      // floor: hard ink horizon, pink checker tiles in perspective, the red carpet
+      const fg = X.createLinearGradient(0, 330, 0, 600); fg.addColorStop(0, '#f6b8dc'); fg.addColorStop(1, '#ffe3f2'); X.fillStyle = fg; X.fillRect(-OX, 330, VW, 270);
+      const rows = []; for (let k = 0; k <= 7; k++) rows.push(330 + 270 * Math.pow(k / 7, 1.5));
+      for (let r = 0; r < 7; r++) for (let c = -12; c < 12; c++) {
+        if ((r + c) % 2 === 0) continue; const y1 = rows[r], y2 = rows[r + 1], a = 400 + c * 110, b = a + 110;
+        X.beginPath(); X.moveTo(fx(a, y1), y1); X.lineTo(fx(b, y1), y1); X.lineTo(fx(b, y2), y2); X.lineTo(fx(a, y2), y2); X.closePath(); X.fillStyle = 'rgba(255,255,255,.55)'; X.fill();
+      }
+      X.strokeStyle = 'rgba(160,60,120,.18)'; X.lineWidth = 2; for (const y of rows) { X.beginPath(); X.moveTo(-OX, y); X.lineTo(W + OX, y); X.stroke(); }
+      X.beginPath(); X.moveTo(fx(260, 330), 330); X.lineTo(fx(540, 330), 330); X.lineTo(fx(540, 600), 600); X.lineTo(fx(260, 600), 600); X.closePath(); X.fillStyle = '#e8434f'; X.fill();
+      X.fillStyle = 'rgba(184,40,58,.55)'; X.beginPath(); X.moveTo(fx(470, 330), 330); X.lineTo(fx(540, 330), 330); X.lineTo(fx(540, 600), 600); X.lineTo(fx(470, 600), 600); X.closePath(); X.fill();
+      for (const xb of [260, 540]) { X.strokeStyle = INK; X.lineWidth = 9; X.beginPath(); X.moveTo(fx(xb, 330), 330); X.lineTo(fx(xb, 600), 600); X.stroke(); X.strokeStyle = '#ffd23f'; X.lineWidth = 4; X.stroke(); }
+      X.strokeStyle = INK; X.lineWidth = 4; X.beginPath(); X.moveTo(-OX, 330); X.lineTo(W + OX, 330); X.stroke();
+      // throne seat + legs (in front of the back, behind the King)
+      for (const s of [-1, 1]) { K.rr(KX + s * 56 - 9, 440, 18, 74, 5); K.ink('#c99512', 4); }
+      X.fillStyle = 'rgba(20,16,28,.25)'; K.el(KX, 516, 90, 12); X.fill();
+      K.cel(K.rrP(KX - 76, 430, 152, 34, 14), '#e8434f', '#b8283a', 0, 5, 4); K.rr(KX - 80, 456, 160, 14, 6); K.ink('#ffd23f', 3.5);
+      // the royal dance pad (base slab, perspective-squashed cross)
+      X.fillStyle = 'rgba(20,16,28,.28)'; K.el(CX, 504, 214, 46); X.fill();
+      const pad = new Path2D(); pad.ellipse(CX, 496, 204, 46, 0, 0, TAU);
+      K.cel(pad, '#8f9cb3', '#5f6a84', 0, 6, 4); K.glint(pad, CX - 100, 466, 80, 9, 'rgba(255,255,255,.3)', -.05);
+      // the royal corgi's velvet cushion
+      X.fillStyle = 'rgba(20,16,28,.22)'; K.el(150, 536, 76, 12); X.fill();
+      K.cel(K.elP(150, 524, 72, 18), '#6EA8FE', '#4a7fd6', 0, 4, 3.5); for (const s of [-1, 1]) { X.beginPath(); X.arc(150 + s * 70, 526, 6, 0, TAU); K.ink('#ffd23f', 2.5); }
+    });
+  }
+  /* keycap King: x/feet y, mood: idle|cross|late|win|lose, look = card x he points at */
+  function king(T, mood, lookX, rt, clap) {
+    const c = ctx, br = Math.sin(T * 3.1) * .02, hop = mood === 'win' ? Math.abs(Math.sin(T * 8)) * 10 : 0, by = 448 - hop;
+    c.save(); c.translate(KX, by); c.scale(1 - br, 1 + br);
+    // legs dangling off the throne (they kick on a win)
+    for (const s of [-1, 1]) { const sw = mood === 'win' ? Math.sin(T * 14 + s) * .4 : mood === 'late' && s > 0 ? Math.sin(T * 16) * .25 : 0; c.save(); c.translate(s * 26, -6); c.rotate(sw); K.line([[0, 0], [0, 34]], 8, '#f6f4fb'); K.el(s * 6, 40, 13, 8); K.ink('#6EA8FE', 3); c.restore(); }
+    // ermine cape
+    c.beginPath(); c.moveTo(-70, -6); c.quadraticCurveTo(-82, -70, -40, -110); c.lineTo(40, -110); c.quadraticCurveTo(82, -70, 70, -6); c.closePath(); K.ink('#e8434f', 4);
+    c.fillStyle = '#b8283a'; c.beginPath(); c.moveTo(56, -100); c.quadraticCurveTo(80, -60, 70, -10); c.lineTo(60, -10); c.closePath(); c.fill();
+    for (const s of [-1, 1]) { c.beginPath(); c.moveTo(s * 66, -14); c.quadraticCurveTo(s * 78, -64, s * 42, -104); c.strokeStyle = INK; c.lineWidth = 15; c.stroke(); c.strokeStyle = '#fff'; c.lineWidth = 8; c.stroke(); c.fillStyle = INK; for (const k of [.25, .6]) c.fillRect(s * (66 + 6 * Math.sin(k * 3)) - 1.5 - s * k * 22, -20 - k * 70, 3, 6); }
+    // the keycap body: outer skirt (shade) + dished top face
+    const body = K.rrP(-62, -118, 124, 118, 24); K.cel(body, '#ece8f6', '#b9b2cf', 0, 6, 5);
+    const top = K.rrP(-50, -112, 100, 92, 18); K.inkP(top, '#fbfaff', 2.5); K.glint(top, -24, -100, 22, 8, 'rgba(255,255,255,.9)');
+    const red = mood === 'lose' ? Math.min(1, rt * 4) : mood === 'cross' ? .55 : 0;
+    if (red) { c.save(); c.clip(top); c.fillStyle = `rgba(255,77,94,${red * .45})`; c.fillRect(-60, -120, 120, 110); c.restore(); }
+    // the little legend letter in the corner (drawn, not text)
+    c.strokeStyle = '#9a93b4'; c.lineWidth = 3.5; c.lineCap = 'round'; c.beginPath(); c.moveTo(-40, -104); c.lineTo(-40, -86); c.moveTo(-31, -104); c.lineTo(-40, -95); c.lineTo(-31, -86); c.stroke();
+    // face
+    const lx = K.clamp((lookX - KX) / 200, -1, 1), ly = -.6;
+    const em = mood === 'win' ? 'happy' : mood === 'lose' ? null : mood === 'late' ? null : null;
+    for (const s of [-1, 1]) {
+      K.eye(s * 20, -76, 11, em, mood === 'lose' ? 0 : lx, mood === 'lose' ? .2 : ly, s);
+      c.strokeStyle = INK; c.lineWidth = 4.5; c.lineCap = 'round'; c.beginPath();
+      if (mood === 'cross' || mood === 'lose') { c.moveTo(s * 32, -96); c.lineTo(s * 9, -88); }
+      else if (mood === 'late') { c.moveTo(s * 31, -92 + (s > 0 ? -2 : 3)); c.lineTo(s * 10, -94 + (s > 0 ? -5 : 2)); }
+      else if (mood === 'win') { c.moveTo(s * 30, -96); c.quadraticCurveTo(s * 20, -102, s * 10, -96); }
+      else { c.moveTo(s * 30, -91 - (s > 0 ? 6 : 0)); c.lineTo(s * 10, -93 - (s > 0 ? 4 : 0)); }
+      c.stroke();
+    }
+    c.fillStyle = 'rgba(255,110,165,.5)'; for (const s of [-1, 1]) { K.el(s * 33, -58, 8, 5); c.fill(); }
+    // mouth (under the moustache)
+    if (mood === 'win') { c.beginPath(); c.moveTo(-14, -48); c.quadraticCurveTo(0, -24, 14, -48); c.closePath(); K.ink('#b8283a', 2.5); c.fillStyle = '#ff8fa8'; K.el(0, -36, 6, 4); c.fill(); }
+    else if (mood === 'lose' || mood === 'cross') { c.beginPath(); c.moveTo(-12, -36); c.quadraticCurveTo(0, -46, 12, -36); c.strokeStyle = INK; c.lineWidth = 4; c.stroke(); }
+    else { c.beginPath(); c.moveTo(-6, -40); c.lineTo(6, -40); c.strokeStyle = INK; c.lineWidth = 4; c.stroke(); }
+    // curly moustache (twitches)
+    const tw = mood === 'cross' ? Math.sin(T * 40) * 3 : Math.sin(T * 2.3) * 1.5;
+    for (const s of [-1, 1]) { c.beginPath(); c.moveTo(0, -54); c.quadraticCurveTo(s * 20, -62 + tw, s * 30, -50); c.quadraticCurveTo(s * 38, -42, s * 30, -40 - tw); c.quadraticCurveTo(s * 34, -48, s * 24, -50); c.quadraticCurveTo(s * 12, -52, 0, -46); c.closePath(); K.ink('#5a3a2a', 2.5); }
+    // ermine collar
+    // crown (hops on a win, flies up on a rage)
+    const ch = mood === 'win' ? Math.abs(Math.sin(T * 8 + .6)) * 14 : mood === 'lose' ? Math.min(1, rt * 5) * 16 : 0;
+    c.save(); c.translate(0, -118 - ch); c.rotate(mood === 'lose' ? Math.sin(T * 30) * .08 : -.06);
+    c.beginPath(); c.moveTo(-34, 6); c.lineTo(-38, -30); c.lineTo(-18, -12); c.lineTo(0, -38); c.lineTo(18, -12); c.lineTo(38, -30); c.lineTo(34, 6); c.closePath(); K.ink('#ffd23f', 4);
+    c.fillStyle = '#c99512'; c.fillRect(-34, -2, 68, 6); c.fillStyle = 'rgba(255,255,255,.5)'; K.el(-20, -14, 4, 7, -.4); c.fill();
+    for (const [gx, gc] of [[-20, '#ff4d5e'], [0, '#6EA8FE'], [20, '#4fd06a']]) { c.beginPath(); c.arc(gx, -3, 5, 0, TAU); K.ink(gc, 2); }
+    c.restore();
+    if (mood === 'lose' || mood === 'cross') for (const s of [-1, 1]) { const k = (T * 2.2 + (s > 0 ? .5 : 0)) % 1; c.globalAlpha = 1 - k; c.beginPath(); c.arc(s * (44 + k * 14), -130 - k * 40, 7 + k * 10, 0, TAU); K.ink('#fff', 2.5); c.globalAlpha = 1; }
+    c.restore();
+    // arms: right hand points the sceptre at the scroll; on a win both hands clap; on a fail the left one throws
+    const ay = by - 70;
+    if (mood === 'win') { const cl = Math.abs(Math.sin(T * 16)) * 16; K.line([[KX - 58, ay], [KX - 20 - cl, ay - 52]], 10, '#ece8f6'); K.line([[KX + 58, ay], [KX + 20 + cl, ay - 52]], 10, '#ece8f6'); for (const s of [-1, 1]) { c.beginPath(); c.arc(KX + s * (18 + cl), ay - 56, 11, 0, TAU); K.ink('#fff', 3); } if (clap) for (const s of [-1, 1]) K.line([[KX + s * 30, ay - 90], [KX + s * 40, ay - 104]], 2, '#FFE14D'); }
+    else {
+      const wig = Math.sin(T * (mood === 'late' ? 12 : 2)) * (mood === 'late' ? 6 : 3);
+      if (mood !== 'lose') {
+        // left hand aims the sceptre at the current card (slides a little toward it, rotates to point)
+        const px = KX - 100 + K.clamp((lookX - 560) * .05, -18, 4) + wig, py = ay - 60, hx = px + 16, hy = py + 22;
+        const ang = K.clamp(Math.atan2(190 - hy, lookX - hx) + Math.PI / 2, -1.3, -.05) + (mood === 'late' ? Math.sin(T * 12) * .12 : 0);
+        K.line([[KX - 58, ay], [hx, hy]], 10, '#ece8f6');
+        c.save(); c.translate(hx, hy); c.rotate(ang); K.line([[0, 18], [0, -70]], 5, '#ffd23f'); c.beginPath(); c.arc(0, -76, 11, 0, TAU); K.ink('#6EA8FE', 3); c.fillStyle = 'rgba(255,255,255,.6)'; K.el(-4, -80, 3, 2, -.5); c.fill(); c.restore();
+        c.beginPath(); c.arc(hx, hy, 11, 0, TAU); K.ink('#fff', 3);
+        K.line([[KX + 58, ay], [KX + 70, ay + 34]], 10, '#ece8f6'); c.beginPath(); c.arc(KX + 70, ay + 38, 11, 0, TAU); K.ink('#fff', 3);
+      } else {
+        // rage: right fist shakes the sceptre overhead, left hand slings the tomato underhand, low and flat
+        const k = Math.min(1, rt / .12), shk2 = Math.sin(T * 30) * 4;
+        K.line([[KX + 58, ay], [KX + 64 - 30 * k + shk2, ay - 40 - 20 * k]], 10, '#ece8f6');
+        c.save(); c.translate(KX + 64 - 30 * k + shk2, ay - 44 - 20 * k); c.rotate(.35 + Math.sin(T * 30) * .12); K.line([[0, 18], [0, -70]], 5, '#ffd23f'); c.beginPath(); c.arc(0, -76, 11, 0, TAU); K.ink('#6EA8FE', 3); c.restore();
+        c.beginPath(); c.arc(KX + 64 - 30 * k + shk2, ay - 44 - 20 * k, 11, 0, TAU); K.ink('#fff', 3);
+        const tx2 = KX - 70 - 40 * k, ty2 = ay + 34 - 6 * k;
+        K.line([[KX - 58, ay], [tx2, ty2]], 10, '#ece8f6'); c.beginPath(); c.arc(tx2, ty2, 11, 0, TAU); K.ink('#fff', 3);
+      }
+    }
+  }
+  function tomato(x, y, r, rot) { const c = ctx; c.save(); c.translate(x, y); c.rotate(rot); c.beginPath(); c.arc(0, 0, r, 0, TAU); K.ink('#ff4d5e', 3); c.fillStyle = 'rgba(255,255,255,.55)'; K.el(-r * .35, -r * .4, r * .3, r * .2, -.5); c.fill(); for (let i = 0; i < 5; i++) { c.save(); c.rotate(i * TAU / 5); c.beginPath(); c.ellipse(0, -r - 3, 3, 6, 0, 0, TAU); K.ink('#4fbf5a', 1.5); c.restore(); } c.restore(); }
+  function corgi(T, won) {
+    const c = ctx, a = T * 5.5, hop = won ? Math.abs(Math.sin(T * 10)) * 18 : Math.abs(Math.sin(T * 11)) * 3;
+    const x = 150 + Math.cos(a) * 22, y = 520 + Math.sin(a) * 5 - hop, dir = won ? 1 : (-Math.sin(a) >= 0 ? 1 : -1);
+    c.save(); c.translate(x, y); c.scale(dir * 1.25, 1.25);
+    for (const lx of [-16, -6, 8, 18]) { K.rr(lx - 3, -10, 7, 12 + (Math.sin(T * 22 + lx) > 0 ? 0 : -2), 3); K.ink('#f6a04a', 2); }
+    K.cel(K.elP(0, -20, 30, 15), '#f6a04a', '#c9762c', 0, 4, 3); c.save(); c.clip(K.elP(0, -20, 30, 15)); c.fillStyle = '#fff'; K.el(4, -8, 22, 8); c.fill(); c.restore();
+    c.beginPath(); c.arc(-30, -24, 6, 0, TAU); K.ink('#fff', 2.5);                       // the fluffy butt it keeps chasing
+    c.save(); c.translate(26, -32);
+    for (const s of [-1, 1]) { c.beginPath(); c.moveTo(s * 5 - 4, -8); c.lineTo(s * 9 - 2, -26); c.lineTo(s * 12 + 4, -6); c.closePath(); K.ink('#f6a04a', 2.5); }
+    K.cel(K.elP(0, 0, 15, 13), '#f6a04a', '#c9762c', 0, 3, 3); K.el(9, 5, 10, 6); K.ink('#fff', 2); c.fillStyle = INK; c.beginPath(); c.arc(18, 3, 3, 0, TAU); c.fill();
+    if (won) { c.strokeStyle = INK; c.lineWidth = 3; c.beginPath(); c.arc(4, -3, 4, Math.PI * 1.1, Math.PI * 1.9); c.stroke(); } else K.eye(4, -3, 4.2, null, 1, 0, 2);
+    c.beginPath(); c.moveTo(-8, -12); c.lineTo(-8, -22); c.lineTo(-3, -16); c.lineTo(2, -24); c.lineTo(6, -16); c.lineTo(10, -22); c.lineTo(10, -12); c.closePath(); K.ink('#ffd23f', 2);
+    c.restore(); c.restore();
+  }
+  function draw(s) {
+    const { g, seq, len, i, shk, art } = s, T = now, won = g.result === 'win', lost = g.result === 'lose';
+    if (KW !== VW || !BG) build();
+    K.use(ctx);
+    if (art.t0 == null) art.t0 = T;
+    if (g.result && art.resAt == null) art.resAt = T;
+    const rt = art.resAt == null ? 0 : T - art.resAt, el = T - art.t0, late = !g.result && el > g.dur / Math.sqrt(s.sp) * .62;
+    ctx.drawImage(BG, -OX, 0);
+    // live window: clouds and a bird drift past behind the glass
+    ctx.save(); ctx.beginPath(); ctx.moveTo(22, 300); ctx.lineTo(22, 132); ctx.arc(62, 132, 40, Math.PI, 0); ctx.lineTo(102, 300); ctx.closePath(); ctx.clip();
+    K.cloud(((T * 9) % 220) - 70, 150, .55); K.cloud(((T * 6 + 120) % 220) - 70, 220, .45); K.bird(((T * 30) % 260) - 60, 190 + Math.sin(T * 2) * 6, Math.sin(T * 10) * 4);
+    ctx.restore();
+    const sz = 120, gap = 16, tot = len * sz + (len - 1) * gap, x0 = (W - tot) / 2, sx = Math.sin(now * 80) * shk * 40;
+    // the royal scroll: gold rod, parchment, a curled bottom roll
+    const sw = Math.sin(T * 1.3) * .006, pw = tot + (len > 3 ? 44 : 64), ko = len > 3 ? 16 : 30;   // ko: rod knob overhang (tighter on 4 cards so it clears the window)
+    ctx.save(); ctx.translate(W / 2, 80); ctx.rotate(sw); ctx.translate(-W / 2, -80);
+    const paper = K.rrP(W / 2 - pw / 2, 84, pw, 188, 8);
+    ctx.fillStyle = 'rgba(20,16,28,.25)'; ctx.save(); ctx.translate(5, 8); ctx.fill(paper); ctx.restore();
+    K.cel(paper, '#fbecc8', '#e3c48a', 6, 0, 4);
+    ctx.strokeStyle = 'rgba(185,128,66,.35)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(W / 2 - pw / 2 + 16, 110); ctx.lineTo(W / 2 + pw / 2 - 16, 110); ctx.stroke();
+    K.rr(W / 2 - pw / 2 - 14, 268, pw + 28, 20, 10); K.ink('#f7d297', 3.5); ctx.fillStyle = '#e3ac66'; ctx.fillRect(W / 2 - pw / 2 - 8, 280, pw + 16, 4);
+    K.rr(W / 2 - pw / 2 - (ko - 4), 74, pw + 2 * (ko - 4), 14, 7); K.ink('#ffd23f', 3.5); for (const e of [-1, 1]) { ctx.beginPath(); ctx.arc(W / 2 + e * (pw / 2 + ko), 81, 11, 0, TAU); K.ink('#ffd23f', 3.5); ctx.fillStyle = 'rgba(255,255,255,.55)'; K.el(W / 2 + e * (pw / 2 + ko) - 3, 77, 3.5, 2.5, -.5); ctx.fill(); }
+    // the move cards: keycaps on the scroll (gold = now, green = done, grey after the verdict)
+    for (let k = 0; k < len; k++) {
+      const done = k < i, cur = k === i && !g.result, miss = lost && k === i, y = 130 - (cur ? Math.abs(Math.sin(now * 8)) * 12 : 0), bx = x0 + k * (sz + gap) + sx;
+      const col = done ? '#4fd06a' : miss ? '#ff4d5e' : cur ? '#ffd23f' : lost ? '#d3cfe0' : '#f6f4fb', dk = done ? '#24803a' : miss ? '#b8283a' : cur ? '#c99512' : lost ? '#8f88a6' : '#b9b2cf';
+      const lift = K.plate(bx, y - 9, sz, sz - 8, col, dk, done, 18), fy = y - lift;
+      drawArrow(bx + sz / 2, fy + sz / 2 - 4, seq[k], 32, done || miss ? '#fff' : lost ? '#f6f4fb' : '#6EA8FE');
+      if (cur && Math.sin(T * 10) > 0) { ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = 4; K.rr(bx + 7, fy + 7, sz - 14, sz - 22, 12); ctx.stroke(); }
+    }
+    // win: the royal wax seal thumps onto the scroll's corner
+    if (won) { const k = K.outBack((rt - .12) / .25), sxp = Math.min(W / 2 + pw / 2 - 34, W - 190), syp = 120; if (k > 0) { ctx.save(); ctx.translate(sxp, syp); ctx.rotate(-.25); ctx.scale(k * 1.0 + (1 - Math.min(1, rt * 3)) * .6, k); ctx.beginPath(); for (let a = 0; a < 14; a++) { const r = a % 2 ? 30 : 34, an = a * TAU / 14; ctx.lineTo(Math.cos(an) * r, Math.sin(an) * r); } ctx.closePath(); K.ink('#d6283d', 3.5); ctx.beginPath(); ctx.arc(0, 0, 21, 0, TAU); ctx.strokeStyle = '#a81d2e'; ctx.lineWidth = 3; ctx.stroke(); ctx.beginPath(); ctx.moveTo(-12, 8); ctx.lineTo(-14, -8); ctx.lineTo(-6, 0); ctx.lineTo(0, -12); ctx.lineTo(6, 0); ctx.lineTo(14, -8); ctx.lineTo(12, 8); ctx.closePath(); ctx.fillStyle = '#ffb3bf'; ctx.fill(); ctx.restore(); } }
+    ctx.restore();
+    // dance pad tiles (the one Claude just stepped on lights up)
+    const lit = art.dir != null && T - art.at < .3 ? art.dir : -1;
+    for (const [d, px, py, w, h] of PAD) {
+      const on = d === lit || (won && Math.sin(T * 12 + d * 1.6) > 0), p = K.rrP(px - w / 2, py - h / 2, w, h, 10);
+      K.cel(p, on ? '#5CFF7A' : '#cfd8e6', on ? '#23a046' : '#8f9cb3', 0, 5, 3.5);
+      ctx.save(); ctx.translate(px, py - 2); ctx.scale(1, .42); drawArrow(0, 0, d, 26 * w / 94, on ? '#fff' : '#6EA8FE'); ctx.restore();
+    }
+    // the royal corgi chases its own tail (background gag)
+    corgi(T, won);
+    // the King on his throne
+    const kmood = won ? 'win' : lost ? 'lose' : T - (art.miss ?? -9) < .5 ? 'cross' : late ? 'late' : 'idle';
+    king(T, kmood, x0 + Math.min(i, len - 1) * (sz + gap) + sz / 2, rt, won && Math.sin(T * 16) > .6);
+    // Claude, court dancer in a sweatband, copying the pose
+    const pk = T - (art.at ?? -9), d = art.dir, wob = T - (art.miss ?? -9) < .45 ? Math.sin(T * 40) * .12 * (1 - (T - art.miss) / .45) : 0;
+    let la = -2.5, ra = 2.5, lean = 0, sy = 1 + Math.sin(T * 3.1) * .025, jy = 0;
+    if (won) { la = -.4 + Math.sin(T * 12) * .25; ra = .4 - Math.sin(T * 12) * .25; jy = Math.abs(Math.sin(T * 9)) * 26; }
+    else if (lost) { la = -2.9; ra = 2.9; sy = .94; lean = -.08; }
+    else if (d === 0) { la = -.2; ra = .2; sy *= 1.06; }
+    else if (d === 1) { la = -.7; ra = 1.57; lean = .14; }
+    else if (d === 3) { la = -1.57; ra = .7; lean = -.14; }
+    else if (d === 2) { la = -2.2; ra = 2.2; sy *= .86; }
+    else { la = -1.2 + Math.sin(T * 4) * .15; ra = 1.2 - Math.sin(T * 4) * .15; }      // waiting: a little shimmy
+    const sq = d != null && pk < .22 && !won ? 1.18 - .18 * pk / .22 : 1, u = 9;
+    shadow(CX, CY + 2, 54 - jy * .4, 10, .3);
+    ctx.save(); ctx.translate(CX, CY - jy); ctx.rotate(lean + wob); ctx.scale(sq * (2 - sy), (2 - sq) * sy);
+    K.arms(u, la, ra);
+    claude(0, 0, u, { mood: won ? 'happy' : lost ? 'sad' : null });
+    // sweatband with fluttering tails
+    K.rr(-6.3 * u, -9.2 * u, 12.6 * u, 1.5 * u, 4); K.ink('#ff5c8a', 2.5); ctx.fillStyle = '#fff'; ctx.fillRect(-6.3 * u, -8.6 * u, 12.6 * u, .35 * u);
+    const fl = Math.sin(T * 14) * 4; K.line([[6.2 * u, -8.5 * u], [6.2 * u + 16, -8.5 * u - 8 + fl], [6.2 * u + 28, -8.5 * u + fl]], 4, '#ff5c8a');
+    ctx.restore();
+    if ((late || T - (art.miss ?? -9) < .6) && !g.result) K.sweat(CX - 44, CY - 64 - jy, 1, (T * 1.6) % 1);
+    // win: roses (hearts) fly from the throne to the stage
+    if (won) for (let h = 0; h < 5; h++) { const k = (rt * 1.2 + h * .2) % 1, hx = KX - 50 - k * (180 + h * 40), hy = 400 - Math.sin(k * Math.PI) * (40 + h * 8) + k * 70; K.heart(hx, hy, 1.15, Math.min(1, (1 - k) * 3)); }
+    // fail: the King lobs a tomato, SPLAT on Claude's face
+    if (lost) {
+      // thrown underhand from the King's low hand, flat (arc 30 px) and below the FAIL! stamp, lands on Claude's chest/face line
+      const ft = .22, w0 = .1, sxx = KX - 110, syy = 412, tx = CX + 6, ty = CY - 30, Z = 1.3;
+      if (rt < w0) tomato(KX - 70 - 400 * rt, 412 - 60 * rt, 13, 0);
+      else if (rt < w0 + ft) { const k = (rt - w0) / ft; tomato(sxx + (tx - sxx) * k, syy + (ty - syy) * k - Math.sin(k * Math.PI) * 30, 15, k * 9); }
+      else {
+        const d2 = rt - w0 - ft, sp2 = Math.min(1, d2 * 8);
+        const blob = new Path2D(); for (let a = 0; a < 10; a++) { const r = (a % 2 ? 24 : 38) * Z * sp2, an = a * TAU / 10; blob.lineTo(tx + Math.cos(an) * r, ty + Math.sin(an) * r * .8); } blob.closePath();
+        ctx.strokeStyle = INK; ctx.lineWidth = 6; ctx.lineJoin = 'round'; ctx.stroke(blob); ctx.fillStyle = '#ff4d5e'; ctx.fill(blob);
+        for (const [ox, len2] of [[-18, 1], [5, 1.5], [21, .8]]) { const y2 = ty + 18 + Math.min(1, d2 * 2) * 30 * len2; K.line([[tx + ox, ty + 14], [tx + ox, y2]], 9, INK); K.line([[tx + ox, ty + 14], [tx + ox, y2]], 5, '#ff4d5e'); }
+        ctx.fillStyle = '#ffb3bf'; K.el(tx, ty + 2, 26 * sp2, 17 * sp2, -.15); ctx.fill();                // pale pulp core
+        ctx.fillStyle = '#fff'; K.el(tx - 16 * sp2, ty - 14 * sp2, 9 * sp2, 5 * sp2, -.5); ctx.fill();      // white highlight
+        ctx.fillStyle = '#ffe14d'; for (const [ox, oy] of [[-10, -4], [8, 3], [-2, 10], [14, -8], [-16, 6]]) { K.el(tx + ox * sp2, ty + oy * sp2, 3, 2, .5); ctx.fill(); }
+        for (let k = 0; k < 6; k++) { const an = k * TAU / 6 + .3, r = 52 + d2 * 120; ctx.globalAlpha = Math.max(0, 1 - d2 * 2); ctx.beginPath(); ctx.arc(tx + Math.cos(an) * r, ty + Math.sin(an) * r * .7, 6, 0, TAU); K.ink('#ff4d5e', 2.5); ctx.globalAlpha = 1; }
+        star(tx - 62, ty - 20 - d2 * 20, 10, 4.5, 4, T * 4, '#FFE14D', 2.5);
+      }
+    }
+    vignette(.16);
+  }
+  return { draw };
+})();
 function gCopy(sp) {
   const len = 3 + (sp > 1.5), seq = Array.from({ length: len }, () => Math.random() * 4 | 0);
   const map = { ArrowUp: 0, KeyW: 0, ArrowRight: 1, KeyD: 1, ArrowDown: 2, KeyS: 2, ArrowLeft: 3, KeyA: 3 };
   let i = 0, shk = 0;
+  const art = {};                                                     // art only: last pose (dir, at), last miss, ending start
   const g = {
     cmd: 'COPY!', swipe: true, hint: 'PRESS THE ARROWS IN ORDER', thint: 'SWIPE THE ARROWS', dur: 5, wide: true,
     key(e) {
       if (!(e.code in map)) return;
       if (g.result) return;
-      if (map[e.code] === seq[i]) { const bx = (W - (len * 136 - 16)) / 2 + i * 136 + 60; i++; sfx.blip(i * 3); burst(bx, 190, '#5CFF7A', 8, 200); ring(bx, 190, '#fff', 70, .3); if (i === len) { g.result = 'win'; sfx.coin(); sfx.sparkle(); confetti(W / 2, 200, 40); } }
-      else { shk = .25; sfx.miss(); shake(5, .15); }
+      if (map[e.code] === seq[i]) { const bx = (W - (len * 136 - 16)) / 2 + i * 136 + 60; i++; art.dir = seq[i - 1]; art.at = now; sfx.blip(i * 3); burst(bx, 190, '#5CFF7A', 8, 200); ring(bx, 190, '#fff', 70, .3); if (i === len) { g.result = 'win'; sfx.coin(); sfx.sparkle(); confetti(W / 2, 200, 40); } }
+      else { shk = .25; art.miss = now; sfx.miss(); shake(5, .15); }
     },
-    update(dt) { shk = Math.max(0, shk - dt); },
-    draw(t) {
-      bg('#B39DFF', '#a58cf5', t);
-      const sz = 120, gap = 16, tot = len * sz + (len - 1) * gap, x0 = (W - tot) / 2, sx = Math.sin(now * 80) * shk * 40;
-      for (let k = 0; k < len; k++) {
-        const done = k < i, cur = k === i && !g.result, y = 130 - (cur ? Math.abs(Math.sin(now * 8)) * 12 : 0);
-        shadow(x0 + k * (sz + gap) + sx + sz / 2 + 6, 130 + sz + 12, sz * .5, 9, .2);
-        box3(x0 + k * (sz + gap) + sx, y, sz, sz, done ? '#5CFF7A' : cur ? '#FFE14D' : '#fff', 5, 6);
-        drawArrow(x0 + k * (sz + gap) + sz / 2 + sx, y + sz / 2 - 4, seq[k], 34, done ? '#fff' : '#7C4DFF');
-      }
-      const dirFace = i < len ? seq[i] : 0;
-      shadow(W / 2, 476, 90, 14, .25);
-      claude(W / 2, 470 - (g.result === 'win' ? Math.abs(Math.sin(now * 9)) * 40 : 0), 11, { mood: g.result === 'win' ? 'happy' : null });
-    }
+    update(dt) { shk = Math.max(0, shk - dt); if (art.t0 == null) art.t0 = now; if (g.result && art.resAt == null) art.resAt = now; },   // art clock only
+    draw(t) { W2COPY.draw({ g, seq, len, i, shk, art, sp }); }
   };
   return g;
 }

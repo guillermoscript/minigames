@@ -431,7 +431,371 @@ const W1A = (() => {
     if (won && rT < .18) { X.fillStyle = `rgba(255,255,255,${(1 - rT / .18) * .45})`; X.fillRect(-OX, 0, VW, H); }
     vignette(.14);
   }
-  return { swat, spot };
+
+  /* ═════════════ TYPE: the royal typing chamber (stage 2, KEYBOARD KINGDOM) ═════════════
+     The king dictates from his throne (left), Claude hammers the royal keyboard (centre), the word hangs on a scroll
+     with a pigeon pacing its rod. Win: the king tosses Claude a little crown and seals the scroll. Lose: a tomato.
+     The boss look (g.boss) is the same hall at night: torch glow, purple drapes, a bigger king in a taller crown. */
+  const TYFL = 420;                                // wall / floor line
+  /* throne: x, seat y, scale. Low and to the left so the king (drawn in front of the scroll) never covers a letter, even CLAUDE / REFACTOR */
+  const kGeo = boss => boss ? { x: 82, y: 464, s: 1.04 } : { x: 88, y: 452, s: .9 };
+  const tyPal = boss => boss
+    ? { w0: '#241a40', w1: '#4a3970', mort: '#17112b', bl: .06, f0: '#4f4276', f1: '#3a2f5c', tile: 'rgba(10,6,24,.22)', vel: '#7b3fb0', velS: '#55267f', robe: '#7b3fb0', robeS: '#55267f', skin: '#ffd6b0', skinS: '#efa982' }
+    : { w0: '#dfb174', w1: '#f6dcae', mort: '#c08a50', bl: .14, f0: '#f3e3c3', f1: '#e2c495', tile: 'rgba(150,96,40,.16)', vel: '#d23b4b', velS: '#a52a3a', robe: '#e8434f', robeS: '#b8283a', skin: '#ffd6b0', skinS: '#efa982' };
+  function cel(path, base, shade, o, sx = 5, sy = 5, oc) { path(); ink(shade, o, oc); X.save(); path(); X.clip(); X.translate(-sx, -sy); path(); X.fillStyle = base; X.fill(); X.restore(); }
+  function glint(x, y, rx, ry, a = .45) { X.fillStyle = `rgba(255,255,255,${a})`; el(x, y, rx, ry, -.5); X.fill(); }
+  let TGLOW = null;
+  function torchGlow(x, y, r, a) {
+    if (!TGLOW) { TGLOW = document.createElement('canvas'); TGLOW.width = TGLOW.height = 128; const c = TGLOW.getContext('2d'), g = c.createRadialGradient(64, 64, 2, 64, 64, 64); g.addColorStop(0, 'rgba(255,200,90,1)'); g.addColorStop(.45, 'rgba(255,140,50,.35)'); g.addColorStop(1, 'rgba(255,120,40,0)'); c.fillStyle = g; c.fillRect(0, 0, 128, 128); }
+    X.save(); X.globalCompositeOperation = 'lighter'; X.globalAlpha = a; X.drawImage(TGLOW, x - r, y - r, r * 2, r * 2); X.restore();
+  }
+  function crownShape(w, h) { X.beginPath(); X.moveTo(-w, 0); X.lineTo(-w * 1.12, -h); X.lineTo(-w * .55, -h * .45); X.lineTo(0, -h * 1.2); X.lineTo(w * .55, -h * .45); X.lineTo(w * 1.12, -h); X.lineTo(w, 0); X.closePath(); }
+  function crown(x, y, w, h, rot, tall) {   // gold crown, base centre at (x, y)
+    X.save(); X.translate(x, y); X.rotate(rot);
+    if (tall) { X.beginPath(); X.arc(0, -h * .5, w * .8, Math.PI, 0); ink('#7b3fb0', 3); }
+    cel(() => crownShape(w, h), '#ffd23f', '#c99512', 3.5, 3, 3);
+    for (const [a, b] of [[-w * 1.12, -h], [0, -h * 1.2], [w * 1.12, -h]]) { X.beginPath(); X.arc(a, b, Math.max(3, w * .14), 0, TAU); ink('#fff3a0', 2.5); }
+    rr(-w - 2, -h * .28, w * 2 + 4, h * .34, 3); ink('#ffd23f', 3);
+    X.beginPath(); X.arc(0, -h * .12, Math.max(2.5, w * .16), 0, TAU); ink('#e8434f', 2);
+    for (const s of [-1, 1]) { X.beginPath(); X.arc(s * w * .6, -h * .12, Math.max(2, w * .11), 0, TAU); ink('#4db8ff', 2); }
+    glint(-w * .45, -h * .55, w * .2, h * .1, .5);
+    X.restore();
+  }
+  function keycap(x, y, w, h, face, side, col, ch, size) {
+    rr(x, y + h * .08, w, h * .94, Math.min(w, h) * .18); ink(side, 4);
+    rr(x + w * .08, y, w * .84, h * .8, Math.min(w, h) * .15); X.fillStyle = face; X.fill(); X.lineWidth = 2.5; X.strokeStyle = 'rgba(20,16,28,.3)'; X.stroke();
+    X.fillStyle = 'rgba(255,255,255,.5)'; rr(x + w * .16, y + h * .07, w * .36, Math.max(3, h * .08), 2); X.fill();
+    if (ch) txt(ch, x + w / 2, y + h * .42, size, col);
+  }
+  let TYBG = null, TYBK = '';
+  function typeBg(boss) {
+    const key = VW + '|' + boss;
+    if (TYBG && TYBK === key) return TYBG; TYBK = key;
+    const P = tyPal(boss);
+    return TYBG = bake(() => {
+      const L = -OX - 2, R = W + OX + 2;
+      let g = X.createLinearGradient(0, 0, 0, TYFL); g.addColorStop(0, P.w0); g.addColorStop(1, P.w1); X.fillStyle = g; X.fillRect(L, 0, R - L, TYFL);
+      for (let r = 0; r * 42 < TYFL; r++) {                 // stone blocks
+        const off = r % 2 ? 46 : 0;
+        for (let c = Math.floor((L - off) / 92) - 1; c * 92 + off < R; c++) {
+          const x = c * 92 + off, y = r * 42, k = hr(r * 31 + c * 7 + 5);
+          rr(x + 3, y + 3, 86, 36, 7); X.fillStyle = `rgba(255,255,255,${P.bl * (.3 + k)})`; X.fill(); X.lineWidth = 3; X.strokeStyle = P.mort; X.stroke();
+          X.fillStyle = `rgba(255,255,255,${P.bl})`; rr(x + 10, y + 8, 22 + k * 34, 5, 2.5); X.fill();
+          if (k > .82) { X.strokeStyle = P.mort; X.lineWidth = 2; X.beginPath(); X.moveTo(x + 50, y + 8); X.lineTo(x + 58, y + 18); X.lineTo(x + 54, y + 26); X.stroke(); }
+        }
+      }
+      // tall windows in the wide margins only (the 800 frame is busy with the scroll)
+      if (OX > 70) for (const cx of [-OX / 2, W + OX / 2]) {
+        const ww = Math.min(120, OX - 50), wx = cx - ww / 2, path = () => { X.beginPath(); X.moveTo(wx, 330); X.lineTo(wx, 140); X.arc(cx, 140, ww / 2, Math.PI, 0); X.lineTo(wx + ww, 330); X.closePath(); };
+        path(); ink(null, 5); X.save(); path(); X.clip();
+        const sg = X.createLinearGradient(0, 80, 0, 330); if (boss) { sg.addColorStop(0, '#1d1840'); sg.addColorStop(1, '#3d3480'); } else { sg.addColorStop(0, '#36b0ea'); sg.addColorStop(1, '#d6f7ff'); } X.fillStyle = sg; X.fillRect(wx, 80, ww, 260);
+        if (boss) { X.beginPath(); X.arc(cx + ww * .2, 150, 14, 0, TAU); X.fillStyle = '#fff3b0'; X.fill(); for (let i = 0; i < 6; i++) { X.fillStyle = '#fff'; X.fillRect(wx + hr(i + 300) * ww, 110 + hr(i + 310) * 180, 2.5, 2.5); } }
+        else { X.fillStyle = '#87d19b'; X.beginPath(); X.moveTo(wx, 300); X.quadraticCurveTo(cx, 262, wx + ww, 296); X.lineTo(wx + ww, 340); X.lineTo(wx, 340); X.fill(); }
+        X.restore(); path(); X.lineWidth = 8; X.strokeStyle = boss ? '#6b5a94' : '#b98042'; X.stroke(); path(); X.lineWidth = 3; X.strokeStyle = INK; X.stroke();
+        X.lineWidth = 6; X.strokeStyle = INK; X.beginPath(); X.moveTo(cx, 96); X.lineTo(cx, 330); X.moveTo(wx, 220); X.lineTo(wx + ww, 220); X.stroke();
+        rr(wx - 12, 326, ww + 24, 14, 5); ink(boss ? '#6b5a94' : '#d9944f', 3);
+      }
+      // the royal crest: a crowned keycap on a shield (top centre, below the hint line)
+      X.save(); X.translate(400, 104);
+      const sh = () => { X.beginPath(); X.moveTo(-34, -34); X.lineTo(34, -34); X.lineTo(34, 4); X.quadraticCurveTo(32, 28, 0, 40); X.quadraticCurveTo(-32, 28, -34, 4); X.closePath(); };
+      X.fillStyle = 'rgba(20,16,28,.25)'; X.save(); X.translate(4, 6); sh(); X.fill(); X.restore();
+      cel(sh, P.vel, P.velS, 4, 6, 4); sh(); X.lineWidth = 3; X.strokeStyle = '#ffd23f'; X.save(); X.scale(.84, .84); sh(); X.stroke(); X.restore();
+      rr(-14, -6, 28, 24, 6); ink('#fff6e6', 2.5); X.fillStyle = 'rgba(20,16,28,.18)'; rr(-10, -3, 20, 14, 4); X.fill();
+      X.restore();
+      crown(400, 92, 13, 12, 0, false);
+      // wall sconces (the flames are live)
+      for (const sx of [205, 595]) { line([[sx, 124], [sx, 104]], 6, '#5a5274'); rr(sx - 13, 118, 26, 10, 4); ink('#5a5274', 3); X.beginPath(); X.moveTo(sx - 12, 104); X.lineTo(sx + 12, 104); X.lineTo(sx + 8, 94); X.lineTo(sx - 8, 94); X.closePath(); ink('#8a5a34', 3); }
+      // skirting + floor
+      X.fillStyle = P.mort; X.fillRect(L, TYFL - 12, R - L, 12);
+      g = X.createLinearGradient(0, TYFL, 0, H); g.addColorStop(0, P.f1); g.addColorStop(1, P.f0); X.fillStyle = g; X.fillRect(L, TYFL, R - L, H - TYFL);
+      const VX = 400, VY = 150, rows = [420, 436, 458, 488, 528, 580, 650], at = (X0, y) => VX + (X0 - VX) * (y - VY) / (600 - VY);
+      X.fillStyle = P.tile;
+      for (let j = 0; j < rows.length - 1; j++) for (let c = -14; c < 14; c++) {
+        if (((c + j) % 2 + 2) % 2) continue; const a = 400 + c * 120, b = a + 120, y0 = rows[j], y1 = rows[j + 1];
+        X.beginPath(); X.moveTo(at(a, y0), y0); X.lineTo(at(b, y0), y0); X.lineTo(at(b, y1), y1); X.lineTo(at(a, y1), y1); X.closePath(); X.fill();
+      }
+      // red carpet to the keyboard desk
+      const cp = (y, s) => at(400 + s * 170, y);
+      X.beginPath(); X.moveTo(cp(TYFL, -1), TYFL); X.lineTo(cp(TYFL, 1), TYFL); X.lineTo(cp(600, 1), 600); X.lineTo(cp(600, -1), 600); X.closePath(); X.fillStyle = P.vel; X.fill();
+      for (const s of [-1, 1]) { X.lineWidth = 9; X.strokeStyle = INK; X.beginPath(); X.moveTo(cp(TYFL, s * .9), TYFL); X.lineTo(cp(600, s * .9), 600); X.stroke(); X.lineWidth = 4; X.strokeStyle = '#ffd23f'; X.stroke(); }
+      X.strokeStyle = INK; X.lineWidth = 4; X.beginPath(); X.moveTo(L, TYFL); X.lineTo(R, TYFL); X.stroke();
+      // the throne back (the cushion, armrests and legs are drawn live in front of the king)
+      const K = kGeo(boss);
+      X.save(); X.translate(K.x, K.y + 78 * K.s); X.fillStyle = 'rgba(20,16,28,.25)'; el(4, 4, 88 * K.s, 13); X.fill();
+      X.restore();
+    });
+  }
+  function throneBack(P, boss) {   // throne space (origin = seat centre); drawn live because the king sits in front of the scroll
+    if (boss) {   // an ermine-trimmed cape draped over the throne
+      const cape = () => { X.beginPath(); X.moveTo(-50, -140); X.quadraticCurveTo(-104, -90, -96, 70); X.lineTo(96, 70); X.quadraticCurveTo(104, -90, 50, -140); X.closePath(); };
+      cel(cape, '#7b3fb0', '#55267f', 4, -8, 0);
+      X.lineWidth = 10; X.strokeStyle = INK; X.beginPath(); X.moveTo(-92, 66); X.lineTo(92, 66); X.stroke(); X.lineWidth = 7; X.strokeStyle = '#fff'; X.stroke();
+      X.fillStyle = INK; for (let i = -4; i <= 4; i++) { el(i * 20, 66, 2, 3); X.fill(); }
+    }
+    const back = () => { X.beginPath(); X.moveTo(-62, 10); X.lineTo(-62, -100); X.quadraticCurveTo(-62, -150, 0, -152); X.quadraticCurveTo(62, -150, 62, -100); X.lineTo(62, 10); X.closePath(); };
+    cel(back, '#ffd23f', '#c99512', 4.5, 5, 0);
+    X.save(); X.translate(0, -6); X.scale(.8, .86); cel(back, P.vel, P.velS, 0, 8, 0); X.restore();
+    X.fillStyle = 'rgba(255,255,255,.14)'; for (let i = -2; i <= 2; i++) { X.save(); X.translate(i * 20, -70); X.rotate(Math.PI / 4); X.fillRect(-4, -4, 8, 8); X.restore(); }
+    glint(-38, -120, 9, 5, .5);
+    for (const sx of [-54, 54]) { X.beginPath(); X.arc(sx, -112, 10, 0, TAU); ink('#ffd23f', 3.5); glint(sx - 3, -115, 3.5, 2.2, .6); }
+  }
+  function flame(x, y, s, T, k) {
+    const f = 1 + Math.sin(T * 17 + k) * .1 + Math.sin(T * 29 + k * 2) * .06;
+    X.save(); X.translate(x, y); X.scale(s, s * f);
+    X.beginPath(); X.moveTo(0, -30); X.quadraticCurveTo(16, -10, 12, 0); X.quadraticCurveTo(0, 10, -12, 0); X.quadraticCurveTo(-16, -10, 0, -30); X.closePath(); ink('#ff8a3d', 2.5);
+    X.beginPath(); X.moveTo(0, -18 + Math.sin(T * 23 + k) * 2); X.quadraticCurveTo(8, -4, 6, 1); X.quadraticCurveTo(0, 6, -6, 1); X.quadraticCurveTo(-8, -4, 0, -18); X.fillStyle = '#ffe14d'; X.fill();
+    X.restore();
+  }
+  /* the king, in throne space: origin = seat centre, feet dangling a little short of the floor (y 78) */
+  function king(T, st) {
+    const { mood, look, rT, boss, P } = st, angry = mood === 'angry', happy = mood === 'happy';
+    const rage = angry ? Math.min(1, rT / .2) : 0, shakeX = angry ? Math.sin(T * 50) * 1.5 : 0;
+    X.save(); X.translate(shakeX, 0);
+    // body + ermine collar
+    cel(() => el(0, -46, 54, 52), P.robe, P.robeS, 4, -7, 4);
+    X.fillStyle = 'rgba(255,255,255,.22)'; el(-24, -70, 14, 9, -.5); X.fill();
+    for (const y of [-62, -40, -18]) { X.beginPath(); X.arc(0, y, 4.5, 0, TAU); ink('#ffd23f', 2); }
+    el(0, -92, 44, 13); ink('#fff', 3.5); X.fillStyle = INK; for (const a of [-30, -14, 2, 18, 32]) { el(a, -92 + Math.abs(a) * .05, 2, 3.2); X.fill(); }
+    // left arm resting on the armrest
+    line([[-38, -70], [-58, -40], [-56, -22]], 16, P.robe); X.beginPath(); X.arc(-56, -20, 9, 0, TAU); ink(P.skin, 3);
+    // right arm + keycap sceptre: idle / impatient tap / win wave / lose throw
+    let hx = 54, hy = -44, sa = .38;
+    if (mood === 'impatient') { sa = .38 + Math.sin(T * 16) * .14; }
+    if (mood === 'cross') { hy = -54; sa = -.1; }
+    if (happy) { hx = 62; hy = -112 - Math.abs(Math.sin(rT * 9)) * 8; sa = Math.sin(rT * 12) * .5; }
+    if (angry) { const k = ease(rT / .14), k2 = ease((rT - .14) / .14); hx = lerp(lerp(54, 26, k), 78, k2); hy = lerp(lerp(-44, -128, k), -96, k2); sa = lerp(-.6, .5, k2); }
+    if (!angry) { X.save(); X.translate(hx, hy); X.rotate(sa); line([[0, 26], [0, -56]], 6, '#ffd23f'); keycap(-13, -80, 26, 24, '#fff6e6', '#ffd23f', INK, '', 0); crown(0, -80, 7, 7, 0, false); X.restore(); }
+    line([[38, -72], [hx, hy]], 16, P.robe); X.beginPath(); X.arc(hx, hy, 9.5, 0, TAU); ink(P.skin, 3);
+    // head
+    const hb = mood === 'idle' ? Math.sin(T * 2.2) * 1.5 : 0;
+    X.save(); X.translate(0, hb);
+    for (const s of [-1, 1]) { X.beginPath(); X.arc(s * 38, -124, 9, 0, TAU); ink(P.skin, 3); }
+    cel(() => { X.beginPath(); X.arc(0, -126, 38, 0, TAU); }, P.skin, P.skinS, 4, -6, 4);
+    if (rage > 0) { X.save(); X.beginPath(); X.arc(0, -126, 38, 0, TAU); X.clip(); X.fillStyle = `rgba(255,60,60,${rage * .5})`; X.fillRect(-40, -170 + (1 - rage) * 70, 80, 90); X.restore(); }
+    glint(-16, -146, 9, 5, .4);
+    // eyes + brows
+    const em = happy ? 'happy' : null, ey = -136;
+    for (const s of [-1, 1]) {
+      eye(s * 14, ey, 9, look, em, T, s);
+      if (mood === 'idle' && !happy) { X.save(); el(s * 14, ey, 9, 9.7); X.clip(); X.fillStyle = P.skin; X.fillRect(s * 14 - 11, ey - 12, 22, 9); X.restore(); X.strokeStyle = INK; X.lineWidth = 3; X.beginPath(); X.moveTo(s * 14 - 9, ey - 3); X.lineTo(s * 14 + 9, ey - 3); X.stroke(); }
+      X.strokeStyle = INK; X.lineWidth = 4.5; X.lineCap = 'round'; X.beginPath();
+      if (angry || mood === 'cross') { X.moveTo(s * 25, ey - 18); X.lineTo(s * 6, ey - 10); }
+      else if (mood === 'impatient') { X.moveTo(s * 24, ey - 13); X.lineTo(s * 6, ey - 14); }
+      else if (happy) { X.moveTo(s * 24, ey - 15); X.quadraticCurveTo(s * 15, ey - 23, s * 6, ey - 16); }
+      else { X.moveTo(s * 24, ey - (s > 0 ? 20 : 14)); X.quadraticCurveTo(s * 15, ey - (s > 0 ? 26 : 18), s * 6, ey - (s > 0 ? 18 : 14)); }
+      X.stroke();
+    }
+    X.fillStyle = `rgba(255,110,165,${happy ? .8 : .5})`; for (const s of [-1, 1]) { el(s * 25, -112, 8, 5); X.fill(); }
+    if (boss) {   // the boss king: a great white beard over the collar and a gold monocle
+      const bd = () => { X.beginPath(); X.moveTo(-34, -112); for (let j = 0; j <= 8; j++) { const a = Math.PI * (1 - j / 8), r = 40 + (j % 2) * 6; X.lineTo(Math.cos(a) * 36, -96 + Math.sin(a) * r * 1.25); } X.lineTo(34, -112); X.quadraticCurveTo(0, -96, -34, -112); X.closePath(); };
+      cel(bd, '#f4f1ff', '#cfc8e6', 3.5, -4, 5);
+      X.strokeStyle = '#cfc8e6'; X.lineWidth = 2.5; for (const a of [-16, 0, 16]) { X.beginPath(); X.moveTo(a, -88); X.quadraticCurveTo(a + 6, -70, a, -54); X.stroke(); }
+      X.beginPath(); X.arc(14, -136, 13, 0, TAU); X.lineWidth = 7; X.strokeStyle = INK; X.stroke(); X.lineWidth = 3.5; X.strokeStyle = '#ffd23f'; X.stroke();
+      X.strokeStyle = '#ffd23f'; X.lineWidth = 2; X.beginPath(); X.moveTo(26, -132); X.quadraticCurveTo(40, -100, 30, -78); X.stroke();
+    }
+    // mouth (under the moustache)
+    if (angry) { rr(-14, -112, 28, 20, 9); ink('#5a1a2a', 3); X.fillStyle = '#fff'; X.fillRect(-10, -111, 20, 4); X.fillStyle = '#ff7a8a'; el(0, -96, 8, 4); X.fill(); }
+    else if (happy) { X.beginPath(); X.moveTo(-15, -108); X.quadraticCurveTo(0, -84, 15, -108); X.closePath(); ink('#5a1a2a', 3); X.fillStyle = '#ff7a8a'; el(0, -96, 6, 3.5); X.fill(); }
+    else if (mood === 'idle') { const o = Math.max(0, Math.sin(T * 13)) * 5; el(0, -104, 7, 2 + o); ink('#5a1a2a', 2.5); }
+    else { X.strokeStyle = INK; X.lineWidth = 4; X.beginPath(); X.moveTo(-10, -100); X.quadraticCurveTo(-5, -106, 0, -101); X.quadraticCurveTo(5, -96, 10, -102); X.stroke(); }
+    // nose + curly moustache
+    const tw = angry ? Math.sin(T * 40) * 3 : mood === 'idle' ? Math.sin(T * 13) * 1.5 : 0;
+    for (const s of [-1, 1]) line([[s * 3, -114], [s * 14, -110], [s * 26, -113 + tw], [s * 31, -122 + tw], [s * 25, -126 + tw]], 7, '#8a5a34');
+    el(0, -121, 11, 9); ink('#ff9d8a', 3); glint(-4, -124, 3.5, 2.2, .7);
+    // crown (pops off in a rage)
+    const cy = angry ? -Math.abs(Math.sin(rT * 11)) * 16 * rage : 0;
+    crown(2, -158 + cy, boss ? 30 : 26, boss ? 34 : 24, angry ? Math.sin(rT * 13) * .2 : -.06, boss);
+    // sweat when impatient, steam when furious
+    if (mood === 'impatient' || mood === 'cross') { const k = (T * 1.8) % 1; drop(46, -150 + k * 22, 1.1, 1 - k); }
+    if (angry) for (let i = 0; i < 3; i++) { const q = (rT * 2.6 + i / 3) % 1; X.globalAlpha = 1 - q; for (const s of [-1, 1]) { X.beginPath(); X.arc(s * (46 + q * 26), -128 - q * 40, 6 + q * 9, 0, TAU); ink('#e4e0ee', 2.5); } X.globalAlpha = 1; }
+    X.restore();
+    X.restore();
+  }
+  function throneFront(P, T, mood, boss) {
+    const lh = boss ? 56 : 64;   // boss throne: shorter legs so the knobs stay above main.js's fuse band (y 554)
+    for (const s of [-1, 1]) { rr(s * 60 - 7, 14, 14, lh, 5); ink('#ffd23f', 3.5); X.beginPath(); X.arc(s * 60, lh + 14, 9, 0, TAU); ink('#c99512', 3); }
+    cel(() => rr(-70, -8, 140, 28, 12), P.vel, P.velS, 4, 0, -5);
+    X.fillStyle = 'rgba(255,255,255,.25)'; rr(-56, -4, 60, 5, 2.5); X.fill();
+    for (const s of [-1, 1]) { cel(() => rr(s * 66 - 11, -70, 22, 66, 9), '#ffd23f', '#c99512', 3.5, -s * 4, 0); X.beginPath(); X.arc(s * 66, -72, 13, 0, TAU); ink('#ffd23f', 3.5); glint(s * 66 - 4, -76, 4, 2.5, .6); }
+    // dangling legs (a little short of the floor: the gag)
+    const sw = mood === 'impatient' ? 9 : mood === 'angry' ? 22 : 2.2, amp = mood === 'impatient' ? .4 : mood === 'angry' ? .5 : .14;
+    for (const s of [-1, 1]) {
+      X.save(); X.translate(s * 20, 10); X.rotate(Math.sin(T * sw + (s > 0 ? Math.PI : 0)) * amp);
+      rr(-6, 0, 12, 34, 6); ink('#fff6e6', 3); el(s * 5, 38, 14, 8); ink(P.robeS, 3); X.beginPath(); X.arc(s * 17, 34, 4, 0, TAU); ink('#ffd23f', 2);
+      X.restore();
+    }
+  }
+  function pigeon(x, y, dir, T, st) {   // background gag: a pigeon patrolling the scroll rod
+    const { res, rT } = st, won = res === 'win', lost = res === 'lose';
+    const hop = won ? Math.abs(Math.sin(rT * 10)) * 14 : lost ? Math.min(1, rT / .2) * 26 : 0;
+    const peck = !res && Math.sin(T * 1.3) > .7 ? Math.abs(Math.sin(T * 14)) : 0;
+    X.save(); X.translate(x, y - hop); X.scale(dir, Math.abs(dir));
+    X.strokeStyle = '#ff8a3d'; X.lineWidth = 3; X.lineCap = 'round'; X.beginPath(); X.moveTo(-3, -2); X.lineTo(-3, 4); X.moveTo(5, -2); X.lineTo(5, 4); X.stroke();
+    if (won || lost) for (const s of [-1, 1]) { X.save(); X.translate(-2, -14); X.rotate(s * (.9 + Math.sin(T * 30) * .4) - Math.PI / 2); el(0, -14, 7, 15); ink('#9aa3b8', 2.5); X.restore(); }
+    el(0, -12, 16, 11); ink('#b3bccf', 3); X.fillStyle = '#8f99b0'; el(-5, -10, 9, 6, .2); X.fill();
+    X.beginPath(); X.moveTo(-14, -13); X.lineTo(-26, -8); X.lineTo(-14, -6); X.closePath(); ink('#7a8299', 2.5);
+    X.save(); X.translate(10, -22 + peck * 10); X.rotate(peck * .9);
+    X.beginPath(); X.arc(0, 0, 8, 0, TAU); ink('#7fb8b0', 2.5); X.fillStyle = '#a77fd1'; el(-2, 6, 6, 3); X.fill();
+    X.beginPath(); X.moveTo(6, -1); X.lineTo(14, 1); X.lineTo(6, 3); X.closePath(); ink('#ff8a3d', 1.5);
+    if (lost) { X.beginPath(); X.arc(2, -2, 4, 0, TAU); ink('#fff', 1.5); X.fillStyle = INK; X.beginPath(); X.arc(2, -2, 1.6, 0, TAU); X.fill(); }
+    else { X.fillStyle = INK; X.beginPath(); X.arc(2, -2, 2.2, 0, TAU); X.fill(); X.fillStyle = '#ffd23f'; X.beginPath(); X.arc(2.6, -2.6, .8, 0, TAU); X.fill(); }
+    X.restore(); X.restore();
+    if (lost) for (let i = 0; i < 3; i++) { const q = cl(rT / .7), a = i * 2.1 + 1; X.save(); X.globalAlpha = 1 - q; X.translate(x + Math.cos(a) * q * 40, y - 20 + q * 40 + Math.sin(a) * 10); X.rotate(q * 6 + i); el(0, 0, 3, 7); ink('#e4e8f2', 1.5); X.restore(); }
+  }
+  function armor(x, y, T, peek, clank, res, rT) {   // res: the guy inside cheers (halberd up) or gasps   // a suit of armour by the door (desktop layout); someone inside peeks when time runs low
+    X.save(); if (res === 'win') { X.translate(x + 40, y - 60); X.rotate(Math.sin(rT * 12) * .18 - .1); X.translate(-x - 40, -y + 60 - Math.abs(Math.sin(rT * 9)) * 10); }
+    line([[x + 40, y], [x + 40, y - 214]], 5, '#8a5a34');
+    X.beginPath(); X.moveTo(x + 40, y - 214); X.quadraticCurveTo(x + 66, y - 196, x + 42, y - 172); X.lineTo(x + 40, y - 180); X.closePath(); ink('#cfd8e6', 3);
+    X.beginPath(); X.moveTo(x + 40, y - 236); X.lineTo(x + 46, y - 214); X.lineTo(x + 34, y - 214); X.closePath(); ink('#cfd8e6', 2.5);
+    X.restore();
+    shadow(x, y + 2, 34, 7, .25);
+    for (const s of [-1, 1]) { rr(x + s * 13 - 7, y - 54, 14, 52, 5); ink('#c9ced6', 3); el(x + s * 15, y - 2, 13, 6); ink('#8f9cb3', 3); }
+    cel(() => rr(x - 28, y - 130, 56, 82, 18), '#cfd8e6', '#8f9cb3', 4, -6, 3); glint(x - 12, y - 112, 8, 12, .5);
+    for (const s of [-1, 1]) { X.beginPath(); X.arc(x + s * 30, y - 122, 14, 0, TAU); ink('#c9ced6', 3.5); line([[x + s * 34, y - 112], [x + s * 36, y - 70]], 11, '#c9ced6'); }
+    const hx = x, hy = y - 160;
+    line([[hx, hy - 30], [hx + 2, hy - 48], [hx - 10, hy - 56]], 9, '#e8434f');
+    cel(() => rr(hx - 21, hy - 32, 42, 54, 19), '#cfd8e6', '#8f9cb3', 4, -5, 3);
+    if (res) peek = Math.min(1, rT / .15);
+    const lift = Math.max(peek, clank) * 16;
+    rr(hx - 16, hy - 8, 32, 12, 5); ink('#2a2238', 2.5);
+    if (res === 'win' && peek > .1) { X.strokeStyle = '#fff'; X.lineWidth = 3; X.lineCap = 'round'; for (const s of [-1, 1]) { X.beginPath(); X.arc(hx + s * 7 - 2, hy + 1, 4, Math.PI * 1.1, Math.PI * 1.9); X.stroke(); } }
+    else if (peek > .1) { for (const s of [-1, 1]) { el(hx + s * 7 - 2, hy - 2, 5.5 * peek, 6 * peek); ink('#fff', 1.5); X.beginPath(); X.arc(hx + s * 7 - 5, hy - 1, 2.6 * peek, 0, TAU); X.fillStyle = INK; X.fill(); } }
+    rr(hx - 19, hy - 12 - lift, 38, 9, 4); ink('#b3bccf', 3);
+    glint(hx - 9, hy - 22, 6, 4, .55);
+  }
+  /* Claude's eyes repainted so they look at the scroll; wince = '> <' after a typo */
+  function clEyes(x, y, u, look, wince, T) {
+    const ey = y - 6.2 * u; X.fillStyle = OR;
+    for (const e of [x - 2.8 * u, x + 2.8 * u]) X.fillRect(e - 1.1 * u, ey - 1.6 * u, 2.2 * u, 3.2 * u);
+    X.strokeStyle = INK; X.fillStyle = INK; X.lineWidth = Math.max(2, u * .5); X.lineCap = 'round';
+    if (wince) { for (const s of [-1, 1]) { const e = x + s * 2.8 * u; X.beginPath(); X.moveTo(e - s * .8 * u, ey - u); X.lineTo(e + s * .7 * u, ey); X.lineTo(e - s * .8 * u, ey + u); X.stroke(); } return; }
+    const shut = Math.sin(T * 1.9 + 2) > .985;
+    for (const e of [x - 2.8 * u, x + 2.8 * u]) {
+      if (shut) { X.fillRect(e - .7 * u, ey - .15 * u, 1.4 * u, .4 * u); continue; }
+      const px = e - .6 * u + look[0] * .45 * u, py = ey - 1.2 * u + look[1] * .35 * u;
+      X.fillStyle = INK; X.fillRect(px, py, 1.2 * u, 2.4 * u); X.fillStyle = '#fff'; X.fillRect(px + .2 * u, py + .25 * u, .42 * u, .42 * u);
+    }
+  }
+  function tomato(x, y, s, rot) { X.save(); X.translate(x, y); X.rotate(rot); X.scale(s, s); X.beginPath(); X.arc(0, 0, 13, 0, TAU); ink('#ff4d5e', 3); glint(-5, -5, 4, 2.5, .6); X.beginPath(); for (let i = 0; i < 5; i++) { const a = i * TAU / 5 - Math.PI / 2; X.moveTo(0, -11); X.lineTo(Math.cos(a) * 7, -11 + Math.sin(a) * 4); } X.lineWidth = 3; X.strokeStyle = '#3fa34d'; X.stroke(); X.restore(); }
+  function splat(x, y, u, k) {   // tomato on Claude's face
+    X.save(); X.translate(x, y); X.scale(.6 + .4 * outBack(k), .6 + .4 * outBack(k));
+    X.beginPath(); for (let i = 0; i <= 14; i++) { const a = i * TAU / 14, r = u * (i % 2 ? 2.2 : 3.2) * (.85 + hr(i + 600) * .3); i ? X.lineTo(Math.cos(a) * r, Math.sin(a) * r * .8) : X.moveTo(Math.cos(a) * r, Math.sin(a) * r * .8); } X.closePath(); ink('#ff4d5e', 3);
+    for (const [a, b] of [[-1, 1.6], [.8, 2.2], [1.6, 1.2]]) { const len = u * (1 + k * 2.2) * b * .6; rr(a * u - u * .35, u, u * .7, len, u * .35); ink('#ff4d5e', 2); }
+    X.fillStyle = '#fff3a0'; for (const [a, b] of [[-1.2, -.6], [.6, -1], [1.4, .5], [-.3, .8]]) { el(a * u, b * u, u * .3, u * .45, a); X.fill(); }
+    glint(-u * 1.2, -u * 1.4, u * .8, u * .4, .5);
+    X.restore();
+  }
+  function type(st) {   // st: {w, i, shk, pad, padRect, boss, res, rT, T, frac, tapT, taps, missT}
+    const { w, i, shk, pad, padRect, boss, res, rT, T, frac, tapT, taps, missT } = st;
+    const won = res === 'win', lost = res === 'lose', P = tyPal(boss), K = kGeo(boss);
+    X = ctx; layer(typeBg(boss));
+    for (const [sx, k] of [[205, 0], [595, 2]]) { torchGlow(sx, 84, boss ? 90 : 60, boss ? .55 + Math.sin(T * 9 + k) * .08 : .3); flame(sx, 96, boss ? 1.25 : 1, T, k); }
+    // scroll geometry (the tiles keep the old positions: the typing burst lands on y 240)
+    const n = w.length, sz = n > 6 ? 66 : 96, gap = n > 6 ? 8 : 12, tot = n * sz + (n - 1) * gap, x0 = (W - tot) / 2;
+    const sx = Math.sin(now * 80) * shk * 40;
+    const pl = x0 - 30, pr = x0 + tot + 30, pt = 168, pb0 = 190 + sz + 28;
+    const roll = lost ? ease((rT - .3) / .3) : 0, pb = lerp(pb0, pt + 6, roll);
+    const miss = shk > 0, low = !res && frac > .62, desk = !TOUCH;
+    // king + throne
+    const kMood = won ? 'happy' : lost ? 'angry' : miss ? 'cross' : low ? 'impatient' : 'idle';
+    const kLook = lost || won ? [1, .4] : low ? [1, .5] : [.8, -.3];
+    const kw = (lx, ly) => [K.x + lx * K.s, K.y + ly * K.s];
+    // scroll: brackets, paper, rollers
+    for (const bx of [pl + 8, pr - 8]) line([[bx, 136], [bx, 160]], 4, '#5a5274');
+    X.fillStyle = 'rgba(20,16,28,.22)'; rr(pl + 8, pt + 8, pr - pl, pb - pt, 8); X.fill();
+    const paper = () => rr(pl, pt, pr - pl, pb - pt, 6);
+    cel(paper, boss ? '#fbe6b0' : '#f7e3b5', boss ? '#e0bb6e' : '#e3c58a', 4, -8, -6);
+    if (boss) { X.save(); paper(); X.clip(); X.strokeStyle = '#ffd23f'; X.lineWidth = 4; X.strokeRect(pl + 10, pt + 10, pr - pl - 20, pb - pt - 20); X.restore(); }
+    // tiles = royal keycaps
+    X.save(); paper(); X.clip();
+    for (let k = 0; k < n; k++) {
+      const done = k < i, cur = k === i && !res, bad = cur && miss;
+      const wave = won ? Math.max(0, Math.sin(rT * 10 - k * .7)) * 12 : 0;
+      const y = 190 - (cur ? Math.abs(Math.sin(now * 8)) * 12 : 0) - wave, x = x0 + k * (sz + gap) + sx;
+      X.fillStyle = 'rgba(150,96,40,.25)'; el(x + sz / 2 + 4, 190 + sz + 6, sz * .46, 6); X.fill();
+      if (done) keycap(x, y, sz, sz, '#5CFF7A', '#23a046', '#fff', w[k], sz * .58);
+      else if (bad) keycap(x, y, sz, sz, '#ff4d5e', '#b8283a', '#fff', w[k], sz * .58);
+      else if (cur) keycap(x, y, sz, sz, '#FFE14D', '#c99512', INK, w[k], sz * .58);
+      else keycap(x, y, sz, sz, '#fffbf0', '#d9c39b', INK, w[k], sz * .58);
+    }
+    X.restore();
+    for (const ry of [pt - 2, pb + 2]) { rr(pl - 14, ry - 8, pr - pl + 28, 16, 8); ink('#b06d33', 3.5); X.fillStyle = 'rgba(255,255,255,.3)'; rr(pl - 6, ry - 6, pr - pl + 12, 4, 2); X.fill(); for (const ex of [pl - 20, pr + 20]) { X.beginPath(); X.arc(ex, ry, 10, 0, TAU); ink('#ffd23f', 3); glint(ex - 3, ry - 3, 3, 2, .6); } }
+    if (boss) for (const ex of [pl - 20, pr + 20]) { const sw = Math.sin(T * 2 + ex) * .1; X.save(); X.translate(ex, pt + 8); X.rotate(sw); X.beginPath(); X.moveTo(-7, 0); X.lineTo(7, 0); X.lineTo(7, 46); X.lineTo(0, 38); X.lineTo(-7, 46); X.closePath(); ink('#e8434f', 2.5); X.restore(); }
+    // royal wax seal on a win (long words: up on the right roller end, clear of the NICE! stamp and the armour's plume)
+    if (won && rT > .5) { const k = outBack((rT - .5) / .18), cx = n > 6 ? pr - 8 : pr - 34, cy = n > 6 ? pt + 34 : pb - 14; X.save(); X.translate(cx, cy); X.scale(k * 1.4 - .4 * Math.min(1, k), k * 1.4 - .4 * Math.min(1, k)); X.rotate(-.2);
+      X.beginPath(); for (let j = 0; j <= 12; j++) { const a = j * TAU / 12, r = j % 2 ? 20 : 24; j ? X.lineTo(Math.cos(a) * r, Math.sin(a) * r) : X.moveTo(r, 0); } X.closePath(); ink('#c02a3f', 3); X.beginPath(); X.arc(0, 0, 14, 0, TAU); X.lineWidth = 2.5; X.strokeStyle = '#8f1d2e'; X.stroke(); X.restore(); crown(cx, cy + 6, 8, 9, -.2, false); }
+    // pigeon on the top rod
+    const span = pr - pl - 60, pp = .5 + .5 * Math.sin(T * .55), px = pl + 30 + span * pp, dir = Math.cos(T * .55) >= 0 ? 1 : -1;
+    pigeon(px, pt - 10, dir * 1.2, T, { res, rT });
+    X.save(); X.translate(K.x, K.y); X.scale(K.s, K.s);
+    throneBack(P, boss); king(T, { mood: kMood, look: kLook, rT, boss, P }); throneFront(P, T, kMood, boss);
+    X.restore();
+    // Claude at the royal keyboard (desktop) or on a crate by the letter pad (touch)
+    const cx = desk ? 400 : W - 70, u = desk ? 8.5 : 5, base = desk ? 480 : 390, DY = 18;
+    const jump = won ? Math.abs(Math.sin(rT * 9)) * (desk ? 5 : 10) : 0, fy = base - jump;
+    const tapK = Math.max(0, 1 - (T - tapT) / .12), missK = Math.max(0, 1 - (T - missT) / .2), side = taps % 2;
+    const head = [cx, fy - 9 * u], face = [cx, fy - 6 * u];
+    if (!desk) { X.fillStyle = 'rgba(20,16,28,.25)'; el(cx, 472, 48, 8); X.fill(); cel(() => rr(cx - 42, base, 84, 72, 6), '#d9944f', '#b06d33', 4, -5, 0); X.strokeStyle = '#a5622c'; X.lineWidth = 3; for (const yy of [base + 24, base + 48]) { X.beginPath(); X.moveTo(cx - 38, yy); X.lineTo(cx + 38, yy); X.stroke(); } rr(cx - 46, base - 4, 92, 10, 4); ink('#f2b878', 3); }
+    const typing = desk && !res, typeArms = () => { X.save(); X.translate(cx, fy); arms(u, 2.55 - (side === 0 ? tapK * .3 : 0) + Math.sin(T * 7) * .04, -2.55 + (side === 1 ? tapK * .3 : 0) - Math.sin(T * 7 + 1) * .04, 1.25, OR); X.restore(); };
+    X.save(); X.translate(cx, fy);
+    if (typing) { /* arms come after the keyboard */ }
+    else if (won) { const wv = Math.sin(T * 14) * .25; arms(u, -.5 + wv, .5 - wv, 1, OR); }
+    else if (lost) arms(u, -1.3 + Math.sin(T * 10) * .15, 1.3 - Math.sin(T * 9) * .15, 1, OR);
+    else arms(u, .3, -2.1 - tapK * .4, 1, OR);
+    X.restore();
+    if (!desk) shadow(cx, base + 1, 32, 6, .2);
+    claude(cx, fy, u, { mood: won ? 'happy' : lost && rT > .3 ? 'sad' : null });
+    if (!won && !(lost && rT > .3)) clEyes(cx, fy, u, desk ? [Math.max(-1, Math.min(1, (x0 + i * (sz + gap) + sz / 2 - cx) / 260)), -1] : [-1, -.6], missK > 0, T);
+    if (!res && (missK > 0 || low)) { const k = (T * 2.2) % 1; drop(cx + 7 * u, fy - 8 * u + k * 14, .9, 1 - k); if (missK > 0) drop(cx - 7 * u, fy - 8 * u + k * 10, .8, 1 - k); }
+    // the royal keyboard on its desk, in front of Claude's legs
+    if (desk) {
+      X.save(); X.translate(0, DY);
+      cel(() => rr(222, 450, 356, 36, 12), '#f2b878', '#d9944f', 4, 0, -5);
+      X.beginPath(); X.moveTo(262, 456); X.lineTo(538, 456); X.lineTo(556, 482); X.lineTo(244, 482); X.closePath(); ink('#3b3550', 3.5);
+      X.strokeStyle = '#ffd23f'; X.lineWidth = 2.5; X.stroke();
+      const lit = tapK > 0 ? (taps * 7 + 3) % 30 : -1, litBad = missK > 0 ? (Math.round(missT * 60) * 11) % 30 : -1;
+      for (let r = 0; r < 3; r++) for (let c = 0; c < 10; c++) {
+        const yy = 459 + r * 7.6, k = (yy - 456) / 26, xl = lerp(266, 248, k) + 4, xr = lerp(534, 552, k) - 4, kw2 = (xr - xl) / 10;
+        const j = r * 10 + c, on = (j === lit && !res) || (won && (j + Math.floor(rT * 12)) % 4 === 0), bad = j === litBad && !res;
+        rr(xl + c * kw2 + 1.5, yy + (on ? 1.5 : 0), kw2 - 3, 6, 2); ink(bad ? '#ff4d5e' : on ? '#FFE14D' : '#fff6e6', 1.5);
+      }
+      cel(() => rr(232, 482, 336, 38, 10), '#d9944f', '#a5622c', 4, 0, -5);
+      X.strokeStyle = '#ffd23f'; X.lineWidth = 3; rr(244, 488, 312, 26, 7); X.stroke();
+      crown(400, 508, 9, 8, 0, false);
+      X.restore();
+      if (typing) typeArms();
+      armor(735, 470, T, low ? Math.min(1, (frac - .62) * 6) : 0, res ? 0 : missK, res, rT);
+    } else {
+      // the touch letter pad = gold-trimmed keys on a wooden lectern (same rects as before)
+      cel(() => rr(26, 394, 648, 146, 16), '#d9944f', '#a5622c', 4, 0, -6);
+      X.strokeStyle = '#ffd23f'; X.lineWidth = 3; rr(34, 400, 632, 132, 12); X.stroke();
+      pad.forEach((c, j) => { const r = padRect(j); keycap(r.x, r.y, r.w, r.h, '#fffbf0', '#d9c39b', INK, c, 38); });
+    }
+    // win: the king tosses Claude a little crown; hearts over the throne
+    if (won) {
+      // the stamp covers the middle (and the outcome only lasts ~.95 s), so the crown flies OVER it:
+      // lifted high above the throne, a high arc across the top, then a quick drop onto Claude's head
+      const [hx, hy] = kw(62, -150), tx = head[0], ty = head[1] - 2, Lx = hx - 34, Ly = 150, top = 150;
+      const kA = ease(rT / .22), kB = cl((rT - .22) / .36), kC = cl((rT - .58) / .12), landed = rT >= .7;
+      let bx, by;
+      if (rT < .22) { bx = lerp(hx, Lx, kA); by = lerp(hy, Ly, kA) + Math.sin(T * 30) * 2; }
+      else if (rT < .58) { bx = lerp(Lx, tx, ease(kB)); by = lerp(Ly, top, kB) - Math.sin(kB * Math.PI) * 80; }
+      else { bx = tx; by = lerp(top, ty, kC * kC); }
+      if (!landed && rT > .22) for (let j = 1; j <= 3; j++) { X.globalAlpha = .5 - j * .14; star(bx - (rT < .58 ? (tx - Lx) * .05 * j : 0), by + (rT < .58 ? 6 * j : -14 * j), 6, 2.5, 5, T * 8 + j, '#FFE14D', 2); X.globalAlpha = 1; }
+      const sc = landed ? 1 + .35 * Math.max(0, 1 - (rT - .7) / .15) : 1.6;
+      crown(bx, by, u * 2.2 * sc, u * 2 * sc, landed ? -.1 : rT < .22 ? Math.sin(T * 14) * .2 : rT * 14, false);
+      if (landed) stars(head[0], head[1] - u * 3, u * 6, T);
+      for (let j = 0; j < 3; j++) { const q = (rT * .9 + j * .33) % 1; X.globalAlpha = 1 - q; heart(K.x - 30 + j * 30, K.y - 205 * K.s - q * 60, .8 + .3 * Math.sin(q * 3)); X.globalAlpha = 1; }
+    }
+    // lose: a royal tomato, straight to the face
+    if (lost) {
+      const [hx, hy] = kw(78, -96), k = cl((rT - .14) / .2);
+      if (rT > .14 && k < 1) tomato(lerp(hx, face[0], k), lerp(hy, face[1], k) - Math.sin(k * Math.PI) * 120, 1.2, rT * 16);
+      if (k >= 1) { splat(face[0], face[1], u, cl((rT - .34) / .25)); if (rT < .5) stars(head[0], head[1] - u * 2, u * 6, T); }
+    }
+    vignette(boss ? .22 : .14);
+  }
+  return { swat, spot, type };
 })();
 
 /* 1 ── SWAT: click the bugs (mouse) */
@@ -519,6 +883,12 @@ function gType(sp, forced) {
   const pool = sp < 1.2 ? ['BUG', 'FIX', 'SHIP', 'CODE'] : ['BUG', 'FIX', 'SHIP', 'CODE', 'DEBUG', 'MERGE', 'PUSH', 'TEST', 'CLAUDE', 'TOKEN'];
   const w = forced || pool[Math.random() * pool.length | 0];
   let i = 0, shk = 0;
+  let el = 0, rT0 = -1, lastI = 0, tapT = -9, taps = 0, missT = -9, lastShk = 0;   // art only (animation timing)
+  const artT = dt => {
+    if (!g.result) el += dt; else if (rT0 < 0) rT0 = now;
+    if (i !== lastI) { lastI = i; tapT = now; taps++; }
+    if (shk > lastShk) missT = now; lastShk = shk;
+  };
   const uniq = [...new Set(w.split(''))];
   const extra = shuffle('ETAOINSHRDLUCMFWYPBGVK'.split('').filter(c => !uniq.includes(c))).slice(0, Math.max(0, 10 - uniq.length));
   const pad = shuffle(uniq.concat(extra));              // on-screen letters for touch devices
@@ -535,29 +905,11 @@ function gType(sp, forced) {
       if (!TOUCH) return;
       pad.forEach((c, j) => { const r = padRect(j); if (p.x > r.x && p.x < r.x + r.w && p.y > r.y && p.y < r.y + r.h) press(c); });
     },
-    update(dt) { shk = Math.max(0, shk - dt); },
-    draw(t) {
-      bg('#FF8FD0', '#ff7cc6', t);
-      const n = w.length, sz = n > 6 ? 66 : 96, gap = n > 6 ? 8 : 12, tot = n * sz + (n - 1) * gap, x0 = (W - tot) / 2;
-      const sx = Math.sin(now * 80) * shk * 40;
-      for (let k = 0; k < n; k++) {
-        const done = k < i, cur = k === i && !g.result;
-        shadow(x0 + k * (sz + gap) + sx + sz / 2 + 6, 190 + sz + 12, sz * .5, 8, .2);
-        const y = 190 - (cur ? Math.abs(Math.sin(now * 8)) * 12 : 0);
-        box3(x0 + k * (sz + gap) + sx, y, sz, sz, done ? '#5CFF7A' : cur ? '#FFE14D' : '#fff', 5, 6);
-        txt(w[k], x0 + k * (sz + gap) + sz / 2 + sx, y + sz / 2 + 4, sz * .66, done ? '#fff' : INK);
-      }
-      if (TOUCH) {
-        pad.forEach((c, j) => { const r = padRect(j); box(r.x, r.y, r.w, r.h, '#fff', 5); txt(c, r.x + r.w / 2, r.y + r.h / 2 + 2, 38, INK); });
-        claude(W - 70, 370, 5, { mood: g.result === 'win' ? 'happy' : null });
-      } else {
-        claude(W / 2, 470, 9, { mood: g.result === 'win' ? 'happy' : null });
-        box(W / 2 - 200, 462, 400, 70, '#3c3c4e', 5);
-        for (let r = 0; r < 3; r++) for (let c = 0; c < 11; c++) {
-          const hot = ((now * 14 | 0) + r * 3 + c) % 7 === 0 && !g.result;
-          ctx.fillStyle = hot ? '#FFE14D' : '#8a8aa0'; ctx.fillRect(W / 2 - 188 + c * 34, 472 + r * 19, 28, 14);
-        }
-      }
+    update(dt) { shk = Math.max(0, shk - dt); artT(dt); },
+    draw() {   // art: W1A.type (the royal typing chamber); artT() only drives animation
+      artT(0);
+      const durE = g.boss ? g.dur : g.dur / Math.sqrt(sp);
+      W1A.type({ w, i, shk, pad, padRect, boss: !!g.boss, res: g.result, rT: now - rT0, T: now, frac: Math.min(1, el / durE), tapT, taps, missT });
     }
   };
   return g;

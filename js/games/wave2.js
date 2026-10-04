@@ -1,63 +1,5 @@
 'use strict';
 /* Wave 2 — each game: {cmd, hint, dur, update(dt), draw(t), key/down/up/move}; set g.result = 'win'|'lose' */
-/* 7 ── STOP: freeze the needle in the green zone (space or click) */
-function gStop(sp) {
-  const zw = 150 / Math.sqrt(sp), zx = 150 + Math.random() * (500 - zw);
-  let ph = Math.random() * 2, stopped = false, lq = Math.floor(ph);
-  const pos = () => 100 + 600 * Math.abs(((ph % 2) + 2) % 2 - 1);
-  const g = {
-    cmd: 'STOP!', hint: 'STOP IN THE GREEN', thint: 'TAP TO STOP', dur: 5, wide: true,
-    stop() {
-      if (stopped) return; stopped = true;
-      const p = pos(); g.result = p >= zx && p <= zx + zw ? 'win' : 'lose';
-      if (g.result === 'win') { sfx.stamp(); sfx.coin(); burst(p, 342, '#5CFF7A', 14); ring(p, 342, '#fff', 90); floatText('PERFECT!', p, 270, '#FFE14D', 36); } else { sfx.buzz(); shake(8, .25); burst(p, 342, '#FF4D4D', 10); }
-    },
-    key(e) { if (e.code === 'Space' || e.code === 'Enter') g.stop(); },
-    down() { g.stop(); },
-    update(dt) { if (!stopped) { ph += dt * .9 * sp; const q = Math.floor(ph); if (q !== lq) { lq = q; sfx.tick(); } } },
-    draw(t) {
-      bg('#FF9AA2', '#ff8892', t);
-      shadow(400, 392, 300, 12, .2);
-      box3(100, 320, 600, 44, '#fff', 6, 6);
-      ctx.fillStyle = '#ffd6da'; for (let i = 0; i < 12; i++) ctx.fillRect(100 + i * 50, 320, 25, 44);
-      box(zx, 320, zw, 44, '#5CFF7A', 6);
-      ctx.fillStyle = 'rgba(255,255,255,.4)'; ctx.fillRect(zx, 320, zw, 8);
-      txt('GO', zx + zw / 2, 342, 28, '#fff');
-      const p = pos();
-      claude(p, 305, 5, { mood: g.result === 'win' ? 'happy' : g.result === 'lose' ? 'sad' : null });
-      ctx.fillStyle = INK; ctx.fillRect(p - 5, 305, 10, 80);
-      ctx.fillStyle = '#FFE14D'; ctx.fillRect(p - 2, 308, 4, 74);
-    }
-  };
-  return g;
-}
-
-/* 8 ── DON'T: resist the urge. Touch nothing! */
-function gDont(sp) {
-  const taunts = ['PRESS ME!', 'DO IT!', 'CLICK!', 'SPACE!!!', 'JUST ONCE!', 'GO ON...'];
-  const fail = () => { if (g.result) return; g.result = 'lose'; sfx.buzz(); sfx.thud(); shake(10, .3); burst(W / 2, 382, '#ee3b3b', 16); floatText('OOPS!', W / 2, 250, '#FF4D4D', 44); };
-  const g = {
-    cmd: "DON'T!", hint: "DON'T TOUCH ANYTHING", dur: 4, timeWin: true, wide: true,
-    key() { fail(); }, down() { fail(); },
-    update() {},
-    draw(t) {
-      bg('#8E94B0', '#8189a8', t);
-      const lost = g.result === 'lose', won = g.result === 'win';
-      shadow(W / 2, 326, 80, 14, .25);
-      claude(W / 2, 320, 10, { mood: lost ? 'sad' : won ? 'happy' : null });
-      if (!lost && !won) {
-        const d = (now * 90) % 60; circ(W / 2 + 70, 190 + d, 6, '#4DB8FF', 2);
-      }
-      box3(W / 2 - 130, lost ? 354 : 340, 260, lost ? 70 : 84, '#ee3b3b', 6, lost ? 2 : 6);
-      txt(taunts[(now * 1.4 | 0) % taunts.length], W / 2, lost ? 390 : 382, 36, '#fff');
-      if (!lost) txt(taunts[((now * 1.4 | 0) + 3) % taunts.length], W / 2 + Math.sin(now * 9) * 160, 500 + Math.cos(now * 7) * 20, 32, '#FFE14D');
-      if (won) { if (!g.won) { g.won = 1; sfx.coin(); sfx.sparkle(); confetti(W / 2, 200, 30); } }
-      if (won) txt('GOOD CLAUDE', W / 2, 140, 60, '#5CFF7A');
-    }
-  };
-  return g;
-}
-
 /* ───────────── DUO-look drawing kit for this file (docs/ART-STYLE.md). Everything draws on the kit's X,
    which use(c) points at the live ctx or at an offscreen layer (so the same code bakes and draws live). ───────────── */
 const W2K = (() => {
@@ -130,6 +72,405 @@ const W2K = (() => {
   };
   return K;
 })();
+
+/* 7 ── STOP art. Scene: a ski-lift in the Alps. Claude rides a red gondola (the plumb rope under it is the needle) and must stop
+   over the green landing mat. Win: the gondola docks, the penguin station master jumps, the snowman cheers. Fail: the hanger
+   snaps and the gondola drops onto the platform in a cloud of snow. */
+const W2STOP = (() => {
+  const K = W2K, TAU = K.TAU, CY = 118, PT = 312;
+  let SKY = null, MTN = null, FRONT = null, KW = -1;
+  const hash = i => { const s = Math.sin(i * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
+  function pine(X, x, y, s) {
+    X.beginPath(); X.rect(x - 3 * s, y - 10 * s, 6 * s, 12 * s); K.ink('#8a5a34', 2.5);
+    for (let i = 0; i < 3; i++) {
+      const w = (24 - i * 5) * s, yb = y - (6 + i * 15) * s, h = 24 * s;
+      X.beginPath(); X.moveTo(x - w, yb); X.lineTo(x, yb - h); X.lineTo(x + w, yb); X.closePath(); K.ink(i % 2 ? '#3fb260' : '#2f9a55', 3);
+      X.beginPath(); X.moveTo(x - w * .5, yb - h * .55); X.lineTo(x, yb - h); X.lineTo(x + w * .5, yb - h * .55); X.quadraticCurveTo(x, yb - h * .4, x - w * .5, yb - h * .55); X.fillStyle = '#fff'; X.fill();
+    }
+  }
+  function ridge(X, base, hmin, hvar, step, seed, fill, line) {
+    const p = new Path2D(), pk = [];
+    p.moveTo(-OX - 80, base + 20);
+    for (let i = 0, x = -OX - 60; x < W + OX + 120; i++, x += step) {
+      const tx = x + (hash(i + seed) - .5) * step * .4, ty = base - hmin - hash(i * 3 + seed) * hvar;
+      p.lineTo(tx, ty); pk.push([tx, ty]);
+      p.lineTo(tx + step / 2, base - 8 - hash(i * 5 + seed) * 22);
+    }
+    p.lineTo(W + OX + 140, base + 20); p.closePath();
+    X.lineJoin = 'round'; X.fillStyle = fill; X.fill(p); X.lineWidth = 3; X.strokeStyle = line; X.stroke(p);
+    X.save(); X.clip(p); X.fillStyle = '#f6f8ff';
+    for (const [tx, ty] of pk) {
+      X.beginPath(); X.moveTo(tx - 160, ty - 6); X.lineTo(tx + 160, ty - 6); X.lineTo(tx + 160, ty + 26);
+      for (let k = 6; k >= -6; k--) X.lineTo(tx + k * 26, ty + 26 + (k % 2 ? 11 : 0)); X.closePath(); X.fill();
+    }
+    X.restore();
+  }
+  function build() {
+    KW = VW;
+    SKY = K.layer(X => {
+      const g = X.createLinearGradient(0, 0, 0, 310); g.addColorStop(0, '#36b0ea'); g.addColorStop(.55, '#86d8fb'); g.addColorStop(1, '#d6f7ff');
+      X.fillStyle = g; X.fillRect(-OX, 0, VW, H);
+    });
+    MTN = K.layer(X => {
+      ridge(X, 250, 70, 62, 170, 1, '#c9d0fb', '#7b80c6');
+      ridge(X, 288, 38, 38, 130, 7, '#a4b1f2', '#5b5fa8');
+      // snowy hill + a row of pines standing on the horizon
+      X.beginPath(); X.moveTo(-OX - 10, 300); for (let x = -OX - 10; x <= W + OX + 10; x += 40) X.lineTo(x, 288 + Math.sin(x * .013) * 8 + Math.sin(x * .04) * 3); X.lineTo(W + OX + 10, 302); X.lineTo(-OX - 10, 302); X.closePath();
+      X.fillStyle = '#eaf6ff'; X.fill(); X.strokeStyle = '#8fb7d6'; X.lineWidth = 3; X.stroke();
+      for (let i = 0, x = -OX + 20; x < W + OX; i++, x += 70 + hash(i) * 70) pine(X, x, 301 - hash(i + 4) * 4, .8 + hash(i + 9) * .45);
+    });
+    FRONT = K.layer(X => {
+      const g = X.createLinearGradient(0, 300, 0, 600); g.addColorStop(0, '#ffffff'); g.addColorStop(1, '#cfe6f7');
+      X.fillStyle = g; X.fillRect(-OX, 300, VW, 300);
+      X.strokeStyle = INK; X.lineWidth = 4; X.beginPath(); X.moveTo(-OX, 300); X.lineTo(W + OX, 300); X.stroke();
+      X.fillStyle = 'rgba(143,183,214,.28)'; for (let i = 0; i < 9; i++) { X.beginPath(); X.ellipse(-OX + hash(i) * VW, 400 + hash(i + 3) * 170, 50 + hash(i + 6) * 50, 7, 0, 0, TAU); X.fill(); }
+      // ski tracks
+      X.strokeStyle = 'rgba(143,183,214,.7)'; X.lineWidth = 3; X.lineCap = 'round';
+      for (const d of [0, 11]) { X.beginPath(); X.moveTo(380 + d, 600); X.bezierCurveTo(360 + d, 520, 470 + d, 480, 420 + d, 400); X.stroke(); }
+      // pylons and the cable
+      for (const px of [14, 786]) {
+        K.rr(px - 10, 112, 20, 196, 4); K.ink('#8f9cb3', 3.5);
+        X.strokeStyle = '#c9ced6'; X.lineWidth = 3; X.beginPath(); X.moveTo(px - 8, 130); X.lineTo(px + 8, 180); X.lineTo(px - 8, 230); X.lineTo(px + 8, 280); X.stroke();
+        K.rr(px - 28, 106, 56, 14, 6); K.ink('#c9ced6', 3.5);
+      }
+      K.line([[-OX - 10, CY], [W + OX + 10, CY]], 5, '#5a5274');
+      // the boarding platform: planks with depth, posts under it
+      for (const px of [96, 400, 704]) { K.rr(px - 12, 366, 24, 40, 4); K.ink('#a5622c', 3.5); }
+      const pl = K.rrP(50, PT, 700, 62, 10); K.cel(pl, '#e9a35c', '#a5622c', 0, 8, 4);
+      X.save(); X.clip(pl); X.strokeStyle = '#b06d33'; X.lineWidth = 2.5; for (let x = 90; x < 750; x += 50) { X.beginPath(); X.moveTo(x, PT + 4); X.lineTo(x, PT + 54); X.stroke(); }
+      X.fillStyle = 'rgba(255,255,255,.3)'; X.fillRect(54, PT + 4, 692, 6); X.restore();
+      // snow drifts piled against the platform front
+      for (const [x, y, r] of [[60, 380, 44], [250, 384, 52], [470, 382, 46], [650, 386, 56], [770, 380, 40]]) {
+        const d = new Path2D(); d.ellipse(x, y, r, r * .36, 0, 0, TAU); K.cel(d, '#fff', '#cfe6f7', 3, 5, 3);
+      }
+      // the snowman (face is live): three balls, a top hat, a scarf, twig arms
+      for (const [sx, sy] of [[-1, 22], [1, 22]]) K.line([[690 + sx * 20, 448], [690 + sx * 46, 438 - sy * .4]], 3.5, '#8a5a34');
+      for (const [r, y] of [[30, 490], [22, 450], [16, 418]]) { const p = new Path2D(); p.arc(690, y, r, 0, TAU); K.cel(p, '#fff', '#cfe6f7', 4, 5, 4); }
+      K.rr(670, 394, 40, 6, 3); K.ink('#14101c', 3); K.rr(676, 372, 28, 26, 4); K.ink('#3b3550', 3); X.fillStyle = '#ff5c6c'; X.fillRect(678, 386, 24, 5);
+      K.rr(674, 430, 32, 10, 5); K.ink('#ff5c6c', 3); K.rr(698, 434, 9, 22, 4); K.ink('#d93a4a', 3);
+      X.fillStyle = INK; for (const y of [452, 468, 484]) { X.beginPath(); X.arc(690, y, 3, 0, TAU); X.fill(); }
+    });
+  }
+  /* the gondola, drawn with its hanger at local (0,0); window and Claude inside */
+  function cabin(mood, la, ra, sw, T) {
+    X2.save(); X2.scale(1.25, 1.25);
+    K.rr(-52, 26, 104, 16, 8); K.ink('#d93a4a', 4);
+    const hull = K.rrP(-46, 36, 92, 66, 14); K.cel(hull, '#ff5c6c', '#c9344a', 3, 5, 4); K.glint(hull, -28, 48, 16, 3.5, 'rgba(255,255,255,.55)', -.1);
+    K.rr(-38, 44, 76, 46, 10); K.ink('#dff4ff', 3);
+    K.rr(-38, 44, 76, 46, 10); X2.fillStyle = 'rgba(191,233,255,.25)'; X2.fill(); X2.lineWidth = 6; X2.strokeStyle = INK; X2.stroke();
+    X2.save(); K.rr(-38, 44, 76, 46, 10); X2.clip(); X2.fillStyle = 'rgba(255,255,255,.4)'; X2.beginPath(); X2.moveTo(-28, 44); X2.lineTo(-14, 44); X2.lineTo(-30, 90); X2.lineTo(-44, 90); X2.fill(); X2.restore();
+    // open-top cabin: Claude's head and eyes rise over the window frame so his face reads
+    const u = 5, cx = 0, cyf = 94;
+    X2.save(); X2.translate(cx, cyf); K.arms(u, la, ra); X2.restore(); claude(cx, cyf, u, { mood });
+    // beanie with a pom-pom (it sits above the eyes)
+    const y0 = cyf - 9 * u; K.rr(cx - 5.2 * u, y0 - 1.8 * u, 10.4 * u, 2.6 * u, u * .8); K.ink('#4DB8FF', 2.4);
+    X2.beginPath(); X2.arc(cx, y0 - 2.4 * u, 1.2 * u, 0, TAU); K.ink('#fff', 2.2);
+    if (mood !== 'happy') { X2.fillStyle = 'rgba(255,110,165,.5)'; for (const sx of [-1, 1]) { X2.beginPath(); X2.ellipse(cx + sx * 4.9 * u, cyf - 4 * u, .9 * u, .55 * u, 0, 0, TAU); X2.fill(); } }
+    if (sw > 0) K.sweat(cx + 5.6 * u, y0 + 1.5 * u, .9, (T * 1.4) % 1);
+    K.rr(-48, 94, 96, 12, 5); K.ink('#8f9cb3', 3.5);
+    X2.restore();
+  }
+  let X2 = null;
+  function penguin(x, y, s, mood, lx, ly, flip, T, covers) {
+    X2.save(); X2.translate(x, y); X2.scale(s, s);
+    for (const sx of [-1, 1]) { K.el(sx * 8, -2, 8, 4); K.ink('#ffa63d', 2.5); }
+    const body = new Path2D(); body.ellipse(0, -26, 18, 27, 0, 0, TAU); K.cel(body, '#2c3e66', '#1b2747', 4, 3, 3.2);
+    X2.fillStyle = '#fff'; K.el(1, -22, 11.5, 19); X2.fill(); X2.fillStyle = 'rgba(143,183,214,.35)'; K.el(5, -20, 5, 15); X2.fill();
+    // flippers
+    const up = mood === 'happy' ? .9 + Math.sin(T * 12) * .25 : covers ? 2.2 : .15;
+    for (const sx of [-1, 1]) { X2.save(); X2.translate(sx * 17, -34); X2.rotate(-sx * up); K.el(sx * 2, 12, 5, 14); K.ink('#2c3e66', 2.5); X2.restore(); }
+    // conductor cap
+    K.rr(-13, -60, 26, 11, 4); K.ink('#ff5c6c', 2.8); K.el(0, -49, 17, 3.5); K.ink('#d93a4a', 2.2); X2.fillStyle = '#ffe14d'; X2.beginPath(); X2.arc(0, -55, 2.6, 0, TAU); X2.fill();
+    // beak + eyes
+    X2.beginPath(); X2.moveTo(-5, -34); X2.quadraticCurveTo(0, -27, 5, -34); X2.quadraticCurveTo(0, -38, -5, -34); K.ink('#ffa63d', 2.2);
+    if (!covers) { K.eye(-7, -41, 5.2, mood, lx, ly, 1.3); K.eye(7, -41, 5.2, mood, lx, ly, 2.1); }
+    X2.restore();
+  }
+  function draw(S, T, rt) {
+    K.use(ctx); X2 = ctx;
+    if (!SKY || KW !== VW) build();
+    const won = S.result === 'win', lost = S.result === 'lose', res = !!S.result, p = S.p;
+    ctx.drawImage(SKY, -OX, 0);
+    // sun: turning rays + disc
+    ctx.save(); ctx.translate(630, 126); ctx.rotate(T * .25); ctx.fillStyle = 'rgba(255,240,150,.45)';
+    for (let i = 0; i < 10; i++) { ctx.rotate(TAU / 10); ctx.beginPath(); ctx.moveTo(-8, -40); ctx.lineTo(0, -66); ctx.lineTo(8, -40); ctx.closePath(); ctx.fill(); }
+    ctx.restore();
+    ctx.beginPath(); ctx.arc(630, 126, 32, 0, TAU); K.ink('#ffe14d', 4); ctx.fillStyle = '#fff3a0'; ctx.beginPath(); ctx.arc(621, 117, 11, 0, TAU); ctx.fill();
+    for (const [o, y, s, v] of [[0, 150, 1, 8], [420, 190, .8, 6], [760, 128, 1.1, 10]]) K.cloud(((T * v + o) % 1000) - 140, y, s);
+    ctx.drawImage(MTN, -OX, 0);
+    // background gag: a far gondola ping-pongs on a thin cable with a polar bear waving
+    ctx.strokeStyle = '#5b5fa8'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-OX, 86); ctx.lineTo(W + OX, 86); ctx.stroke();
+    const fw = (T * .055) % 2, fx = 210 + 410 * (fw < 1 ? fw : 2 - fw);
+    ctx.save(); ctx.translate(fx, 86); ctx.rotate(Math.sin(T * 1.7) * .05); ctx.scale(.55, .55);
+    K.line([[0, 0], [0, 34]], 4, '#8492e2'); K.rr(-34, 30, 68, 50, 12); K.ink('#7dd3a8', 4);
+    K.rr(-26, 38, 52, 30, 8); K.ink('#dff4ff', 3);
+    ctx.beginPath(); ctx.arc(0, 62, 15, Math.PI, TAU); K.ink('#fff', 3); for (const sx of [-1, 1]) { ctx.beginPath(); ctx.arc(sx * 11, 46, 5, 0, TAU); K.ink('#fff', 2.5); }
+    ctx.beginPath(); ctx.arc(0, 56, 14, 0, TAU); K.ink('#fff', 3); ctx.fillStyle = INK; for (const sx of [-1, 1]) { ctx.beginPath(); ctx.arc(sx * 5, 54, 2, 0, TAU); ctx.fill(); } ctx.beginPath(); ctx.arc(0, 60, 2.6, 0, TAU); ctx.fill();
+    ctx.save(); ctx.translate(18, 56); ctx.rotate(-1 + Math.sin(T * 7) * .4); K.rr(-3, -16, 6, 16, 3); K.ink('#fff', 2.5); ctx.restore();
+    ctx.restore();
+    ctx.drawImage(FRONT, -OX, 0);
+    // falling snow
+    ctx.fillStyle = 'rgba(255,255,255,.85)';
+    for (let i = 0; i < 26; i++) { const sx = (hash(i) * 900 + Math.sin(T + i) * 14 - 50) % 900 - 50, sy = (T * (28 + hash(i + 2) * 22) + hash(i + 5) * 620) % 620; ctx.beginPath(); ctx.arc(sx, sy - 10, 1.5 + hash(i + 8) * 1.8, 0, TAU); ctx.fill(); }
+    // the landing mat
+    const zx = S.zx, zw = S.zw, pulse = won ? .5 + .5 * Math.sin(T * 12) : 0;
+    ctx.save(); ctx.fillStyle = 'rgba(20,16,28,.2)'; K.rr(zx + 3, 326, zw, 44, 8); ctx.fill(); ctx.restore();
+    const mat = K.rrP(zx, 320, zw, 44, 8); K.cel(mat, won ? '#8dffa3' : '#5CFF7A', '#23a046', 0, 6, 3.5);
+    ctx.save(); ctx.clip(mat); ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 3; ctx.setLineDash([9, 8]); K.rr(zx + 6, 326, zw - 12, 32, 5); ctx.stroke(); ctx.restore();
+    txt('GO', zx + zw / 2, 341, 26, '#fff');
+    if (won) { ctx.save(); ctx.globalAlpha = .35 + .5 * pulse; ctx.strokeStyle = '#fff'; ctx.lineWidth = 4; K.rr(zx - 3, 317, zw + 6, 50, 11); ctx.stroke(); ctx.restore(); }
+    // mat flags
+    for (const fx2 of [zx + 6, zx + zw - 6]) { K.line([[fx2, 322], [fx2, 292]], 3, '#c9ced6'); ctx.beginPath(); ctx.moveTo(fx2, 292); ctx.lineTo(fx2 + 18 + Math.sin(T * 5 + fx2) * 3, 298); ctx.lineTo(fx2, 306); ctx.closePath(); K.ink('#5CFF7A', 2.5); }
+    // snowman face reacts: watches the gondola, cheers, or gapes
+    const sl = Math.max(-1, Math.min(1, (p - 690) / 300));
+    K.eye(683, 416, 3.6, won ? 'happy' : lost ? 'panic' : null, sl, -.7, 3); K.eye(697, 416, 3.6, won ? 'happy' : lost ? 'panic' : null, sl, -.7, 4);
+    ctx.fillStyle = '#ff8a3d'; ctx.beginPath(); ctx.moveTo(688, 421); ctx.lineTo(704 + sl * 4, 424); ctx.lineTo(688, 427); ctx.closePath(); ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = INK; ctx.stroke();
+    // penguin station master
+    const pj = won ? Math.abs(Math.sin(T * 9)) * 16 : 0;
+    ctx.fillStyle = 'rgba(20,16,28,.2)'; ctx.beginPath(); ctx.ellipse(110, 457, 30 - pj * .4, 7, 0, 0, TAU); ctx.fill();
+    penguin(110, 455 - pj, 1.45, won ? 'happy' : lost ? 'panic' : (T > 3.5 ? 'panic' : null), (p - 110) / 200, -1, 0, T, lost);
+    if (lost) K.sweat(150, 380, 1.2, (T * 1.8) % 1);
+    // ── the gondola ──
+    const dir = S.dir;
+    let dy = 0, rot = S.lean, snapped = false;
+    if (won) { dy = 56 * K.outBack(rt / .4); rot = 0; }
+    if (lost) {
+      if (rt < .18) rot = Math.sin(rt * 46) * .07; else { snapped = true; const q = rt - .18; dy = Math.min(70, .5 * 2800 * q * q); rot = -dir * .22 * K.clamp(q / .22, 0, 1); if (dy >= 70) dy = 70 - Math.abs(Math.sin((rt - .4) * 15)) * 10 * Math.exp(-(rt - .4) * 5); }
+    }
+    // plumb rope (the needle) hangs from the gondola to the mat
+    const by = CY + 128 + (snapped ? 0 : dy);
+    if (!snapped || by < 326) {
+      const ry = snapped ? CY + 128 + dy : by;
+      K.line([[p, ry], [p, 334]], 3, '#ffd23f');
+      ctx.beginPath(); ctx.moveTo(p, 352); ctx.quadraticCurveTo(p + 9, 338, p, 330); ctx.quadraticCurveTo(p - 9, 338, p, 352); K.ink('#ffd23f', 3);
+      ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.beginPath(); ctx.ellipse(p - 3, 340, 2, 4, 0, 0, TAU); ctx.fill();
+    }
+    ctx.save(); ctx.translate(p, CY);
+    const la = won ? -.5 + Math.sin(T * 14) * .3 : lost ? -.3 + Math.sin(T * 30) * .12 : -.18, ra = won ? .5 - Math.sin(T * 14) * .3 : lost ? .3 - Math.sin(T * 30) * .12 : .18;
+    const mood = won ? 'happy' : lost ? 'sad' : null, sw = (!res && (T > 3.3 || S.near)) || lost;
+    if (!snapped) {
+      ctx.rotate(rot);
+      K.line([[0, 4], [0, 37 + dy]], 5, '#5a5274');
+      ctx.beginPath(); ctx.arc(0, 0, 10, 0, TAU); K.ink('#c9ced6', 3.2); ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(0, 0, 3, 0, TAU); ctx.fill();
+      ctx.translate(0, dy); if (won) { const gs = 1 + .12 * K.outBack(K.clamp(rt / .4, 0, 1)); ctx.scale(gs, gs); } cabin(mood, la, ra, sw, T);
+    } else {
+      // snapped hanger: a frayed stub on the pulley, the gondola falls and tilts on its bottom edge
+      K.line([[0, 4], [3, 16]], 5, '#5a5274'); ctx.beginPath(); ctx.arc(0, 0, 10, 0, TAU); K.ink('#c9ced6', 3.2);
+      const q = rt - .18; if (q < .3) star(0, 14, 15 - q * 20, 6, 7, T * 6, '#FFE14D', 3);
+      ctx.translate(0, dy); ctx.translate(0, 100); ctx.rotate(rot); ctx.translate(0, -100); cabin(mood, la, ra, sw, T);
+    }
+    ctx.restore();
+    // snow cloud when it lands
+    if (lost && rt > .4) {
+      const d = rt - .4;
+      for (let i = 0; i < 7; i++) { const a = Math.PI + (i / 6) * Math.PI, rr2 = 10 + d * 70 + i % 3 * 6; ctx.globalAlpha = Math.max(0, .9 - d * 1.6); ctx.beginPath(); ctx.arc(p + Math.cos(a) * (30 + d * 130), PT - 2 + Math.sin(a) * (14 + d * 50), rr2 * .55, 0, TAU); ctx.fillStyle = '#fff'; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = '#8fb7d6'; ctx.stroke(); }
+      ctx.globalAlpha = 1;
+      for (let i = 0; i < 3; i++) star(p - 36 + i * 36, 236 + Math.sin(T * 5 + i) * 5, 9, 4, 5, T * 3 + i, '#FFE14D', 2.5);
+    }
+    // win: docking sparkle
+    if (won && rt < .8) for (let i = 0; i < 6; i++) { const a = i / 6 * TAU + T * 2, rr2 = 70 + rt * 80; star(p + Math.cos(a) * rr2, CY + 110 + dy + Math.sin(a) * rr2 * .5, 8, 3.5, 4, T * 4, '#FFE14D', 2.2); }
+    vignette(.16);
+  }
+  return { draw };
+})();
+function gStop(sp) {
+  const zw = 150 / Math.sqrt(sp), zx = 150 + Math.random() * (500 - zw);
+  let ph = Math.random() * 2, stopped = false, lq = Math.floor(ph), lean = 0, resAt = null;
+  const pos = () => 100 + 600 * Math.abs(((ph % 2) + 2) % 2 - 1);
+  const dirOf = () => (((ph % 2) + 2) % 2) < 1 ? -1 : 1;
+  const g = {
+    cmd: 'STOP!', hint: 'STOP IN THE GREEN', thint: 'TAP TO STOP', dur: 5, wide: true,
+    stop() {
+      if (stopped) return; stopped = true;
+      const p = pos(); g.result = p >= zx && p <= zx + zw ? 'win' : 'lose'; resAt = now;
+      if (g.result === 'win') { sfx.stamp(); sfx.coin(); burst(p, 342, '#5CFF7A', 14); ring(p, 342, '#fff', 90); floatText('PERFECT!', p, 270, '#FFE14D', 36); } else { sfx.buzz(); shake(8, .25); burst(p, 342, '#FF4D4D', 10); }
+    },
+    key(e) { if (e.code === 'Space' || e.code === 'Enter') g.stop(); },
+    down() { g.stop(); },
+    update(dt) { if (g.result && resAt == null) resAt = now; if (!stopped) { ph += dt * .9 * sp; const q = Math.floor(ph); if (q !== lq) { lq = q; sfx.tick(); } } lean += ((stopped ? 0 : dirOf() * .08) - lean) * Math.min(1, dt * 5); },
+    draw(t) {
+      if (g.result && resAt == null) resAt = now;
+      const p = pos();
+      W2STOP.draw({ p, zx, zw, dir: dirOf(), lean, result: g.result, near: p >= zx - 40 && p <= zx + zw + 40 && !g.result && t > 2 }, t, resAt == null ? 0 : Math.max(0, now - resAt));
+    }
+  };
+  return g;
+}
+
+/* 8 ── DON'T art. Scene: the control room of the Totally Safe Rocket Company. A grinning red button on a hazard pedestal begs to
+   be pressed; Claude (hard hat, sweating) sits on his hands while they creep toward it. A worried rocket watches from the
+   window. Win: Claude gets a medal, the button sulks, the rocket dozes. Fail: slam, siren, and the rocket blasts off. */
+const W2DONT = (() => {
+  const K = W2K, TAU = K.TAU, WIN = [40, 96, 210, 166], FEET = 380;
+  let WALL = null, CON = null, KW = -1;
+  const hash = i => { const s = Math.sin(i * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
+  function build() {
+    KW = VW;
+    WALL = K.layer(X => {
+      const g = X.createLinearGradient(0, 0, 0, 350); g.addColorStop(0, '#8fd0da'); g.addColorStop(1, '#d7f5f2');
+      X.fillStyle = g; X.fillRect(-OX, 0, VW, H);
+      // riveted wall panels
+      X.strokeStyle = 'rgba(60,140,160,.35)'; X.lineWidth = 3;
+      for (let x = -OX - ((OX | 0) % 100); x < W + OX; x += 100) { X.beginPath(); X.moveTo(x, 50); X.lineTo(x, 352); X.stroke(); }
+      X.beginPath(); X.moveTo(-OX, 200); X.lineTo(W + OX, 200); X.stroke();
+      X.fillStyle = 'rgba(60,140,160,.5)'; for (let x = -OX - ((OX | 0) % 100); x < W + OX; x += 100) for (const y of [62, 188, 212, 336]) { X.beginPath(); X.arc(x + 8, y, 2.6, 0, TAU); X.fill(); X.beginPath(); X.arc(x + 92, y, 2.6, 0, TAU); X.fill(); }
+      // ceiling beam with a hazard line
+      X.fillStyle = '#5b6a92'; X.fillRect(-OX, 0, VW, 50); X.fillStyle = 'rgba(255,255,255,.12)'; X.fillRect(-OX, 4, VW, 6);
+      X.save(); X.beginPath(); X.rect(-OX, 50, VW, 10); X.clip(); X.fillStyle = '#ffd23f'; X.fillRect(-OX, 50, VW, 10); X.fillStyle = INK; for (let x = -OX - 20; x < W + OX; x += 28) { X.beginPath(); X.moveTo(x, 60); X.lineTo(x + 10, 50); X.lineTo(x + 24, 50); X.lineTo(x + 14, 60); X.fill(); } X.restore();
+      X.strokeStyle = INK; X.lineWidth = 4; X.beginPath(); X.moveTo(-OX, 50); X.lineTo(W + OX, 50); X.moveTo(-OX, 60); X.lineTo(W + OX, 60); X.stroke();
+      // leaky pipe along the wall with a red valve over the drip
+      K.rr(360, 66, 600, 16, 7); K.ink('#9fb0c9', 3.5); X.fillStyle = 'rgba(255,255,255,.4)'; X.fillRect(366, 70, 590, 4);
+      K.rr(458, 62, 24, 24, 5); K.ink('#7a8bad', 3.5); X.beginPath(); X.arc(470, 84, 5, 0, TAU); K.ink('#6ea8d8', 2);
+      for (const x of [420, 560, 700]) { K.rr(x - 6, 62, 12, 24, 3); K.ink('#7a8bad', 3); }
+      // the window: a launch pad outside (static); the rocket is live
+      const w = K.rrP(WIN[0], WIN[1], WIN[2], WIN[3], 16);
+      X.save(); X.clip(w);
+      const sg = X.createLinearGradient(0, WIN[1], 0, WIN[1] + WIN[3]); sg.addColorStop(0, '#5cc4f2'); sg.addColorStop(1, '#e6fbff'); X.fillStyle = sg; X.fillRect(WIN[0], WIN[1], WIN[2], WIN[3]);
+      X.beginPath(); X.moveTo(40, 240); X.quadraticCurveTo(100, 196, 160, 232); X.quadraticCurveTo(210, 206, 250, 236); X.lineTo(250, 262); X.lineTo(40, 262); X.fillStyle = '#9be38a'; X.fill(); X.strokeStyle = '#4f9a6a'; X.lineWidth = 3; X.stroke();
+      X.fillStyle = '#7cd46f'; X.fillRect(40, 250, 210, 12);
+      X.restore();
+      // launch gantry tower beside the pad
+      K.rr(212, 150, 14, 102, 3); K.ink('#c9ced6', 3); X.strokeStyle = '#8f9cb3'; X.lineWidth = 2.5; X.beginPath(); for (let y = 160; y < 240; y += 20) { X.moveTo(213, y); X.lineTo(225, y + 20); } X.stroke();
+      K.rr(180, 150, 36, 8, 3); K.ink('#ff5c6c', 3);
+    });
+    CON = K.layer(X => {
+      // window frame goes over the rocket
+      X.lineJoin = 'round'; const w = K.rrP(WIN[0] - 5, WIN[1] - 5, WIN[2] + 10, WIN[3] + 10, 18);
+      X.lineWidth = 22; X.strokeStyle = INK; X.stroke(w); X.lineWidth = 12; X.strokeStyle = '#8f9cb3'; X.stroke(w); X.lineWidth = 3; X.strokeStyle = 'rgba(255,255,255,.45)'; X.stroke(K.rrP(WIN[0] - 9, WIN[1] - 9, WIN[2] + 18, WIN[3] + 18, 20));
+      X.fillStyle = INK; for (const [x, y] of [[36, 92], [254, 92], [36, 262], [254, 262]]) { X.beginPath(); X.arc(x, y, 3, 0, TAU); X.fill(); }
+      // console: a lip, the steel face, a hazard band, dials and switches
+      const face = K.rrP(-OX - 16, 380, VW + 32, 320, 14);
+      X.fillStyle = 'rgba(20,16,28,.3)'; X.save(); X.translate(0, -5); X.fill(face); X.restore();
+      K.cel(face, '#cfd8e6', '#8f9cb3', 0, 10, 4.5);
+      X.save(); X.clip(face); X.fillStyle = 'rgba(255,255,255,.55)'; X.fillRect(-OX, 384, VW, 10); X.restore();
+      X.save(); X.beginPath(); X.rect(-OX - 10, 496, VW + 20, 30); X.clip(); X.fillStyle = '#ffd23f'; X.fillRect(-OX - 10, 496, VW + 20, 30); X.fillStyle = INK;
+      for (let x = -OX - 40; x < W + OX + 20; x += 38) { X.beginPath(); X.moveTo(x, 526); X.lineTo(x + 14, 496); X.lineTo(x + 32, 496); X.lineTo(x + 18, 526); X.fill(); } X.restore();
+      X.strokeStyle = INK; X.lineWidth = 4; X.beginPath(); X.moveTo(-OX, 496); X.lineTo(W + OX, 496); X.moveTo(-OX, 526); X.lineTo(W + OX, 526); X.stroke();
+      X.fillStyle = '#5a6a8a'; for (let x = -OX + 14; x < W + OX; x += 60) for (const y of [396, 548]) { X.beginPath(); X.arc(x, y, 3, 0, TAU); X.fill(); }
+      // dials (left) and toggle switches (right)
+      for (const [x, y] of [[70, 448], [150, 448]]) { X.beginPath(); X.arc(x, y, 28, 0, TAU); K.ink('#fff', 4); X.strokeStyle = '#ff4d5e'; X.lineWidth = 4; X.beginPath(); X.arc(x, y, 20, Math.PI * 1.1, Math.PI * 1.9); X.stroke(); X.strokeStyle = INK; X.lineWidth = 3.5; X.beginPath(); X.moveTo(x, y); X.lineTo(x + 14, y - 12); X.stroke(); }
+      for (const x of [590, 650, 710]) { K.rr(x - 14, 428, 28, 52, 8); K.ink('#5a6a8a', 3.5); X.beginPath(); X.arc(x, 442, 12, 0, TAU); K.ink('#ff4d5e', 3); }
+      // pedestal under the button
+      const ped = new Path2D(); ped.ellipse(400, 452, 172, 30, 0, 0, TAU); K.cel(ped, '#ffd23f', '#c99512', 0, 7, 4.5);
+      X.save(); X.clip(ped); X.fillStyle = INK; for (let x = 220; x < 590; x += 34) { X.beginPath(); X.moveTo(x, 478); X.lineTo(x + 14, 428); X.lineTo(x + 24, 428); X.lineTo(x + 10, 478); X.fill(); } X.restore();
+      X.beginPath(); X.ellipse(400, 452, 172, 30, 0, 0, TAU); X.lineWidth = 9; X.strokeStyle = INK; X.stroke();
+      const ped2 = new Path2D(); ped2.ellipse(400, 448, 128, 18, 0, 0, TAU); K.inkP(ped2, '#8f9cb3', 4);
+    });
+  }
+  function portrait(x, y, rot) {
+    ctx.save(); ctx.translate(x, y); ctx.rotate(rot);
+      
+      K.rr(-52, -44, 104, 88, 8); K.ink('#f0b73f', 4); K.rr(-44, -36, 88, 72, 4); K.ink('#fff3d6', 2.5);
+      K.rr(-24, -10, 48, 30, 14); K.ink('#ff4d5e', 3); for (const sx of [-1, 1]) { ctx.beginPath(); ctx.arc(sx * 9, 1, 3.4, 0, TAU); ctx.fillStyle = '#fff'; ctx.fill(); ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(sx * 9, 2, 1.6, 0, TAU); ctx.fill(); }
+      ctx.strokeStyle = INK; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(0, 10, 7, .2, Math.PI - .2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(34, 24, 11, 0, TAU); K.ink('#ffd23f', 2.5); ctx.beginPath(); ctx.arc(34, 24, 5, 0, TAU); K.ink('#ff4d5e', 2); K.rr(28, 32, 7, 14, 2); K.ink('#4DB8FF', 2);
+    ctx.restore();
+  }
+  function rocket(x, yb, s, mood, lx, ly, fl) {
+    ctx.save(); ctx.translate(x, yb); ctx.scale(s, s);
+    if (fl > 0) { ctx.fillStyle = '#ff8a3d'; ctx.beginPath(); ctx.moveTo(-12, 0); ctx.lineTo(0, 46 * fl); ctx.lineTo(12, 0); ctx.closePath(); ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = INK; ctx.stroke(); ctx.fillStyle = '#ffe14d'; ctx.beginPath(); ctx.moveTo(-6, 0); ctx.lineTo(0, 28 * fl); ctx.lineTo(6, 0); ctx.closePath(); ctx.fill(); }
+    for (const sx of [-1, 1]) { ctx.beginPath(); ctx.moveTo(sx * 15, -34); ctx.lineTo(sx * 31, 2); ctx.lineTo(sx * 15, -4); ctx.closePath(); K.ink('#ff5c6c', 3); }
+    const body = new Path2D(); body.moveTo(-17, 0); body.lineTo(-17, -62); body.quadraticCurveTo(0, -130, 17, -62); body.lineTo(17, 0); body.closePath();
+    K.cel(body, '#fff', '#c9d6f0', 5, 0, 3.5);
+    ctx.save(); ctx.clip(body); ctx.fillStyle = '#ff5c6c'; ctx.fillRect(-20, -110, 40, 38); ctx.fillStyle = 'rgba(255,255,255,.4)'; ctx.fillRect(-12, -108, 6, 34); ctx.fillStyle = '#ff5c6c'; ctx.fillRect(-20, -14, 40, 8); ctx.restore();
+    ctx.beginPath(); ctx.moveTo(-17, 0); ctx.lineTo(-17, -62); ctx.quadraticCurveTo(0, -130, 17, -62); ctx.lineTo(17, 0); ctx.closePath(); ctx.lineWidth = 7; ctx.strokeStyle = INK; ctx.stroke();
+    K.eye(-7, -42, 5.4, mood, lx, ly, 1.1); K.eye(7, -42, 5.4, mood, lx, ly, 2.2);
+    ctx.restore();
+  }
+  function draw(S, T, rt) {
+    K.use(ctx);
+    if (!WALL || KW !== VW) build();
+    const won = S.result === 'win', lost = S.result === 'lose', creep = lost ? 1 : won ? 0 : K.clamp((T - .5) / 3, 0, 1), cx = W / 2;
+    ctx.drawImage(WALL, -OX, 0);
+    // the rocket in the window (clipped to it): worried, then dozing, or launching
+    ctx.save(); ctx.beginPath(); ctx.rect(WIN[0], WIN[1], WIN[2], WIN[3]); ctx.clip();
+    for (const [o, y, s, v] of [[0, 130, .7, 6], [300, 118, .55, 4]]) K.cloud(((T * v + o) % 420) - 60, y, s);
+    const lq = lost ? Math.max(0, rt - .14) : 0, up = lost ? lq * lq * 1700 : 0, rm = won ? 'sleepy' : lost ? 'panic' : creep > .55 ? 'panic' : null;
+    if (lost && rt < .14) ctx.translate(Math.sin(rt * 90) * 2, 0);
+    ctx.fillStyle = 'rgba(20,16,28,.2)'; ctx.beginPath(); ctx.ellipse(145, 254, 34, 6, 0, 0, TAU); ctx.fill();
+    K.rr(100, 248, 90, 14, 4); K.ink('#8f9cb3', 3);
+    rocket(145, 250 - up, 1.05, rm, 1, 0.3, lost && rt > .14 ? .8 + Math.sin(T * 60) * .2 : 0);
+    if (lost && rt > .14) { const d = rt - .14; for (let i = 0; i < 6; i++) { ctx.globalAlpha = Math.max(0, .9 - d * 1.3); ctx.beginPath(); ctx.arc(145 + (i - 2.5) * 14 * (1 + d * 2), 250 - hash(i) * 14, 9 + d * 34, 0, TAU); ctx.fillStyle = '#fff'; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = '#8fb7d6'; ctx.stroke(); } ctx.globalAlpha = 1; }
+    if (won) { for (let i = 0; i < 3; i++) { const k = (T * .6 + i / 3) % 1; ctx.globalAlpha = Math.sin(k * Math.PI); txt('z', 172 + k * 14, 150 - k * 36, 16 + i * 4, '#fff'); } ctx.globalAlpha = 1; }
+    ctx.restore();
+    if (!won && creep > .55 && !lost) K.sweat(176, 156, 1, (T * 1.6) % 1);
+    // the leaky pipe drips onto the console
+    const dc = (T * .9) % 1; ctx.fillStyle = '#6ea8d8';
+    if (dc < .85) { const dyy = 90 + 288 * dc * dc; ctx.beginPath(); ctx.moveTo(470, dyy - 8); ctx.quadraticCurveTo(476, dyy + 2, 470, dyy + 5); ctx.quadraticCurveTo(464, dyy + 2, 470, dyy - 8); K.ink('#9fe3ff', 2); }
+    else { const s2 = (dc - .85) / .15; ctx.strokeStyle = '#9fe3ff'; ctx.lineWidth = 3; ctx.globalAlpha = 1 - s2; ctx.beginPath(); ctx.ellipse(470, 378, 4 + s2 * 12, 2 + s2 * 4, 0, 0, TAU); ctx.stroke(); ctx.globalAlpha = 1; }
+    // the framed portrait: the shake knocks it off its nail when you press
+    { const fk = lost ? Math.max(0, rt - .1) : 0; portrait(692 + fk * 30, 168 + fk * fk * 1500, lost ? -.04 - fk * 1.6 : -.04 + Math.sin(T * 1.3) * .012); }
+    // siren hanging from the pipe
+    const sirA = T * (lost ? 9 : 2.5);
+    if (lost) { ctx.save(); ctx.globalAlpha = .28 * Math.min(1, rt * 5); ctx.fillStyle = '#ff4d5e'; for (let i = 0; i < 2; i++) { const a = sirA + i * Math.PI; ctx.beginPath(); ctx.moveTo(545, 106); ctx.lineTo(545 + Math.cos(a - .28) * 330, 106 + Math.sin(a - .28) * 330); ctx.lineTo(545 + Math.cos(a + .28) * 330, 106 + Math.sin(a + .28) * 330); ctx.closePath(); ctx.fill(); } ctx.restore(); }
+    K.line([[545, 82], [545, 92]], 4, '#8f9cb3'); K.rr(530, 90, 30, 8, 3); K.ink('#8f9cb3', 3);
+    ctx.beginPath(); ctx.arc(545, 98, 14, Math.PI, 0); ctx.lineTo(559, 98); ctx.lineTo(531, 98); ctx.closePath(); K.ink(lost ? '#ff4d5e' : '#ff9aa6', 3.5);
+    ctx.fillStyle = lost ? '#fff' : 'rgba(255,255,255,.55)'; ctx.beginPath(); ctx.ellipse(545 + Math.cos(sirA) * 5, 92, 3.5, 5, 0, 0, TAU); ctx.fill();
+    // ── Claude, standing behind the console ──
+    const sag = won ? 0 : Math.sin(T * 3.1) * .03 + creep * .04;
+    ctx.save(); ctx.translate(cx, FEET); ctx.scale(1 + sag, 1 - sag); ctx.translate(-cx, -FEET);
+    claude(cx, FEET, 10, { mood: lost ? 'sad' : won ? 'happy' : null });
+    // hard hat with a lamp (sits above the eyes)
+    const hy = FEET - 90, hat = new Path2D(); hat.moveTo(cx - 54, hy + 4); hat.quadraticCurveTo(cx - 54, hy - 34, cx, hy - 34); hat.quadraticCurveTo(cx + 54, hy - 34, cx + 54, hy + 4); hat.closePath();
+    K.rr(cx - 66, hy - 2, 132, 10, 5); K.ink('#ffd23f', 3.5); K.cel(hat, '#ffd23f', '#c99512', 4, 4, 4); K.glint(hat, cx - 24, hy - 22, 16, 5, 'rgba(255,255,255,.6)', -.4);
+    ctx.beginPath(); ctx.arc(cx, hy - 18, 8, 0, TAU); K.ink('#fff', 3);
+    if (creep > .25 && !won) for (const [sx, o] of [[-1, 0], [1, .5]]) K.sweat(cx + sx * 64, FEET - 70, 1.5, (T * 1.5 + o) % 1);
+    if (lost) for (let i = 0; i < 3; i++) { const a = T * 5 + i * TAU / 3; star(cx + Math.cos(a) * 52, FEET - 126 + Math.sin(a) * 9, 10, 4.5, 5, T * 3, '#FFE14D', 2.5); }
+    if (won) {                       // a gold medal on a ribbon
+      const sw = Math.sin(T * 4) * .08, k = K.outBack(rt / .3);
+      ctx.save(); ctx.translate(cx, FEET - 56); ctx.rotate(sw); ctx.scale(k, k);
+      ctx.beginPath(); ctx.moveTo(-14, -22); ctx.lineTo(0, 2); ctx.lineTo(-4, 2); ctx.lineTo(-22, -22); ctx.closePath(); K.ink('#ff4d5e', 2.5);
+      ctx.beginPath(); ctx.moveTo(14, -22); ctx.lineTo(0, 2); ctx.lineTo(4, 2); ctx.lineTo(22, -22); ctx.closePath(); K.ink('#4DB8FF', 2.5);
+      ctx.beginPath(); ctx.arc(0, 12, 16, 0, TAU); K.ink('#ffd23f', 3.5); star(0, 12, 10, 4.5, 5, 0, '#fff3a0', 2); ctx.restore();
+    }
+    ctx.restore();
+    ctx.drawImage(CON, -OX, 0);
+    // console extras: blinking lamps and the coffee mug that steams
+    for (let i = 0; i < 3; i++) { const on = lost ? true : Math.sin(T * (2 + i) + i * 2) > -.2; ctx.beginPath(); ctx.arc(60 + i * 30, 486, 6, 0, TAU); K.ink(lost ? '#ff4d5e' : on ? '#5CFF7A' : '#7a8bad', 3); }
+    K.rr(716, 350, 38, 30, 6); K.ink('#fff', 3.5); ctx.beginPath(); ctx.arc(758, 365, 9, -1.4, 1.4); ctx.lineWidth = 7; ctx.strokeStyle = INK; ctx.stroke(); ctx.lineWidth = 3.5; ctx.strokeStyle = '#fff'; ctx.stroke();
+    ctx.fillStyle = '#7a4a2a'; K.rr(719, 353, 32, 6, 3); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 3.5; ctx.lineCap = 'round';
+    for (const o of [0, 1]) { ctx.beginPath(); for (let i = 0; i <= 12; i++) { const yy = 346 - i * 3.5, xx = 728 + o * 14 + Math.sin(T * 3 + i * .6 + o) * 4; i ? ctx.lineTo(xx, yy) : ctx.moveTo(xx, yy); } ctx.globalAlpha = .7; ctx.stroke(); } ctx.globalAlpha = 1;
+    let la, ra;
+    // arms wobble upward in the beginning, creep toward the button, then slam it (or wave with the medal)
+    if (lost) { const k = K.outBack(rt / .12); la = 2.2 + .6 * k; ra = -2.2 - .6 * k; }
+    else if (won) { la = -.5 + Math.sin(T * 12) * .25; ra = .5 - Math.sin(T * 12) * .25; }
+    else { const j = creep * creep * Math.sin(T * 26) * .14; la = 2.2 + creep * .45 + j; ra = -2.2 - creep * .45 - j * 1.1; }
+    // ── the button: a grinning dome; it sinks when pressed, sulks when ignored ──
+    const pr = lost ? 16 : 0, top = 376 + pr, bot = 450;
+    const dome = new Path2D(); dome.moveTo(270, bot); dome.lineTo(270, top + 46); dome.quadraticCurveTo(270, top, 330, top); dome.lineTo(470, top); dome.quadraticCurveTo(530, top, 530, top + 46); dome.lineTo(530, bot); dome.closePath();
+    K.cel(dome, won ? '#ff7d8c' : '#ff4d5e', '#b8283a', 0, 10, 5); K.glint(dome, 322, top + 16, 44, 7, 'rgba(255,255,255,.6)', -.12);
+    ctx.save(); ctx.translate(cx, FEET); ctx.scale(1 + sag, 1 - sag); ctx.translate(0, 0);
+    K.arms(10, la, ra);
+    ctx.restore();
+    const dm = lost ? 'dead' : null, ey = top + 24, lk = won ? 1 : -.5;
+    K.eye(350, ey, 9.5, dm, creep > .6 ? 1 : 0, lk, 5); K.eye(450, ey, 9.5, dm, creep > .6 ? -1 : 0, lk, 6);
+    if (!lost) { ctx.strokeStyle = INK; ctx.lineWidth = 4.5; ctx.lineCap = 'round'; const dr = won ? -1 : 1; for (const sx of [-1, 1]) { ctx.beginPath(); ctx.moveTo(cx + sx * 64, ey - 15); ctx.lineTo(cx + sx * 36, ey - 15 + dr * 8); ctx.stroke(); } }
+    if (won) K.sweat(cx + 62, ey + 12, 1.4, (T * 1.1) % 1);
+    txt(S.taunt, cx, top + 62, 26, '#fff', 'center', 200);
+    // the second taunt swings across the bottom on a tag
+    if (!lost && !won) { const tx = cx + Math.sin(S.now * 9) * 160, ty = 500 + Math.cos(S.now * 7) * 20; K.rr(tx - 98, ty - 20, 196, 40, 20); K.ink('#FFE14D', 3); txt(S.taunt2, tx, ty + 1, 26, INK, 'center', 170); }
+    if (won) { for (let i = 0; i < 4; i++) { const k = (T * .7 + i * .25) % 1, hx = i % 2 ? 560 + hash(i) * 120 : 150 + hash(i + 3) * 100; K.heart(hx + Math.sin(T * 3 + i) * 8, 330 - k * 120, .9, Math.sin(k * Math.PI)); } txt('GOOD CLAUDE', cx, 138, 48, '#5CFF7A'); }
+    vignette(.18);
+  }
+  return { draw };
+})();
+function gDont(sp) {
+  const taunts = ['PRESS ME!', 'DO IT!', 'CLICK!', 'SPACE!!!', 'JUST ONCE!', 'GO ON...'];
+  const fail = () => { if (g.result) return; g.result = 'lose'; resAt = now; sfx.buzz(); sfx.thud(); shake(10, .3); burst(W / 2, 382, '#ee3b3b', 16); floatText('OOPS!', W / 2, 250, '#FF4D4D', 44); };
+  let resAt = null, wonFx = false;
+  const g = {
+    cmd: "DON'T!", hint: "DON'T TOUCH ANYTHING", dur: 4, timeWin: true, wide: true,
+    key() { fail(); }, down() { fail(); },
+    update() { if (g.result && resAt == null) resAt = now; },
+    draw(t) {
+      if (g.result && resAt == null) resAt = now;
+      W2DONT.draw({ result: g.result, now, taunt: taunts[(now * 1.4 | 0) % taunts.length], taunt2: taunts[((now * 1.4 | 0) + 3) % taunts.length] }, t, resAt == null ? 0 : Math.max(0, now - resAt));
+      if (g.result === 'win' && !g.won) { g.won = 1; sfx.coin(); sfx.sparkle(); confetti(W / 2, 200, 30); }
+    }
+  };
+  return g;
+}
 
 /* 9 ── COUNT: how many Claudes? (number keys or click)
    Scene: census day at a peach apartment block. Shutters bang open and Claudes in nightcaps, curlers and party hats lean out;

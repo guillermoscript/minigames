@@ -795,7 +795,153 @@ const W1A = (() => {
     }
     vignette(boss ? .22 : .14);
   }
-  return { swat, spot, type };
+  /* ═════════════ JUMP: the beetle lane (a meadow path, a windmill, a cow in sunglasses) ═════════════ */
+  const JGY = 450;
+  function tileBake(pw, h, fn) { const c = document.createElement('canvas'); c.width = pw; c.height = h; const old = X; X = c.getContext('2d'); try { fn(); } finally { X = old; } return c; }
+  function strip(c, sc, y) { const pw = c.width, n = Math.ceil((VW + pw) / pw) + 1, o = ((-sc % pw) + pw) % pw; for (let i = 0; i < n; i++) X.drawImage(c, -OX - o + i * pw - 0, y); }
+  let JSKY = null, JMT = null, JHL = null, JFE = null, JGR = null, JSW = -1;
+  function jumpBuild() {
+    if (JSKY && JSW === VW) return; JSW = VW;
+    JSKY = bake(() => {
+      const L = -OX - 2, R = W + OX + 2;
+      const g = X.createLinearGradient(0, 0, 0, 340); g.addColorStop(0, '#36b0ea'); g.addColorStop(.55, '#86d8fb'); g.addColorStop(1, '#d6f7ff'); X.fillStyle = g; X.fillRect(L, 0, R - L, 345);
+      const m = X.createLinearGradient(0, 330, 0, JGY); m.addColorStop(0, '#9be38a'); m.addColorStop(1, '#6fd660'); X.fillStyle = m; X.fillRect(L, 330, R - L, JGY - 330);
+      // light stripes on the meadow
+      X.fillStyle = 'rgba(255,255,255,.12)'; for (let i = -2; i < 14; i++) { X.beginPath(); X.moveTo(L + i * 120, JGY); X.lineTo(L + i * 120 + 60, JGY); X.lineTo(L + i * 120 + 100, 340); X.lineTo(L + i * 120 + 60, 340); X.fill(); }
+    });
+    JMT = tileBake(1200, 140, () => {   // far lilac mountains (period 1200)
+      X.fillStyle = '#c9d0fb'; X.strokeStyle = '#7b80c6'; X.lineWidth = 3; X.beginPath(); X.moveTo(0, 140);
+      const pk = [[0, 60], [150, 20], [330, 70], [520, 10], [720, 64], [900, 26], [1050, 66], [1200, 60]];
+      pk.forEach(p => X.lineTo(p[0], p[1] + 20)); X.lineTo(1200, 140); X.closePath(); X.fill(); X.stroke();
+      X.fillStyle = '#f6f8ff'; for (const [px, py] of [[150, 20], [520, 10], [900, 26]]) { X.beginPath(); X.moveTo(px, py + 20); X.lineTo(px - 32, py + 62); X.lineTo(px - 12, py + 54); X.lineTo(px, py + 66); X.lineTo(px + 14, py + 54); X.lineTo(px + 32, py + 62); X.closePath(); X.fill(); }
+    });
+    JHL = tileBake(800, 160, () => {    // rolling hills (period 800) with lollipop trees
+      X.translate(0, 40);
+      X.fillStyle = '#87d19b'; X.strokeStyle = '#4f9a6a'; X.lineWidth = 3; X.beginPath(); X.moveTo(0, 120);
+      for (let x = 0; x <= 800; x += 20) X.lineTo(x, 50 - Math.sin(x / 800 * TAU * 2 + 1) * 22 - Math.sin(x / 800 * TAU * 5) * 6);
+      X.lineTo(800, 120); X.closePath(); X.fill(); X.stroke();
+      for (const tx of [90, 410, 690]) { const ty = 52 - Math.sin(tx / 800 * TAU * 2 + 1) * 22 - Math.sin(tx / 800 * TAU * 5) * 6;
+        X.fillStyle = '#8a5a34'; X.fillRect(tx - 3, ty - 18, 6, 22);
+        X.beginPath(); X.arc(tx, ty - 28, 17, 0, TAU); ink('#3fb260', 3); X.fillStyle = '#5bcf72'; el(tx - 5, ty - 34, 7, 5, -.5); X.fill(); }
+    });
+    JFE = tileBake(180, 60, () => {     // a fence tile (period 180): 3 pickets and a rail
+      X.fillStyle = '#c4874e'; for (let i = 0; i < 3; i++) { rr(14 + i * 60, 8, 22, 50, 5); ink('#e3a868', 3); X.fillStyle = 'rgba(255,255,255,.28)'; rr(17 + i * 60, 11, 6, 40, 3); X.fill(); }
+      rr(-10, 26, 200, 10, 4); ink('#c4874e', 3);
+    });
+    JGR = tileBake(180, 190, () => {    // the lane: grass lip, dirt, pebbles, tufts (period 180)
+      X.fillStyle = INK; X.fillRect(0, 0, 180, 6);
+      let g = X.createLinearGradient(0, 4, 0, 30); g.addColorStop(0, '#8fdc5c'); g.addColorStop(1, '#5fb944'); X.fillStyle = g; X.fillRect(0, 4, 180, 26);
+      for (const x of [20, 100, 150]) { X.strokeStyle = '#3f8f35'; X.lineWidth = 3; X.lineCap = 'round'; X.beginPath(); X.moveTo(x - 6, 22); X.lineTo(x - 9, 12); X.moveTo(x, 22); X.lineTo(x, 9); X.moveTo(x + 6, 22); X.lineTo(x + 9, 12); X.stroke(); }
+      g = X.createLinearGradient(0, 30, 0, 190); g.addColorStop(0, '#d9a867'); g.addColorStop(1, '#b97a46'); X.fillStyle = g; X.fillRect(0, 30, 180, 160);
+      X.fillStyle = 'rgba(20,16,28,.1)'; X.fillRect(0, 30, 180, 8);
+      for (const [x, y, rx, ry] of [[30, 70, 14, 6], [110, 100, 18, 7], [160, 62, 9, 5], [70, 140, 16, 6], [140, 150, 12, 5]]) { el(x, y, rx, ry); ink('#e6c08a', 2.5); X.fillStyle = 'rgba(255,255,255,.35)'; el(x - rx * .3, y - ry * .35, rx * .4, ry * .3); X.fill(); }
+      // cart-wheel ruts
+      X.strokeStyle = 'rgba(122,82,48,.45)'; X.lineWidth = 5; X.lineCap = 'round'; X.beginPath(); X.moveTo(0, 54); X.lineTo(180, 54); X.moveTo(0, 124); X.lineTo(180, 124); X.stroke();
+    });
+  }
+  function windmill(x, y, T, res) {
+    X.save(); X.translate(x, y);
+    X.beginPath(); X.moveTo(-18, 0); X.lineTo(-11, -60); X.lineTo(11, -60); X.lineTo(18, 0); X.closePath(); ink('#f4ead6', 3.5);
+    X.save(); X.beginPath(); X.moveTo(-18, 0); X.lineTo(-11, -60); X.lineTo(-4, -60); X.lineTo(-6, 0); X.closePath(); X.fillStyle = '#d9c9a8'; X.fill(); X.restore();
+    rr(-5, -16, 10, 16, 4); ink('#a5622c', 2.5);
+    X.beginPath(); X.moveTo(-15, -58); X.lineTo(0, -80); X.lineTo(15, -58); X.closePath(); ink('#ff5a4d', 3.5);
+    X.translate(0, -62); X.rotate(T * (res === 'win' ? 3 : .8));
+    for (let i = 0; i < 4; i++) { X.rotate(TAU / 4); X.save(); rr(-3, -52, 6, 52, 3); ink('#c4874e', 2.5); rr(3, -50, 18, 30, 3); ink('#fffbf0', 2.5); X.restore(); }
+    X.beginPath(); X.arc(0, 0, 6, 0, TAU); ink('#ffd23f', 3); X.restore();
+  }
+  function cow(x, y, T, mood, look) {   // a cow in shades, chewing
+    X.save(); X.translate(x, y); const ch = Math.sin(T * 7) * 1.5;
+    X.fillStyle = 'rgba(20,16,28,.22)'; el(0, 3, 40, 7); X.fill();
+    for (const lx of [-24, -12, 12, 24]) { rr(lx - 4, -18, 8, 20, 3); ink('#fffbf0', 3); }
+    rr(-34, -52, 66, 40, 14); ink('#fffbf0', 4);
+    X.save(); rr(-34, -52, 66, 40, 14); X.clip(); X.fillStyle = '#2b2438'; el(-16, -42, 12, 9, .3); X.fill(); el(14, -26, 14, 10, -.2); X.fill(); X.fillStyle = 'rgba(20,16,28,.12)'; X.fillRect(-36, -26, 70, 16); X.restore();
+    line([[32, -30], [44, -20 + Math.sin(T * 3) * 4]], 3, '#2b2438');
+    X.translate(38, -48);
+    X.beginPath(); X.moveTo(-6, -14); X.lineTo(-12, -24); X.lineTo(-2, -16); ink('#fffbf0', 2.5);
+    rr(-16, -16, 36, 32, 12); ink('#fffbf0', 4);
+    rr(-6, 0 + ch * .3, 28, 16, 8); ink('#ffb7c5', 3);
+    X.fillStyle = INK; el(2, 7, 2, 2.4); X.fill(); el(14, 7, 2, 2.4); X.fill();
+    // shades
+    if (mood === 'happy') { X.lineWidth = 3; X.strokeStyle = INK; X.beginPath(); X.arc(-2, -2, 5, Math.PI * 1.1, Math.PI * 1.9); X.stroke(); X.beginPath(); X.arc(10, -2, 5, Math.PI * 1.1, Math.PI * 1.9); X.stroke(); heart(4, -30 - (T * 20 % 14), .6); }
+    else { rr(-12, -8, 14, 9, 4); ink('#14101c', 2); rr(4, -8, 14, 9, 4); ink('#14101c', 2); X.fillStyle = 'rgba(255,255,255,.5)'; el(-8, -6, 3, 1.5, -.4); X.fill(); }
+    if (mood === 'lol') { X.beginPath(); X.moveTo(-2, 8); X.lineTo(20, 8); X.lineTo(18, 14); X.lineTo(0, 14); X.closePath(); ink('#fff', 2); }
+    X.restore();
+  }
+  function beetle(x, T, look, res, k) {   // the angry red spiky beetle (same 60×64 footprint as the old crate)
+    const sc = ((x * .05) % 1 + 1) % 1, leg = Math.sin(T * 16 + k * 2);
+    X.save(); X.translate(x, JGY);
+    X.fillStyle = 'rgba(20,16,28,.28)'; el(0, 4, 38, 7); X.fill();
+    for (const lx of [-22, -8, 8, 22]) { const w = Math.sin(T * 16 + lx * .3 + k) * 5; line([[lx, -16], [lx + w, -2]], 4, '#5a1d1d'); }
+    X.translate(0, res === 'lose' ? -Math.abs(Math.sin(T * 12)) * 6 : 0);
+    // spikes behind the shell
+    for (let i = 0; i < 3; i++) { const sx = -22 + i * 22; X.beginPath(); X.moveTo(sx - 11, -56); X.lineTo(sx, -92); X.lineTo(sx + 11, -56); X.closePath(); ink('#ffe14d', 3.5); }
+    const shell = () => rr(-30, -64, 60, 52, 24);
+    cel(shell, '#ff5a4d', '#c93a3a', 4.5, -7, -6);
+    X.save(); shell(); X.clip(); X.fillStyle = '#7a1f2c'; for (const [sx, sy, sr] of [[-20, -26, 5], [20, -28, 5], [0, -18, 4]]) { X.beginPath(); X.arc(sx, sy, sr, 0, TAU); X.fill(); } X.restore();
+    X.fillStyle = 'rgba(255,255,255,.55)'; el(-17, -55, 8, 4, -.5); X.fill();
+    // face
+    const lk = [Math.max(-1, Math.min(1, look[0])), look[1]];
+    for (const ex of [-12, 12]) { el(ex, -42, 8, 9); ink('#fff', 2.5); X.beginPath(); X.arc(ex + lk[0] * 3, -42 + lk[1] * 3, 4, 0, TAU); X.fillStyle = INK; X.fill(); X.fillStyle = '#fff'; X.beginPath(); X.arc(ex + lk[0] * 3 - 1.2, -43.5 + lk[1] * 3, 1.4, 0, TAU); X.fill(); }
+    line([[-21, -56], [-5, -50]], 3.5, INK); line([[21, -56], [5, -50]], 3.5, INK);
+    if (res === 'lose') { X.beginPath(); X.moveTo(-14, -30); X.quadraticCurveTo(0, -14, 14, -30); X.quadraticCurveTo(0, -26, -14, -30); ink('#fff', 2.5); }
+    else { X.beginPath(); X.moveTo(-12, -26); for (let i = 0; i < 4; i++) X.lineTo(-12 + i * 8 + 4, -31 + (i % 2 ? 0 : 0)), X.lineTo(-12 + (i + 1) * 8, -26); X.lineWidth = 3; X.strokeStyle = INK; X.lineJoin = 'round'; X.stroke(); }
+    X.restore();
+  }
+  function speedLines(scroll) {
+    X.strokeStyle = 'rgba(255,255,255,.55)'; X.lineWidth = 3; X.lineCap = 'round';
+    for (let i = 0; i < 5; i++) { const x = (((-scroll * 1.8 + i * 211) % 900) + 900) % 900 - 60 - OX * 0, y = JGY + 56 + (i % 3) * 36 + i * 3; X.beginPath(); X.moveTo(x, y); X.lineTo(x + 44, y); X.stroke(); }
+  }
+  function jump(s) {
+    X = ctx; jumpBuild(); const { scroll, py, land, obs, res, rT, T } = s, won = res === 'win', lost = res === 'lose';
+    layer(JSKY);
+    X.save(); X.translate(0, 0);
+    sun(690, 150, 30, T);
+    strip(JMT, scroll * .04, 230);
+    for (let i = 0; i < 4; i++) cloud((((i * 290 - T * 14 - scroll * .08) % 1160) + 1160) % 1160 - 160, 96 + (i % 3) * 36, 1 + (i % 2) * .25);
+    strip(JHL, scroll * .1, 222);
+    // windmill and cow ride the meadow on a slow parallax
+    const wp = 1400, wx = (((620 - scroll * .16) % wp) + wp) % wp - 200;
+    windmill(wx, 352, T, res);
+    const cx = Math.max(440, 690 - scroll * .12);   // slow parallax, always on screen and clear of Claude
+    cow(cx, 424, T, won ? 'happy' : lost ? 'lol' : null);
+    // a bird crossing the sky
+    const bx = ((T * 60) % 1000) - 100, by = 120 + Math.sin(T * 2) * 10, fl = Math.sin(T * 14) * 7;
+    X.lineWidth = 3; X.strokeStyle = '#3c6fb4'; X.lineCap = 'round'; X.beginPath(); X.moveTo(bx - 12, by - fl); X.quadraticCurveTo(bx - 5, by - 6, bx, by); X.quadraticCurveTo(bx + 5, by - 6, bx + 12, by - fl); X.stroke();
+    strip(JFE, scroll * .6, 392);
+    X.restore();
+    strip(JGR, scroll, JGY - 4);
+    // little ground chips flying past
+    // beetles (behind Claude so the face reads)
+    obs.forEach((o, i) => { if (o.x > -OX - 80 && o.x < W + OX + 80) beetle(o.x, T, [(150 - o.x) / 160, py < -30 ? -.8 : .3], res, i); });
+    if (!res) speedLines(scroll);
+    // Claude
+    const u = 9, hop = won ? Math.abs(Math.sin(rT * 9)) * 22 : 0;
+    const air = py < 0, sqx = lost ? Math.max(0, 1 - rT * 3) : 0;
+    X.save(); X.fillStyle = `rgba(20,16,28,${Math.max(.08, .28 + py * .0015)})`; el(150, JGY + 6, 46 - Math.min(20, -py * .12) + (lost ? 8 : 0), 9); X.fill(); X.restore();
+    X.save(); X.translate(150, JGY + py + land * 20 - hop);
+    if (lost) { const sq = .72 + .28 * (1 - Math.min(1, rT * 4)); X.scale(1.12 - sq * .12 + .1, Math.max(.72, sq)); }
+    else if (land > 0) X.scale(1 + land, 1 - land * 1.2);
+    // arms
+    X.save();
+    if (won) { const w = Math.sin(T * 14) * .25; arms(u, -.5 + w, .5 - w, 1, OR); }
+    else if (lost) arms(u, -1.2 + Math.sin(T * 10) * .15, 1.2, 1, OR);
+    else if (air) arms(u, -.7, .7, 1, OR);
+    else arms(u, .5 + Math.sin(T * 16) * .2, -.5 - Math.sin(T * 16) * .2, 1, OR);
+    X.restore();
+    claude(0, 0, u, { run: !air && !res ? T : null, mood: lost ? 'sad' : won ? 'happy' : null });
+    X.restore();
+    // after-effects
+    if (air && !res) { for (let i = 0; i < 3; i++) { const d = rT; X.strokeStyle = 'rgba(255,255,255,.7)'; X.lineWidth = 3; X.lineCap = 'round'; X.beginPath(); X.moveTo(110 + i * 40, JGY + py + 40 + i * 6); X.lineTo(110 + i * 40, JGY + py + 62 + i * 6); X.stroke(); } }
+    if (lost) {
+      stars(150, JGY - 108, 38, T); drop(215, JGY - 130 + Math.min(40, rT * 80), 1.1, Math.max(0, 1 - rT * 1.2));
+      for (let i = 0; i < 4; i++) { const k = Math.min(1, rT * 1.4); X.save(); X.globalAlpha = 1 - k * .8; X.translate(150 + (i - 1.5) * 30, JGY - 20 - k * 40 - (i % 2) * 20); X.rotate(k * 3 + i); X.fillStyle = '#58c24a'; el(0, 0, 8, 3.5); X.fill(); X.restore(); }
+    }
+    if (won) {
+      for (let i = 0; i < 6; i++) { const k = ((rT * 1.2 + i * .17) % 1); heart(80 + i * 128 + Math.sin(i * 2.1 + rT * 3) * 14, JGY - 270 - k * 200, 1.25 - k * .35); }
+      for (let i = 0; i < 4; i++) { const an = T * 2.5 + i * TAU / 4; star(150 + Math.cos(an) * 150, JGY - 100 + Math.sin(an) * 90 + Math.sin(T * 6 + i) * 4, 11, 5, 5, T * 3 + i, '#FFE14D', 3); }
+    }
+  }
+  return { swat, spot, type, jump };
 })();
 
 /* 1 ── SWAT: click the bugs (mouse) */
@@ -837,7 +983,7 @@ function gSwat(sp) {
 /* 2 ── JUMP: hop over the bugs (space / up / click) */
 function gJump(sp) {
   const spd = 420 * sp, GY = 450;
-  let py = 0, vy = 0, scroll = 0, land = 0;
+  let py = 0, vy = 0, scroll = 0, land = 0, rT0 = -1;
   const obs = [{ x: W + OX + 60 }, { x: W + OX + 60 + (500 + Math.random() * 80) * sp }];
   const g = {
     wide: true, cmd: 'JUMP!', hint: 'SPACE OR CLICK TO JUMP', thint: 'TAP TO JUMP', dur: 4.4, timeWin: true,
@@ -855,25 +1001,7 @@ function gJump(sp) {
         else if (!o.passed && o.x < 90 && !g.result) { o.passed = 1; sfx.blip(7); floatText('NICE!', 150, GY - 140, '#5CFF7A', 30); }
       }
     },
-    draw(t) {
-      bg('#6EC6FF', '#5fb8f5', t);
-      const cn = Math.ceil((VW + 240) / 260), cp = cn * 260;
-      for (let i = 0; i < cn; i++) { const cx = ((i * 260 - scroll * .25) % cp + cp) % cp - 120 - OX; circ(cx, 110 + i * 25, 28, '#fff', 4); circ(cx + 34, 120 + i * 25, 22, '#fff', 4); circ(cx - 34, 124 + i * 25, 20, '#fff', 4); }
-      ctx.fillStyle = INK; ctx.fillRect(-OX, GY - 4, VW, 160);
-      ctx.fillStyle = '#58c24a'; ctx.fillRect(-OX, GY, VW, 26);
-      ctx.fillStyle = '#7a5230'; ctx.fillRect(-OX, GY + 26, VW, 140);
-      ctx.fillStyle = '#6a4526';
-      const dn = Math.ceil((VW + 120) / 90), dp = dn * 90;
-      for (let i = 0; i < dn; i++) ctx.fillRect(((i * 90 - scroll) % dp + dp) % dp - 60 - OX, GY + 60 + (i % 3) * 30, 40, 10);
-      for (const o of obs) {
-        for (let i = 0; i < 3; i++) { ctx.fillStyle = INK; ctx.beginPath(); ctx.moveTo(o.x - 32 + i * 22 - 4, GY - 62); ctx.lineTo(o.x - 21 + i * 22, GY - 92); ctx.lineTo(o.x - 10 + i * 22 + 4, GY - 62); ctx.fill();
-          ctx.fillStyle = '#ff5a4d'; ctx.beginPath(); ctx.moveTo(o.x - 29 + i * 22, GY - 64); ctx.lineTo(o.x - 21 + i * 22, GY - 86); ctx.lineTo(o.x - 13 + i * 22, GY - 64); ctx.fill(); }
-        box(o.x - 30, GY - 64, 60, 64, '#ff5a4d', 4);
-        txt('!', o.x, GY - 32, 44, '#fff');
-      }
-      shadow(150, GY + 6, 46 - Math.min(20, -py * .12), 9, Math.max(.08, .28 + py * .0015));
-      claude(150, GY + py + land * 20, 9, { run: py === 0 && !g.result ? now : null, mood: g.result === 'lose' ? 'sad' : g.result === 'win' ? 'happy' : null });
-    }
+    draw() { if (g.result && rT0 < 0) rT0 = now; W1A.jump({ scroll, py, land, obs, res: g.result, rT: now - rT0, T: now }); }
   };
   return g;
 }

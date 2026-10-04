@@ -582,14 +582,69 @@ function raceGround(fx) {
   }
 }
 
-/* 16 ── WAIT: press only when the light turns green */
+/* 16 ── WAIT: a drag strip. Claude sits in a soapbox kart on the start line under a giant traffic light; a sleepy tortoise
+   idles in the next lane. Press only when the light turns green. Early = the kart falls apart, late = Claude naps. */
+let REFLEX_BG = null;
+const RF_P = {}; const rfRR = (x, y, w, h, r) => { const k = [x, y, w, h, r].join(); if (!RF_P[k]) { const p = new Path2D(); p.moveTo(x + r, y); p.arcTo(x + w, y, x + w, y + h, r); p.arcTo(x + w, y + h, x, y + h, r); p.arcTo(x, y + h, x, y, r); p.arcTo(x, y, x + w, y, r); p.closePath(); RF_P[k] = p; } return RF_P[k]; };
+const RF_TX = 520;                                           // x of the traffic light post
+function reflexStage() {
+  const K = W3K, { rr, el, ink, TAU } = K, X = K.cx(), L = -OX, R = W + OX;
+  const sky = X.createLinearGradient(0, 0, 0, 392); sky.addColorStop(0, '#3fb0ff'); sky.addColorStop(.55, '#8fdcff'); sky.addColorStop(1, '#e6fbff');
+  X.fillStyle = sky; X.fillRect(L, 0, VW, 392);
+  // far mountains (coloured outline) with snow caps
+  for (const [off, base, ol, hh] of [[0, '#c9d0fb', '#7b80c6', 150], [90, '#a4b1f2', '#5b5fa8', 110]]) {
+    X.beginPath(); X.moveTo(L, 330);
+    for (let x = L - 60 + off % 70, i = 0; x < R + 120; x += 190, i++) { const h = hh * (.7 + K.hash(i + off) * .5); X.lineTo(x, 330); X.lineTo(x + 95, 330 - h); X.lineTo(x + 190, 330); }
+    X.lineTo(R, 340); X.lineTo(L, 340); X.closePath(); X.fillStyle = base; X.fill(); X.lineJoin = 'round'; X.lineWidth = 4; X.strokeStyle = ol; X.stroke();
+  }
+  // green hills with lollipop trees
+  for (const [yy, col, ol, k] of [[316, '#a9dfc6', null, 0], [336, '#87d19b', '#4f9a6a', 1]]) {
+    X.beginPath(); X.moveTo(L, 380);
+    for (let x = L; x <= R; x += 20) X.lineTo(x, yy - Math.sin(x * .009 + k * 2) * 18 - Math.sin(x * .021 + k) * 8);
+    X.lineTo(R, 380); X.closePath(); X.fillStyle = col; X.fill(); if (ol) { X.lineWidth = 3; X.strokeStyle = ol; X.stroke(); }
+  }
+  for (let i = 0; i < 9; i++) { const x = L + 40 + K.hash(i + 9) * (VW - 80), y = 340 - Math.sin(x * .009 + 2) * 18 - Math.sin(x * .021 + 1) * 8;
+    X.fillStyle = '#8a5a34'; X.fillRect(x - 3, y - 18, 6, 20); X.beginPath(); X.arc(x, y - 28, 15, 0, TAU); ink('#3fb260', 3); X.fillStyle = 'rgba(255,255,255,.28)'; el(x - 5, y - 34, 5, 3, -.5); X.fill(); }
+  // the grandstand: back wall, bleacher steps, striped awning, wooden rail
+  X.fillStyle = INK; X.fillRect(L, 304, VW, 90);
+  X.fillStyle = '#c9a77a'; X.fillRect(L, 308, VW, 82);
+  X.fillStyle = '#b98a58'; for (let r = 0; r < 3; r++) X.fillRect(L, 336 + r * 17, VW, 6);
+  X.fillStyle = 'rgba(255,255,255,.18)'; X.fillRect(L, 308, VW, 5);
+  for (let x = L; x < R + 40; x += 36) { X.beginPath(); X.moveTo(x, 282); X.lineTo(x + 36, 282); X.lineTo(x + 36, 306); X.quadraticCurveTo(x + 18, 316, x, 306); X.closePath(); X.fillStyle = ((x - L) / 36 | 0) % 2 ? '#fff' : '#ff4d5e'; X.fill(); X.lineWidth = 3; X.strokeStyle = INK; X.stroke(); }
+  X.fillStyle = INK; X.fillRect(L, 278, VW, 8); X.fillStyle = '#a5622c'; X.fillRect(L, 280, VW, 3);
+  X.fillStyle = INK; X.fillRect(L, 372, VW, 24);
+  X.fillStyle = '#e3a868'; X.fillRect(L, 376, VW, 14); X.fillStyle = '#c4874e'; X.fillRect(L, 386, VW, 4);
+  X.fillStyle = INK; for (let x = L + 20; x < R; x += 90) X.fillRect(x - 4, 372, 8, 22);
+  // bunting
+  X.beginPath(); X.moveTo(L, 296); for (let x = L; x <= R; x += 20) X.lineTo(x, 296 + Math.sin((x - L) / 80 * Math.PI) * 6); X.lineWidth = 2.5; X.strokeStyle = INK; X.stroke();
+  for (let x = L + 10, i = 0; x < R; x += 40, i++) { const y = 296 + Math.sin((x - L) / 80 * Math.PI) * 6; X.beginPath(); X.moveTo(x - 9, y); X.lineTo(x + 9, y); X.lineTo(x, y + 18); X.closePath(); ink(['#FFE14D', '#4db8ff', '#ff5c8a', '#5CFF7A'][i % 4], 2); }
+  // asphalt, lanes, skids, ink horizon
+  const as = X.createLinearGradient(0, 392, 0, 600); as.addColorStop(0, '#6b6a82'); as.addColorStop(1, '#3d3a52');
+  X.fillStyle = as; X.fillRect(L, 392, VW, 208); X.fillStyle = INK; X.fillRect(L, 390, VW, 5);
+  X.save(); X.beginPath(); X.rect(L, 395, VW, 205); X.clip(); X.strokeStyle = 'rgba(255,255,255,.07)'; X.lineWidth = 20; for (let x = L - 300; x < R; x += 80) { X.beginPath(); X.moveTo(x, 600); X.lineTo(x + 300, 395); X.stroke(); } X.restore();
+  X.fillStyle = 'rgba(20,16,28,.18)'; for (let i = 0; i < 90; i++) { const x = L + K.hash(i + 400) * VW, y = 400 + K.hash(i + 500) * 150; el(x, y, 2 + K.hash(i) * 3, 1.5); X.fill(); }
+  X.strokeStyle = 'rgba(20,16,28,.28)'; X.lineWidth = 7; X.lineCap = 'round'; for (const y of [488, 520]) { X.beginPath(); X.moveTo(L + 20, y); X.quadraticCurveTo(160, y - 6, 280, y); X.stroke(); }
+  X.strokeStyle = '#fff'; X.lineWidth = 5; X.setLineDash([34, 22]); X.beginPath(); X.moveTo(L, 456); X.lineTo(R, 456); X.stroke(); X.setLineDash([]);
+  X.beginPath(); X.moveTo(L, 549); X.lineTo(R, 549); X.stroke();
+  // the start line: a checkered strip, plus a black-and-white curb in the back lane
+  for (let r = 0; r < 10; r++) for (let c = 0; c < 2; c++) { X.fillStyle = (r + c) % 2 ? '#fff' : INK; X.fillRect(292 + c * 14, 398 + r * 15, 14, 15); }
+  X.lineWidth = 3; X.strokeStyle = INK; X.strokeRect(292, 398, 28, 150);
+  // cones in the lane line
+  for (const cx of [610, 700, 790]) { X.beginPath(); X.moveTo(cx - 9, 456); X.lineTo(cx - 5, 432); X.lineTo(cx + 5, 432); X.lineTo(cx + 9, 456); X.closePath(); ink('#ff9a3c', 3); X.fillStyle = '#fff'; X.fillRect(cx - 7, 440, 14, 5); rr(cx - 12, 453, 24, 6, 3); ink('#d97a2c', 2.5); }
+  // the traffic-light post: striped pole with a base plate
+  X.fillStyle = INK; X.fillRect(RF_TX - 17, 318, 34, 122);
+  const pole = rfRR(RF_TX - 13, 318, 26, 118, 4); X.fillStyle = '#e8eaf2'; X.fill(pole);
+  X.save(); X.clip(pole); X.fillStyle = '#ff4d5e'; for (let y = 322; y < 436; y += 28) { X.beginPath(); X.moveTo(RF_TX - 14, y); X.lineTo(RF_TX + 14, y - 14); X.lineTo(RF_TX + 14, y); X.lineTo(RF_TX - 14, y + 14); X.fill(); } X.fillStyle = 'rgba(20,16,28,.2)'; X.fillRect(RF_TX + 4, 318, 10, 120); X.restore();
+  K.shade(RF_TX, 440, 56, 9, .3); rr(RF_TX - 36, 428, 72, 16, 7); ink('#8f9cb3', 4); X.fillStyle = 'rgba(255,255,255,.35)'; rr(RF_TX - 28, 431, 40, 4, 2); X.fill();
+}
 function gReflex(sp) {
   const goAt = (.9 + Math.random() * 1.5) / Math.sqrt(sp), win = 1.0 / sp;
   let clock = 0, rt = 0;
+  let endAt = -1;                       // cosmetic only (art): when the verdict landed (in `now` time)
   const press = () => {
-    if (g.result) return;
+    if (g.result) return; endAt = now;
     if (clock < goAt) { g.result = 'lose'; sfx.buzz(); shake(7, .25); }
-    else { rt = (clock - goAt) * 1000 | 0; g.result = 'win'; sfx.hit(); sfx.coin(); burst(W / 2, 330, '#5CFF7A', 16); ring(W / 2, 330, '#5CFF7A', 100); floatText(rt < 300 ? 'FAST!' : 'NICE!', W / 2 - 220, 230, '#fff'); }
+    else { rt = (clock - goAt) * 1000 | 0; g.result = 'win'; sfx.hit(); sfx.coin(); burst(RF_TX, 280, '#5CFF7A', 16); ring(RF_TX, 280, '#5CFF7A', 100); floatText(rt < 300 ? 'FAST!' : 'NICE!', W / 2 - 220, 230, '#fff'); }
   };
   const g = {
     wide: true, cmd: 'WAIT!', hint: 'PRESS ONLY AT GREEN', thint: 'TAP ONLY AT GREEN', dur: 4,
@@ -597,21 +652,168 @@ function gReflex(sp) {
     update(dt) {
       if (g.result) return;
       const was = clock < goAt; clock += dt;
-      if (was && clock >= goAt) { sfx.pop(); sfx.blip(7); ring(W / 2, 330, '#5CFF7A', 80, .35); }
-      if (clock > goAt + win) { g.result = 'lose'; sfx.miss(); }
+      if (was && clock >= goAt) { sfx.pop(); sfx.blip(7); ring(RF_TX, 280, '#5CFF7A', 80, .35); }
+      if (clock > goAt + win) { g.result = 'lose'; endAt = now; sfx.miss(); }
     },
-    draw(t) {
-      bg('#6B7A8F', '#5f6e83', t);
-      const go = clock >= goAt, early = g.result === 'lose' && clock < goAt;
-      shadow(W / 2 + 10, 478, 90, 16); box3(W / 2 - 80, 90, 160, 300, '#2b2b3a', 6);
-      if (!go) { ctx.globalAlpha = .25; circ(W / 2, 150, 62, '#ff3b3b', 0); ctx.globalAlpha = 1; } else { ctx.globalAlpha = .3 + Math.sin(now * 20) * .1; circ(W / 2, 330, 64, '#5CFF7A', 0); ctx.globalAlpha = 1; }
-      circ(W / 2, 150, 42, go ? '#4a1d1d' : '#ff3b3b', 4);
-      circ(W / 2, 240, 42, '#5a4d1d', 4);
-      circ(W / 2, 330, 42, go ? '#5CFF7A' : '#1d4a2a', 4);
-      ctx.fillStyle = '#2b2b3a'; ctx.fillRect(W / 2 - 14, 394, 28, 80);
-      claude(W / 2 + 190, 520, 9, { mood: g.result === 'win' ? 'happy' : g.result === 'lose' ? 'sad' : null });
-      if (g.result === 'win') txt(rt + ' ms', W / 2 - 220, 300, 56, '#5CFF7A');
-      if (early) txt('TOO SOON!', W / 2 - 220, 300, 50, '#FF4D4D');
+    draw() {
+      const K = W3K, { rr, el, ink, TAU, ease, outBack, clamp } = K, X = ctx, L = -OX, R = W + OX;
+      const T = now, won = g.result === 'win', lost = g.result === 'lose', early = lost && clock < goAt, late = lost && !early;
+      const rk = endAt < 0 ? 0 : now - endAt, go = clock >= goAt, tense = clamp(clock / goAt, 0, 1);
+      if (!REFLEX_BG || REFLEX_BG.width !== VW) REFLEX_BG = K.bake(VW, H, c => { c.translate(OX, 0); reflexStage(); });
+      X.drawImage(REFLEX_BG, -OX, 0);
+      // sky life: sun, drifting clouds, an egg-shaped hot air balloon
+      K.sun(116, 150, T);
+      for (const [sp2, off, yy, s] of [[7, 0, 112, 1], [5, 460, 188, .8], [9, 780, 244, .6]]) K.cloud((T * sp2 + off) % (VW + 280) - 140 + L, yy, s);
+      {
+        const bx = (T * 16 + 300) % (VW + 340) - 170 + L, by = 254 + Math.sin(T * .9) * 6;
+        X.save(); X.translate(bx, by);
+        X.strokeStyle = INK; X.lineWidth = 2.5; X.beginPath(); X.moveTo(-18, 36); X.lineTo(-10, 66); X.moveTo(18, 36); X.lineTo(10, 66); X.stroke();
+        const EG = K.pEl(0, 0, 40, 46); K.cel(EG, '#fff', '#d9d3ea', 3, 3, 4); X.fillStyle = '#ffd23f'; K.cel(K.pEl(2, 6, 18, 18), '#ffd23f', '#c99512', 2, 2, 3); K.glint(K.pEl(2, 6, 18, 18), -4, 0, 5, 3, .55);
+        rr(-14, 62, 28, 18, 5); ink('#d9944f', 3.5); X.fillStyle = '#f2c94c'; el(0, 59, 8, 7); X.fill(); el(-3, 57, 1.6, 1.8); X.fillStyle = INK; X.fill(); el(3, 57, 1.6, 1.8); X.fill();
+        X.restore();
+      }
+      // the crowd in the stand: every head is its own colour; they bob, cheer on a win, slump on a loss
+      for (let i = 0; i < 70; i++) {
+        const row = i % 2, x = L + 14 + (i >> 1) * 28 + K.hash(i + 31) * 10, y0 = 338 + row * 20;
+        const jump = won ? Math.abs(Math.sin(rk * 9 + i)) * 9 : lost ? 0 : Math.abs(Math.sin(T * 2.4 + i * 1.7)) * 2.5 * (go ? 2.5 : 1);
+        const y = y0 - jump + (lost ? 3 : 0), hue = ['#ffd6a8', '#f4b183', '#c98d62', '#ffe0c2', '#a6d86b', '#b9a8ff'][i % 6];
+        X.beginPath(); X.moveTo(x - 9, y + 16); X.quadraticCurveTo(x, y + 4, x + 9, y + 16); X.closePath(); ink(['#ff4d5e', '#4db8ff', '#FFE14D', '#5CFF7A', '#ff5c8a'][(i * 3) % 5], 2.5);
+        if (won) { X.strokeStyle = INK; X.lineWidth = 3; X.lineCap = 'round'; X.beginPath(); X.moveTo(x - 8, y + 12); X.lineTo(x - 11, y - 6 - Math.sin(rk * 12 + i) * 3); X.moveTo(x + 8, y + 12); X.lineTo(x + 11, y - 6 + Math.sin(rk * 12 + i) * 3); X.stroke(); }
+        X.beginPath(); X.arc(x, y, 8, 0, TAU); ink(hue, 2.5); X.fillStyle = INK;
+        if (won) { X.fillRect(x - 5, y - 2, 3, 2); X.fillRect(x + 2, y - 2, 3, 2); } else { el(x - 3, y - 1, 1.5, 2); X.fill(); el(x + 3, y - 1, 1.5, 2); X.fill(); }
+        if (i % 7 === 3) { X.beginPath(); X.moveTo(x - 9, y - 4); X.lineTo(x, y - 17); X.lineTo(x + 9, y - 4); X.closePath(); ink(['#ff4d5e', '#4db8ff', '#FFE14D'][i % 3], 2); }   // party hats
+      }
+      // ───── traffic light (on the post baked into the stage) ─────
+      {
+        const TX = RF_TX, cols = [['#ff4d5e', '#6b1d28', 150], ['#ffd23f', '#6b5a1d', 214], ['#5CFF7A', '#1d4a2a', 278]];
+        X.save(); X.translate(TX, 0); X.rotate(Math.sin(T * 1.2) * .004); X.translate(-TX, 0);
+        K.shade(TX + 8, 328, 70, 8, .25);
+        const BOX = rfRR(TX - 66, 84, 132, 238, 22); K.cel(BOX, '#4a4466', '#2c2742', 7, 0, 4.5); K.glint(BOX, TX - 44, 120, 8, 60, .25, 0);
+        for (const [i, [on, off, yy]] of cols.entries()) {
+          const lit = i === 0 ? !go : i === 2 ? go : false, pulse = lit && i === 2 ? .5 + Math.sin(T * 20) * .5 : 0;
+          X.beginPath(); X.moveTo(TX - 40, yy - 10); X.quadraticCurveTo(TX, yy - 52, TX + 40, yy - 10); X.lineTo(TX + 40, yy - 24); X.quadraticCurveTo(TX, yy - 62, TX - 40, yy - 24); X.closePath(); ink('#2c2742', 3);
+          X.beginPath(); X.arc(TX, yy, 31, 0, TAU); ink(lit ? on : off, 4);
+          if (lit) { X.save(); X.globalCompositeOperation = 'lighter'; X.fillStyle = on; X.globalAlpha = .28 + pulse * .15; X.beginPath(); X.arc(TX, yy, 54 + pulse * 6, 0, TAU); X.fill(); X.restore(); }
+          X.fillStyle = `rgba(255,255,255,${lit ? .7 : .22})`; el(TX - 10, yy - 11, 9, 5, -.6); X.fill();
+        }
+        X.restore();
+      }
+      // ───── the rival: a tortoise in a helmet in the back lane ─────
+      {
+        const cr = go ? clamp((clock - goAt) * 1.5, 0, 1) * 18 : 0, tx = 372 + cr + (late ? ease(rk / .8) * 120 : 0), ty = 446;
+        const bob = early ? -Math.abs(Math.sin(rk * 14)) * 6 : 0;
+        const SH = K.pEl(0, -30, 44, 34);
+        X.save(); X.translate(tx, ty + bob); X.scale(1 + (early ? Math.sin(rk * 28) * .03 : 0), 1);
+        K.shade(0, 0, 54, 8, .3);
+        for (const lx of [-26, 20]) { X.beginPath(); rr(lx - 2, -14 + Math.sin(go ? T * 9 + lx : 0) * 2, 20, 16, 7); ink('#7fb35a', 3.5); }
+        X.save(); X.beginPath(); X.rect(-60, -80, 120, 80); X.clip(); K.cel(SH, '#4f9a6a', '#2f7a49', 6, 0, 4.5); X.restore();
+        X.save(); X.clip(SH); X.strokeStyle = '#2f7a49'; X.lineWidth = 3; for (const [a, b] of [[-14, -40], [12, -44], [-2, -22], [26, -26], [-30, -24]]) { X.beginPath(); for (let k = 0; k < 6; k++) X.lineTo(a + Math.cos(k * 1.047 + .5) * 11, b + Math.sin(k * 1.047 + .5) * 9); X.closePath(); X.stroke(); } X.restore();
+        K.glint(SH, -16, -52, 11, 4, .4, -.4);
+        const HD = K.pEl(50, -34, 19, 16); K.cel(HD, '#a6d86b', '#7fb35a', 3, 3, 4); K.glint(HD, 44, -42, 5, 3, .5, -.5);
+        const em = early ? 'happy' : won ? 'panic' : go ? 'idle' : 'idle';
+        X.fillStyle = INK; X.strokeStyle = INK;
+        if (!go && !won && !early) {   // sleepy: lid drooping over the eye
+          K.eye(52, -38, 7, 'idle', [-1, 0], T, 2); X.fillStyle = '#a6d86b'; X.beginPath(); X.rect(44, -47, 18, 9 + Math.sin(T * 1.2) * 1.5); X.fill(); X.lineWidth = 2.5; X.beginPath(); X.moveTo(45, -38 + Math.sin(T * 1.2) * 1.5); X.lineTo(60, -38 + Math.sin(T * 1.2) * 1.5); X.stroke();
+          if (Math.sin(T * 1.1) > .6) { el(64, -30, 3.2, 4.4 * Math.max(0, Math.sin(T * 1.1))); ink('#7a3040', 1.5); }   // a yawn
+        } else K.eye(52, -38, 7, em, [1, 0], T, 2);
+        X.lineWidth = 3; X.beginPath(); if (early) { X.moveTo(58, -26); X.quadraticCurveTo(64, -16, 66, -28); X.stroke(); X.beginPath(); el(62, -24, 5, 4 + Math.abs(Math.sin(rk * 20)) * 2); ink('#7a3040', 1.8); } else if (won) { el(62, -24, 3, 4); ink('#7a3040', 1.8); } else { X.moveTo(58, -26); X.lineTo(66, -26); X.stroke(); }
+        X.fillStyle = 'rgba(255,110,165,.55)'; el(46, -28, 4, 2.6); X.fill();
+        X.beginPath(); X.moveTo(34, -44); X.quadraticCurveTo(52, -66, 68, -44); X.closePath(); ink('#ffd23f', 3.5); X.fillStyle = 'rgba(255,255,255,.5)'; el(46, -54, 6, 2.4, -.4); X.fill();   // tiny helmet
+        X.restore();
+      }
+      // ───── the foot pedal plate (controls) ─────
+      {
+        const px = 678, py = 478, down = g.result ? 6 : (go ? Math.max(0, Math.sin(T * 20)) * 3 : 0), grey = !!g.result;
+        K.shade(px + 6, py + 52, 78, 9, .3);
+        rr(px - 76, py - 36 + 9, 152, 84, 20); ink(grey ? '#8f88a6' : '#b8283a', 4);
+        rr(px - 76, py - 36 + 9 - 9 + down, 152, 84, 20); ink(grey ? '#d3cfe0' : '#ff4d5e', 4);
+        X.fillStyle = 'rgba(255,255,255,.35)'; rr(px - 66, py - 30 + down, 70, 7, 3.5); X.fill();
+        rr(px - 50, py - 20 + down, 100, 32, 10); ink(grey ? '#8f88a6' : '#3b3550', 3.5); X.strokeStyle = grey ? '#d3cfe0' : '#5a5274'; X.lineWidth = 3; for (let i = 0; i < 4; i++) { X.beginPath(); X.moveTo(px - 38 + i * 24, py - 14 + down); X.lineTo(px - 38 + i * 24, py + 6 + down); X.stroke(); }
+        if (go && !g.result) { X.strokeStyle = `rgba(255,255,255,${.5 + Math.sin(T * 14) * .4})`; X.lineWidth = 4; rr(px - 84, py - 38, 168, 90, 24); X.stroke(); }
+        if (!TOUCH) K.keyCap('SPACE', px, py + 30 + down);
+      }
+      // ───── Claude's soapbox kart ─────
+      {
+        const u = 5.2;
+        let kx = 178, ky = 532, spin = 0, sink = 0, flame = 0, lurch = 0, wheels = true;
+        if (!g.result && go) flame = .75 + Math.sin(T * 40) * .2;
+        const jit = !g.result ? Math.sin(T * 50) * (go ? 1.4 : tense * tense * 1.1) : 0;
+        if (won) { const d = 1700 * rk * rk; kx += d; spin = d / 24; flame = 1; }
+        if (early) { lurch = 52 * ease(rk / .14); kx += lurch; sink = ease((rk - .14) / .1) * 17; wheels = false; }
+        const mood = won ? 'happy' : early ? 'sad' : null, ex = kx + (early ? 0 : 0);
+        // dust + speed lines behind a launching kart
+        if (won) {
+          for (let i = 0; i < 7; i++) { const q = rk * 2.4 - i * .11; if (q > 0 && q < 1) K.puff(kx - 90 - i * 34 - q * 30, ky - 14 - (i % 3) * 7, 14 + q * 10, .8 * (1 - q)); }
+          X.strokeStyle = 'rgba(255,255,255,.8)'; X.lineWidth = 4; X.lineCap = 'round'; for (let i = 0; i < 6; i++) { const yy = 462 + i * 14, ln = 120 + (i % 3) * 50; X.beginPath(); X.moveTo(kx - 90 - ln - (i % 2) * 30, yy); X.lineTo(kx - 90 - (i % 2) * 30, yy); X.stroke(); }
+        }
+        X.save(); X.translate(kx, ky + jit * .5 + sink * .4); X.scale(1.2, 1.2);
+        if (early) X.rotate(-ease((rk - .14) / .2) * .04);
+        K.shade(0, 2 - sink * .4, 90, 10, .32);
+        // exhaust flame out the back
+        if (flame > 0) { const fl = 36 * flame + Math.sin(T * 60) * 5; X.beginPath(); X.moveTo(-72, -44); X.quadraticCurveTo(-72 - fl * .7, -50, -72 - fl, -36); X.quadraticCurveTo(-72 - fl * .7, -26, -72, -30); X.closePath(); ink('#ff9a3c', 3.5); X.beginPath(); X.moveTo(-72, -41); X.quadraticCurveTo(-72 - fl * .45, -44, -72 - fl * .6, -37); X.quadraticCurveTo(-72 - fl * .45, -32, -72, -34); X.closePath(); X.fillStyle = '#ffe14d'; X.fill(); }
+        // Claude at the wheel
+        const fy = -47 + sink * .3, bobN = won ? Math.sin(T * 16) * 1.2 : 0, cl = TOUCH ? 0 : 0;
+        X.save(); X.translate(0, bobN);
+        const armUp = won ? 1 : go ? .75 : early ? .1 : late ? 0 : .5;
+        X.save(); X.translate(0, fy); K.arms(u, won ? -.2 : go ? -.3 : -.5, won ? .2 : go ? .3 : .5, armUp, OR); X.restore();
+        claude(0, fy, u, { mood });
+        const exy = fy - 6.2 * u;
+        if (late) { X.fillStyle = OR; for (const sx of [-1, 1]) X.fillRect(sx * 2.8 * u - 1.4 * u, exy - 1.5 * u, 2.8 * u, 3 * u); X.strokeStyle = INK; X.lineWidth = 3; X.lineCap = 'round'; for (const sx of [-1, 1]) { X.beginPath(); X.arc(sx * 2.8 * u, exy - .2 * u, u * .9, .2 * Math.PI, .8 * Math.PI); X.stroke(); } }
+        // goggles (see-through, so the eyes still read) + a red racing helmet
+        X.lineWidth = 4; X.strokeStyle = INK; X.beginPath(); X.moveTo(-6 * u, exy); X.lineTo(6 * u, exy); X.stroke();
+        for (const sx of [-1, 1]) { X.beginPath(); X.arc(sx * 2.8 * u, exy, u * 1.45, 0, TAU); X.lineWidth = 6.4; X.strokeStyle = INK; X.stroke(); X.fillStyle = 'rgba(127,231,255,.38)'; X.fill(); X.lineWidth = 2.5; X.strokeStyle = '#7fe7ff'; X.stroke(); X.fillStyle = 'rgba(255,255,255,.7)'; el(sx * 2.8 * u - u * .6, exy - u * .7, u * .4, u * .3, -.6); X.fill(); }
+        const HEL = rfRR(-6.4 * u, fy - 9 * u - 7, 12.8 * u, 17, 8); K.cel(HEL, '#ff4d5e', '#b8283a', 3, 2, 4); X.save(); X.clip(HEL); X.fillStyle = '#fff'; X.fillRect(-5, fy - 9 * u - 9, 10, 30); X.restore(); K.glint(HEL, -u * 3, fy - 9 * u - 2, 9, 3, .55, -.2);
+        // the mouth: calm line, gritted teeth when tense, big grin on go, frown or snore
+        X.lineCap = 'round'; X.strokeStyle = INK; X.fillStyle = INK; X.lineWidth = 3; const my = fy - 3.4 * u;
+        if (won) { X.beginPath(); X.arc(0, my - 2, 8, .1, Math.PI - .1); X.closePath(); X.fillStyle = INK; X.fill(); X.fillStyle = '#ff7aa8'; el(0, my + 6, 4, 2.6); X.fill(); }
+        else if (early) { X.beginPath(); X.arc(0, my + 8, 8, Math.PI * 1.15, Math.PI * 1.85); X.stroke(); }
+        else if (late) { el(0, my + 2, 3.5, 3 + Math.sin(T * 2.4) * 1.2); X.fill(); }
+        else if (go) { X.beginPath(); X.arc(0, my - 2, 8, .1, Math.PI - .1); X.closePath(); X.fill(); }
+        else if (tense > .55) { X.beginPath(); X.moveTo(-8, my); X.lineTo(8, my); X.stroke(); X.lineWidth = 2; X.beginPath(); for (let i = -2; i <= 2; i++) { X.moveTo(i * 3.2, my - 3); X.lineTo(i * 3.2, my + 3); } X.stroke(); }
+        else { X.beginPath(); X.moveTo(-6, my); X.quadraticCurveTo(0, my + 3, 6, my); X.stroke(); }
+        X.restore();
+        // soapbox body: planks, racing stripe and a number roundel
+        const BODY = rfRR(-78, -50 + sink, 156, 36, 12); K.cel(BODY, '#d9944f', '#a5622c', 0, -7, 4.5);
+        X.save(); X.clip(BODY); X.strokeStyle = '#b06d33'; X.lineWidth = 2.5; for (const yy of [-38, -26]) { X.beginPath(); X.moveTo(-78, yy + sink); X.lineTo(78, yy + sink); X.stroke(); } X.fillStyle = '#fff'; X.fillRect(-78, -44 + sink, 156, 5); X.restore();
+        K.glint(BODY, -40, -45 + sink, 26, 3, .5, -.05);
+        X.beginPath(); X.arc(-30, -31 + sink, 11, 0, TAU); ink('#fff', 3); star(-30, -31 + sink, 7, 3.2, 5, -Math.PI / 2, '#FFE14D', 1.5);
+        rr(60, -46 + sink, 36, 26, 12); ink('#ff4d5e', 4); X.fillStyle = 'rgba(255,255,255,.4)'; rr(66, -42 + sink, 18, 5, 2.5); X.fill();
+        rr(-86, -48 + sink, 14, 14, 5); ink('#8f9cb3', 3.5);
+        // wheels (these fly off on a false start)
+        const wheel = (wx, wy, a) => {
+          X.save(); X.translate(wx, wy); X.rotate(a); X.beginPath(); X.arc(0, 0, 24, 0, TAU); ink('#3b3550', 4.5); X.beginPath(); X.arc(0, 0, 11, 0, TAU); ink('#cfd8e6', 3.5);
+          X.strokeStyle = '#8f9cb3'; X.lineWidth = 3.5; for (let i = 0; i < 4; i++) { X.rotate(Math.PI / 4); X.beginPath(); X.moveTo(-10, 0); X.lineTo(10, 0); X.stroke(); }
+          X.fillStyle = 'rgba(255,255,255,.28)'; el(-9, -13, 8, 3.4, -.7); X.fill(); X.restore();
+        };
+        if (wheels) { const rev = !g.result ? T * (go ? 30 : 0) : spin; wheel(-46, -24, rev); wheel(46, -24, rev); }
+        else {
+          const q = Math.max(0, rk - .14);
+          wheel(46 + q * 420, -24 - Math.abs(Math.sin(q * 6)) * 54 * (1 - Math.min(1, q / .9)) + (q > 0 ? 0 : 0), q * 22);
+          wheel(-46 - q * 90, -24 + 2 - Math.abs(Math.sin(q * 7 + 1)) * 40 * (1 - Math.min(1, q / .8)), -q * 14);
+        }
+        // a false start: bolts and stars fly, Claude sees stars
+        if (early) { for (let i = 0; i < 4; i++) { const a = rk * 7 + i * 1.57; star(Math.cos(a) * 46, -112 + Math.sin(a) * 9, 7, 3, 5, a, '#FFE14D', 2); } for (let i = 0; i < 5; i++) { const q = (rk * 1.1 + i * .17); if (q > .1 && q < .9) { X.fillStyle = '#8f9cb3'; X.save(); X.translate(-20 + i * 26 + Math.cos(i * 2) * q * 70, -50 - Math.sin(q * 3.1) * 50 + q * q * 70); X.rotate(q * 12 + i); rr(-5, -2, 10, 4, 2); ink('#c9ced6', 2); X.restore(); } } }
+        X.restore();
+        // sweat while tense; Zs while asleep
+        if (!g.result && tense > .5) { K.sweat(kx - 44, ky - 128, 1, T); K.sweat(kx + 44, ky - 122, .9, T + .5); }
+        if (late) for (let i = 0; i < 3; i++) { const q = (rk * .9 + i * .3) % 1; K.zee(kx + 44 + i * 14 + q * 12, ky - 130 - q * 50, .8 + i * .15, 1 - q); }
+        // late: a tumbleweed rolls across the strip
+        if (late) { const tx = L - 30 + ease(rk / .9) * (VW + 60); X.save(); X.translate(tx, 520 - Math.abs(Math.sin(rk * 8)) * 12); X.rotate(rk * 10); X.strokeStyle = INK; X.lineWidth = 7; X.beginPath(); X.arc(0, 0, 18, 0, TAU); X.stroke(); X.strokeStyle = '#c4902a'; X.lineWidth = 3; X.beginPath(); X.arc(0, 0, 18, 0, TAU); X.moveTo(-14, -8); X.lineTo(14, 8); X.moveTo(-14, 8); X.lineTo(14, -8); X.moveTo(0, -18); X.lineTo(0, 18); X.stroke(); X.restore(); }
+      }
+      // verdict words: a chunky badge, off-centre so the stamp stays readable
+      if (g.result) {
+        const bw = (s, size) => { X.font = `900 ${size}px "Arial Black", Impact, sans-serif`; return X.measureText(t(s)).width + 40; };
+        const s = won ? rt + ' ms' : early ? 'TOO SOON!' : null;
+        if (s) {
+          const size = won ? 48 : 40, w = bw(s, size), a = outBack(rk / .25), bgc = won ? '#5CFF7A' : '#ff4d5e', fg = won ? INK : '#fff';
+          X.save(); X.translate(285, 104); X.rotate(-.05); X.scale(a, a);
+          X.fillStyle = 'rgba(20,16,28,.3)'; rr(-w / 2 + 4, -26 + 7, w, 52, 24); X.fill();
+          rr(-w / 2, -26, w, 52, 24); ink(bgc, 4); X.fillStyle = 'rgba(255,255,255,.4)'; rr(-w / 2 + 12, -21, w - 24, 8, 4); X.fill();
+          txt(s, 0, 2, size, fg, 'center', w - 30);
+          X.restore();
+        }
+      }
+      vignette(.18);
     }
   };
   return g;

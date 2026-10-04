@@ -87,30 +87,16 @@ function gCharge(sp) {
     down() { start(); }, up() { release(); },
     update(dt) {
       if (hold) { p = Math.min(100, p + 60 * sp * dt); if (Math.random() < .3) snd(200 + p * 6, .03, 'square', .03); if (!inz && p >= zc - zw / 2) { inz = 1; sfx.pop(); ring(115, 500 - zc * 3.5, '#5CFF7A', 40, .3); } if (p > zc + zw / 2) inz = 0; }
-      if (fired) { const j0 = jt; jt += dt; if (j0 < .7 && jt >= .7) { if (g.result === 'win') { sfx.coin(); sfx.sparkle(); burst(endX, GY - endY, '#FFE14D', 16); ring(endX, GY - endY, '#fff', 90); floatText('NICE!', endX, GY - endY - 80, '#fff'); } else { sfx.thud(); shake(6, .22); burst(endX, GY, '#d9a066', 10); } } }
+      if (fired) { const j0 = jt; jt += dt; if (j0 < .7 && jt >= .7) { if (g.result === 'win') { sfx.coin(); sfx.sparkle(); burst(endX, GY - endY, '#FFE14D', 16); ring(endX, GY - endY, '#fff', 90); floatText('NICE!', endX, GY - endY - 100, '#fff'); } else { sfx.thud(); shake(6, .22); burst(endX, GY, '#d9a066', 10); } } }
     },
-    draw(t) {
-      bg('#9BF6FF', '#87ecf7', t);
-      ctx.fillStyle = INK; ctx.fillRect(-OX, GY - 4, VW, 110); ctx.fillStyle = '#58c24a'; ctx.fillRect(-OX, GY, VW, 100);
-      box3(540, GY - LH, 80, 18, '#7a5230', 4, 5);
-      box3(90, 150, 50, 350, '#fff', 6, 5);
-      ctx.fillStyle = hold && p >= zc - zw / 2 && p <= zc + zw / 2 ? '#c8ffd2' : '#5CFF7A'; ctx.fillRect(90, 500 - (zc + zw / 2) * 3.5, 50, zw * 3.5);
-      ctx.fillStyle = '#FFE14D'; ctx.fillRect(94, 500 - p * 3.5, 42, p * 3.5 - 2);
-      ctx.fillStyle = INK; ctx.fillRect(80, 500 - p * 3.5 - 3, 70, 6);
-      shadow(fired ? 300 + (endX - 300) * Math.min(1, jt / .7) : 300, GY + 6, 46 - (fired ? Math.sin(Math.min(1, jt / .7) * Math.PI) * 14 : 0), 12);
-      if (!fired) { ctx.save(); ctx.translate(300, GY); ctx.scale(1 + p / 400, 1 - p / 100 * .35); claude(0, 0, 9, { mood: null }); ctx.restore(); }
-      else {
-        const k = Math.min(1, jt / .7), x = 300 + (endX - 300) * k, y = endY * k + A * 4 * k * (1 - k);
-        claude(x, GY - y, 9, { mood: g.result === 'win' ? 'happy' : 'sad' });
-      }
-    }
+    draw(t) { W4A.charge({ p, zc, zw, GY, LH, hold, fired, jt, endX, endY, A, res: g.result, T: now }); }
   };
   return g;
 }
 
 /* 26 ── FLAP: slip through the gaps (space / up / click) */
 function gFlap(sp) {
-  const spd = 320 * sp; let py = 300, vy = 0;
+  const spd = 320 * sp; let py = 300, vy = 0, rT0 = 0;
   const px0 = OX > 0 ? W + OX + 60 : 700; // first pipe enters from the true screen edge
   const pipes = [{ x: px0, gy: 200 + Math.random() * 200 }, { x: px0 + 416 * sp, gy: 200 + Math.random() * 200 }];
   const flap = () => { if (!g.result) { vy = -520; sfx.whoosh(); snd(500, .06, 'square', .04, 0, 800); burst(150, py + 20, '#fff', 4, 120); } };
@@ -128,18 +114,7 @@ function gFlap(sp) {
       }
       if (g.result === 'lose') { sfx.thud(); sfx.buzz(); shake(8, .3); burst(180, py, '#FF4D4D', 14); ring(180, py, '#fff', 80); }
     },
-    draw(t) {
-      bg('#8FD3FF', '#7fc7f7', t);
-      for (const q of pipes) {
-        if (q.x < -OX - 60) continue;
-        box(q.x - 45, 40, 90, q.gy - 95 - 40, '#5CC24A', 5); box(q.x - 54, q.gy - 95 - 24, 108, 24, '#4aa83a', 5);
-        box(q.x - 45, q.gy + 95, 90, 560 - q.gy - 95, '#5CC24A', 5); box(q.x - 54, q.gy + 95, 108, 24, '#4aa83a', 5);
-      }
-      ctx.fillStyle = INK; ctx.fillRect(-OX, 524, VW, 80); ctx.fillStyle = '#d9a066'; ctx.fillRect(-OX, 530, VW, 80);
-      shadow(180, 540, 40 - Math.max(0, Math.min(20, (540 - py) / 20)), 8, .25);
-      ctx.save(); ctx.translate(180, py); ctx.rotate(Math.max(-.5, Math.min(.8, vy / 900)));
-      claude(0, 0, 8, { mood: g.result === 'lose' ? 'sad' : g.result === 'win' ? 'happy' : null }); ctx.restore();
-    }
+    draw(t) { if (g.result && !rT0) rT0 = now; W4A.flap({ pipes, py, vy, res: g.result, rT: rT0 ? now - rT0 : 0, T: now }); }
   };
   return g;
 }
@@ -468,7 +443,276 @@ const W4A = (() => {
     esc(ex, Math.min(535, ey + eq * 50), T, res, rT, panic);
     vignette(.16);
   }
-  return { maze };
+
+  /* ═════════════ shared bits for FLAP and CHARGE (stage 3) ═════════════ */
+  function celF(path, base, shade, sx, sy, o = 4) {   // flat shade crescent: fill the shade, then the base shifted by (-sx,-sy) clipped to the shape
+    path(); ink(shade, o); X.save(); path(); X.clip(); X.translate(-sx, -sy); path(); X.fillStyle = base; X.fill(); X.restore();
+  }
+  function glint(path, x, y, rx, ry, a = .45, rot = -.5) { X.save(); path(); X.clip(); X.fillStyle = `rgba(255,255,255,${a})`; el(x, y, rx, ry, rot); X.fill(); X.restore(); }
+  function eye(x, y, r, mood, lx, ly, T, k) {    // sclera + pupil that looks at the action + highlight; moods idle / wide / happy / shut / x
+    X.lineJoin = 'round'; X.lineCap = 'round';
+    if (mood === 'happy') { X.beginPath(); X.arc(x, y + r * .3, r * .8, Math.PI * 1.1, Math.PI * 1.9); X.lineWidth = Math.max(2.5, r * .5); X.strokeStyle = INK; X.stroke(); return; }
+    if (mood === 'shut' || (mood === 'idle' && Math.sin(T * 1.9 + k) > .985)) { X.beginPath(); X.moveTo(x - r * .8, y); X.lineTo(x + r * .8, y); X.lineWidth = Math.max(2.5, r * .5); X.strokeStyle = INK; X.stroke(); return; }
+    if (mood === 'x') { X.beginPath(); X.moveTo(x - r * .7, y - r * .7); X.lineTo(x + r * .7, y + r * .7); X.moveTo(x + r * .7, y - r * .7); X.lineTo(x - r * .7, y + r * .7); X.lineWidth = Math.max(2.5, r * .5); X.strokeStyle = INK; X.stroke(); return; }
+    const R = mood === 'wide' ? r * 1.3 : r; el(x, y, R, R * 1.08); ink('#fff', Math.max(1.5, R * .28));
+    const pr = R * (mood === 'wide' ? .36 : .52), px = x + lx * R * .38, py = y + ly * R * .38;
+    X.beginPath(); X.arc(px, py, pr, 0, TAU); X.fillStyle = INK; X.fill();
+    X.beginPath(); X.arc(px - pr * .35, py - pr * .4, pr * .35, 0, TAU); X.fillStyle = '#fff'; X.fill();
+  }
+  function heart(x, y, s, col = '#ff5c8a', a = 1) {
+    X.save(); X.globalAlpha = a; X.translate(x, y); X.scale(s, s); X.beginPath(); X.moveTo(0, 7); X.bezierCurveTo(-14, -2, -7, -12, 0, -5); X.bezierCurveTo(7, -12, 14, -2, 0, 7); X.closePath(); ink(col, 2.5);
+    X.fillStyle = 'rgba(255,255,255,.7)'; el(-4, -4, 2.2, 1.4, -.5); X.fill(); X.restore();
+  }
+  function sunRays(x, y, T, r = 30) {
+    X.save(); X.translate(x, y); X.rotate(T * .25); X.fillStyle = 'rgba(255,240,150,.45)';
+    for (let i = 0; i < 10; i++) { X.rotate(TAU / 10); X.beginPath(); X.moveTo(-8, r + 4); X.lineTo(8, r + 4); X.lineTo(0, r + 40); X.closePath(); X.fill(); }
+    X.restore(); X.beginPath(); X.arc(x, y, r, 0, TAU); ink('#ffe14d', 4); X.fillStyle = '#fff3a0'; el(x - 9, y - 10, 10, 6, -.6); X.fill();
+  }
+  function wall(x0, x1, y0, y1, c0, c1) { const g = X.createLinearGradient(0, y0, 0, y1); g.addColorStop(0, c0); g.addColorStop(1, c1); X.fillStyle = g; X.fillRect(x0, y0, x1 - x0, y1 - y0); }
+  function flower(x, y, s, col) { X.save(); X.translate(x, y); X.scale(s, s); for (let p = 0; p < 5; p++) { X.rotate(TAU / 5); el(0, -5, 3.4, 5); ink(col, 1.5); } X.beginPath(); X.arc(0, 0, 3, 0, TAU); ink('#ffe14d', 1.5); X.restore(); }
+
+  /* ═════════════ FLAP: a deli at closing time; Claude with a propeller beanie flies between hanging salamis and baguettes ═════════════ */
+  let FLB = null, FLF = null, FLW = -1;
+  function flapBg() {
+    if (FLB && FLW === VW) return;
+    FLW = VW; const L = -OX - 2, R = W + OX + 2;
+    FLB = bake(() => {
+      wall(L, R, 0, 530, '#ffe6a8', '#ffcf86');
+      X.strokeStyle = 'rgba(200,120,70,.18)'; X.lineWidth = 2;                                   // subway tiles
+      for (let y = 44; y < 524; y += 38) { X.beginPath(); X.moveTo(L, y); X.lineTo(R, y); X.stroke(); for (let x = (Math.round(y / 38) % 2 ? 0 : 40) + Math.floor(L / 80) * 80; x < R; x += 80) { X.beginPath(); X.moveTo(x, y); X.lineTo(x, y + 38); X.stroke(); } }
+      // window with a plain blue day behind it
+      rr(332, 108, 150, 150, 10); ink('#9fe0ff', 5); X.save(); rr(332, 108, 150, 150, 10); X.clip(); X.fillStyle = '#e4f5ff'; el(380, 150, 26, 14); X.fill(); el(440, 190, 20, 11); X.fill(); X.fillStyle = 'rgba(255,255,255,.35)'; X.beginPath(); X.moveTo(332, 258); X.lineTo(400, 108); X.lineTo(430, 108); X.lineTo(362, 258); X.fill(); X.restore();
+      rr(332, 108, 150, 150, 10); X.lineWidth = 10; X.strokeStyle = INK; X.stroke(); X.lineWidth = 5; X.strokeStyle = '#fff'; X.stroke();
+      line([[407, 110], [407, 256]], 5, '#fff'); line([[334, 183], [480, 183]], 5, '#fff');
+      rr(318, 252, 178, 16, 6); ink('#d9944f', 4);
+      // pantry shelf with jars, far left and far right of the action
+      for (const sx of [-OX + 20, 560]) {
+        rr(sx, 330, W + OX - sx > 300 ? 250 : 220, 12, 4); ink('#b06d33', 3.5);
+        for (let i = 0; i < 4; i++) { const jx = sx + 14 + i * 56, h = 36 + hr(i + sx) * 14, c = ['#ff7a6b', '#7fd34a', '#ffd23f', '#c68bff'][i]; rr(jx, 330 - h, 40, h, 8); ink('#e9f7ff', 3); rr(jx + 4, 330 - h * .6, 32, h * .55 - 3, 5); X.fillStyle = c; X.fill(); rr(jx + 6, 330 - h - 7, 28, 8, 3); ink('#b06d33', 2.5); }
+      }
+      // cuckoo clock (the pendulum and the bird are live)
+      X.beginPath(); X.moveTo(588, 128); X.lineTo(640, 82); X.lineTo(692, 128); X.closePath(); ink('#a5622c', 4);
+      rr(596, 124, 88, 92, 8); ink('#d9944f', 4); rr(612, 138, 56, 40, 14); ink('#7a4a2c', 3.5); X.beginPath(); X.arc(640, 196, 14, 0, TAU); ink('#fff', 3);
+      X.strokeStyle = INK; X.lineWidth = 2.5; X.lineCap = 'round'; X.beginPath(); X.moveTo(640, 196); X.lineTo(640, 187); X.moveTo(640, 196); X.lineTo(647, 199); X.stroke();
+      // the ceiling rail with its hooks
+      X.fillStyle = '#8a5530'; X.fillRect(L, 0, R - L, 40); X.fillStyle = '#a5622c'; X.fillRect(L, 0, R - L, 12); X.fillStyle = INK; X.fillRect(L, 38, R - L, 4);
+      X.strokeStyle = '#6e4224'; X.lineWidth = 2; for (let x = Math.floor(L / 90) * 90; x < R; x += 90) { X.beginPath(); X.moveTo(x, 12); X.lineTo(x, 38); X.stroke(); }
+    });
+    FLF = bake(() => {   // the counter in front: planks, a lip, and a few crumbs
+      const g = X.createLinearGradient(0, 524, 0, H); g.addColorStop(0, '#b97a46'); g.addColorStop(1, '#8a5530'); X.fillStyle = g; X.fillRect(L, 524, R - L, H - 524);
+      X.fillStyle = 'rgba(255,255,255,.14)'; X.fillRect(L, 530, R - L, 6);
+      X.strokeStyle = 'rgba(90,50,24,.5)'; X.lineWidth = 2; for (let x = Math.floor(L / 130) * 130; x < R; x += 130) { X.beginPath(); X.moveTo(x, 538); X.lineTo(x - 18, H); X.stroke(); }
+      X.strokeStyle = INK; X.lineWidth = 4; X.beginPath(); X.moveTo(L, 524); X.lineTo(R, 524); X.stroke();
+      X.fillStyle = '#f7d08a'; for (let i = 0; i < 26; i++) { el(L + hr(i + 5) * (R - L), 530 + hr(i + 60) * 18, 2.5, 1.7); X.fill(); }
+    });
+  }
+  function salami(q, i, look, T, res, bad) {          // hanging salami, twine knot at the bottom (the cap)
+    const b = q.gy - 95, capT = b - 24, x = q.x - 45, len = capT - 36;
+    if (len < 6) return;
+    const body = () => rr(x, 36, 90, len, 22), cap = () => rr(q.x - 54, capT, 108, 24, 9);
+    X.strokeStyle = '#e6c58c'; X.lineWidth = 5; X.beginPath(); X.moveTo(q.x, 30); X.lineTo(q.x, 42); X.stroke();   // loop on the hook
+    celF(body, '#e0564b', '#a8323a', 11, 0, 4.5); glint(body, x + 20, 70, 7, Math.min(24, len * .3), .42, 0);
+    X.save(); body(); X.clip(); X.fillStyle = 'rgba(255,230,214,.8)'; for (let k = 0; k < 14; k++) { el(x + 10 + hr(k + i * 20) * 70, 44 + hr(k + 50 + i * 9) * Math.max(1, len - 14), 3.4 + hr(k) * 2, 2.6); X.fill(); }
+    X.strokeStyle = '#e6c58c'; X.lineWidth = 3.5; for (let yy = 70; yy < capT - 10; yy += 46) { X.beginPath(); X.moveTo(x, yy); X.quadraticCurveTo(q.x, yy + 6, x + 90, yy); X.stroke(); } X.restore();
+    celF(cap, '#efd29a', '#c9a265', 0, 6, 4); X.save(); cap(); X.clip(); X.strokeStyle = 'rgba(150,100,40,.55)'; X.lineWidth = 2; for (let k = -30; k < 130; k += 14) { X.beginPath(); X.moveTo(q.x - 54 + k, capT); X.lineTo(q.x - 54 + k + 24, capT + 24); X.stroke(); } X.restore();
+    if (len >= 38) { const fy = Math.min(capT - 16, 40 + len * .5), r = Math.min(10, len / 6 + 3), m = res === 'win' ? 'happy' : res === 'lose' ? 'idle' : bad ? 'wide' : 'idle';
+      eye(q.x - 15, fy, r, m, look[0], look[1], T, i); eye(q.x + 15, fy, r, m, look[0], look[1], T, i + .5);
+      X.strokeStyle = INK; X.lineWidth = 3.5; X.lineCap = 'round'; X.beginPath(); if (res === 'win') X.arc(q.x, fy + r * 1.1, 6, .15, Math.PI - .15); else if (bad) X.ellipse(q.x, fy + r * 2, 4, 3, 0, 0, TAU); else { X.moveTo(q.x - 6, fy + r * 1.8); X.lineTo(q.x + 6, fy + r * 1.8); } X.stroke();
+      if (!bad && res !== 'win') { X.beginPath(); X.moveTo(q.x - 24, fy - r * 1.8); X.lineTo(q.x - 7, fy - r * 1.4); X.moveTo(q.x + 24, fy - r * 1.8); X.lineTo(q.x + 7, fy - r * 1.4); X.stroke(); } }
+  }
+  function baguette(q, i, look, T, res, bad) {        // baguette in a paper cuff, standing on the counter (the cap is the cuff)
+    const b = q.gy + 95, x = q.x - 45, bh = 540 - (b + 12);
+    const body = () => rr(x, b + 12, 90, bh, 30), cuff = () => rr(q.x - 54, b, 108, 24, 9);
+    celF(body, '#e9ae5c', '#b9742e', 11, 0, 4.5); glint(body, x + 20, b + 48, 6, 22, .4, 0);
+    X.save(); body(); X.clip(); for (let yy = b + 52, k = 0; yy < 530; yy += 62, k++) { X.save(); X.translate(q.x + (k % 2 ? 6 : -6), yy); X.rotate(-.6); rr(-24, -5, 48, 10, 5); X.fillStyle = '#f9dd9d'; X.fill(); X.strokeStyle = '#b9742e'; X.lineWidth = 2; X.stroke(); X.restore(); } X.restore();
+    celF(cuff, '#f9f2e2', '#d8c9a8', 0, 6, 4); X.fillStyle = '#e8434f'; X.fillRect(q.x - 52, b + 9, 104, 5);
+    if (540 - b - 12 > 100) { const fy = b + 62, r = 9, m = res === 'win' ? 'happy' : bad ? 'wide' : 'idle';
+      eye(q.x - 14, fy, r, m, look[0], look[1], T, i + 3); eye(q.x + 14, fy, r, m, look[0], look[1], T, i + 3.5);
+      X.strokeStyle = INK; X.lineWidth = 3.5; X.lineCap = 'round'; X.beginPath(); if (res === 'win') X.arc(q.x, fy + 10, 6, .15, Math.PI - .15); else if (bad) X.ellipse(q.x, fy + 17, 4, 3, 0, 0, TAU); else { X.moveTo(q.x - 6, fy + 16); X.quadraticCurveTo(q.x, fy + 12, q.x + 6, fy + 16); } X.stroke(); }
+  }
+  function beanie(u, T, spin, off) {     // propeller beanie on Claude's head (drawn in Claude's rotated frame, origin = feet)
+    X.save(); X.translate(0, -9 * u);
+    const dome = () => { X.beginPath(); X.moveTo(-3.8 * u, 0); X.bezierCurveTo(-3.8 * u, -4.4 * u, 3.8 * u, -4.4 * u, 3.8 * u, 0); X.closePath(); };
+    celF(dome, '#4dd0ff', '#2a8fcb', 1.2 * u, 0, 3.5); glint(dome, -1.4 * u, -2.6 * u, 1.3 * u, .7 * u, .5, -.5);
+    X.fillStyle = '#ffd23f'; X.fillRect(-.35 * u, -4.1 * u, .7 * u, 1.3 * u); X.beginPath(); X.arc(0, -4.4 * u, .8 * u, 0, TAU); ink('#ff4d5e', 2);
+    X.translate(0, -4.8 * u); const a = Math.abs(Math.sin(spin * 2)) * 1; el(0, 0, 4.4 * u * (.25 + a * .75), .55 * u); ink(off ? '#c9ced6' : '#ff5c8a', 2.5);
+    X.restore();
+  }
+  function flap(s) {
+    X = ctx; flapBg();
+    const { pipes, py, vy, res, rT, T } = s, won = res === 'win', lost = res === 'lose';
+    X.drawImage(FLB, -OX, 0);
+    // cat in the window: tail swings, eyes follow Claude, startled on a crash, winks on a win
+    { const cx = 410, cy = 252, sw = Math.sin(T * 2.2) * 10;
+      X.strokeStyle = INK; X.lineCap = 'round'; X.lineWidth = 17; X.beginPath(); X.moveTo(cx + 34, cy - 4); X.quadraticCurveTo(cx + 62, cy + 6, cx + 56 + sw, cy - 34); X.stroke(); X.strokeStyle = '#f0a05a'; X.lineWidth = 10; X.stroke();
+      const body = () => el(cx, cy - 12, 40, 28); celF(body, '#f0a05a', '#c97b36', 8, 0, 4.5); glint(body, cx - 14, cy - 24, 12, 6, .4);
+      const head = () => el(cx - 12, cy - 46, 25, 21); X.beginPath(); X.moveTo(cx - 33, cy - 54); X.lineTo(cx - 36, cy - 76); X.lineTo(cx - 20, cy - 62); X.moveTo(cx + 9, cy - 54); X.lineTo(cx + 12, cy - 76); X.lineTo(cx - 4, cy - 62); ink('#f0a05a', 3.5);
+      celF(head, '#f0a05a', '#c97b36', 6, 0, 4);
+      X.strokeStyle = '#c97b36'; X.lineWidth = 3; for (const d of [-1, 0, 1]) { X.beginPath(); X.moveTo(cx - 12 + d * 8, cy - 66); X.lineTo(cx - 12 + d * 8, cy - 58); X.stroke(); }
+      const lk = [Math.max(-1, Math.min(1, (180 - cx) / 200)), Math.max(-1, Math.min(1, (py - cy) / 200))], m = lost ? 'wide' : won ? 'happy' : 'idle';
+      eye(cx - 22, cy - 46, 6.5, m, lk[0], lk[1], T, 7); eye(cx - 2, cy - 46, 6.5, m, lk[0], lk[1], T, 7.4);
+      X.beginPath(); X.moveTo(cx - 14, cy - 40); X.lineTo(cx - 10, cy - 40); X.lineTo(cx - 12, cy - 37); X.closePath(); X.fillStyle = '#ff7a9a'; X.fill(); }
+    // cuckoo: pendulum + the bird that pops out every few seconds (and cheers on a win)
+    { const pa = Math.sin(T * 3) * .35; X.save(); X.translate(640, 216); X.rotate(pa); X.strokeStyle = INK; X.lineWidth = 3; X.beginPath(); X.moveTo(0, 0); X.lineTo(0, 30); X.stroke(); X.beginPath(); X.arc(0, 36, 8, 0, TAU); ink('#ffd23f', 3); X.restore();
+      const k = won ? 1 : Math.max(0, 1 - Math.abs(((T % 3.4) - .3) / .3)); if (k > .02) { const bx = 640 + 12 - 28 * (1 - ease(k)) * 0 , by = 158; rr(612, 138, 56, 40, 14); X.save(); X.clip(); X.translate(0, (1 - ease(k)) * 36);
+        el(bx - 12, by + 4, 11, 9); ink('#ff5c8a', 3); X.beginPath(); X.moveTo(bx - 22, by + 2); X.lineTo(bx - 34, by + 6 + Math.sin(T * 30) * 2); X.lineTo(bx - 22, by + 8); X.closePath(); ink('#ffd23f', 2); X.beginPath(); X.arc(bx - 17, by, 1.8, 0, TAU); X.fillStyle = INK; X.fill(); X.restore(); } }
+    // pipes: salami above, baguettes below. Faces follow Claude, go wide when it is close
+    for (let i = 0; i < pipes.length; i++) { const q = pipes[i]; if (q.x < -OX - 60 || q.x > W + OX + 70) continue;
+      const d = Math.abs(q.x - 180), bad = !res && d < 120, lk = [Math.max(-1, Math.min(1, (180 - q.x) / 200)), Math.max(-1, Math.min(1, (py - q.gy) / 200))];
+      salami(q, i, lk, T, res, bad); baguette(q, i, lk, T, res, bad); }
+    X.drawImage(FLF, -OX, 0);
+    // a mouse jogs along the counter edge
+    { const mx = (((-T * 70 + 900) % (VW + 160)) + VW + 160) % (VW + 160) - OX - 40, my = 540, f = Math.sin(T * 24) * 2;
+      X.strokeStyle = INK; X.lineWidth = 5; X.lineCap = 'round'; X.beginPath(); X.moveTo(mx + 14, my - 4); X.quadraticCurveTo(mx + 30, my + 4, mx + 38, my - 8 + f); X.stroke(); X.strokeStyle = '#f4a6b5'; X.lineWidth = 2; X.stroke();
+      const mb = () => el(mx, my - 7, 15, 9); celF(mb, '#c9ced6', '#8f9cb3', 3, 0, 3.5); el(mx - 9, my - 15, 6, 6); ink('#f4a6b5', 2.5); X.beginPath(); X.arc(mx - 10, my - 8, 1.9, 0, TAU); X.fillStyle = INK; X.fill(); X.beginPath(); X.arc(mx - 16, my - 6, 2, 0, TAU); X.fillStyle = '#ff5c8a'; X.fill();
+      for (const lx of [-6, 6]) { el(mx + lx, my + 1 + (lx > 0 ? f : -f) * .5, 3, 2); ink('#8f9cb3', 2); } }
+    // Claude
+    const u = 8; let fy = py, rot = Math.max(-.5, Math.min(.8, vy / 900)), jump = 0;
+    if (lost) { const g = Math.min(1, rT / .8); fy = Math.min(528, py + 700 * rT * rT); if (fy >= 528 && py < 528) fy = 528 - Math.abs(Math.sin(Math.max(0, rT - .5) * 9)) * 10 * Math.max(0, 1 - rT); rot = rot + (1 - ease(g)) * rT * 9; }
+    if (won) { const g = ease(Math.min(1, rT / .4)); rot = g * TAU * 1; jump = Math.abs(Math.sin(rT * 8)) * 8; }
+    shadow(180, 540, 42 - Math.max(0, Math.min(24, (540 - fy) / 20)), 8, .25);
+    X.save(); X.translate(180, fy - jump); X.rotate(rot);
+    const flapK = Math.max(0, Math.min(1, .5 - vy / 1000)), la = won ? -.3 : lost ? -2.4 : -2.2 + flapK * 1.9 + Math.sin(T * 30) * .12 * (vy < -200 ? 1 : 0);
+    arms(u, la, -la, .9, OR);
+    const mood = won ? 'happy' : lost ? 'sad' : null; claude(0, 0, u, { mood });
+    if (!mood) { let near = null; for (const q of pipes) if (q.x > 120 && (!near || q.x < near.x)) near = q;
+      const lk = near ? [Math.max(-1, Math.min(1, (near.x - 180) / 160)), Math.max(-1, Math.min(1, (near.gy - py) / 120))] : [.4, 0];
+      const danger = near && near.x - 50 < 180 + 130 && (py - 80 < near.gy - 95 + 34 || py > near.gy + 95 - 34);
+      eyes(0, 0, u, OR, lk, danger ? 'panic' : null, T);
+      if (danger) for (const d of [-1, 1]) { const qq = (T * 2.6 + (d > 0 ? .5 : 0)) % 1; drop(d * 8 * u, -8 * u + qq * 14, u / 7, 1 - qq); } }
+    if (!lost) beanie(u, T * (won ? 3 : 1) * 10 + (vy < -150 ? T * 20 : 0), T * 14, false);
+    X.restore();
+    if (lost) {   // the beanie pops off and tumbles away; stars circle the dizzy head
+      const bx = 180 + rT * 110, by = py - 70 - rT * 280 + 900 * rT * rT * .5; X.save(); X.translate(bx, by); X.rotate(rT * 12); beanie(u * .9, 0, rT * 6, true); X.restore();
+      if (rT > .35) stars(180, fy - 11 * u, 5 * u, T);
+      if (rT > .3 && fy >= 520) { const k = ease((rT - .3) / .5); X.fillStyle = `rgba(255,240,214,${.8 * (1 - k)})`; for (const d of [-1, 1]) { X.beginPath(); X.arc(180 + d * (30 + k * 40), 520 - k * 8, 12 + k * 14, 0, TAU); X.fill(); } }
+    }
+    if (won) {   // payoff staged left of the NICE! stamp: hearts drift up the left edge, a whee ring + stars around Claude
+      for (let i = 0; i < 5; i++) { const q = (rT * 1.4 + i / 5) % 1; heart(48 + (i % 3) * 38 + Math.sin(i * 2.4 + rT * 3) * 8, fy + 40 - q * 150, 1.1 + (i % 2) * .3, '#ff5c8a', 1 - q); }
+      const rk = Math.min(1, rT / .6); X.strokeStyle = `rgba(255,225,77,${1 - rk})`; X.lineWidth = 5; X.beginPath(); X.arc(180, fy, 50 + rk * 60, 0, TAU); X.stroke();
+      for (let i = 0; i < 3; i++) star(60 + i * 40, 130 + (i % 2) * 36 + Math.sin(rT * 5 + i) * 6, 11, 5, 5, rT * 3 + i, '#FFE14D', 3);
+    }
+    vignette(.16);
+  }
+
+  /* ═════════════ CHARGE: a carnival lawn. Stretch the trampoline, ring the strength-tester bell, land on the giraffe's tray ═════════════ */
+  let CHA = null, CHB = null, CHW = -1;
+  function chargeBg() {
+    if (CHA && CHW === VW) return;
+    CHW = VW; const L = -OX - 2, R = W + OX + 2, GY = 500;
+    CHA = bake(() => { const g = X.createLinearGradient(0, 0, 0, GY); g.addColorStop(0, '#36b0ea'); g.addColorStop(.55, '#86d8fb'); g.addColorStop(1, '#d6f7ff'); X.fillStyle = g; X.fillRect(L, 0, R - L, GY + 4); });
+    CHB = bake(() => {
+      X.fillStyle = '#a9dfc6'; X.beginPath(); X.moveTo(L, GY); for (let x = L; x <= R + 20; x += 20) X.lineTo(x, 420 - Math.sin(x * .011 + 1) * 24 - Math.sin(x * .027) * 8); X.lineTo(R, GY); X.closePath(); X.fill();
+      X.beginPath(); X.moveTo(L, GY); for (let x = L; x <= R + 20; x += 20) X.lineTo(x, 458 - Math.sin(x * .014 + 3) * 14); X.lineTo(R, GY); X.closePath(); X.fillStyle = '#87d19b'; X.fill(); X.strokeStyle = '#4f9a6a'; X.lineWidth = 3; X.stroke();
+      // far circus tent with a flag (coloured outline, it is far away)
+      X.save(); X.translate(450, 470);
+      X.beginPath(); X.moveTo(-70, 30); X.lineTo(-70, -12); X.lineTo(0, -62); X.lineTo(70, -12); X.lineTo(70, 30); X.closePath(); X.fillStyle = '#ff9aa8'; X.fill(); X.strokeStyle = '#c75b78'; X.lineWidth = 3; X.stroke();
+      X.fillStyle = '#fff3f5'; for (let i = -2; i <= 2; i += 2) { X.beginPath(); X.moveTo(i * 14 - 14, 30); X.lineTo(i * 14 - 14, -12); X.lineTo(0, -62); X.lineTo(i * 14 + 14, -12); X.lineTo(i * 14 + 14, 30); X.closePath(); X.globalAlpha = .0; X.fill(); X.globalAlpha = 1; }
+      for (let i = -3; i <= 3; i += 2) { X.beginPath(); X.moveTo(0, -62); X.lineTo(i * 10 - 10, -12 + Math.abs(i) * 0); X.lineTo(i * 10 + 10, -12); X.closePath(); X.fillStyle = '#fff3f5'; X.fill(); }
+      X.beginPath(); X.moveTo(-70, -12); X.lineTo(0, -62); X.lineTo(70, -12); X.strokeStyle = '#c75b78'; X.lineWidth = 3; X.stroke();
+      rr(-16, 4, 32, 26, 12); X.fillStyle = '#c75b78'; X.fill(); X.strokeStyle = '#c75b78'; X.lineWidth = 3; X.beginPath(); X.moveTo(0, -62); X.lineTo(0, -82); X.stroke(); X.beginPath(); X.moveTo(0, -82); X.lineTo(22, -76); X.lineTo(0, -70); X.fillStyle = '#ffd23f'; X.fill(); X.restore();
+      // the lawn
+      const g = X.createLinearGradient(0, GY, 0, H); g.addColorStop(0, '#8fdc5c'); g.addColorStop(1, '#5fb944'); X.fillStyle = g; X.fillRect(L, GY, R - L, H - GY);
+      X.fillStyle = 'rgba(255,255,255,.12)'; for (let x = Math.floor(L / 80) * 80; x < R; x += 160) { X.beginPath(); X.moveTo(x, GY); X.lineTo(x + 60, GY); X.lineTo(x + 20, H); X.lineTo(x - 40, H); X.fill(); }
+      X.strokeStyle = INK; X.lineWidth = 4; X.beginPath(); X.moveTo(L, GY); X.lineTo(R, GY); X.stroke();
+      for (let i = 0; i < 34; i++) tuft(L + hr(i + 3) * (R - L), GY + 14 + hr(i + 40) * 36);
+      for (let i = 0; i < 9; i++) flower(L + hr(i + 90) * (R - L), GY + 14 + hr(i + 70) * 34, .9, i % 3 ? '#fff' : '#ff9dc0');
+      // the strength tester: base, tube, ticks (the fill, the green zone and the bell are live)
+      rr(70, 486, 90, 26, 6); ink('#d9944f', 4); X.fillStyle = '#b06d33'; X.fillRect(78, 502, 74, 5);
+      const tube = () => rr(88, 146, 54, 350, 14); celF(tube, '#fff', '#c9d8ee', 9, 0, 4.5); glint(tube, 100, 230, 5, 70, .5, 0);
+      X.strokeStyle = 'rgba(20,16,28,.55)'; X.lineWidth = 2.5; for (let i = 1; i < 10; i++) { const y = 500 - i * 35; X.beginPath(); X.moveTo(88, y); X.lineTo(i % 2 ? 100 : 108, y); X.stroke(); }
+      rr(110, 120, 10, 28, 3); ink('#b06d33', 3);
+    });
+  }
+  function bell(x, y, ring, T) {   // brass bell on top of the tester; ring 0..1 swings it
+    X.save(); X.translate(x, y); X.rotate(Math.sin(T * 40) * .35 * ring);
+    const b = () => { X.beginPath(); X.moveTo(-20, 14); X.quadraticCurveTo(-18, -22, 0, -22); X.quadraticCurveTo(18, -22, 20, 14); X.closePath(); };
+    celF(b, '#ffd23f', '#c99512', 6, 0, 3.5); glint(b, -8, -8, 4, 9, .6, .2); X.beginPath(); X.arc(0, 18, 5, 0, TAU); ink('#c99512', 2.5); X.restore();
+    if (ring > .05) { X.strokeStyle = `rgba(255,225,77,${ring})`; X.lineWidth = 4; X.lineCap = 'round'; for (const d of [-1, 1]) for (let k = 0; k < 2; k++) { X.beginPath(); X.arc(x, y, 30 + k * 10, d > 0 ? -.5 : Math.PI - .5 - .0, d > 0 ? .5 : Math.PI + .5); X.stroke(); } }
+  }
+  function giraffe(hx, ty, T, mood, lx, ly, dip) {
+    const bx = hx + 86, hy = ty + 34 + dip;
+    // legs + tail + body
+    const legs = [-38, -16, 14, 36];
+    for (let i = 0; i < 4; i++) { const lg = () => rr(bx + legs[i] - 7, 462, 14, 38, 5); celF(lg, '#ffd35a', '#e0a52e', 4, 0, 3.5); X.fillStyle = '#6a4630'; X.fillRect(bx + legs[i] - 7, 492, 14, 8); }
+    X.strokeStyle = INK; X.lineCap = 'round'; X.lineWidth = 12; X.beginPath(); X.moveTo(bx + 48, 448); X.quadraticCurveTo(bx + 66, 456 + Math.sin(T * 3) * 4, bx + 64, 480); X.stroke(); X.strokeStyle = '#ffd35a'; X.lineWidth = 6; X.stroke();
+    // neck: a slanted column from the body up to the head (the tray sits on top)
+    const neck = () => { X.beginPath(); X.moveTo(hx - 22, hy); X.lineTo(hx + 22, hy); X.bezierCurveTo(hx + 26, hy + (448 - hy) * .5, bx - 4, 440, bx + 6, 440); X.lineTo(bx - 40, 456); X.bezierCurveTo(bx - 40, 420, hx - 24, hy + (448 - hy) * .4, hx - 22, hy); X.closePath(); };
+    celF(neck, '#ffd35a', '#e0a52e', 10, 0, 4.5); X.save(); neck(); X.clip(); X.fillStyle = '#c9803a'; const nl = 448 - hy; for (let k = 0; k < Math.max(2, Math.floor(nl / 46)); k++) { const f = (k + .5) / Math.max(2, Math.floor(nl / 46)), cx = lerp(hx, bx - 14, f) + (k % 2 ? 8 : -6), cy = hy + nl * f; el(cx, cy, 9, 7.5, .3); X.fill(); } X.restore();
+    const body = () => el(bx, 450, 56, 32); celF(body, '#ffd35a', '#e0a52e', 9, -7, 4.5);
+    X.save(); body(); X.clip(); X.fillStyle = '#c9803a'; for (const [a, b, r] of [[-26, 444, 9], [4, 460, 8], [28, 442, 10], [-4, 436, 6]]) { el(bx + a, b, r, r * .8); X.fill(); } X.restore();
+    // head
+    const ears = (s) => { X.save(); X.translate(hx + s * 33, hy - 6); X.rotate(s * (.5 + Math.sin(T * 2 + s) * .08)); el(0, 0, 12, 6); ink('#ffd35a', 3); el(1 * s, 0, 6, 2.5); X.fillStyle = '#ff9db0'; X.fill(); X.restore(); };
+    ears(-1); ears(1);
+    const head = () => el(hx, hy, 31, 26); celF(head, '#ffd35a', '#e0a52e', 8, 0, 4.5);
+    el(hx, hy + 12, 19, 12); ink('#fff0b8', 3); for (const d of [-1, 1]) { X.beginPath(); X.arc(hx + d * 7, hy + 13, 2.2, 0, TAU); X.fillStyle = INK; X.fill(); }
+    const m = mood === 'happy' ? 'happy' : mood === 'worry' ? 'wide' : mood === 'sad' ? 'shut' : 'idle';
+    eye(hx - 13, hy - 6, 7.5, m, lx, ly, T, 11); eye(hx + 13, hy - 6, 7.5, m, lx, ly, T, 11.4);
+    X.strokeStyle = INK; X.lineWidth = 3.5; X.lineCap = 'round'; for (const d of [-1, 1]) { X.beginPath(); if (mood === 'worry' || mood === 'sad') { X.moveTo(hx + d * 19, hy - 19); X.lineTo(hx + d * 7, hy - 15); } else { X.moveTo(hx + d * 20, hy - 18); X.lineTo(hx + d * 8, hy - 19); } X.stroke(); }
+    if (mood === 'happy') { X.fillStyle = 'rgba(255,110,165,.7)'; for (const d of [-1, 1]) { el(hx + d * 22, hy + 3, 6, 3.5); X.fill(); } X.beginPath(); X.arc(hx, hy + 19, 5, .1, Math.PI - .1); X.lineWidth = 3; X.stroke(); }
+    // ossicones peeking out beside the tray
+    for (const d of [-1, 1]) { X.strokeStyle = INK; X.lineWidth = 9; X.beginPath(); X.moveTo(hx + d * 17, hy - 22); X.lineTo(hx + d * 18, hy - 30); X.stroke(); X.strokeStyle = '#c9803a'; X.lineWidth = 4; X.stroke(); }
+    // silver serving tray balanced on top: the landing pad
+    const tray = () => rr(hx - 42, ty + dip - 2, 84, 16, 7); celF(tray, '#cfd8e6', '#8f9cb3', 0, 5, 4); glint(tray, hx - 18, ty + dip + 2, 16, 2.2, .7, 0);
+    if (mood === 'worry') { const q = (T * 2) % 1; drop(hx + 32, hy - 18 + q * 14, .8, 1 - q); }
+    return hy;
+  }
+  function charge(s) {
+    X = ctx; chargeBg();
+    const { p, zc, zw, GY, LH, hold, fired, jt, endX, endY, A, res, T } = s, won = res === 'win', lost = res === 'lose', inz = p >= zc - zw / 2 && p <= zc + zw / 2, over = p > zc + zw / 2;
+    X.drawImage(CHA, -OX, 0);
+    sunRays(300, 104, T, 28);
+    for (let i = 0; i < 4; i++) cloud((T * (5 + i * 2) + i * 260 + 40) % (VW + 200) - OX - 120, 78 + (i % 2) * 26, .5 + (i % 3) * .1);
+    X.drawImage(CHB, -OX, 0);
+    const k = fired ? Math.min(1, jt / .7) : 0, platY = GY - LH, land = fired && jt >= .7, lt = Math.max(0, jt - .7);
+    // strength tester live parts: the green zone, the fill, the puck and the bell
+    const zy = 500 - (zc + zw / 2) * 3.5, zh = zw * 3.5;
+    X.save(); rr(88, 146, 54, 350, 14); X.clip(); rr(88, zy, 54, zh, 0); X.fillStyle = hold && inz ? '#c8ffd2' : '#5CFF7A'; X.fill(); X.fillStyle = 'rgba(255,255,255,.45)'; X.fillRect(92, zy, 8, zh);
+    X.fillStyle = '#ffd23f'; X.fillRect(94, 500 - p * 3.5, 42, p * 3.5 + 2); X.fillStyle = '#fff3a0'; X.fillRect(98, 500 - p * 3.5, 6, p * 3.5 + 2); X.restore();
+    X.strokeStyle = INK; X.lineWidth = 3.5; X.beginPath(); X.moveTo(88, zy); X.lineTo(142, zy); X.moveTo(88, zy + zh); X.lineTo(142, zy + zh); X.stroke();
+    X.beginPath(); X.moveTo(72, zy + zh / 2 - 9); X.lineTo(86, zy + zh / 2); X.lineTo(72, zy + zh / 2 + 9); X.closePath(); ink('#5CFF7A', 2.5);
+    rr(78, 500 - p * 3.5 - 5, 74, 10, 5); ink(over ? '#ff4d5e' : '#fff', 3);
+    bell(115, 126, won ? Math.max(0, 1 - Math.max(0, jt - .6) / .35) * (jt > .6 ? 1 : 0) : (hold && inz ? .5 : 0), T);
+    // the giraffe: watches the charge, beams on a win, winces on a loss
+    const gm = won ? 'happy' : lost ? 'sad' : hold && over ? 'worry' : 'idle';
+    const lkx = Math.max(-1, Math.min(1, (300 - 580) / 280)), lky = .2;
+    const dip = won && land ? Math.sin(Math.min(1, lt / .5) * Math.PI * 2) * 7 * Math.max(0, 1 - lt / .5) + Math.min(1, lt / .1) * 3 : 0;
+    giraffe(580, platY, T, gm, won && !land ? Math.max(-1, Math.min(1, (endX - 300) / 280 * k - 0)) * -1 : lkx, won && !land ? -.6 : lky, dip);
+    if (won && jt > .55) for (let i = 0; i < 4; i++) { const q = ((jt - .55) * 1.6 + i / 4) % 1; heart(580 - 52 - (i % 2) * 22 + Math.sin(q * 6 + i) * 5, platY + 36 - q * 70, .9, '#ff5c8a', 1 - q); }   // hearts drift up on the giraffe's left, clear of Claude and the NICE! stamp
+    // the trampoline on the lawn: its mat sags as the charge grows and bounces after the launch
+    const sag = hold ? p / 100 : fired ? Math.max(0, Math.sin(Math.min(1, jt / .35) * Math.PI * 2) * .5 * (1 - jt / .35)) : 0;
+    shadow(300, GY + 12, 82, 10, .28); X.save(); X.translate(300, GY + 4);
+    for (const d of [-1, 1]) { rr(d * 62 - 5, 8, 10, 22, 4); ink('#8f9cb3', 3); }
+    el(0, 0, 76, 16); ink('#ff4d5e', 4); el(0, 1 + sag * 3, 62, 11 + sag * 2); ink('#4DB8FF', 3); el(0, 3 + sag * 7, 38, 5 + sag * 2); X.fillStyle = '#2a8fcb'; X.fill(); X.fillStyle = 'rgba(255,255,255,.4)'; el(-26, -7, 18, 3, -.1); X.fill(); X.restore();
+    // Claude
+    const u = 9;
+    if (!fired) {
+      const sh = hold ? Math.sin(T * 60) * p / 100 * 2 : 0; X.save(); X.translate(300 + sh, GY); X.scale(1 + p / 400, 1 - p / 100 * .35);
+      arms(u, hold ? -1.5 : -2.4, hold ? 1.5 : 2.4, .85, OR); claude(0, 0, u, { mood: null });
+      eyes(0, 0, u, OR, [.8, -.3], hold ? (over ? 'panic' : 'bonk') : null, T);
+      X.restore();
+      if (hold) { for (const d of [-1, 1]) { const qq = (T * 2.2 + (d > 0 ? .5 : 0)) % 1; if (p > 35) drop(300 + d * 7 * u, GY - 8.5 * u + qq * 14, u / 7, 1 - qq); }
+        if (p > 50) for (const d of [-1, 1]) { const qq = (T * 3 + (d > 0 ? .4 : 0)) % 1; el(300 + d * (8 * u + qq * 22), GY - 8 * u - qq * 22, 5 + qq * 6, 4 + qq * 4); X.fillStyle = `rgba(255,255,255,${.8 * (1 - qq)})`; X.fill(); } }
+    } else {
+      const x = 300 + (endX - 300) * k, y = endY * k + A * 4 * k * (1 - k), cy = GY - y;
+      for (let i = 1; i <= 5; i++) { const k2 = Math.max(0, k - i * .05); if (k2 <= 0 || k >= 1) break; el(300 + (endX - 300) * k2, GY - (endY * k2 + A * 4 * k2 * (1 - k2)) + 2 * 9 * .3, 7 - i, 6 - i); X.fillStyle = `rgba(255,255,255,${.5 - i * .08})`; X.fill(); }
+      if (!land) {
+        X.save(); X.translate(x, cy); if (lost) X.rotate(k * TAU * 1.5 * (endX > 600 ? 1 : -1)); arms(u, won ? -.3 : -2.6, won ? .3 : 2.6, .85, OR);
+        claude(0, 0, u, { mood: won ? 'happy' : 'sad' }); X.restore();
+      } else if (won) {
+        const j = Math.abs(Math.sin(lt * 9)) * 10 * Math.max(0, 1 - lt / .4) ; const fx = endX + 26, fy = platY + dip - j, ul = 7;   // smaller and nudged right: the giraffe's face stays visible under the tray
+        shadow(fx, platY + 2 + dip, 26, 5, .25); X.save(); X.translate(fx, fy); arms(ul, -.25, .25, .9, OR); claude(0, 0, ul, { mood: 'happy' }); X.restore();
+        for (let i = 0; i < 3; i++) { const q = (lt * 2 + i / 3) % 1; star(fx + (i - 1) * 24, fy - 12 * ul - q * 20, 6, 2.6, 5, T * 4 + i, '#FFE14D', 2.5); }
+      } else {
+        const fx = endX, sq = Math.min(1, lt / .1); X.save(); X.translate(fx, GY); X.scale(1 + .35 * sq, 1 - .45 * sq); arms(u, -2.6, 2.6, .8, OR); claude(0, 0, u, { mood: 'sad' }); X.restore();
+        stars(fx, GY - 8 * u, 4.5 * u, T);
+        const q = Math.min(1, lt / .4); X.fillStyle = `rgba(217,160,102,${.75 * (1 - q)})`; for (const d of [-1, 1]) { X.beginPath(); X.arc(fx + d * (32 + q * 36), GY - 4 - q * 10, 12 + q * 12, 0, TAU); X.fill(); }
+      }
+    }
+    vignette(.16);
+  }
+
+  return { maze, flap, charge };
 })();
 
 /* 29 ── MAZE: walk Claude to the star (arrows / WASD) */

@@ -16,6 +16,7 @@ const party = {
   room: null,            // latest room record from the server (never contains the secret keys)
   you: null,             // { id, key }: my seat and its secret
   busy: false, msg: '', msgCol: '#FF4D4D',
+  guideTab: 0, previewMode: null,
   es: null, sseOK: false,
   played: -1,            // round I have already started locally
   pending: null,         // my result for the current round, until the server has it
@@ -90,7 +91,7 @@ const roomView = () => { const R = party.room; return R.state === 'lobby' ? 'lob
 function enterRoom(r) {
   party.busy = false;
   if (!r.ok) { party.msg = partyErr(r); party.msgCol = '#FF4D4D'; party.view = 'menu'; state = 'party'; st = 0; return false; }
-  party.room = r.data.room; party.you = r.data.you; party.played = -1; party.pending = null; party.msg = '';
+  party.room = r.data.room; party.you = r.data.you; party.played = -1; party.pending = null; party.msg = ''; party.guideTab = 0; party.previewMode = null;
   saveSession(); partyConnect(); state = 'party'; st = 0; mode = 'stage';
   onRoom(party.room, null);
   return true;
@@ -221,6 +222,7 @@ function applyRoom(R) {
 function onRoom(R, old) {
   const entered = !old || old.state !== R.state || old.round !== R.round;
   if (R.state === 'lobby') {
+    if (!old || old.mode !== R.mode) { party.previewMode = null; party.guideTab = 0; }
     if (partyTurnMode(R)) loadThree();
     party.played = -1; party.pending = null;
     if (state === 'play' && mode === 'party') mode = 'stage';
@@ -351,65 +353,67 @@ function drawParty() {
 }
 
 function drawPartyMenu() {
-  txt('PLAY WITH FRIENDS', W / 2, 46, 44, '#FFE14D', 'center', 430);
+  txt('PLAY WITH FRIENDS', W / 2, 44, 35, '#FFE14D', 'center', 430);
   button(14, 10, 130, 56, '◄ BACK', () => { goTitle(); }, { size: 22 });
   button(W + OX - 204, 10, 190, 56, 'MY FRIENDS', goFriends, { size: 20, fill: '#B49CFF' });
   if (net.user && frPending() > 0) { circ(W + OX - 20, 14, 14, '#FF4D4D', 3); txt(String(frPending()), W + OX - 20, 15, 15, '#fff'); }
-  txt('LIVE 5-SECOND MICROGAMES · 2-4 PLAYERS', W / 2, 108, 22, '#fff', 'center', 740);
-  button(200, 150, 400, 92, 'CREATE ROOM', partyCreate, { fill: '#5CFF7A', size: 36 });
-  txt('OR JOIN WITH A CODE', W / 2, 290, 24, '#fff');
+  ['INVITE FRIENDS', 'CHOOSE A MODE', 'PLAY TOGETHER'].forEach((label, i) => {
+    const x = 68 + i * 247; circ(x, 113, 15, i === 0 ? '#4DB8FF' : i === 1 ? '#B49CFF' : '#7BD88F', 0); txt(String(i + 1), x, 113, 17, INK); txt(label, x + 24, 113, 15, '#fff', 'left', 192);
+  });
+  box3(40, 158, 720, 112, '#252c4b', 4, 5);
+  txt('HOST A PARTY', 64, 187, 26, '#7BD88F', 'left', 330);
+  txt('Create a room and invite your friends.', 64, 225, 16, '#fff', 'left', 350);
+  button(450, 180, 286, 66, 'CREATE ROOM', partyCreate, { fill: '#5CFF7A', size: 28 });
+  box3(40, 290, 720, 142, '#252c4b', 4, 5);
+  txt('JOIN A ROOM', 400, 306, 17, '#4DB8FF');
   button(480, 322, 120, 64, 'JOIN', joinTyped, { fill: '#4DB8FF', size: 28 });
+  txt('Enter the 4-character code shared by the host.', 400, 408, 16, '#ddd', 'center', 680);
   const idn = partyIdentity();
-  txt(t('PLAYING AS {name}', { name: idn.name.toUpperCase() }), W / 2, 440, 24, idn.color, 'center', 740);
-  if (!net.user) txt('SIGN IN WITH GOOGLE (PROFILE) TO USE YOUR OWN NAME', W / 2, 474, 17, '#ddd', 'center', 740);
-  if (party.msg) txt(party.msg, W / 2, 528, 22, party.msgCol, 'center', 740);
-  claude(110, 410, 5, { col: idn.color, mood: 'happy' });
+  box3(40, 458, 720, 82, '#171c34', 3, 3);
+  claude(83, 522, 3.4, { col: idn.color, mood: 'happy' });
+  txt(t('PLAYING AS {name}', { name: idn.name.toUpperCase() }), 124, 485, 21, idn.color, 'left', 612);
+  txt(net.user ? 'Ready to play with your profile.' : 'Guest play is ready. No account needed.', 124, 519, 16, '#ddd', 'left', 612);
+  if (party.msg) txt(party.msg, W / 2, 571, 20, party.msgCol, 'center', 740);
+  else txt('2-4 PLAYERS · ONLINE · MOUSE, KEYBOARD OR TOUCH', W / 2, 571, 14, '#B49CFF', 'center', 740);
 }
 
 function drawLobby(R) {
-  txt('ROOM CODE', W / 2, 20, 16, '#ddd');
-  const pop = easeBack(st / .4);
-  ctx.save(); ctx.translate(W / 2, 62); ctx.scale(pop, pop); txt(R.code, 5, 6, 58, INK); txt(R.code, 0, 0, 58, '#FFE14D'); ctx.restore();
-  txt(location.host + '/r/' + R.code, W / 2, 105, 15, '#ddd', 'center', 740);
-  if (R.mode === 'duo' && partnerOf(R)) txt(link.state === 'open' ? (linkLabel() ? t('DIRECT LINK READY · {label}', { label: linkLabel() }) : 'DIRECT LINK READY') : link.tries >= 4 ? 'USING THE SERVER RELAY' : 'CONNECTING DIRECTLY...', W / 2, 122, 12, link.state === 'open' ? '#5CFF7A' : '#FFE14D', 'center', 740);
+  const n = R.players.filter(p => !p.left).length, m = partyGuideMode(R), preview = !isHost() && m !== R.mode;
+  box3(24, 8, 206, 59, '#171c34', 3, 3);
+  txt('ROOM CODE', 40, 22, 12, '#aaa', 'left'); txt(R.code, 215, 43, 37, '#FFE14D', 'right', 165);
+  txt('YOUR PARTY', W / 2, 29, 28, '#FFE14D');
+  txt(t(n === 1 ? '{n} PLAYER CONNECTED' : '{n} PLAYERS CONNECTED', { n }), W / 2, 58, 14, '#ddd');
   for (let i = 0; i < 4; i++) {
-    const p = R.players[i], x = 40 + i * 188, y = 138, k = easeOut((st - i * .06) / .3);
-    ctx.save(); ctx.translate(0, (1 - k) * 30); ctx.globalAlpha = k;
-    box3(x, y, 172, 106, p ? '#35406a' : '#2a3354', 4, 6);
+    const p = R.players[i], x = 24 + i * 190, y = 82;
+    box3(x, y, 176, 64, p ? '#35406a' : '#202840', 3, 3);
+    claude(x + 29, y + 52, 2.7, { col: p ? p.color : '#4a4558', mood: p ? 'happy' : null });
+    txt(p ? p.name : 'WAITING...', x + 56, y + 26, 16, p ? p.color : '#8e8c9c', 'left', 112);
     if (p) {
-      shadow(x + 86, y + 67, 40, 8, .3);
-      claude(x + 86, y + 65 - Math.abs(Math.sin(now * 3 + i)) * 4, 3.4, { col: p.color, mood: 'happy' });
-      txt(p.name, x + 86, y + 86, 17, p.color, 'center', 156);
-      if (R.host === p.id) star(x + 22, y + 22, 16, 7, 5, -Math.PI / 2, '#FFE14D', 3);
-      if (party.you && p.id === party.you.id) txt('YOU', x + 150, y + 20, 15, '#fff', 'center', 40);
+      txt(R.host === p.id ? 'HOST' : party.you && p.id === party.you.id ? 'YOU' : 'READY', x + 56, y + 48, 11, '#ddd', 'left', 105);
       if (voice.on && p.id !== party.you.id) {
-        const vs = voiceState(p.id);
-        if (vs !== 'none') circ(x + 156, y + 94, 5, VCOL[vs], 2);
-        if (talking(p.id)) { ctx.strokeStyle = '#5CFF7A'; ctx.lineWidth = 4; ctx.strokeRect(x - 2, y - 2, 176, 110); }
-        button(x + 111, y + 32, 55, 23, voice.mutedBy[p.id] ? 'MUTED' : 'HEAR', () => voiceMuteOther(p.id), { size: 11, fill: voice.mutedBy[p.id] ? '#FF4D4D' : '#fff', col: voice.mutedBy[p.id] ? '#fff' : INK });
+        const vs = voiceState(p.id); if (vs !== 'none') circ(x + 166, y + 11, 4, VCOL[vs], 0);
+        if (talking(p.id)) { ctx.strokeStyle = '#5CFF7A'; ctx.lineWidth = 3; ctx.strokeRect(x - 1, y - 1, 178, 66); }
+        button(x + 118, y + 40, 51, 20, voice.mutedBy[p.id] ? 'MUTED' : 'HEAR', () => voiceMuteOther(p.id), { size: 10, fill: voice.mutedBy[p.id] ? '#FF4D4D' : '#fff' });
       }
-    } else {
-      claude(x + 86, y + 65, 3.4, { col: '#4a4558', mood: null }); txt('WAITING...', x + 86, y + 86, 15, '#8e8c9c', 'center', 156);
     }
-    ctx.restore();
   }
-  txt(isHost() ? 'CHOOSE A MODE' : 'THE HOST CHOOSES THE MODE', W / 2, 261, 16, '#ddd');
-  Object.keys(MODE_NEXT).forEach((m, i) => {
-    const selected = R.mode === m, x = 40 + (i % 4) * 188, y = 278 + Math.floor(i / 4) * 38;
-    if (isHost()) button(x, y, 172, 32, (selected ? '★ ' : '') + t(modeLabel(m)), () => partyAct('mode', { mode: m }), { fill: selected ? '#FFE14D' : '#B49CFF', size: 17 });
-    else { box3(x, y, 172, 32, selected ? '#FFE14D' : '#35406a', 3, 3); txt((selected ? '★ ' : '') + t(modeLabel(m)), x + 86, y + 17, 17, selected ? INK : '#ddd', 'center', 160); }
+  box3(24, 158, 246, 366, '#171c34', 4, 5);
+  txt(isHost() ? 'CHOOSE A MODE' : 'EXPLORE THE MODES', 40, 175, 15, '#ddd', 'left', 222);
+  Object.keys(PARTY_GUIDE).forEach((id, i) => {
+    const y = 192 + i * 41, selected = m === id, active = R.mode === id, col = PARTY_GUIDE[id].color;
+    button(34, y, 226, 34, '', () => partyChooseMode(id), { fill: selected ? col : '#303a5b' });
+    partyModeIcon(id, 55, y + 17, 15, col);
+    txt(modeLabel(id), 80, y + 18, 17, selected ? INK : '#fff', 'left', 155);
+    if (active) circ(246, y + 17, 4, selected ? INK : '#7BD88F', 0);
   });
-  const help = PARTY_HELP[R.mode] || PARTY_HELP.versus;
-  box3(40, 358, 720, 143, '#35406a', 4, 5);
-  txt(help[0], W / 2, 377, 22, '#FFE14D', 'center', 690);
-  help.slice(1).forEach((line, i) => txt(line, W / 2, 406 + i * 25, i === 3 ? 15 : 17, i === 3 ? '#B49CFF' : '#fff', 'center', 686));
-  button(40, 518, 230, 62, 'INVITE', partyInvite, { fill: '#4DB8FF', size: 28 });
-  const n = R.players.filter(p => !p.left).length;
+  drawPartyGuide(R);
+  txt(preview ? t('PREVIEW ONLY · ROOM MODE: {mode}', { mode: t(modeLabel(R.mode)) }) : isHost() ? canStart(R) ? 'ROOM READY · PICK A MODE AND START' : 'INVITE A FRIEND TO START' : 'THE HOST CHOOSES THE MODE AND STARTS', W / 2, 533, 12, preview ? '#FFE14D' : '#ddd', 'center', 746);
+  button(24, 547, 134, 43, 'LEAVE', () => partyLeave('menu'), { fill: '#fff', size: 20 });
+  button(174, 547, 206, 43, 'INVITE FRIENDS', partyInvite, { fill: '#4DB8FF', size: 20 });
   if (isHost()) {
-    if (canStart(R)) button(290, 518, 260, 62, 'START!', partyStart, { fill: '#5CFF7A', size: 36 });
-    else { box3(290, 518, 260, 62, '#9a98a8', 5, 5); txt(R.mode === 'duo' ? 'DUO NEEDS EXACTLY 2' : 'NEED 2+ PLAYERS', 420, 549, 22, '#fff', 'center', 240); }
-  } else txt(t('WAITING FOR {name} TO START', { name: pName(R, R.host).toUpperCase() }), 420, 549, 20, '#fff', 'center', 260);
-  button(570, 518, 190, 62, 'LEAVE', () => partyLeave('menu'), { fill: '#fff', size: 28 });
+    if (canStart(R)) button(400, 547, 376, 43, t('START {mode}', { mode: t(modeLabel(R.mode)) }), partyStart, { fill: '#5CFF7A', size: 27 });
+    else { box3(400, 547, 376, 43, '#4a5065', 4, 4); txt(R.mode === 'duo' ? 'DUO NEEDS EXACTLY 2' : 'NEED 2+ PLAYERS', 588, 569, 20, '#ddd', 'center', 352); }
+  } else { box3(400, 547, 376, 43, '#4a5065', 4, 4); txt(t('WAITING FOR {name} TO START', { name: pName(R, R.host).toUpperCase() }), 588, 569, 17, '#ddd', 'center', 352); }
 }
 
 function drawWait(R) {

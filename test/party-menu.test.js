@@ -1,0 +1,23 @@
+'use strict';
+// Lobby previews belong to the viewer; only the host can select the actual room mode.
+const assert = require('node:assert/strict'), fs = require('node:fs'), vm = require('node:vm');
+const sb = { URLSearchParams, console, document: { getElementById: () => null }, location: { search: '' }, matchMedia: () => ({ matches: false }), addEventListener() {}, calls: [] };
+vm.createContext(sb);
+for (const file of ['js/party.js', 'js/party-guide.js']) vm.runInContext(fs.readFileSync(file, 'utf8'), sb, { filename: file });
+const run = code => vm.runInContext(code, sb);
+run(`party.room = { mode: 'balloon', host: 'a', players: [{id:'a'}, {id:'b'}] }; party.you = { id: 'b' }; party.guideTab = 2;
+  partyAct = (action, data) => calls.push({action, data}); partyChooseMode('cards');`);
+assert.equal(run('party.room.mode'), 'balloon', 'guest preview cannot select a room mode');
+assert.equal(run('partyGuideMode(party.room)'), 'cards');
+assert.equal(run('party.guideTab'), 0);
+assert.equal(sb.calls.length, 0, 'guest preview does not send a mode-change request');
+run("party.you.id = 'a'; partyChooseMode('lantern');");
+assert.equal(sb.calls.length, 1);
+assert.equal(sb.calls[0].action, 'mode'); assert.equal(sb.calls[0].data.mode, 'lantern');
+assert.equal(run('partyGuideMode(party.room)'), 'balloon', 'host preview follows the acknowledged room mode');
+run("partyChooseMode('balloon');"); assert.equal(sb.calls.length, 1, 'selected mode needs no duplicate request');
+const serverModes = require('../pocketbase/pb_hooks/party.js').MODES;
+assert.deepEqual(JSON.parse(run('JSON.stringify(Object.keys(PARTY_GUIDE))')).sort(), serverModes.slice().sort());
+run("party.room.mode = 'duo';"); assert.equal(run('canStart(party.room)'), true);
+run("party.room.players.push({id:'c'});"); assert.equal(run('canStart(party.room)'), false, 'DUO retains its exact two-player requirement');
+console.log('party menu: guest previews, host selection, complete mode guides and start requirements OK');

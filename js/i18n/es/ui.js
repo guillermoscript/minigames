@@ -3,6 +3,7 @@
 /* touch screens: reword click/mouse hints after translating them */
 I18N.addTouch('es', [[/\bHAZ CLIC\b/g, 'TOCA'], [/\bCLIC\b/g, 'TOCA'], [/\b(MOUSE|RATÓN)\b/g, 'DEDO']]);
 I18N.add('es', {
+  'LOADING 3D GAME...': 'CARGANDO MICROJUEGO 3D...',
   'PLAYER: {name}': 'JUEGA: {name}',
   "LANTERNS": "LINTERNAS",
   "CARDS": "CARTAS",

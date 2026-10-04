@@ -29,19 +29,27 @@ rejects(() => P.sigPayload(light, 'b', 0, [{ t: 'down', d: { x: 200, y: 300 } }]
 rejects(() => P.sigPayload(light, 'a', 0, [{ t: 'light', d: { x: 200, y: 300 } }]), 400);
 rejects(() => P.sigPayload(light, 'b', 0, [{ t: 'light', d: { x: null, y: 300 } }]), 400);
 P.sigPayload(light, 'a', 0, [{ t: 'key', d: { code: 'Space' } }]);
+const frame = { t: 'frame', d: { image: 'data:image/jpeg;base64,' + 'A'.repeat(12000), cmd: 'PLAY', time: 5 } };
+const beforeFrame = JSON.stringify(light);
+assert.equal(P.sigPayload(light, 'a', 0, [frame]).m[0].d.image, frame.d.image);
+assert.equal(JSON.stringify(light), beforeFrame, 'visual relay never persists in room');
+rejects(() => P.sigPayload(light, 'b', 0, [frame]), 400);
+rejects(() => P.sigPayload(light, 'a', 0, [{ t: 'frame', d: { image: 'data:image/png;base64,AAAA' } }]), 400);
+rejects(() => P.sigPayload(light, 'a', 0, [{ t: 'frame', d: { image: 'data:image/jpeg;base64,' + 'A'.repeat(60000) } }]), 400);
+rejects(() => P.sigPayload(light, 'a', 0, [frame, frame, frame, frame, frame, frame]), 413);
 
 // Balloon: win passes, loss retains, helpers pump with a per-player rate cap, pop identifies one loser.
 const balloon = make('balloon');
 rejects(() => P.pump(balloon, 'a', 0, 8, 4000), 403);
 P.pump(balloon, 'b', 0, 999, 2000); assert.equal(balloon.extra.balloon, 0);
-P.pump(balloon, 'b', 0, 999, 3400); assert.equal(balloon.extra.balloon, 8);
-P.pump(balloon, 'b', 0, 999, 3400); assert.equal(balloon.extra.balloon, 8);
+P.pump(balloon, 'b', 0, 999, balloon.roundAt + P.PRE_MS_TURN + 1000); assert.equal(balloon.extra.balloon, 8);
+P.pump(balloon, 'b', 0, 999, balloon.roundAt + P.PRE_MS_TURN + 1000); assert.equal(balloon.extra.balloon, 8);
 verdict(balloon, true); next(balloon); assert.equal(balloon.extra.actor, 'b');
 verdict(balloon, false); next(balloon); assert.equal(balloon.extra.actor, 'b');
 balloon.keys._balloonLimit = balloon.extra.balloon + 1;
-P.pump(balloon, 'a', balloon.round, 1, balloon.roundAt + 3000);
+P.pump(balloon, 'a', balloon.round, 1, balloon.roundAt + P.PRE_MS_TURN + 1000);
 assert.equal(balloon.extra.loser, 'b'); assert.equal(balloon.last.final, true);
-rejects(() => P.pump(balloon, 'c', balloon.round, 1, balloon.roundAt + 3100), 409);
+rejects(() => P.pump(balloon, 'c', balloon.round, 1, balloon.roundAt + P.PRE_MS_TURN + 1100), 409);
 next(balloon); assert.equal(balloon.state, 'done');
 assert.ok(!('keys' in P.publicRoom(balloon)));
 P.again(balloon, 'a'); P.start(balloon, 'a', 100000, rand);

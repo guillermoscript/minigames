@@ -1,6 +1,6 @@
 'use strict';
 /* Turn-based party modes reuse the existing seeded microgames. The server owns turns,
-   cards and the balloon; Lanterns relays only inputs and light positions. */
+   cards and the balloon; The actor broadcasts the game view; assistants relay light positions or use server actions. */
 const partyTurnMode = R => ['lantern', 'cards', 'balloon'].includes(R.mode);
 const partyActor = R => R.players.find(p => p.id === R.extra.actor);
 const partyTurnLabel = R => R.mode === 'cards' ? t('{n} CARDS LEFT', { n: R.extra.deck }) : R.mode === 'balloon' ? t('TURN {n}', { n: R.round + 1 }) : t('ROUND {n} / {total}', { n: R.round + 1, total: R.total });
@@ -21,7 +21,7 @@ function partyCardTable(R, interactive) {
   });
 }
 function partyBalloon(R, large) {
-  const x = large ? 400 : 682, y = large ? 282 : 176;
+  const x = large ? 400 : 682, y = large ? 282 : 314;
   const size = (large ? 66 : 23) + Math.min(1, R.extra.balloon / 180) * (large ? 100 : 37);
   ctx.save(); ctx.translate(x, y); ctx.rotate(Math.sin(now * 5) * .04);
   ctx.fillStyle = '#F28CB1'; ctx.strokeStyle = INK; ctx.lineWidth = 4;
@@ -29,6 +29,11 @@ function partyBalloon(R, large) {
   circ(-size * .25, -size * .4, size * .12, 'rgba(255,255,255,.6)', 0);
   ctx.beginPath(); ctx.moveTo(0, size); ctx.lineTo(-9, size + 14); ctx.lineTo(9, size + 14); ctx.closePath(); ctx.fill(); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(0, size + 14); ctx.lineTo(6, size + 44); ctx.stroke(); ctx.restore();
+}
+function partyCardReveal(R) {
+  if (!R.extra.card) return '';
+  if (R.extra.card !== 'play') return 'MICROGAME CARD ADDED · NEXT PLAYER DRAWS';
+  return R.extra.phase === 'challenge' ? 'PLAY CARD · BEAT THE PILE TO KEEP IT' : 'PLAY CARD · EMPTY PILE: NEXT PLAYER';
 }
 function partyDrawGame(R) {
   const actor = partyActor(R), mine = R.extra.actor === party.you.id, round = R.round;
@@ -43,6 +48,7 @@ function partyDrawGame(R) {
     update() {},
     draw() {
       bg('#26304b', '#392d59', now);
+      txt(partyCardReveal(R), 400, 76, 19, '#F28CB1', 'center', 720);
       txt('CARD TABLE', 400, 122, 42, '#FFE14D');
       txt(t('{n} MICROGAMES IN THE PILE', { n: R.extra.pile.length }), 400, 184, 25, '#fff');
       txt(t('{n} CARDS IN THE POT', { n: R.extra.pot }), 400, 223, 21, '#F28CB1');
@@ -57,39 +63,60 @@ function partyDrawGame(R) {
     key(e) { if (e.repeat) return; if (e.code === 'ArrowLeft' || e.code === 'KeyA') choose('left'); if (e.code === 'ArrowRight' || e.code === 'KeyD' || e.code === 'Space') choose('right'); },
   };
 }
+// Normalize dimensions and pointer state for games that read global mouse/pressing or spawn in widescreen space.
+function partyGameScope(fn, pointer) {
+  const old = { VW, OX, mouse, pressing };
+  VW = W; OX = 0;
+  if (pointer) { mouse = pointer.pos; pressing = pointer.held; }
+  try { return fn(); } finally { VW = old.VW; OX = old.OX; mouse = old.mouse; pressing = old.pressing; }
+}
 function partyWrapGame(base, R, sp) {
   const actor = partyActor(R), mine = actor.id === party.you.id, round = R.round;
-  const g = { ...base, partyHelper: !mine, partyDark: R.mode === 'lantern' && mine };
-  if (!mine) { g.dur = 3600; delete g.result; g.cmd = R.mode === 'lantern' ? 'LIGHT THE WAY!' : R.mode === 'balloon' ? 'PUMP THE BALLOON!' : 'STEAL CARDS!'; }
-  let lx = 400, ly = 300, held = {}, elapsed = 0, lightAt = -1, taps = 0, lastTap = -1, sentAt = 0, pumping = false;
-  const lights = {};
-  const dark = R.mode === 'lantern' && mine ? document.createElement('canvas') : null;
-  if (dark) { dark.width = W; dark.height = H; }
-  const relay = R.mode === 'lantern' ? duoCtx(R) : null;
-  if (relay) relay.onMsg((type, data, from) => {
-    if (type === 'light' && from !== actor.id) { lights[from] = { x: Math.max(0, Math.min(W, data.x)), y: Math.max(0, Math.min(H, data.y)), at: now }; return; }
-    if (!mine && from === actor.id && base[type]) base[type](data);
-  });
-  const tap = () => { if (mine || R.mode !== 'balloon' || elapsed - lastTap < .085) return; lastTap = elapsed; taps = Math.min(8, taps + 1); sfx.blip(4); };
-  const input = (type, data) => {
-    if (mine) {
-      if (base[type]) base[type](data);
-      if (relay) {
-        const d = type === 'key' || type === 'keyup' ? { code: data.code, key: data.key || '', repeat: !!data.repeat } : { x: data.x, y: data.y };
-        relay.send(type, d, type === 'move');
-      }
-    } else if (R.mode === 'lantern') {
-      if (type === 'move' || type === 'down') { lx = Math.max(0, Math.min(W, data.x)); ly = Math.max(0, Math.min(H, data.y)); }
-      if (type === 'key' || type === 'keyup') held[data.code] = type === 'key';
-    } else if (R.mode === 'balloon' && (type === 'down' || (type === 'key' && !data.repeat && (data.code === 'Space' || data.code === 'Enter')))) tap();
-  };
+  const view = { x: 16, y: 124, w: 576, h: 432, scale: .72 };
+  const g = { ...base, partyHelper: !mine, partyScene: true, wide: false, partyDark: R.mode === 'lantern' && mine };
+  if (!mine) { g.dur = 3600; delete g.result; }
+  let instruction = base.cmd || 'MICROGAME';
+  g.cmd = mine ? instruction : R.mode === 'lantern' ? 'LIGHT THE WAY!' : R.mode === 'balloon' ? 'PUMP THE BALLOON!' : 'STEAL CARDS!';
   g.hint = mine ? base.hint : R.mode === 'lantern' ? 'MOVE THE LIGHT · MOUSE / TOUCH / ARROWS' : R.mode === 'balloon' ? 'TAP / SPACE TO INFLATE · MAKE IT POP ON THEIR TURN' : 'TAP A RIVAL TO STEAL ONE CARD PER MICROGAME';
   g.thint = mine ? base.thint : g.hint;
-  g.update = (dt, t) => {
+  let lx = 400, ly = 300, held = {}, elapsed = 0, lightAt = -1, taps = 0, lastTap = -1, sentAt = 0, pumping = false, frameAt = -1, frame = null, frameTime = -1, frameSeq = 0, sharedTime = 0, sharedDuration = 1, sharedClockAt = 0;
+  const lights = {}, pointer = { pos: { x: 400, y: 300 }, held: false };
+  const relay = duoCtx(R);
+  const capture = mine ? document.createElement('canvas') : null;
+  if (capture) { capture.width = 400; capture.height = 300; }
+  const dark = R.mode === 'lantern' && mine ? document.createElement('canvas') : null;
+  if (dark) { dark.width = W; dark.height = H; }
+  relay.onMsg((type, data, from) => {
+    if (type === 'light' && from !== actor.id && data && Number.isFinite(data.x) && Number.isFinite(data.y)) {
+      lights[from] = { x: Math.max(0, Math.min(W, data.x)), y: Math.max(0, Math.min(H, data.y)), at: now };
+    }
+    if (!mine && type === 'frame' && from === actor.id && data && typeof data.image === 'string' && data.image.startsWith('data:image/jpeg;base64,') && data.image.length < 60000) {
+      if (typeof data.cmd === 'string' && data.cmd.length < 120) instruction = data.cmd;
+      if (Number.isFinite(data.time) && Number.isFinite(data.duration)) { sharedTime = Math.max(0, data.time); sharedDuration = Math.max(1, data.duration); sharedClockAt = now; }
+      const seq = ++frameSeq, incoming = new Image();
+      incoming.onload = () => { if (seq === frameSeq) { frame = incoming; frameTime = now; } };
+      incoming.src = data.image;
+    }
+  });
+  const localPoint = data => ({ x: Math.max(0, Math.min(W, (data.x - view.x) / view.scale)), y: Math.max(0, Math.min(H, (data.y - view.y) / view.scale)) });
+  const inside = data => data.x >= view.x && data.x <= view.x + view.w && data.y >= view.y && data.y <= view.y + view.h;
+  const invoke = (type, data) => {
+    if (type === 'move' || type === 'down' || type === 'up') {
+      if (type === 'down' && !inside(data)) return;
+      data = localPoint(data); pointer.pos = data;
+      if (type === 'down') pointer.held = true;
+      if (type === 'up') pointer.held = false;
+    }
+    return partyGameScope(() => base[type] && base[type](data), pointer);
+  };
+  const tap = () => {
+    if (mine || R.mode !== 'balloon' || elapsed - lastTap < .085) return;
+    lastTap = elapsed; taps = Math.min(8, taps + 1); sfx.blip(4);
+  };
+  g.update = (dt, time) => {
     elapsed += dt;
-    if (mine || R.mode === 'lantern') base.update(dt, t);
-    if (mine) { g.result = base.result; g.pts = base.pts; g.timeWin = base.timeWin; }
-    if (!mine && relay) {
+    if (mine) { partyGameScope(() => base.update(dt, time), pointer); g.result = base.result; g.pts = base.pts; g.timeWin = base.timeWin; }
+    if (!mine && R.mode === 'lantern') {
       lx = Math.max(0, Math.min(W, lx + ((held.ArrowRight || held.KeyD ? 1 : 0) - (held.ArrowLeft || held.KeyA ? 1 : 0)) * dt * 440));
       ly = Math.max(0, Math.min(H, ly + ((held.ArrowDown || held.KeyS ? 1 : 0) - (held.ArrowUp || held.KeyW ? 1 : 0)) * dt * 440));
       if (elapsed - lightAt > .08) { lightAt = elapsed; relay.send('light', { x: Math.round(lx), y: Math.round(ly) }, true); }
@@ -101,47 +128,100 @@ function partyWrapGame(base, R, sp) {
   };
   g.draw = gameTime => {
     const current = party.room;
-    if (mine || R.mode === 'lantern') base.draw(gameTime);
-    else {
-      bg('#26304b', '#392d59', now);
-      txt(tName(actor), 400, 132, 32, actor.color, 'center', 740);
-      txt('YOUR FRIEND IS PLAYING', 400, 174, 22, '#fff');
-      if (R.mode === 'balloon') {
-        partyBalloon(current, true);
-        box(210, 458, 380, 70, '#F28CB1', 4); txt('PUMP! TAP / SPACE', 400, 495, 30, INK, 'center', 350);
-      } else {
-        txt(t('{n} MICROGAMES TO GO', { n: current.extra.remaining.length }), 400, 290, 38, '#FFE14D');
-        txt(t('{n} CARDS AT STAKE', { n: current.extra.pile.length + current.extra.pot }), 400, 360, 30, '#fff');
-        partyCardTable(current, true);
+    bg('#26304b', '#392d59', now);
+    box(6, 115, 594, 448, '#14101c', 5);
+    box(12, 120, 584, 440, actor.color, 4);
+    // Chunky television bezel keeps the microgame and the surrounding party props in one stage.
+    circ(590, 110, 5, '#7BD88F', 0);
+    ctx.save(); ctx.beginPath(); ctx.rect(view.x, view.y, view.w, view.h); ctx.clip();
+    ctx.translate(view.x, view.y); ctx.scale(view.scale, view.scale);
+    if (mine) {
+      partyGameScope(() => { base.draw(gameTime); if (typeof drawParts === 'function') drawParts(); }, pointer);
+      // Capture the actor's rendered game before darkness and controls. Helpers never simulate RNG or outcomes.
+      if (elapsed - frameAt >= .3 && capture.getContext && capture.toDataURL) {
+        frameAt = elapsed;
+        try {
+          capture.getContext('2d').drawImage(cv, view.x + OX, view.y, view.w, view.h, 0, 0, 400, 300);
+          const image = capture.toDataURL('image/jpeg', .48);
+          if (image.length < 60000) relay.send('frame', { image, cmd: instruction, hint: base.hint || '', time: Math.max(0, base.dur / Math.sqrt(sp) - gameTime), duration: base.dur / Math.sqrt(sp) }, true);
+        } catch (_) { /* Tainted third-party canvases cannot be broadcast. */ }
       }
-    }
-    if (R.mode === 'lantern') {
-      if (mine) {
-        const mask = dark.getContext('2d');
-        mask.globalCompositeOperation = 'source-over'; mask.clearRect(0, 0, W, H);
-        mask.fillStyle = '#090911'; mask.fillRect(0, 0, W, H);
-        mask.globalCompositeOperation = 'destination-out';
+      if (dark) {
+        const mask = dark.getContext('2d'); mask.globalCompositeOperation = 'source-over'; mask.clearRect(0, 0, W, H);
+        mask.fillStyle = '#090911'; mask.fillRect(0, 0, W, H); mask.globalCompositeOperation = 'destination-out';
         for (const p of current.players.filter(p => !p.left && p.id !== actor.id)) {
-          const l = lights[p.id]; if (!l || now - l.at > 2) continue;
-          mask.beginPath(); mask.arc(l.x, l.y, 125, 0, Math.PI * 2); mask.fill();
+          const light = lights[p.id]; if (!light || now - light.at > 2) continue;
+          mask.beginPath(); mask.arc(light.x, light.y, 125, 0, Math.PI * 2); mask.fill();
         }
         mask.globalCompositeOperation = 'source-over'; ctx.drawImage(dark, 0, 0);
-      } else {
-        ctx.save(); ctx.strokeStyle = me().color; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(lx, ly, 125, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
-        txt('KEEP THE IMPORTANT PARTS LIT!', 400, 580, 22, '#FFE14D');
       }
+    } else {
+      ctx.fillStyle = '#19172d'; ctx.fillRect(0, 0, W, H);
+      if (frame) ctx.drawImage(frame, 0, 0, W, H);
+      if (!frame || now - frameTime > 3) txt('CONNECTING TO THE PLAYER...', 400, 300, 28, '#FFE14D', 'center', 740);
+      if (R.mode === 'lantern') { ctx.strokeStyle = me().color; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(lx, ly, 125, 0, Math.PI * 2); ctx.stroke(); }
     }
-    if (R.mode === 'balloon' && mine) partyBalloon(current, false);
-    if (R.mode === 'cards' && mine) { box(190, 554, 420, 36, '#302b50', 3); txt(t('{n} CARDS AT STAKE', { n: current.extra.pile.length + current.extra.pot }), 400, 574, 20, '#FFE14D'); }
+    ctx.restore();
+    txt(instruction, 302, 28, 24, '#FFE14D', 'center', 550);
+    txt(t('{name} IS PLAYING', { name: actor.name }), 302, 59, 23, actor.color, 'center', 560);
+    if (mine) txt(base.hint || '', 302, 89, 17, '#fff', 'center', 552);
+    const seconds = mine ? Math.max(0, base.dur / Math.sqrt(sp) - gameTime) : Math.max(0, sharedTime - (now - sharedClockAt));
+    const clockDuration = mine ? base.dur / Math.sqrt(sp) : sharedDuration;
+    txt(modeLabel(R.mode), 692, 28, 19, '#FFE14D', 'center', 168);
+    txt(t('{n} SECONDS', { n: Math.ceil(seconds) }), 692, 66, 19, seconds < 2 ? '#F28CB1' : '#fff', 'center', 168);
+    if (R.mode === 'lantern') txt(t('{n} TEAM LIVES', { n: current.lives }), 692, 97, 16, '#7BD88F', 'center', 168);
+    box(16, 107, 576, 6, '#14101c', 0);
+    box(16, 107, 576 * Math.max(0, Math.min(1, seconds / clockDuration)), 6, seconds < 2 ? '#F28CB1' : '#7BD88F', 0);
+    txt(mine ? 'YOU PLAY' : R.mode === 'lantern' ? 'YOU LIGHT' : R.mode === 'balloon' ? 'YOU PUMP' : 'YOU STEAL', 692, 142, 20, '#FFE14D', 'center', 166);
+    const teammates = current.players.filter(p => !p.left && p.id !== actor.id);
+    txt(mine ? 'YOUR TEAMMATES' : 'HELPER TEAM', 692, 176, 15, '#fff', 'center', 164);
+    teammates.forEach((p, i) => txt(p.name, 692, 199 + i * 21, 15, p.color, 'center', 164));
+    if (R.mode === 'balloon') {
+      partyBalloon(current, false);
+      const squash = Math.max(0, 1 - (elapsed - lastTap) / .2);
+      box(665, 421, 54, 23, '#B49CFF', 3);
+      ctx.save(); ctx.strokeStyle = '#FFE14D'; ctx.lineWidth = 7;
+      ctx.beginPath(); ctx.moveTo(692, 422); ctx.lineTo(692, 400 + squash * 16);
+      ctx.moveTo(670, 400 + squash * 16); ctx.lineTo(714, 400 + squash * 16); ctx.stroke(); ctx.restore();
+      txt('PASS IT BY WINNING!', 692, 548, 15, '#fff', 'center', 168);
+      txt('POP = LOSE THE TURN', 692, 567, 14, '#F28CB1', 'center', 168);
+      if (!mine) button(608, 452, 176, 76, 'PUMP! SPACE / TAP', tap, { size: 20, fill: '#F28CB1' });
+      else txt('OTHERS ARE PUMPING', 692, 487, 16, '#FFE14D', 'center', 168);
+    } else if (R.mode === 'cards') {
+      txt(t('{n} CARDS AT STAKE', { n: current.extra.pile.length + current.extra.pot }), 692, 305, 19, '#FFE14D', 'center', 168);
+      txt(t('{n} MICROGAMES TO GO', { n: current.extra.remaining.length }), 692, 345, 17, '#fff', 'center', 168);
+      txt('WIN TO KEEP THE PILE', 692, 396, 15, '#fff', 'center', 168);
+      txt(!mine && current.extra.stolen[party.you.id] === round ? 'CARD STOLEN! WAIT FOR THE NEXT GAME' : 'OTHERS CAN STEAL', 692, 427, 15, '#F28CB1', 'center', 168);
+      for (let i = 2; i >= 0; i--) { box(650 + i * 4, 258 - i * 3, 76, 32, '#B49CFF', 2); }
+      txt(current.extra.pile.length + current.extra.pot, 688, 275, 21, INK);
+      current.players.filter(p => !p.left).forEach((p, i) => {
+        const can = !mine && p.id !== party.you.id && p.score > 0 && current.extra.stolen[party.you.id] !== round;
+        const label = t('{name}: {n} CARDS', { name: p.name, n: p.score });
+        if (can) button(608, 444 + i * 32, 176, 31, label, () => partyMoveAction('steal', { target: p.id }, round), { size: 15, fill: p.color });
+        else txt(label, 692, 460 + i * 32, 15, p.color, 'center', 168);
+      });
+    } else {
+      txt(mine ? 'YOUR FRIENDS MOVE THE LIGHT' : 'MOVE THE LIGHT', 692, 310, 19, '#FFE14D', 'center', 166);
+      txt(mine ? 'PLAY INSIDE THE LIGHT' : 'MOUSE / TOUCH', 692, 344, 16, '#fff', 'center', 166);
+      txt(mine ? 'FOLLOW YOUR GAME CONTROLS' : 'OR ARROW KEYS', 692, 371, 16, '#fff', 'center', 166);
+      txt('KEEP THE ACTION LIT!', 692, 425, 15, '#FFE14D', 'center', 168);
+      txt('WIN TOGETHER', 692, 470, 18, '#7BD88F', 'center', 168);
+    }
+    if (!mine) txt(g.hint, 400, 580, 17, '#fff', 'center', 770);
   };
-  for (const type of ['move', 'down', 'up', 'key', 'keyup']) g[type] = data => input(type, data);
-  // Cosmetic names remain ordinary text and pass through the shared translation renderer.
-  function tName(p) { return p.name.toUpperCase(); }
+  for (const type of ['move', 'down', 'up', 'key', 'keyup']) g[type] = data => {
+    if (mine) invoke(type, data);
+    else if (R.mode === 'lantern') {
+      if ((type === 'move' || type === 'down') && inside(data)) { const p = localPoint(data); lx = p.x; ly = p.y; }
+      if (type === 'key' || type === 'keyup') held[data.code] = type === 'key';
+    } else if (R.mode === 'balloon' && type === 'key' && !data.repeat && (data.code === 'Space' || data.code === 'Enter')) tap();
+  };
   return g;
 }
 function partyBuildGame(R, sp, dc) {
   if (R.game === 'pc_draw') return partyDrawGame(R);
-  const base = REGMAP[R.game].fn(sp, dc);
+  if (partyTurnMode(R) && R.extra.actor !== party.you.id) return partyWrapGame({}, R, sp);
+  const base = partyTurnMode(R) ? partyGameScope(() => REGMAP[R.game].fn(sp, dc), { pos: { x: 400, y: 300 }, held: false }) : REGMAP[R.game].fn(sp, dc);
   if (R.game === 'pt_mash' || R.game === 'pt_grab') {
     const update = base.update;
     base.update = (dt, t) => { update(dt, t); base.timeWin = base.pts >= base.need; };

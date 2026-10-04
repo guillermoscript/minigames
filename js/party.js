@@ -168,7 +168,7 @@ function duoCtx(R) {
 }
 const duoAway = () => !!party.room && party.room.mode === 'duo' && party.sig.round === party.room.round && now - party.sig.since > SIG_AWAY && now - party.sig.rx > SIG_AWAY;
 async function sigFlush() {
-  const S = party.sig, R = party.room; if (!R || !['duo', 'lantern'].includes(R.mode) || R.state !== 'round' || S.round !== R.round) { S.q.length = 0; return; }
+  const S = party.sig, R = party.room; if (!R || !['duo', 'lantern', 'cards', 'balloon'].includes(R.mode) || R.state !== 'round' || S.round !== R.round) { S.q.length = 0; return; }
   if (now - S.hbAt > SIG_HB) { S.hbAt = now; if (!S.q.length) S.q.push({ t: 'hb', d: null, l: true }); }
   const direct = linkUsable();                                                   // DataChannel to the partner: no HTTP round trip
   if (direct) { if (!S.q.length || now - S.last < .03) return; S.last = now; linkSend(R.round, S.q.splice(0, 20)); return; }
@@ -191,12 +191,13 @@ function applyRoom(R) {
 function onRoom(R, old) {
   const entered = !old || old.state !== R.state || old.round !== R.round;
   if (R.state === 'lobby') {
+    if (partyTurnMode(R)) loadThree();
     party.played = -1; party.pending = null;
     if (state === 'play' && mode === 'party') mode = 'stage';
     party.view = 'lobby'; if (state !== 'party') { state = 'party'; st = 0; }
   } else if (R.state === 'round') {
     if (party.played !== R.round) startLocalRound(R);
-    else if (state === 'party') party.view = 'wait';
+    else if (state === 'party' && party.view !== 'loading') party.view = 'wait';
   } else if (R.state === 'between') {
     if (state === 'play' && mode === 'party') { state = 'party'; st = 0; }   // the round closed before I finished
     if (entered) { party.seenAt = now; sfx.whoosh(true); }
@@ -211,7 +212,12 @@ function startLocalRound(R) {
   if (partyElimination(R) && me() && me().lives <= 0) { party.view = 'wait'; state = 'party'; st = 0; return; }
   if (!REGMAP[R.game] && R.game !== 'pc_draw') { party.pending = { round: R.round, r: 'lose', t: 1, pts: 0 }; party.view = 'wait'; state = 'party'; sendReport(); return; }
   mode = 'party'; stage = STAGES[0]; lastOut = null; parts.length = 0;
-  party.view = 'play'; jingleGo(); beginGame();
+  const play = () => {
+    if (!party.room || party.room.state !== 'round' || party.room.round !== R.round || party.room.id !== R.id || mode !== 'party') return;
+    party.view = 'play'; jingleGo(); beginGame();
+  };
+  if (is3D(R.game) && typeof THREE === 'undefined') { party.view = 'loading'; state = 'party'; st = 0; loadThree().then(play); }
+  else play();
 }
 /* called by main.js when my microgame ends */
 function partyLocalDone(outcome) {
@@ -232,7 +238,7 @@ async function sendReport() {
 function partyUpdate(dt) {
   const R = party.room; if (!R) return;
   if (now - party.lastPoll > (party.sseOK ? 12 : 3)) partyPoll();
-  if (['duo', 'lantern'].includes(R.mode) && state === 'play') sigFlush();
+  if (['duo', 'lantern', 'cards', 'balloon'].includes(R.mode) && state === 'play') sigFlush();
   if (partyTurnMode(R) && R.state === 'round' && now - party.lastTick > 2.5) { party.lastTick = now; pcall('tick', { code: R.code }).then(r => { if (r.ok) applyRoom(r.data.room); }); }
   if (party.pending && now - party.lastRep > 1.5) sendReport();
   if (state !== 'party') return;
@@ -272,6 +278,33 @@ const partyElimination = R => R.mode === 'survival' || R.mode === 'knockout';
 const partyTeam = R => R.mode === 'team' || R.mode === 'duo' || R.mode === 'lantern';
 const modeLabel = m => m === 'lantern' ? 'LANTERNS' : m === 'cards' ? 'CARDS' : m === 'balloon' ? 'BALLOON' : m === 'survival' ? 'SURVIVAL' : m === 'knockout' ? 'KNOCKOUT' : m === 'team' ? 'TEAM' : m === 'duo' ? 'DUO' : 'VERSUS';
 const modeBlurb = m => m === 'lantern' ? 'ONE PLAYS IN THE DARK · THE OTHERS MOVE THE LIGHTS · 3 SHARED LIVES' : m === 'cards' ? 'DRAW CARDS · BEAT THE PILE TO KEEP IT · STEAL WHILE OTHERS PLAY' : m === 'balloon' ? 'ONE PLAYS · THE OTHERS PUMP · WIN TO PASS THE TURN · AVOID THE POP' : m === 'survival' ? '3 LIVES EACH · FAIL AND LOSE A LIFE · LAST PLAYER STANDING WINS' : m === 'knockout' ? 'ONE LIFE · ONE MISTAKE AND YOU ARE OUT · LAST PLAYER WINS' : m === 'duo' ? 'TWO PLAYERS · ONE GAME · DIFFERENT ROLES · WIN OR LOSE TOGETHER' : m === 'team' ? 'TEAMWORK: SHARED LIVES · EVERYONE NEEDS TO PULL THEIR WEIGHT' : 'EVERYONE PLAYS THE SAME GAME · FASTEST AND BEST TAKE THE POINTS';
+/* Each mode explains the actor, the companions and the stakes before anyone starts. */
+const PARTY_HELP = {
+  versus: ['EVERYONE PLAYS', 'EVERYONE: PLAY THE SAME MICROGAME', 'RACE: FINISH FAST TO EARN MORE POINTS', 'WIN: THE HIGHEST SCORE AFTER 6 ROUNDS', 'FOLLOW THE MICROGAME CONTROLS'],
+  team: ['WIN TOGETHER', 'EVERYONE: PLAY THEIR MICROGAME', 'HELP: EVERY SUCCESS HELPS THE WHOLE TEAM', 'GOAL: CLEAR 8 ROUNDS WITH SHARED LIVES', 'FOLLOW THE MICROGAME CONTROLS'],
+  duo: ['TWO ROLES, ONE TEAM', 'YOU: DO THE ROLE SHOWN BEFORE EACH GAME', 'PARTNER: DO THE OTHER HALF OF THE PUZZLE', 'GOAL: CLEAR 8 ROUNDS TOGETHER', 'EXACTLY 2 PLAYERS · WATCH THE ROLE DEMO'],
+  survival: ['LAST ONE STANDING', 'EVERYONE: PLAY THE SAME MICROGAME', 'FAIL: LOSE ONE OF YOUR 3 LIVES', 'WIN: BE THE LAST PLAYER WITH LIVES', 'ELIMINATED PLAYERS WATCH UNTIL THE END'],
+  knockout: ['ONE MISTAKE AND OUT', 'EVERYONE: PLAY THE SAME MICROGAME', 'FAIL: YOUR ONLY LIFE IS GONE', 'WIN: BE THE LAST PLAYER STANDING', 'ELIMINATED PLAYERS WATCH UNTIL THE END'],
+  lantern: ['LIGHT THE WAY TOGETHER', 'PLAYER: BEAT THE MICROGAME IN THE DARK', 'FRIENDS: MOVE THEIR LIGHTS TO HELP THEM SEE', 'GOAL: CLEAR 12 ROUNDS WITH 3 SHARED LIVES', 'LIGHT: MOUSE / DRAG / ARROW KEYS'],
+  cards: ['BUILD A PILE, TAKE THE RISK', 'TURN: DRAW A CARD; PLAY MEANS BEAT THE PILE', 'FRIENDS: WATCH AND TAP A RIVAL TO STEAL', 'WIN: MOST CARDS WHEN THE DECK RUNS OUT', 'FAIL THE PILE: YOUR CARDS GO TO THE POT'],
+  balloon: ['PASS THE TURN BEFORE IT POPS', 'PLAYER: WIN THE MICROGAME TO PASS THE TURN', 'FRIENDS: TAP / SPACE TO INFLATE THE BALLOON', 'LOSE: THE BALLOON POPS ON YOUR TURN', 'EVERYONE WATCHES THE PLAYER AND BALLOON']
+};
+const TURN_PRE = 4;
+function drawPartyModeIntro(left) {
+  const R = party.room, actor = partyActor(R); if (!actor) return;
+  const mine = actor.id === party.you.id, help = PARTY_HELP[R.mode], color = mine ? actor.color : '#FFE14D';
+  txt(modeLabel(R.mode), W / 2, 40, 32, '#FFE14D');
+  box3(40, 74, 720, 68, color, 4, 5);
+  txt(mine ? 'YOUR TURN TO PLAY!' : t('{name} IS PLAYING', { name: actor.name.toUpperCase() }), W / 2, 112, 36, INK, 'center', 680);
+  claude(W / 2, 235, 5, { col: actor.color, mood: 'happy' });
+  txt(mine ? cur.cmd : R.mode === 'lantern' ? 'YOU MOVE THE LIGHT!' : R.mode === 'balloon' ? 'YOU PUMP THE BALLOON!' : R.extra.phase === 'draw' ? 'WATCH THE NEXT CARD!' : 'YOU CAN STEAL CARDS!', W / 2, 294, 42, '#fff', 'center', 730);
+  box3(40, 328, 720, 136, '#35406a', 4, 5);
+  txt(mine ? cur.hint : R.mode === 'lantern' ? help[4] : R.mode === 'balloon' ? help[2] : R.extra.phase === 'draw' ? 'THE PLAYER CHOOSES ONE OF THE FACE-DOWN CARDS' : 'TAP A RIVAL TO STEAL ONE CARD PER MICROGAME', W / 2, 362, 24, '#FFE14D', 'center', 680);
+  txt(mine ? help[2] : help[1], W / 2, 407, 22, '#fff', 'center', 680);
+  txt(help[3], W / 2, 443, 18, '#ddd', 'center', 680);
+  txt(left < 1 ? 'GO!' : 'GET READY!', W / 2, 510, 42, '#5CFF7A');
+  if (R.mode === 'cards') txt(partyCardReveal(R), W / 2, 560, 20, '#F28CB1', 'center', 730);
+}
 function mini(x, y, p, u) { claude(x, y, u, { col: p.color }); }
 
 function drawParty() {
@@ -302,47 +335,56 @@ function drawPartyMenu() {
 }
 
 function drawLobby(R) {
-  txt('ROOM CODE', W / 2, 30, 20, '#ddd');
+  txt('ROOM CODE', W / 2, 20, 16, '#ddd');
   const pop = easeBack(st / .4);
-  ctx.save(); ctx.translate(W / 2, 92); ctx.scale(pop, pop); txt(R.code, 5, 6, 92, INK); txt(R.code, 0, 0, 92, '#FFE14D'); ctx.restore();
-  txt(location.host + '/r/' + R.code, W / 2, 152, 18, '#ddd', 'center', 740);
-  if (R.mode === 'duo' && partnerOf(R)) txt(link.state === 'open' ? (linkLabel() ? t('DIRECT LINK READY · {label}', { label: linkLabel() }) : 'DIRECT LINK READY') : link.tries >= 4 ? 'USING THE SERVER RELAY' : 'CONNECTING DIRECTLY...', W / 2, 172, 14, link.state === 'open' ? '#5CFF7A' : '#FFE14D', 'center', 740);
+  ctx.save(); ctx.translate(W / 2, 62); ctx.scale(pop, pop); txt(R.code, 5, 6, 58, INK); txt(R.code, 0, 0, 58, '#FFE14D'); ctx.restore();
+  txt(location.host + '/r/' + R.code, W / 2, 105, 15, '#ddd', 'center', 740);
+  if (R.mode === 'duo' && partnerOf(R)) txt(link.state === 'open' ? (linkLabel() ? t('DIRECT LINK READY · {label}', { label: linkLabel() }) : 'DIRECT LINK READY') : link.tries >= 4 ? 'USING THE SERVER RELAY' : 'CONNECTING DIRECTLY...', W / 2, 122, 12, link.state === 'open' ? '#5CFF7A' : '#FFE14D', 'center', 740);
   for (let i = 0; i < 4; i++) {
-    const p = R.players[i], x = 40 + i * 188, y = 186, k = easeOut((st - i * .06) / .3);
+    const p = R.players[i], x = 40 + i * 188, y = 138, k = easeOut((st - i * .06) / .3);
     ctx.save(); ctx.translate(0, (1 - k) * 30); ctx.globalAlpha = k;
-    box3(x, y, 172, 178, p ? '#35406a' : '#2a3354', 4, 6);
+    box3(x, y, 172, 106, p ? '#35406a' : '#2a3354', 4, 6);
     if (p) {
-      shadow(x + 86, y + 124, 40, 8, .3);
-      claude(x + 86, y + 122 - Math.abs(Math.sin(now * 3 + i)) * 8, 6, { col: p.color, mood: 'happy' });
-      txt(p.name, x + 86, y + 150, 20, p.color, 'center', 156);
+      shadow(x + 86, y + 67, 40, 8, .3);
+      claude(x + 86, y + 65 - Math.abs(Math.sin(now * 3 + i)) * 4, 3.4, { col: p.color, mood: 'happy' });
+      txt(p.name, x + 86, y + 86, 17, p.color, 'center', 156);
       if (R.host === p.id) star(x + 22, y + 22, 16, 7, 5, -Math.PI / 2, '#FFE14D', 3);
       if (party.you && p.id === party.you.id) txt('YOU', x + 150, y + 20, 15, '#fff', 'center', 40);
-      voiceCardMarks(p, x, y);
+      if (voice.on && p.id !== party.you.id) {
+        const vs = voiceState(p.id);
+        if (vs !== 'none') circ(x + 156, y + 94, 5, VCOL[vs], 2);
+        if (talking(p.id)) { ctx.strokeStyle = '#5CFF7A'; ctx.lineWidth = 4; ctx.strokeRect(x - 2, y - 2, 176, 110); }
+        button(x + 111, y + 32, 55, 23, voice.mutedBy[p.id] ? 'MUTED' : 'HEAR', () => voiceMuteOther(p.id), { size: 11, fill: voice.mutedBy[p.id] ? '#FF4D4D' : '#fff', col: voice.mutedBy[p.id] ? '#fff' : INK });
+      }
     } else {
-      claude(x + 86, y + 122, 6, { col: '#4a4558', mood: null }); txt('WAITING...', x + 86, y + 150, 17, '#8e8c9c', 'center', 156);
+      claude(x + 86, y + 65, 3.4, { col: '#4a4558', mood: null }); txt('WAITING...', x + 86, y + 86, 15, '#8e8c9c', 'center', 156);
     }
     ctx.restore();
   }
-  if (isHost()) Object.keys(MODE_NEXT).forEach((m, i) => {
-    const selected = R.mode === m;
-    button(40 + (i % 4) * 188, 378 + Math.floor(i / 4) * 34, 172, 29, modeLabel(m), () => partyAct('mode', { mode: m }), { fill: selected ? '#FFE14D' : '#B49CFF', size: 17 });
+  txt(isHost() ? 'CHOOSE A MODE' : 'THE HOST CHOOSES THE MODE', W / 2, 261, 16, '#ddd');
+  Object.keys(MODE_NEXT).forEach((m, i) => {
+    const selected = R.mode === m, x = 40 + (i % 4) * 188, y = 278 + Math.floor(i / 4) * 38;
+    if (isHost()) button(x, y, 172, 32, (selected ? '★ ' : '') + t(modeLabel(m)), () => partyAct('mode', { mode: m }), { fill: selected ? '#FFE14D' : '#B49CFF', size: 17 });
+    else { box3(x, y, 172, 32, selected ? '#FFE14D' : '#35406a', 3, 3); txt((selected ? '★ ' : '') + t(modeLabel(m)), x + 86, y + 17, 17, selected ? INK : '#ddd', 'center', 160); }
   });
-  else txt(t('MODE: {mode}', { mode: t(modeLabel(R.mode)) }), W / 2, 408, 28, '#FFE14D');
-  txt(modeBlurb(R.mode), W / 2, 456, 16, '#ddd', 'center', 760);
-  button(40, 488, 230, 74, 'INVITE', partyInvite, { fill: '#4DB8FF', size: 30 });
+  const help = PARTY_HELP[R.mode] || PARTY_HELP.versus;
+  box3(40, 358, 720, 143, '#35406a', 4, 5);
+  txt(help[0], W / 2, 377, 22, '#FFE14D', 'center', 690);
+  help.slice(1).forEach((line, i) => txt(line, W / 2, 406 + i * 25, i === 3 ? 15 : 17, i === 3 ? '#B49CFF' : '#fff', 'center', 686));
+  button(40, 518, 230, 62, 'INVITE', partyInvite, { fill: '#4DB8FF', size: 28 });
   const n = R.players.filter(p => !p.left).length;
   if (isHost()) {
-    if (canStart(R)) button(290, 488, 260, 74, 'START!', partyStart, { fill: '#5CFF7A', size: 36 });
-    else { box3(290, 488, 260, 74, '#9a98a8', 5, 5); txt(R.mode === 'duo' ? 'DUO NEEDS EXACTLY 2' : 'NEED 2+ PLAYERS', 420, 526, 22, '#fff', 'center', 240); }
-  } else txt(t('WAITING FOR {name} TO START', { name: pName(R, R.host).toUpperCase() }), 420, 526, 20, '#fff', 'center', 260);
-  button(570, 488, 190, 74, 'LEAVE', () => partyLeave('menu'), { fill: '#fff', size: 28 });
+    if (canStart(R)) button(290, 518, 260, 62, 'START!', partyStart, { fill: '#5CFF7A', size: 36 });
+    else { box3(290, 518, 260, 62, '#9a98a8', 5, 5); txt(R.mode === 'duo' ? 'DUO NEEDS EXACTLY 2' : 'NEED 2+ PLAYERS', 420, 549, 22, '#fff', 'center', 240); }
+  } else txt(t('WAITING FOR {name} TO START', { name: pName(R, R.host).toUpperCase() }), 420, 549, 20, '#fff', 'center', 260);
+  button(570, 518, 190, 62, 'LEAVE', () => partyLeave('menu'), { fill: '#fff', size: 28 });
 }
 
 function drawWait(R) {
   txt(t('ROUND {n} / {total}', { n: R.round + 1, total: R.total }), W / 2, 44, 36, '#FFE14D');
   const my = R.cur && party.you && R.cur[party.you.id] || party.pending;
   if (my) txt(my.r === 'win' ? 'YOU DID IT!' : 'NOT THIS TIME', W / 2, 120, 44, my.r === 'win' ? '#5CFF7A' : '#FF4D4D');
-  txt(partyElimination(R) && me().lives <= 0 ? 'ELIMINATED · WATCH THE OTHERS!' : 'WAITING FOR THE OTHERS...', W / 2, 190, 26, '#fff');
+  txt(party.view === 'loading' ? 'LOADING 3D GAME...' : partyElimination(R) && me().lives <= 0 ? 'ELIMINATED · WATCH THE OTHERS!' : 'WAITING FOR THE OTHERS...', W / 2, 190, 26, '#fff');
   R.players.filter(p => !p.left).forEach((p, i) => {
     const x = 120, y = 240 + i * 62, c = R.cur && R.cur[p.id];
     box3(x, y, 560, 52, '#35406a', 3, 4); mini(x + 34, y + 48, p, 2.3);

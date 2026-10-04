@@ -292,7 +292,7 @@ function beginGame() {
     recent.push(id); if (recent.length > Math.min(6, pool.length - 2)) recent.shift();
     s = speed(); cur = REGMAP[id].fn(s); curId = id; isBoss = false; dur = cur.dur / Math.sqrt(s); I18N.scope = I18N.scopeOf(curId);
   }
-  tt = 0; outcome = null; outT = 0; tickN = 0; preMax = mode === 'party' && party.room.mode === 'duo' ? DUO_PRE : PRE; pre = preMax; state = 'play';
+  tt = 0; outcome = null; outT = 0; tickN = 0; preMax = mode === 'party' ? party.room.mode === 'duo' ? DUO_PRE : partyTurnMode(party.room) ? TURN_PRE : PRE : PRE; pre = preMax; state = 'play';
 }
 function setOutcome(r) {
   outcome = r; outT = 0;
@@ -573,15 +573,16 @@ function render() {
       if (cur.wide) cur.draw(tt); else { ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip(); cur.draw(tt); ctx.restore(); }
       if (framed) { ctx.lineWidth = 6; ctx.strokeStyle = INK; ctx.strokeRect(-3, -3, W + 6, H + 6); }
     }
-    if (!cur.partyDark) drawParts();
+    if (!cur.partyDark && !cur.partyScene) drawParts();
     if (!outcome) {
-      if (pre > 0 && preMax === DUO_PRE) drawDuoIntro(pre);
+      if (pre > 0 && mode === 'party' && partyTurnMode(party.room)) drawPartyModeIntro(pre);
+      else if (pre > 0 && preMax === DUO_PRE) drawDuoIntro(pre);
       else if (pre > 0) {
         const k = Math.min(1, (PRE - pre) / .15);
         ctx.save(); ctx.translate(W / 2, H / 2 - 20); const sc = 1 + (1 - k) * .8; ctx.scale(sc, sc);
         ctx.rotate(Math.sin(now * 12) * .03); 
         txt(cur.cmd, 0, 0, 130, isBoss ? '#FF4D4D' : '#FFE14D', 'center', 760); txt(hintOf(cur), 0, 95, 34, '#fff', 'center', 760); ctx.restore();
-      } else txt(hintOf(cur), W / 2, 36, 24, '#fff', 'center', mode === 'party' ? 400 : 520);
+      } else if (!cur.partyScene) txt(hintOf(cur), W / 2, 36, 24, '#fff', 'center', mode === 'party' ? 400 : 520);
     } else {
       const win = outcome === 'win', sc = outT < .14 ? 2.6 - 1.6 * easeOut(outT / .14) : 1 + Math.max(0, .12 - (outT - .14)) * 1.2, lab = t(win ? 'NICE!' : 'FAIL!'), cc = win ? '#5CFF7A' : '#FF4D4D';
       ctx.save(); ctx.translate(W / 2, H / 2); ctx.rotate(-.1); ctx.scale(sc, sc); ctx.globalAlpha = Math.min(1, outT / .06);
@@ -595,10 +596,10 @@ function render() {
       livesRow(36 - OX, 66, 2.4, 40, col);
       txt(isBoss ? 'BOSS' : `${played + 1}/${stage.n}`, W + OX - 16, 30, 26, isBoss ? '#FF4D4D' : '#fff', 'right');
       ctx.save(); const sp = 1 + scorePop * .3; ctx.translate(W + OX - 16, 62); ctx.scale(sp, sp); txt(String(Math.round(shownScore)), 0, 0, 22, '#FFE14D', 'right'); ctx.restore();
-    } else if (mode === 'party') { if (!(pre > 0 && preMax === DUO_PRE)) drawPartyHud(); }
+    } else if (mode === 'party') { if (!(pre > 0 && (preMax === DUO_PRE || partyTurnMode(party.room))) && !cur.partyScene) drawPartyHud(); }
     else txt('PRACTICE', W + OX - 16, 30, 22, '#fff', 'right');
     button(W + OX - 78, 80, 66, 30, mode === 'party' ? 'LEAVE' : mode === 'practice' ? 'EXIT' : 'MENU', exitPlay, { size: 15, fill: 'rgba(255,255,255,.85)' });
-    if (pre <= 0 && !cur.partyHelper && !cur.partyDraw) fuse();
+    if (pre <= 0 && !cur.partyHelper && !cur.partyDraw && !cur.partyScene) fuse();
   } else if (state === 'over') {
     bg('#3b0d14', '#4d1119', now);
     const gk = st < .14 ? 2.6 - 1.6 * easeOut(st / .14) : 1;

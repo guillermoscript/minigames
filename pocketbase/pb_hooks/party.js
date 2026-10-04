@@ -8,6 +8,7 @@ const ROUNDS = { versus: 6, team: 8, duo: 8, survival: 30, knockout: 30, lantern
 const MODES = ["versus", "team", "duo", "survival", "knockout", "lantern", "cards", "balloon"];
 const LIVES = 4;
 const PRE_MS = 1400, PRE_MS_DUO = 4500;            // instruction card shown before each microgame (keep in sync with PRE in js/main.js)
+const PRE_MS_TURN = 4000; // role instructions for Lanterns, Cards and Balloon (TURN_PRE in js/party.js)
 const GRACE_MS = 8000;          // a silent player is counted as a loss this long after the round should have ended
 const BETWEEN_MS = 4000;        // results screen minimum time before the next round may start
 const AWARD = [100, 70, 50, 30];
@@ -28,8 +29,11 @@ const GAMES = {
   du_guide: { dur: 16, pts: false, duo: true },
   du_gun: { dur: 15, pts: false, duo: true },
 };
+const TURN_CATALOG = require(typeof __hooks === "string" ? `${__hooks}/party_catalog.js` : "./party_catalog.js");
+Object.assign(GAMES, TURN_CATALOG);
+const TURN_IDS = Object.keys(TURN_CATALOG);
 GAMES.pc_draw = { dur: 30, pts: false, menu: true };
-const GAME_IDS = Object.keys(GAMES).filter((g) => !GAMES[g].duo && !GAMES[g].menu);
+const GAME_IDS = ["pt_mash", "pt_sync", "pt_memo", "pt_grab"];
 const DUO_IDS = Object.keys(GAMES).filter((g) => GAMES[g].duo);
 const SLOTS = ["a", "b", "c", "d"];
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";   // no 0/O/1/I
@@ -121,6 +125,7 @@ function start(room, id, now, rand) {
   room.lives = LIVES; room.teamScore = 0; room.round = 0; room.last = null;
   room.players.forEach((p) => { p.score = 0; p.lives = room.mode === "knockout" ? 1 : 3; });
   room.extra = {};
+  delete room.keys._gameBag;
   if (turnMode(room)) {
     room.extra.actor = active(room)[0].id;
     if (room.mode === "lantern") room.lives = 3;
@@ -128,7 +133,7 @@ function start(room, id, now, rand) {
     if (room.mode === "cards") {
       // Four packs, each with four challenges and two PLAY cards; shuffle all but the last PLAY.
       const deck = [];
-      for (let i = 0; i < 16; i++) deck.push(GAME_IDS[Math.floor(rand() * GAME_IDS.length)]);
+      for (let i = 0; i < 16; i++) deck.push(takeTurnGame(room, rand));
       for (let i = 0; i < 7; i++) deck.push("play");
       for (let i = deck.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [deck[i], deck[j]] = [deck[j], deck[i]]; }
       deck.push("play"); room.keys._deck = deck;
@@ -138,16 +143,25 @@ function start(room, id, now, rand) {
   beginRound(room, now, rand);
 }
 
+// Exhaust a shuffled catalog before reshuffling; keep the previous game away from a cycle boundary.
+function takeTurnGame(room, rand) {
+  if (!Array.isArray(room.keys._gameBag) || !room.keys._gameBag.length) {
+    const bag = TURN_IDS.slice();
+    for (let i = bag.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [bag[i], bag[j]] = [bag[j], bag[i]]; }
+    if (bag[bag.length - 1] === room.game) [bag[0], bag[bag.length - 1]] = [bag[bag.length - 1], bag[0]];
+    room.keys._gameBag = bag;
+  }
+  return room.keys._gameBag.pop();
+}
 function beginRound(room, now, rand) {
   const prev = room.game, ids = room.mode === "duo" ? DUO_IDS : GAME_IDS, pool = ids.filter((g) => g !== prev);
-  room.game = pool[Math.floor(rand() * pool.length)];
-  if (room.mode === "cards") room.game = room.extra.phase === "draw" ? "pc_draw" : room.extra.remaining[0];
+  room.game = room.mode === "cards" ? (room.extra.phase === "draw" ? "pc_draw" : room.extra.remaining[0]) : turnMode(room) ? takeTurnGame(room, rand) : pool[Math.floor(rand() * pool.length)];
   room.seed = 1 + Math.floor(rand() * 2147483646);
   room.sp = +(1 + Math.min(room.round, 12) * 0.07).toFixed(2);
   room.state = "round"; room.roundAt = now; room.cur = {};
 }
 
-const roundMs = (room) => Math.round(GAMES[room.game].dur / Math.sqrt(room.sp) * 1000) + (room.mode === "duo" ? PRE_MS_DUO : PRE_MS);
+const roundMs = (room) => Math.round(GAMES[room.game].dur / Math.sqrt(room.sp) * 1000) + (room.mode === "duo" ? PRE_MS_DUO : turnMode(room) ? PRE_MS_TURN : PRE_MS);
 
 function report(room, id, round, r, t, pts, now) {
   if (room.state !== "round" || round !== room.round) fail("Round is over", 409);
@@ -262,8 +276,8 @@ function pump(room, id, round, count, now) {
   checkTurnAction(room, id, round, "balloon");
   const e = room.extra;
   if (id === e.actor) fail("Only the other players can pump", 403);
-  if (now < room.roundAt + PRE_MS) return;
-  const prev = e.pumps[id] === undefined ? room.roundAt + PRE_MS : e.pumps[id];
+  if (now < room.roundAt + PRE_MS_TURN) return;
+  const prev = e.pumps[id] === undefined ? room.roundAt + PRE_MS_TURN : e.pumps[id];
   const allowance = Math.min(8, Math.floor((now - prev) / 100));
   const accepted = Math.min(allowance, Math.max(0, Math.min(8, Math.floor(Number(count) || 0))));
   if (accepted <= 0) return;
@@ -297,24 +311,27 @@ function again(room, id) {
   Object.assign(room, { state: "lobby", round: 0, total: 0, game: "", seed: 0, sp: 1, cur: {}, last: null, lives: LIVES, teamScore: 0, extra: {} });
 }
 
-const SIG_MAX = 512, SIG_COUNT = 10;
-/* DUO live relay: validates a batch of small input messages from one player and returns the payload to forward to the others.
-   Not stored anywhere (inputs never touch the room record). Dropped unless the room is in a round of a DUO game. */
+const SIG_MAX = 512, SIG_FRAME_MAX = 65536, SIG_COUNT = 10;
+/* Live relay for DUO inputs and turn-mode game snapshots/light positions.
+   Payloads are authenticated and forwarded, never stored in the room record. */
 function sigPayload(room, id, round, m) {
-  if (!["duo", "lantern"].includes(room.mode) || room.state !== "round" || round !== room.round) fail("Round is over", 409);
+  if (!(room.mode === "duo" || turnMode(room)) || room.state !== "round" || round !== room.round) fail("Round is over", 409);
   const p = player(room, id);
   if (!p || p.left) fail("Not in this round", 403);
   if (!Array.isArray(m) || !m.length || m.length > SIG_COUNT) fail("Bad message", 400);
   const out = m.map((x) => ({ t: String((x && x.t) || "").slice(0, 12), d: x && x.d !== undefined ? x.d : null }));
-  if (room.mode === "lantern") for (const x of out) {
+  if (turnMode(room)) for (const x of out) {
     if (x.t === "hb" || x.t === "ping" || x.t === "pong") continue;
     if (id === room.extra.actor) {
-      if (!["move", "down", "up", "key", "keyup"].includes(x.t)) fail("Bad input", 400);
-      if (x.t === "key" || x.t === "keyup") { if (!x.d || typeof x.d.code !== "string" || x.d.code.length > 24) fail("Bad key", 400); }
-      else if (!x.d || !Number.isFinite(x.d.x) || !Number.isFinite(x.d.y)) fail("Bad position", 400);
-    } else if (x.t !== "light" || !x.d || !Number.isFinite(x.d.x) || !Number.isFinite(x.d.y)) fail("Bad light", 400);
+      if (x.t === "frame") {
+        if (!x.d || typeof x.d.image !== "string" || x.d.image.length > 60000 || !/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(x.d.image)) fail("Bad frame", 400);
+      } else if (room.mode === "lantern" && ["move", "down", "up", "key", "keyup"].includes(x.t)) {
+        if (x.t === "key" || x.t === "keyup") { if (!x.d || typeof x.d.code !== "string" || x.d.code.length > 24) fail("Bad key", 400); }
+        else if (!x.d || !Number.isFinite(x.d.x) || !Number.isFinite(x.d.y)) fail("Bad position", 400);
+      } else fail("Bad input", 400);
+    } else if (room.mode !== "lantern" || x.t !== "light" || !x.d || !Number.isFinite(x.d.x) || !Number.isFinite(x.d.y)) fail("Bad light", 400);
   }
-  if (JSON.stringify(out).length > SIG_MAX) fail("Message too big", 413);
+  if (JSON.stringify(out).length > (turnMode(room) ? SIG_FRAME_MAX : SIG_MAX)) fail("Message too big", 413);
   return { from: id, round, m: out };
 }
 
@@ -334,4 +351,4 @@ function vsigPayload(room, id, to, k, d) {
 /* what clients may see (the record itself hides `keys`; this is for tests and logs) */
 const publicRoom = (room) => { const o = Object.assign({}, room); delete o.keys; return o; };
 
-module.exports = { fail, MAX_PLAYERS, ROUNDS, LIVES, AWARD, GAMES, GAME_IDS, DUO_IDS, MODES, roleOf, cleanMode, drawCard, stealCard, pump, turnMode, sigPayload, SIG_MAX, vsigPayload, VSIG_MAX, PartyError, cleanName, cleanCode, makeCode, active, newRoom, addPlayer, auth, leave, setMode, start, again, report, tick, advance, roundMs, publicRoom };
+module.exports = { fail, MAX_PLAYERS, ROUNDS, LIVES, AWARD, GAMES, GAME_IDS, DUO_IDS, TURN_IDS, takeTurnGame, MODES, roleOf, cleanMode, drawCard, stealCard, pump, turnMode, sigPayload, SIG_MAX, SIG_FRAME_MAX, PRE_MS_TURN, vsigPayload, VSIG_MAX, PartyError, cleanName, cleanCode, makeCode, active, newRoom, addPlayer, auth, leave, setMode, start, again, report, tick, advance, roundMs, publicRoom };

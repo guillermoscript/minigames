@@ -1296,6 +1296,111 @@ function gCopy(sp) {
   return g;
 }
 
+/* 12 ── STEADY art (stage 4). Scene: a living-room floor. The wire tunnel is a toy road with red-white kerbs; Claude carries a glass of
+   lemonade on its head from the GO pad to the trophy. Fail: the glass flies off and splashes. Win: it lifts the glass high, hearts. A robot vacuum
+   with a face patrols the bottom of the room. Cosmetic state only (hr = hashed variety, no Math.random). */
+const W2STEADY = (() => {
+  const K = W2K, TAU = K.TAU, { rr, el, ink, line, clamp, outBack } = K;
+  const hr = i => { const s = Math.sin(i * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
+  const ease = k => (k = clamp(k, 0, 1), k * k * (3 - 2 * k));
+  let BG = null, BGK = '', vx = 0, lx = 0, lT = 0;
+  function build(pts, hw) {
+    return K.layer(c => {
+      const L = -OX - 2, R = W + OX + 2;
+      let g = c.createLinearGradient(0, 0, 0, 140); g.addColorStop(0, '#d9a86a'); g.addColorStop(1, '#ffe0a8'); c.fillStyle = g; c.fillRect(L, 0, R - L, 140);
+      c.fillStyle = 'rgba(200,120,70,.16)'; for (let x = L; x < R; x += 44) c.fillRect(x, 0, 22, 140);
+      c.fillStyle = 'rgba(255,120,150,.45)'; for (let i = 0; i < 20; i++) { c.beginPath(); c.arc(L + 22 + i * 44, 24 + (i % 2) * 40 + 30, 4, 0, TAU); c.fill(); }
+      rr(560, 62, 110, 80, 8); ink('#fff', 4); c.fillStyle = '#86d8fb'; rr(568, 70, 44, 64, 4); c.fill(); rr(618, 70, 44, 64, 4); c.fill(); c.fillStyle = 'rgba(255,255,255,.55)'; el(584, 84, 10, 4, -.5); c.fill();
+      c.fillStyle = '#ffe14d'; c.beginPath(); c.arc(640, 90, 11, 0, TAU); c.fill();
+      g = c.createLinearGradient(0, 144, 0, H); g.addColorStop(0, '#f0c07c'); g.addColorStop(1, '#d99a58'); c.fillStyle = g; c.fillRect(L, 144, R - L, H);
+      c.strokeStyle = 'rgba(120,70,30,.28)'; c.lineWidth = 3; for (let y = 176, r = 0; y < H; y += 46, r++) { c.beginPath(); c.moveTo(L, y); c.lineTo(R, y); c.stroke(); for (let x = L + (r % 2) * 90; x < R; x += 180) { c.beginPath(); c.moveTo(x, y); c.lineTo(x, y + 46); c.stroke(); } }
+      rr(L - 10, 124, R - L + 20, 22, 6); ink('#fff', 3.5); c.fillStyle = '#e6e1f2'; c.fillRect(L, 138, R - L, 6);
+      // a big oval rug under the road
+      c.beginPath(); c.ellipse(400, 322, 372, 214, 0, 0, TAU); ink('#ff9ac2', 4); c.setLineDash([16, 12]); c.strokeStyle = 'rgba(255,255,255,.7)'; c.lineWidth = 4; c.beginPath(); c.ellipse(400, 322, 346, 190, 0, 0, TAU); c.stroke(); c.setLineDash([]);
+      c.fillStyle = 'rgba(255,255,255,.18)'; c.beginPath(); c.ellipse(400, 322, 300, 150, 0, 0, TAU); c.fill();
+      // toys on the floor below the road
+      for (const [bx, by, col, ch] of [[70, 486, '#ff5c8a', 'A'], [118, 486, '#4db8ff', 'B'], [94, 442, '#ffd23f', 'C']]) { rr(bx - 22, by - 22, 44, 44, 6); ink(col, 3.5); c.fillStyle = 'rgba(255,255,255,.4)'; rr(bx - 17, by - 17, 12, 7, 3); c.fill(); }
+      c.beginPath(); c.arc(235, 506, 20, 0, TAU); ink('#5CFF7A', 3.5); c.strokeStyle = '#fff'; c.lineWidth = 4; c.beginPath(); c.arc(235, 506, 12, .4, 2.6); c.stroke();
+      // the toy road: kerb, asphalt, dashed centre line
+      c.lineCap = 'round'; c.lineJoin = 'round';
+      const path = () => { c.beginPath(); pts.forEach(q => c.lineTo(q.x, q.y)); };
+      c.save(); c.translate(5, 8); path(); c.strokeStyle = 'rgba(20,16,28,.24)'; c.lineWidth = hw * 2 + 28; c.stroke(); c.restore();
+      path(); c.strokeStyle = INK; c.lineWidth = hw * 2 + 28; c.stroke();
+      path(); c.strokeStyle = '#fff'; c.lineWidth = hw * 2 + 20; c.stroke();
+      c.lineCap = 'butt'; c.setLineDash([22, 22]); path(); c.strokeStyle = '#ff4d5e'; c.stroke(); c.setLineDash([]); c.lineCap = 'round';
+      path(); c.strokeStyle = INK; c.lineWidth = hw * 2 + 6; c.stroke();
+      path(); c.strokeStyle = '#6f6a85'; c.lineWidth = hw * 2; c.stroke();
+      c.save(); c.translate(-3, -4); path(); c.strokeStyle = 'rgba(255,255,255,.1)'; c.lineWidth = hw * 2 - 18; c.stroke(); c.restore();
+      c.lineCap = 'butt'; c.setLineDash([16, 16]); path(); c.strokeStyle = '#ffd23f'; c.lineWidth = 5; c.stroke(); c.setLineDash([]);
+    });
+  }
+  function glass(x, y, tilt, fillK, spill) {   // x,y = glass base centre
+    const X = ctx; X.save(); X.translate(x, y); X.rotate(tilt); X.scale(1.3, 1.3);
+    X.beginPath(); X.moveTo(-10, 0); X.lineTo(10, 0); X.lineTo(14, -28); X.lineTo(-14, -28); X.closePath(); ink('rgba(255,255,255,.7)', 3);
+    X.save(); X.clip(); const top = -28 + 28 * (1 - fillK); X.fillStyle = '#ffe14d'; X.beginPath(); X.moveTo(-16, top - tilt * 10); X.lineTo(16, top + tilt * 10); X.lineTo(16, 2); X.lineTo(-16, 2); X.closePath(); X.fill();
+    X.fillStyle = '#ffd23f'; X.fillRect(2, top + 4, 12, 30); X.restore();
+    rr(-5, -16, 10, 10, 3); X.fillStyle = 'rgba(255,255,255,.75)'; X.fill();
+    X.fillStyle = 'rgba(255,255,255,.7)'; el(-6, -14, 2, 8, .1); X.fill();
+    X.beginPath(); X.moveTo(-10, 0); X.lineTo(10, 0); X.lineTo(14, -28); X.lineTo(-14, -28); X.closePath(); X.lineWidth = 3; X.strokeStyle = INK; X.stroke();
+    line([[6, -14], [9, -36], [16, -44]], 3.5, '#ff5c8a');
+    X.restore();
+  }
+  function draw(s) {
+    const X = ctx, { pts, hw, started, res, rT, T, mx, my, edge } = s, won = res === 'win', lost = res === 'lose', end = pts[pts.length - 1];
+    K.use(ctx); const key = pts.map(q => q.y).join() + hw + VW; if (!BG || BGK !== key) { BG = build(pts, hw); BGK = key; K.use(ctx); }
+    X.drawImage(BG, -OX, 0);
+    const dt = Math.max(1 / 120, T - lT); if (T !== lT) { vx += ((mx - lx) / dt - vx) * .25; lx = mx; lT = T; }
+    // the robot vacuum patrols the bottom of the room
+    {
+      const rx = ((T * 46) % (VW + 180)) - OX - 90, ry = 498, look = Math.sign(mx - rx) || 1;
+      X.save(); X.translate(rx, ry); shadowEl(0, 28, 40, 8);
+      const B = K.elP(0, 0, 36, 26); K.cel(B, '#cfd8e6', '#8f9cb3', 4, 5, 4); K.glint(B, -12, -10, 14, 5);
+      for (const sd of [-1, 1]) { X.fillStyle = INK; X.beginPath(); X.arc(sd * 22, 20, 8, 0, TAU); X.fill(); }
+      X.beginPath(); X.arc(0, 8, 5, 0, TAU); ink(Math.sin(T * 6) > 0 ? '#5CFF7A' : '#23a046', 2);
+      K.eye(-12, -4, 6, won ? 'happy' : lost ? 'panic' : 'idle', look, 0, 6); K.eye(12, -4, 6, won ? 'happy' : lost ? 'panic' : 'idle', look, 0, 7);
+      X.restore();
+    }
+    // GO pad and trophy
+    const p0 = pts[0], pr = hw - 4 + (started ? 0 : Math.sin(T * 6) * 2);
+    X.beginPath(); X.arc(p0.x, p0.y, pr, 0, TAU); ink(started ? '#b9b4cc' : '#5CFF7A', 4); X.fillStyle = 'rgba(255,255,255,.45)'; el(p0.x - 8, p0.y - 12, 9, 4, -.5); X.fill();
+    txt(started ? '' : 'GO', p0.x, p0.y + 1, 24, '#fff');
+    X.save(); X.beginPath(); X.arc(end.x, end.y, hw - 4, 0, TAU); ink('#fff', 4); X.clip(); X.fillStyle = INK; for (let i = -3; i < 4; i++) for (let j = -3; j < 4; j++) if ((i + j) & 1) X.fillRect(end.x + i * 12 - 6, end.y + j * 12 - 6, 12, 12); X.restore();
+    X.beginPath(); X.arc(end.x, end.y, hw - 4, 0, TAU); X.lineWidth = 4; X.strokeStyle = INK; X.stroke();
+    {
+      const ty = end.y - 8 - Math.abs(Math.sin(T * 3)) * 4;
+      X.save(); X.translate(end.x, ty); X.beginPath(); X.moveTo(-14, -18); X.lineTo(14, -18); X.quadraticCurveTo(14, 4, 0, 6); X.quadraticCurveTo(-14, 4, -14, -18); X.closePath(); ink('#ffd23f', 3.5);
+      for (const sd of [-1, 1]) { X.beginPath(); X.arc(sd * 16, -12, 7, sd > 0 ? -1.2 : 1.2 + Math.PI * .6, sd > 0 ? 1.2 : Math.PI * 2 - 1.2, sd < 0); X.lineWidth = 3.5; X.strokeStyle = INK; X.stroke(); }
+      rr(-5, 6, 10, 8, 2); ink('#c99512', 3); rr(-12, 13, 24, 7, 3); ink('#a5622c', 3);
+      X.fillStyle = 'rgba(255,255,255,.55)'; el(-6, -10, 3, 7, .2); X.fill(); X.restore();
+    }
+    // Claude with the glass on its head
+    {
+      const u = 2.6, hx = mx, hy = my + 12, near = clamp(1 - edge, 0, 1), sloshA = clamp(vx * .0008, -.35, .35) + (res ? 0 : Math.sin(T * 14) * near * .06);
+      X.save(); shadowEl(hx, hy + 2, 18, 5);
+      let hold = null;
+      if (won) { K.arms(u, -2.7 + Math.sin(T * 10) * .15, 2.7 - Math.sin(T * 10) * .15, OR); }
+      else if (lost) K.arms(u, -2.2 + Math.sin(T * 30) * .3, 2.2 - Math.sin(T * 30) * .3, OR);
+      X.restore();
+      X.save(); X.translate(hx, hy); if (won) K.arms(u, -2.6 + Math.sin(T * 10) * .15, 2.6 - Math.sin(T * 10) * .15, OR); else if (lost) K.arms(u, -2.4 + Math.sin(T * 30) * .3, 2.4 - Math.sin(T * 30) * .3, OR); else K.arms(u, -1.3 + sloshA, 1.3 + sloshA, OR); X.restore();
+      claude(hx, hy, u, { mood: lost ? 'sad' : won ? 'happy' : null, run: res ? null : (started ? T * .6 : null) });
+      const gy = hy - 9.4 * u + 2;
+      if (!lost) glass(hx, gy - (won ? 14 + Math.abs(Math.sin(rT * 8)) * 6 : 0), sloshA, won ? .75 : .72 - near * .06, 0);
+      else {
+        const k = rT, gx = hx + 70 * k, gyy = gy - 150 * k + 760 * k * k;
+        if (k < .75) { X.save(); X.translate(gx, gyy); X.rotate(k * 8); glass(0, 0, 0, .3, 0); X.restore(); }
+        const pk = ease(rT / .5); X.beginPath(); X.ellipse(hx + 10, hy + 6, 8 + 44 * pk, 3 + 12 * pk, 0, 0, TAU); ink('#ffe14d', 3); X.fillStyle = 'rgba(255,255,255,.5)'; el(hx - 6, hy + 3, 12 * pk, 3 * pk); X.fill();
+        for (let i = 0; i < 8; i++) { const a = -Math.PI / 2 + (i - 3.5) * .4, v = 130 + hr(i + 5) * 120, tt = Math.min(rT, .7); X.fillStyle = '#ffe14d'; X.beginPath(); X.arc(hx + Math.cos(a) * v * tt + 10, hy - 30 + Math.sin(a) * v * tt + 520 * tt * tt, 4 - tt * 3, 0, TAU); X.fill(); }
+        K.sweat(hx + 18, hy - 36, 1, T);
+      }
+      if (!res && near > .45) K.sweat(hx + 16, hy - 24, .9, (T * 1.6) % 1);
+      if (won) for (let i = 0; i < 5; i++) { const q = (rT * 1.1 + i * .2) % 1; K.heart(hx + (i - 2) * 22 + Math.sin(rT * 4 + i) * 6, hy - 70 - q * 60, .9 - q * .3, 1 - q); }
+    }
+    vignette(.14);
+  }
+  function shadowEl(x, y, rx, ry) { ctx.fillStyle = 'rgba(20,16,28,.3)'; ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, TAU); ctx.fill(); }
+  return { draw };
+})();
+
 /* 12 ── STEADY: guide Claude through the tunnel without touching the walls (mouse) */
 function gSteady(sp) {
   const hw = sp > 1.5 ? 28 : 36;
@@ -1304,7 +1409,7 @@ function gSteady(sp) {
   for (let k = 1; k <= 4; k++) { do { y = 170 + Math.random() * 260; } while (Math.abs(y - pts[k - 1].y) < 90); pts.push({ x: 90 + k * 155, y }); }
   pts.push({ x: 730, y: pts[4].y });
   const dist = p => { let d = 1e9; for (let i = 1; i < pts.length; i++) d = Math.min(d, segD(p.x, p.y, pts[i - 1].x, pts[i - 1].y, pts[i].x, pts[i].y)); return d; };
-  let started = false;
+  let started = false, rT0 = -1;   // rT0: art only
   const end = pts[pts.length - 1];
   const g = {
     cmd: 'STEADY!', hint: 'ENTER AT GO. DO NOT TOUCH THE WALLS', thint: 'TOUCH GO, THEN DRAG', dur: 6, wide: true,
@@ -1314,19 +1419,8 @@ function gSteady(sp) {
       if (Math.hypot(p.x - end.x, p.y - end.y) < hw) { g.result = 'win'; sfx.coin(); sfx.sparkle(); burst(end.x, end.y, '#FFE14D', 18); ring(end.x, end.y, '#fff', 100); floatText('SMOOTH!', end.x - 40, end.y - 50, '#5CFF7A', 36); return; }
       if (dist(p) > hw) { g.result = 'lose'; sfx.zap(); sfx.buzz(); shake(10, .3); burst(p.x, p.y, '#FF4D4D', 14); }
     },
-    update() {},
-    draw(t) {
-      bg('#FFE9A8', '#ffe08c', t);
-      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-      ctx.beginPath(); pts.forEach(q => ctx.lineTo(q.x, q.y));
-      ctx.save(); ctx.translate(5, 7); ctx.strokeStyle = 'rgba(20,16,28,.2)'; ctx.lineWidth = hw * 2 + 12; ctx.stroke(); ctx.restore();
-      ctx.strokeStyle = INK; ctx.lineWidth = hw * 2 + 12; ctx.stroke();
-      ctx.strokeStyle = '#fff'; ctx.lineWidth = hw * 2; ctx.stroke(); ctx.lineCap = 'butt';
-      circ(pts[0].x, pts[0].y, hw - 6, started ? '#bbb' : '#5CFF7A', 4); txt('GO', pts[0].x, pts[0].y, 24);
-      circ(end.x, end.y, hw - 6, '#FFE14D', 4); star(end.x, end.y, 20, 9, 5, now * 2, '#fff', 2);
-      const m = mouse;
-      claude(m.x, m.y + 12, 2.6, { mood: g.result === 'lose' ? 'sad' : g.result === 'win' ? 'happy' : null });
-    }
+    update() { if (g.result && rT0 < 0) rT0 = now; },
+    draw() { if (g.result && rT0 < 0) rT0 = now; const m = mouse; W2STEADY.draw({ pts, hw, started, res: g.result, rT: now - rT0, T: now, mx: m.x, my: m.y, edge: started ? dist(m) / hw : 0 }); }
   };
   return g;
 }

@@ -155,7 +155,7 @@ function gPong(sp) {
 /* 28 ── CRANK: whirl the mouse around the wheel (3 turns) */
 function gCrank(sp) {
   const cx = 400, cy = 300, need = (sp > 1.5 ? 4 : 3) * Math.PI * 2;
-  let acc = 0, pa = null, ang = 0, lt = 0;
+  let acc = 0, pa = null, ang = 0, lt = 0, rT0 = -1;   // rT0: art only
   const g = {
     cmd: 'CRANK!', wide: true, hint: 'SPIN THE MOUSE AROUND THE WHEEL', thint: 'SPIN YOUR FINGER AROUND', dur: 5,
     move(p) {
@@ -165,18 +165,8 @@ function gCrank(sp) {
       if (pa !== null) { let dd = a - pa; if (dd > Math.PI) dd -= Math.PI * 2; if (dd < -Math.PI) dd += Math.PI * 2; acc += Math.abs(dd); const tk = Math.floor(acc / (Math.PI / 4)); if (tk !== lt) { lt = tk; sfx.tick(); snd(250 + acc * 8, .03, 'square', .03); } }
       pa = a; if (acc >= need) { g.result = 'win'; sfx.coin(); sfx.sparkle(); sfx.stamp(); shake(5, .2); confetti(cx, 140, 30); ring(cx, cy - 20, '#5CFF7A', 130); floatText('NICE!', cx, 150, '#fff'); }
     },
-    update() {},
-    draw(t) {
-      bg('#C3F584', '#b4ea6e', t);
-      box3(cx - 160, 340, 320, 180, '#7C4DFF', 6); txt('?', cx, 430, 80);
-      const k = Math.min(1, acc / need);
-      shadow(cx + 6, cy + 100, 100, 18, .22); circ(cx, cy - 20, 110, '#fff', 6);
-      ctx.strokeStyle = '#5CFF7A'; ctx.lineWidth = 16; ctx.beginPath(); ctx.arc(cx, cy - 20, 90, -Math.PI / 2, -Math.PI / 2 + k * Math.PI * 2); ctx.stroke();
-      ctx.strokeStyle = INK; ctx.lineWidth = 14; ctx.beginPath(); ctx.moveTo(cx, cy - 20); ctx.lineTo(cx + Math.cos(ang) * 100, cy - 20 + Math.sin(ang) * 100); ctx.stroke();
-      circ(cx + Math.cos(ang) * 100, cy - 20 + Math.sin(ang) * 100, 18, '#FFE14D', 4);
-      circ(cx, cy - 20, 14, '#FFE14D', 4);
-      if (g.result === 'win') claude(cx, 340 - Math.abs(Math.sin(now * 9)) * 40, 9, { mood: 'happy' });
-    }
+    update() { if (g.result && rT0 < 0) rT0 = now; },
+    draw() { if (g.result && rT0 < 0) rT0 = now; W4A.crank({ acc, need, ang, res: g.result, rT: now - rT0, T: now }); }
   };
   return g;
 }
@@ -712,7 +702,192 @@ const W4A = (() => {
     vignette(.16);
   }
 
-  return { maze, flap, charge };
+  /* ═════════════ CRANK: the jack-in-the-box (stage 4) ═════════════
+     Spin the big wheel: the bulb ring fills, the box rattles and eyes peep out of its porthole. Win: the lid flies open and Claude springs out.
+     Fail: the lid cracks, a limp "dud" flag droops and the box coughs smoke. */
+  let CKBG = null, CKW = -1;
+  function spark(x, y, ro, ri, n, fill) { X.beginPath(); for (let i = 0; i < n * 2; i++) { const r = i % 2 ? ri : ro, a = -Math.PI / 2 + i * Math.PI / n; X.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); } X.closePath(); X.fillStyle = fill; X.fill(); }
+  function crankBg() {
+    if (CKBG && CKW === VW) return CKBG; CKW = VW;
+    return CKBG = bake(() => {
+      const L = -OX - 2, R = W + OX + 2, FL = 436;
+      let g = X.createLinearGradient(0, 0, 0, FL); g.addColorStop(0, '#a8e6c3'); g.addColorStop(1, '#e6fff0'); X.fillStyle = g; X.fillRect(L, 0, R - L, FL);
+      X.fillStyle = 'rgba(60,160,110,.14)'; for (let x = L; x < R; x += 50) X.fillRect(x, 0, 25, FL);
+      for (let i = 0; i < 26; i++) { const x = L + 20 + hr(i + 4) * (R - L - 40), y = 70 + hr(i + 44) * (FL - 90); if (x > 270 && x < 530 && y < 400) continue; spark(x, y, 9, 3.2, 4, 'rgba(255,255,255,.75)'); }
+      g = X.createLinearGradient(0, FL, 0, H); g.addColorStop(0, '#ffd89c'); g.addColorStop(1, '#e3a868'); X.fillStyle = g; X.fillRect(L, FL, R - L, H - FL);
+      X.strokeStyle = 'rgba(120,70,30,.28)'; X.lineWidth = 3; for (let y = FL + 40, r = 0; y < H; y += 44, r++) { X.beginPath(); X.moveTo(L, y); X.lineTo(R, y); X.stroke(); for (let x = L + (r % 2) * 80; x < R; x += 160) { X.beginPath(); X.moveTo(x, y); X.lineTo(x, y + 44); X.stroke(); } }
+      X.fillStyle = INK; X.fillRect(L, FL - 2, R - L, 5); rr(L - 10, FL - 24, R - L + 20, 24, 5); ink('#fff', 3.5);
+      el(400, 520, 330, 46); ink('#ff9ac2', 4); X.setLineDash([14, 10]); X.strokeStyle = 'rgba(255,255,255,.75)'; X.lineWidth = 4; el(400, 520, 304, 34); X.stroke(); X.setLineDash([]);
+      // the window
+      rr(36, 170, 124, 156, 12); ink('#fff', 4.5); X.fillStyle = '#86d8fb'; rr(46, 180, 48, 136, 5); X.fill(); rr(102, 180, 48, 136, 5); X.fill(); X.fillStyle = 'rgba(255,255,255,.55)'; el(60, 200, 10, 4, -.5); X.fill();
+      X.fillStyle = '#ffe14d'; X.beginPath(); X.arc(126, 214, 14, 0, TAU); X.fill(); X.fillStyle = '#5fb944'; X.beginPath(); X.moveTo(46, 316); X.quadraticCurveTo(70, 276, 94, 316); X.fill(); X.beginPath(); X.moveTo(102, 316); X.quadraticCurveTo(128, 268, 150, 316); X.fill();
+      rr(26, 322, 144, 14, 6); ink('#e6e1f2', 3.5);
+      // the toy shelf with a teddy and blocks
+      rr(570, 286, 214, 16, 6); ink('#d9944f', 4); X.fillStyle = 'rgba(255,255,255,.3)'; rr(578, 289, 198, 4, 2); X.fill();
+      for (const bx of [598, 760]) { X.beginPath(); X.moveTo(bx, 302); X.lineTo(bx + 14, 302); X.lineTo(bx, 326); X.closePath(); ink('#a5622c', 3); }
+      for (const [bx, by, c, ch] of [[726, 258, '#ff5c8a'], [758, 258, '#4db8ff'], [742, 224, '#ffd23f']]) { rr(bx - 15, by - 14, 30, 30, 4); ink(c, 3.5); X.fillStyle = 'rgba(255,255,255,.4)'; rr(bx - 11, by - 10, 9, 5, 2); X.fill(); }
+      X.save(); X.translate(648, 286);
+      for (const sd of [-1, 1]) { el(sd * 22, -16, 10, 12); ink('#c98443', 3.5); el(sd * 16, 0, 11, 8); ink('#c98443', 3.5); }
+      celF(() => X.beginPath() || X.ellipse(0, -30, 26, 30, 0, 0, TAU), '#d9944f', '#a5622c', 4, 5, 4);
+      el(0, -22, 14, 16); ink('#f2c586', 2.5);
+      celF(() => { X.beginPath(); X.ellipse(0, -72, 22, 20, 0, 0, TAU); }, '#d9944f', '#a5622c', 3, 4, 4);
+      for (const sd of [-1, 1]) { X.beginPath(); X.arc(sd * 18, -88, 9, 0, TAU); ink('#c98443', 3.5); X.beginPath(); X.arc(sd * 18, -88, 4, 0, TAU); ink('#f2c586', 0); }
+      el(0, -66, 11, 8); ink('#f2c586', 2.5); X.fillStyle = INK; el(0, -68, 4, 3); X.fill();
+      for (const sd of [-1, 1]) { X.beginPath(); X.arc(sd * 9, -78, 3.6, 0, TAU); X.fillStyle = INK; X.fill(); X.fillStyle = '#fff'; X.beginPath(); X.arc(sd * 9 - 1, -79, 1.2, 0, TAU); X.fill(); }
+      X.beginPath(); X.moveTo(0, -50); X.lineTo(-14, -57); X.lineTo(-14, -43); X.closePath(); ink('#ff4d5e', 2.5); X.beginPath(); X.moveTo(0, -50); X.lineTo(14, -57); X.lineTo(14, -43); X.closePath(); ink('#ff4d5e', 2.5);
+      X.restore();
+    });
+  }
+  function crank(s) {
+    X = ctx; const { acc, need, ang, res, rT, T } = s, won = res === 'win', lost = res === 'lose', k = Math.min(1, acc / need), cx = 400, cy = 280;
+    layer(crankBg());
+    // the mobile: three stars sway on strings
+    for (const [mx, len, c, ph] of [[640, 60, '#ffd23f', 0], [676, 92, '#ff5c8a', 1.4], [712, 70, '#4db8ff', 2.6]]) { const sw = Math.sin(T * 1.8 + ph) * .12; X.save(); X.translate(mx, 62); X.rotate(sw); X.strokeStyle = INK; X.lineWidth = 3; X.beginPath(); X.moveTo(0, 0); X.lineTo(0, len); X.stroke(); star(0, len + 12, 16, 7, 5, T * .6, c, 3); X.restore(); }
+    X.strokeStyle = INK; X.lineWidth = 5; X.lineCap = 'round'; X.beginPath(); X.moveTo(626, 62); X.lineTo(726, 62); X.stroke();
+    // the box
+    const shk = (won || lost ? 0 : 1) * k * k * 4, bx = Math.sin(T * 55) * shk, by = Math.abs(Math.sin(T * 47)) * shk * .6;
+    const BX = 240, BY = 402, BW = 320, BH = 120;
+    X.save(); X.translate(bx, -by);
+    X.fillStyle = 'rgba(20,16,28,.28)'; el(400, 526, 190, 18); X.fill();
+    celF(() => rr(BX, BY, BW, BH, 14), '#7C4DFF', '#5a35c9', 0, 8, 4.5);
+    X.save(); rr(BX, BY, BW, BH, 14); X.clip(); for (let i = 0; i < 14; i++) star(BX + 20 + (i % 7) * 46 + (i > 6 ? 23 : 0), BY + 22 + (i > 6 ? 62 : 14), 7, 3, 4, 0, 'rgba(255,255,255,.28)', 0); X.restore();
+    for (const sx2 of [BX + 12, BX + BW - 12]) for (const sy2 of [BY + 14, BY + BH - 14]) { X.beginPath(); X.arc(sx2, sy2, 5, 0, TAU); ink('#ffd23f', 2.5); }
+    X.fillStyle = 'rgba(255,255,255,.25)'; rr(BX + 10, BY + 8, 120, 6, 3); X.fill();
+    for (const qx of [BX + 62, BX + BW - 62]) txt('?', qx, BY + 62, 54, '#FFE14D');
+    // the porthole with the peeping eyes
+    X.beginPath(); X.arc(400, BY + 62, 36, 0, TAU); ink('#f6f1ff', 4.5); X.beginPath(); X.arc(400, BY + 62, 29, 0, TAU); ink(won ? '#8a5530' : INK, 0);
+    X.save(); X.beginPath(); X.arc(400, BY + 62, 29, 0, TAU); X.clip();
+    const lk = [Math.cos(ang), Math.sin(ang) * .6], em = lost ? 'x' : k > .75 ? 'wide' : 'idle', er = 8 + k * 3;
+    if (!won) { eye(388, BY + 60, er, em, lk[0], lk[1], T, 0); eye(412, BY + 60, er, em, lk[0], lk[1], T, 1); }
+    X.restore();
+    // wheel shadow on the lid, then the lid
+    X.restore();
+    const lidA = won ? -1.9 * ease(rT / .22) : lost ? -.32 * ease(rT / .3) : -k * k * .06;
+    X.save(); X.translate(bx + BX - 8, -by + BY + 10); X.rotate(lidA); celF(() => rr(0, -22, BW + 16, 26, 8), '#9b78ff', '#6a43d8', 0, 5, 4); X.fillStyle = 'rgba(255,255,255,.35)'; rr(12, -17, 90, 5, 2.5); X.fill(); X.restore();
+    // the wheel with its bulb ring (fills with progress)
+    {
+      const lit = Math.floor(k * 12 + (won ? 12 : 0));
+      for (let i = 0; i < 12; i++) { const a = -Math.PI / 2 + i * TAU / 12, on = i < lit; X.beginPath(); X.arc(cx + Math.cos(a) * 128, cy + Math.sin(a) * 128, 9, 0, TAU); ink(on ? (won ? `hsl(${i * 30 + T * 400},90%,60%)` : '#ffd23f') : '#6b6580', 3); if (on) { X.fillStyle = 'rgba(255,255,255,.7)'; el(cx + Math.cos(a) * 128 - 3, cy + Math.sin(a) * 128 - 3, 3, 2); X.fill(); } }
+      X.fillStyle = 'rgba(20,16,28,.22)'; el(cx + 6, cy + 104, 104, 16); X.fill();
+      celF(() => { X.beginPath(); X.arc(cx, cy, 108, 0, TAU); }, '#fff', '#d9d3ea', 6, 8, 6);
+      celF(() => { X.beginPath(); X.arc(cx, cy, 80, 0, TAU); }, '#4db8ff', '#2f9fe3', 4, 6, 4);
+      for (let i = 0; i < 6; i++) { const a = ang * .5 + i * TAU / 6; line([[cx + Math.cos(a) * 18, cy + Math.sin(a) * 18], [cx + Math.cos(a) * 72, cy + Math.sin(a) * 72]], 11, '#fff'); }
+      X.fillStyle = 'rgba(255,255,255,.6)'; el(cx - 36, cy - 48, 22, 8, -.6); X.fill();
+      const hx = cx + Math.cos(ang) * 100, hy = cy + Math.sin(ang) * 100; line([[cx, cy], [hx, hy]], 12, '#ffd23f');
+      X.beginPath(); X.arc(hx, hy, 18, 0, TAU); ink('#FFE14D', 4); X.fillStyle = 'rgba(255,255,255,.6)'; el(hx - 5, hy - 6, 6, 3, -.5); X.fill();
+      X.beginPath(); X.arc(cx, cy, 15, 0, TAU); ink('#ffd23f', 4);
+      if (lost) { X.save(); X.translate(cx, cy); X.rotate(-.1); X.strokeStyle = INK; X.lineWidth = 9; X.lineCap = 'round'; X.beginPath(); X.moveTo(-24, -24); X.lineTo(24, 24); X.moveTo(24, -24); X.lineTo(-24, 24); X.stroke(); X.restore(); }
+    }
+    // outcome: Claude springs out, or the dud flag droops
+    if (won) {
+      const e = ease(rT / .22), jump = e * (80 + Math.abs(Math.sin(rT * 9)) * 40) * (rT > .22 ? 1 : 1), by2 = BY + 6 - jump;
+      line([[400, BY + 6], [388, BY - jump * .25], [412, BY - jump * .5], [388, BY - jump * .75], [400, by2]], 6, '#c9ced6');
+      shadowEl(400, BY + 10, 50 + e * 10, 8, .25);
+      X.save(); X.translate(400, by2); arms(9, -2.6 + Math.sin(T * 14) * .2, 2.6 - Math.sin(T * 14) * .2, 1, OR); claude(0, 0, 9, { mood: 'happy' }); X.restore();
+      for (let i = 0; i < 5; i++) { const q = (rT * 1.1 + i * .2) % 1; heart(400 + (i - 2) * 56 + Math.sin(rT * 4 + i) * 8, by2 - 120 - q * 60, .9 - q * .3, '#ff5c8a', 1 - q); }
+      for (let i = 0; i < 16; i++) { const cc = ['#ff5c8a', '#ffd23f', '#4db8ff', '#5CFF7A', '#b49cff'][i % 5], x = 250 + hr(i + 90) * 300, y = ((hr(i + 110) * 200 + rT * (150 + hr(i + 120) * 120)) % 330) + 20; X.save(); X.translate(x, y); X.rotate(T * 4 + i); X.fillStyle = cc; X.fillRect(-5, -2.5, 10, 5); X.restore(); }
+    } else if (lost) {
+      const e = ease(rT / .3), d = Math.sin(rT * 7) * 3;
+      X.save(); X.translate(bx + BX + 60, BY + 6); line([[0, 0], [-4, -18 * e], [4, -30 * e], [-3, -40 * e + 8]], 4, '#c9ced6'); X.translate(-3, -40 * e + 8 + d); X.rotate(.5 + Math.sin(T * 3) * .1); X.beginPath(); X.moveTo(0, 0); X.lineTo(34, 6); X.lineTo(30, 22); X.lineTo(0, 16); X.closePath(); ink('#fff', 3); X.restore();
+      for (let i = 0; i < 4; i++) { const q = (rT * 1.2 + i * .25) % 1; X.save(); X.globalAlpha = .75 * (1 - q); X.beginPath(); X.arc(BX + 40 + i * 12 + q * 22, BY - 8 - q * 56, 10 + q * 14, 0, TAU); ink('#cfd2de', 2.5); X.restore(); }
+      drop(BX + BW - 30, BY - 30, 1.2, 1);
+    }
+    vignette(.14);
+  }
+  function shadowEl(x, y, rx, ry, a) { X.fillStyle = `rgba(20,16,28,${a})`; X.beginPath(); X.ellipse(x, y, rx, ry, 0, 0, TAU); X.fill(); }
+  /* ═════════════ WIRES: the robot's fuse panel (stage 4) ═════════════
+     Plug each coloured cable into its matching socket. Every connection lights a bulb on the rail and the little robot's eyes.
+     Win: all bulbs go rainbow, the robot dances. Fail: the robot's eyes X out and the panel smokes. */
+  let WRBG = null, WRW = -1, wrAt = {};
+  const WSH = { '#ff4d4d': '#b8283a', '#4DB8FF': '#2a86c9', '#ffd23f': '#c99512', '#5CFF7A': '#23a046' };
+  function wiresBg() {
+    if (WRBG && WRW === VW) return WRBG; WRW = VW;
+    return WRBG = bake(() => {
+      const L = -OX - 2, R = W + OX + 2;
+      X.fillStyle = '#9fd8e8'; X.fillRect(L, 0, R - L, H);
+      X.fillStyle = 'rgba(20,16,28,.14)'; for (let x = L + 14; x < R; x += 28) for (let y = 14; y < 486; y += 28) { X.beginPath(); X.arc(x, y, 3, 0, TAU); X.fill(); }
+      const g = X.createLinearGradient(0, 486, 0, H); g.addColorStop(0, '#b97a46'); g.addColorStop(1, '#8a5530'); X.fillStyle = g; X.fillRect(L, 486, R - L, H - 486);
+      X.strokeStyle = 'rgba(20,16,28,.25)'; X.lineWidth = 3; for (let x = L; x < R; x += 70) { X.beginPath(); X.moveTo(x, 486); X.lineTo(x - 26, H); X.stroke(); }
+      X.fillStyle = INK; X.fillRect(L, 484, R - L, 5);
+      // the open panel: steel frame, dark circuit board, rivets, hazard stripe along the bottom
+      rr(70, 62, 660, 424, 22); ink('#c9ced6', 5); X.fillStyle = 'rgba(255,255,255,.3)'; rr(82, 70, 360, 9, 4.5); X.fill();
+      rr(92, 106, 616, 362, 12); ink('#2b2a52', 4); X.fillStyle = 'rgba(255,255,255,.07)'; for (let x = 108; x < 700; x += 40) X.fillRect(x, 112, 2, 350);
+      X.save(); rr(92, 106, 616, 362, 12); X.clip(); X.strokeStyle = 'rgba(95,255,255,.16)'; X.lineWidth = 3; for (const [a, b, c2, d] of [[200, 120, 200, 180], [200, 180, 260, 180], [600, 400, 540, 400], [540, 400, 540, 450], [300, 440, 380, 440], [420, 120, 500, 120]]) { X.beginPath(); X.moveTo(a, b); X.lineTo(c2, d); X.stroke(); } X.restore();
+      for (const [a, b] of [[82, 74], [718, 74], [82, 474], [718, 474]]) { X.beginPath(); X.arc(a, b, 6, 0, TAU); ink('#e6e9ee', 2.5); X.strokeStyle = INK; X.lineWidth = 2; X.beginPath(); X.moveTo(a - 3, b - 3); X.lineTo(a + 3, b + 3); X.stroke(); }
+      X.save(); rr(70, 62, 660, 424, 22); X.clip(); X.fillStyle = '#ffd23f'; X.fillRect(70, 476, 660, 12); X.fillStyle = INK; for (let x = 60; x < 740; x += 28) { X.beginPath(); X.moveTo(x, 488); X.lineTo(x + 14, 488); X.lineTo(x + 28, 476); X.lineTo(x + 14, 476); X.closePath(); X.fill(); } X.restore();
+      // the bulb rail's housing
+      rr(280, 74, 240, 26, 13); ink('#6b6580', 3.5);
+    });
+  }
+  function wiresDraw(x0, y0, x1, y1, col, T, flow, wob) {
+    const mx = (x0 + x1) / 2, pts = []; for (let k = 0; k <= 20; k++) { const q = k / 20, e = q * q * (3 - 2 * q); pts.push([lerp(x0, x1, q), lerp(y0, y1, e) + Math.sin(q * Math.PI) * 6 * wob]); }
+    X.lineJoin = 'round'; X.lineCap = 'round'; X.beginPath(); pts.forEach((p, i) => i ? X.lineTo(p[0], p[1]) : X.moveTo(p[0], p[1])); X.lineWidth = 22; X.strokeStyle = INK; X.stroke(); X.lineWidth = 13; X.strokeStyle = col; X.stroke();
+    X.save(); X.translate(-2, -3); X.beginPath(); pts.forEach((p, i) => i ? X.lineTo(p[0], p[1]) : X.moveTo(p[0], p[1])); X.lineWidth = 4; X.strokeStyle = 'rgba(255,255,255,.55)'; X.stroke(); X.restore();
+    if (flow) for (let i = 0; i < 3; i++) { const q = (T * .9 + i / 3) % 1, p = pts[Math.min(20, Math.floor(q * 20))]; X.beginPath(); X.arc(p[0], p[1], 5, 0, TAU); X.fillStyle = '#fff'; X.fill(); X.beginPath(); X.arc(p[0], p[1], 9, 0, TAU); X.fillStyle = 'rgba(255,255,255,.35)'; X.fill(); }
+  }
+  function wires(s) {
+    X = ctx; const { n, ys, Lc, Rc, conns, sel, shk, res, rT, T } = s, won = res === 'win', lost = res === 'lose', done = conns.length / n;
+    layer(wiresBg());
+    if (!conns.length) wrAt = {}; for (const c of conns) if (wrAt[c.l] == null) wrAt[c.l] = T;
+    // bulb rail: one bulb per connection
+    for (let i = 0; i < n; i++) {
+      const bx = 320 + i * (160 / Math.max(1, n - 1)) , on = i < conns.length || won, hue = `hsl(${i * 70 + T * 300},90%,62%)`, fl = lost && Math.sin(T * 40 + i * 2) > 0;
+      X.beginPath(); X.arc(bx, 87, 9, 0, TAU); ink(won ? hue : (on && !lost ? '#ffd23f' : fl ? '#ff9a3a' : '#6b6580'), 3);
+      if ((on && !lost) || won) { X.save(); X.globalCompositeOperation = 'lighter'; X.fillStyle = 'rgba(255,225,90,.35)'; X.beginPath(); X.arc(bx, 87, 18 + Math.sin(T * 8 + i) * 2, 0, TAU); X.fill(); X.restore(); X.fillStyle = 'rgba(255,255,255,.8)'; el(bx - 3, 83, 3, 2); X.fill(); }
+    }
+    // cables (behind the plugs and sockets)
+    for (const c of conns) { const t0 = wrAt[c.l] == null ? T : wrAt[c.l]; wiresDraw(190, ys[c.l], 610, ys[c.r], Lc[c.l], T, !lost, 1 + Math.max(0, 1 - (T - t0) * 3) * 6); }
+    for (let i = 0; i < n; i++) {
+      const dl = conns.some(c => c.l === i), dr = conns.some(c => c.r === i), sx = Math.sin(now * 80) * shk * 20, y = ys[i], lc = Lc[i], rc = Rc[i];
+      // plug (left): cable stub, coloured body, steel prongs; the chosen one wobbles and glows
+      const px = 110 + (sel === i ? Math.sin(T * 20) * 3 : 0);
+      if (sel === i) { X.save(); X.globalCompositeOperation = 'lighter'; X.fillStyle = 'rgba(255,255,255,.35)'; rr(px - 8, y - 40, 106, 80, 22); X.fill(); X.restore(); }
+      line([[84, y], [px + 6, y]], 16, WSH[lc]);
+      for (const sd of [-1, 1]) { rr(px + 78, y + sd * 15 - 5, 28, 10, 3); ink('#c9ced6', 2.5); }
+      celF(() => rr(px, y - 32, 80, 64, 14), lc, WSH[lc], 0, 7, 4.5); X.fillStyle = 'rgba(255,255,255,.4)'; rr(px + 8, y - 25, 42, 7, 3.5); X.fill();
+      for (let q = 0; q < 3; q++) { X.fillStyle = 'rgba(20,16,28,.22)'; X.fillRect(px + 60 + q * 5, y - 20, 2.5, 40); }
+      // socket (right): dark body, coloured ring, two slots
+      const sxx = 610 + sx;
+      celF(() => rr(sxx, y - 32, 80, 64, 14), '#8f9cb3', '#5f6a82', 0, 6, 4.5);
+      rr(sxx + 8, y - 24, 64, 48, 9); X.lineWidth = 7; X.strokeStyle = rc; X.stroke(); rr(sxx + 8, y - 24, 64, 48, 9); ink('#2b2a52', 0);
+      for (const sd of [-1, 1]) { rr(sxx + 8 - 0, y + sd * 15 - 5, 20, 10, 3); X.fillStyle = INK; X.fill(); }
+      X.fillStyle = 'rgba(255,255,255,.28)'; rr(sxx + 6, y - 28, 30, 5, 2.5); X.fill();
+      if (!dr && !res && sel >= 0) { X.save(); X.globalAlpha = .6 + Math.sin(T * 8) * .3; rr(sxx - 4, y - 36, 88, 72, 16); X.lineWidth = 3.5; X.strokeStyle = '#fff'; X.setLineDash([8, 6]); X.stroke(); X.restore(); }
+      if (dl && dr) { const t0 = wrAt[i] == null ? T : wrAt[i], q = Math.max(0, 1 - (T - t0) * 3); if (q > 0) for (let k2 = 0; k2 < 6; k2++) { const a = k2 * 1.05, rad = 10 + (1 - q) * 26; star(sxx + Math.cos(a) * rad, y + Math.sin(a) * rad, 5, 2, 4, a, '#FFE14D', 1.5); } }
+    }
+    // the robot (the thing being fixed): eyes light up as cables connect
+    {
+      const rx = 400, ry = 540, dance = won ? Math.abs(Math.sin(rT * 9)) * 20 : 0, tilt = won ? Math.sin(rT * 9) * .12 : lost ? .14 : 0, u = 1;
+      X.save(); X.translate(rx, ry - dance * .55); X.rotate(tilt); X.scale(.55, .55); shadowEl(0, 4 + dance, 40, 7, .3);
+      for (const sd of [-1, 1]) { rr(sd * 18 - 8, -14, 16, 20, 5); ink('#8f9cb3', 3.5); }
+      celF(() => rr(-34, -66, 68, 56, 12), '#cfd8e6', '#8f9cb3', 4, 5, 4.5);
+      for (const sd of [-1, 1]) { const ang = won ? -2.5 + Math.sin(rT * 14) * .5 : -.6; X.save(); X.translate(sd * 36, -48); X.rotate(sd * (won ? -ang - Math.PI * 0 : .6)); line([[0, 0], [sd * 10, 14]], 8, '#cfd8e6'); X.restore(); }
+      celF(() => rr(-30, -112, 60, 48, 12), '#eaf0f8', '#aab6cc', 4, 5, 4.5);
+      line([[0, -112], [0, -124]], 3, '#6b6580'); X.beginPath(); X.arc(0, -128, 6, 0, TAU); ink(won ? `hsl(${T * 500},90%,60%)` : lost ? '#ff4d5e' : (done > .5 ? '#5CFF7A' : '#ffd23f'), 2.5);
+      rr(-22, -102, 44, 28, 8); ink(INK, 0);
+      const em = lost ? 'x' : won ? 'happy' : done > 0 ? 'wide' : 'shut', a2 = lost ? .5 : won ? 1 : .25 + done * .75;
+      if (em === 'happy' || em === 'x' || done > 0) { X.save(); X.globalAlpha = a2; eye(-10, -88, 7, em, 0, .3, T, 0); eye(10, -88, 7, em, 0, .3, T, 1); X.restore(); } else { eye(-10, -88, 7, 'shut', 0, 0, T, 0); eye(10, -88, 7, 'shut', 0, 0, T, 1); }
+      if (!won && !lost) { X.fillStyle = INK; X.font = '700 14px Fredoka, Arial, sans-serif'; if (done === 0) { for (let i = 0; i < 2; i++) { const q = (T * .6 + i * .5) % 1; X.save(); X.globalAlpha = Math.sin(q * Math.PI); txt('Z', 32 + q * 14, -118 - q * 24, 16 + q * 6, '#fff'); X.restore(); } } }
+      X.beginPath(); X.moveTo(-6, -50); X.lineTo(6, -50); ink(null, 2.5); rr(-12, -44, 24, 14, 4); ink(done > 0 ? '#5CFF7A' : '#6b6580', 2.5);
+      X.restore();
+      if (lost) for (let i = 0; i < 4; i++) { const q = (rT * 1.2 + i * .25) % 1; X.save(); X.globalAlpha = .75 * (1 - q); X.beginPath(); X.arc(rx - 6 + q * 14, ry - 80 - q * 40, 6 + q * 10, 0, TAU); ink('#9aa3b8', 2.5); X.restore(); }
+    }
+    // Claude, the electrician, hands up at the panel
+    {
+      const u = 4.2, cx = 112, cy = 536, bounce = won ? Math.abs(Math.sin(rT * 9)) * 16 : 0;
+      X.save(); X.translate(cx, cy - bounce); shadowEl(0, 3 + bounce, 34, 6, .3);
+      if (won) arms(u, -2.7 + Math.sin(T * 14) * .2, 2.7 - Math.sin(T * 14) * .2, 1, OR); else if (lost) arms(u, -.5, .6, .8, OR); else arms(u, -1.4 - (shk > 0 ? Math.sin(T * 40) * .3 : 0), 1.4 + (shk > 0 ? Math.sin(T * 40) * .3 : 0), 1, OR);
+      claude(0, 0, u, { mood: won ? 'happy' : lost ? 'sad' : null });
+      // a tiny hard hat (sits on top of the head, never over the eyes)
+      X.save(); X.translate(0, -9 * u + 4 + (won ? -6 : 0)); X.rotate(won ? Math.sin(rT * 12) * .2 : 0); X.beginPath(); X.arc(0, 0, 3.4 * u, Math.PI, 0); X.closePath(); ink('#ffd23f', 3); rr(-4.2 * u, -2, 8.4 * u, 6, 3); ink('#ffd23f', 3); X.fillStyle = 'rgba(255,255,255,.55)'; el(-1.2 * u, -2.2 * u, 1.2 * u, .6 * u, -.5); X.fill(); X.restore();
+      X.restore();
+      if (shk > 0 && !res) drop(cx + 34, cy - 70, 1.1, 1);
+      if (lost) drop(cx + 34, cy - 70, 1.1, 1);
+      if (won) for (let i = 0; i < 4; i++) { const q = (rT * 1.1 + i * .25) % 1; heart(cx + (i - 1.5) * 24, cy - 100 - q * 70, .9 - q * .3, '#ff5c8a', 1 - q); }
+    }
+    vignette(.14);
+  }
+  return { maze, flap, charge, crank, wires };
 })();
 
 /* 29 ── MAZE: walk Claude to the star (arrows / WASD) */
@@ -762,7 +937,7 @@ function gMaze(sp) {
 function gWires(sp) {
   const n = sp > 1.5 ? 4 : 3, ys = n === 3 ? [160, 290, 420] : [135, 240, 345, 450];
   const cols = ['#ff4d4d', '#4DB8FF', '#ffd23f', '#5CFF7A'].slice(0, n);
-  const L = shuffle(cols.slice()), Rr = shuffle(cols.slice()), conns = []; let sel = -1, shk = 0;
+  const L = shuffle(cols.slice()), Rr = shuffle(cols.slice()), conns = []; let sel = -1, shk = 0, rT0 = -1;   // rT0: art only
   const g = {
     cmd: 'WIRES!', wide: true, hint: 'CLICK LEFT, THEN THE SAME COLOUR', thint: 'TAP LEFT, THEN SAME COLOUR', dur: 5.5,
     down(p) {
@@ -775,19 +950,8 @@ function gWires(sp) {
         sel = -1;
       }
     },
-    update(dt) { shk = Math.max(0, shk - dt); },
-    draw(t) {
-      bg('#CDB4DB', '#c0a4d0', t);
-      for (const c of conns) {
-        ctx.lineCap = 'round'; ctx.strokeStyle = INK; ctx.lineWidth = 22; ctx.beginPath(); ctx.moveTo(190, ys[c.l]); ctx.lineTo(610, ys[c.r]); ctx.stroke();
-        ctx.strokeStyle = L[c.l]; ctx.lineWidth = 12; ctx.stroke(); ctx.lineCap = 'butt';
-      }
-      for (let i = 0; i < n; i++) {
-        const dl = conns.some(c => c.l === i), dr = conns.some(c => c.r === i), sx = Math.sin(now * 80) * shk * 20;
-        box3(110 + (sel === i ? Math.sin(now * 20) * 3 : 0), ys[i] - 32, 80, 64, L[i], 5); if (!dl) circ(190, ys[i], 10, INK, 0);
-        box(610 + sx, ys[i] - 32, 80, 64, Rr[i], 5); if (!dr) circ(610 + sx, ys[i], 10, INK, 0);
-      }
-    }
+    update(dt) { if (g.result && rT0 < 0) rT0 = now; shk = Math.max(0, shk - dt); },
+    draw() { if (g.result && rT0 < 0) rT0 = now; W4A.wires({ n, ys, Lc: L, Rc: Rr, conns, sel, shk, res: g.result, rT: now - rT0, T: now }); }
   };
   return g;
 }

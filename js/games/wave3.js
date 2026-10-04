@@ -356,11 +356,106 @@ function whackGround() {
   }
 }
 
+/* DRAG art (stage 4). Scene: a garden. Claude drags a coin to a piggy bank across a dirt crossing patrolled by a ladybug guard with a STOP paddle.
+   Win: the coin drops into the slot, the pig hops and hearts rise. Fail (time out): the pig bawls, the guard giggles.
+   Cosmetic only: variety comes from K.hash, never Math.random. */
+const W3DRAG = (() => {
+  const K = W3K, { rr, el, ink, TAU, ease, outBack, clamp, hash } = K, HZ = 70;
+  let BG = null;
+  function bakeBg() {
+    return K.bake(VW, H, X => {
+      X.translate(OX, 0); const L = -OX - 2, R = W + OX + 2;
+      let g = X.createLinearGradient(0, 0, 0, HZ); g.addColorStop(0, '#36b0ea'); g.addColorStop(.6, '#86d8fb'); g.addColorStop(1, '#d6f7ff'); X.fillStyle = g; X.fillRect(L, 0, R - L, HZ + 4);
+      X.fillStyle = '#a9dfc6'; X.beginPath(); X.moveTo(L, HZ); for (let x = L; x <= R + 20; x += 20) X.lineTo(x, 38 - Math.sin(x * .011 + 1) * 10 - Math.sin(x * .027) * 4); X.lineTo(R, HZ); X.closePath(); X.fill();
+      for (const tx of [150, 290, 560, 700]) { const bx = tx + (hash(tx) - .5) * 40; K.line([[bx, HZ + 2], [bx, HZ - 22]], 6, '#8a5a34'); X.beginPath(); X.arc(bx, HZ - 34, 20, 0, TAU); ink('#3fb260', 3.5); X.fillStyle = 'rgba(255,255,255,.28)'; el(bx - 7, HZ - 42, 6, 4, -.5); X.fill(); }
+      X.fillStyle = INK; X.fillRect(L, HZ, R - L, 4);
+      g = X.createLinearGradient(0, HZ + 4, 0, H); g.addColorStop(0, '#8fdc5c'); g.addColorStop(1, '#5fb944'); X.fillStyle = g; X.fillRect(L, HZ + 4, R - L, H - HZ);
+      X.fillStyle = 'rgba(255,255,255,.12)'; for (let x = L - 200; x < R; x += 90) { X.beginPath(); X.moveTo(x, HZ + 4); X.lineTo(x + 40, HZ + 4); X.lineTo(x - 140, H); X.lineTo(x - 180, H); X.closePath(); X.fill(); }
+      // the dirt crossing the guard patrols (the bug's hit zone is x 338..462)
+      const cx0 = 332, cw = 136; rr(cx0, HZ + 6, cw, H - HZ, 14); ink('#e6c58c', 4); X.save(); rr(cx0, HZ + 6, cw, H - HZ, 14); X.clip();
+      X.fillStyle = 'rgba(165,98,44,.25)'; X.fillRect(cx0 + cw - 30, HZ, 30, H); X.fillStyle = 'rgba(255,255,255,.35)'; for (let y = HZ + 30; y < H; y += 60) { rr(cx0 + 16, y, 42, 14, 7); X.fill(); }
+      X.fillStyle = '#fff'; for (let y = HZ + 14; y < H; y += 46) { rr(cx0 + 8, y, cw - 16, 20, 4); X.fill(); X.strokeStyle = 'rgba(20,16,28,.25)'; X.lineWidth = 2.5; X.stroke(); }
+      X.restore();
+      for (let i = 0; i < 16; i++) { const x = L + hash(i + 3) * (R - L); if (x > cx0 - 14 && x < cx0 + cw + 14) continue; const y = HZ + 24 + hash(i + 9) * 440; X.strokeStyle = '#3f8f35'; X.lineWidth = 3; X.lineCap = 'round'; X.beginPath(); X.moveTo(x - 6, y); X.lineTo(x - 9, y - 10); X.moveTo(x, y); X.lineTo(x, y - 13); X.moveTo(x + 6, y); X.lineTo(x + 9, y - 10); X.stroke(); }
+      for (let i = 0; i < 10; i++) { const x = L + hash(i + 33) * (R - L); if (x > cx0 - 20 && x < cx0 + cw + 20) continue; const y = HZ + 40 + hash(i + 51) * 430, c = ['#ff5c8a', '#fff', '#ffd23f', '#b49cff'][i % 4]; for (let q = 0; q < 5; q++) { X.beginPath(); X.arc(x + Math.cos(q * 1.257) * 6, y + Math.sin(q * 1.257) * 6, 4.5, 0, TAU); ink(c, 1.8); } X.beginPath(); X.arc(x, y, 3.5, 0, TAU); ink('#ffd23f', 1.5); }
+    });
+  }
+  function pig(x, y, k, mood, look, T, hop, sq) {
+    const X = ctx, P = (...a) => a.map(v => v * k);
+    X.save(); X.translate(x, y - hop); X.scale(1 + sq * .12, 1 - sq * .12);
+    X.fillStyle = 'rgba(20,16,28,.3)'; el(0, 58 * k + hop, 82 * k, 12 * k); X.fill();
+    for (const lx of [-34, 30]) { rr(lx * k - 11 * k, 30 * k, 24 * k, 28 * k, 8 * k); ink('#ff9ac2', 4); }
+    X.beginPath(); X.arc(76 * k, -6 * k, 10 * k, -2.2, 1.6); X.lineWidth = 11 * k; X.strokeStyle = INK; X.lineCap = 'round'; X.stroke(); X.lineWidth = 5 * k; X.strokeStyle = '#ff9ac2'; X.stroke();
+    const B = K.pEl(0, 0, 76 * k, 58 * k); K.cel(B, '#ffb3d1', '#e888ae', 7 * k, 6 * k, 5); K.glint(B, -20 * k, -30 * k, 24 * k, 9 * k, .5, -.3);
+    X.beginPath(); X.moveTo(-34 * k, -44 * k); X.lineTo(-18 * k, -78 * k); X.lineTo(-2 * k, -50 * k); X.closePath(); ink('#ff9ac2', 4);
+    rr(-20 * k, -62 * k, 40 * k, 9 * k, 4.5 * k); ink(INK, 3); X.fillStyle = 'rgba(255,255,255,.3)'; rr(-14 * k, -60 * k, 14 * k, 2.5 * k, 1.2 * k); X.fill();
+    el(-62 * k, 8 * k, 23 * k, 18 * k); ink('#ff9ac2', 3.5); X.fillStyle = INK; el(-69 * k, 8 * k, 3 * k, 4.5 * k); X.fill(); el(-55 * k, 8 * k, 3 * k, 4.5 * k); X.fill();
+    X.fillStyle = 'rgba(255,255,255,.55)'; el(-66 * k, 1 * k, 7 * k, 3 * k, -.3); X.fill();
+    K.eye(-38 * k, -16 * k, 10 * k, mood, look, T, 0); K.eye(-10 * k, -20 * k, 10 * k, mood, look, T, 1);
+    X.fillStyle = 'rgba(255,110,165,.55)'; el(-24 * k, 14 * k, 9 * k, 5 * k); X.fill(); el(8 * k, 10 * k, 9 * k, 5 * k); X.fill();
+    X.strokeStyle = INK; X.lineWidth = 4; X.lineCap = 'round'; X.beginPath();
+    if (mood === 'sad' || mood === 'panic') X.arc(-46 * k, 30 * k, 10 * k, Math.PI * 1.1, Math.PI * 1.9); else X.arc(-44 * k, 22 * k, 9 * k, .15, Math.PI - .15);
+    X.stroke(); X.restore();
+  }
+  function bug(x, y, down, look, mood, T, hitK) {
+    const X = ctx; X.save(); X.translate(x, y); X.rotate(down ? Math.PI : 0); X.scale(1 + hitK * .12, 1 - hitK * .1);
+    for (const i of [-1, 0, 1]) for (const s of [-1, 1]) K.line([[s * 14, i * 12], [s * 34, i * 12 + Math.sin(T * 22 + i * 2 + s) * 8]], 5, INK);
+    const B = K.pEl(0, 6, 23, 29); K.cel(B, '#ff5348', '#c2362b', 4, 5, 4.5); K.glint(B, -9, -8, 8, 4, .5, -.6);
+    X.save(); X.clip(B); X.strokeStyle = INK; X.lineWidth = 3; X.beginPath(); X.moveTo(0, -24); X.lineTo(0, 36); X.stroke(); X.fillStyle = INK; for (const [a, b] of [[-11, -2], [11, 8], [-10, 18], [10, -12]]) { X.beginPath(); X.arc(a, b, 4.5, 0, TAU); X.fill(); } X.restore();
+    const Hd = K.pEl(0, -28, 14, 12); K.cel(Hd, '#3a3350', '#241f33', 2, 3, 3.5);
+    X.restore();
+    // the face stays upright for readability: big eyes with brows, looking at the coin
+    X.save(); X.translate(x, y + (down ? 28 : -28)); const e = 5.5;
+    K.eye(-6.5, 0, e, mood, look, T, 2); K.eye(6.5, 0, e, mood, look, T, 3);
+    if (mood !== 'happy') { X.strokeStyle = '#fff'; X.lineWidth = 3; X.lineCap = 'round'; X.beginPath(); X.moveTo(-12, -9); X.lineTo(-3, -5); X.moveTo(12, -9); X.lineTo(3, -5); X.stroke(); }
+    X.restore();
+  }
+  function butterfly(cx, cy, T, i) {
+    const X = ctx, x = cx + Math.sin(T * .7 + i * 2) * 120, y = cy + Math.sin(T * 1.3 + i) * 24, f = Math.abs(Math.sin(T * 14 + i)), c = i ? '#ffd23f' : '#ff9ac2';
+    X.save(); X.translate(x, y); for (const s of [-1, 1]) { X.save(); X.scale(s * (.3 + f * .7), 1); X.beginPath(); X.ellipse(8, -4, 9, 6, -.5, 0, TAU); ink(c, 2); X.beginPath(); X.ellipse(6, 5, 6, 4, .5, 0, TAU); ink(c, 2); X.restore(); } K.line([[0, -7], [0, 7]], 2.5, INK); X.restore();
+  }
+  function draw(s) {
+    const X = ctx, { tok, bin, gy, gv, res, rT, T, hitT, sx, sy } = s, won = res === 'win', lost = res === 'lose', hit = Math.max(0, 1 - (T - hitT) * 2.5);
+    if (!BG || BG.width !== VW) BG = bakeBg();
+    X.drawImage(BG, -OX, 0);
+    for (const [x, y, sc, v] of [[60, 28, .8, 6], [520, 20, .7, 4], [-130, 40, .7, 8]]) K.cloud(((x + T * v + 300) % (W + OX * 2 + 260)) - OX - 130, y, sc);
+    for (let i = 0; i < 2; i++) butterfly(i ? 230 : 600, i ? 500 : 430, T, i);
+    // the stump the coin starts on
+    X.save(); X.translate(sx, sy + 32); X.fillStyle = 'rgba(20,16,28,.25)'; el(4, 22, 36, 9); X.fill(); rr(-26, -2, 52, 26, 8); ink('#a5622c', 4); el(0, -2, 26, 10); ink('#e3a868', 3.5); X.strokeStyle = '#c98443'; X.lineWidth = 2; el(0, -2, 15, 5); X.stroke(); X.restore();
+    // Claude cheers from the corner
+    const near = !res && Math.hypot(tok.x - 400, tok.y - gy) < 120, u = 4.4;
+    X.save(); X.translate(70, 524); X.fillStyle = 'rgba(20,16,28,.3)'; el(0, 3, 36, 7); X.fill();
+    if (won) K.arms(u, -2.7 + Math.sin(T * 12) * .2, 2.7 - Math.sin(T * 12) * .2, 1); else if (lost) K.arms(u, -.5, .5, .8); else K.arms(u, -1.1 - (near ? Math.sin(T * 30) * .15 : 0), 1.1 + (near ? Math.sin(T * 30) * .15 : 0), 1);
+    claude(0, 0, u, { mood: won ? 'happy' : lost ? 'sad' : null }); X.restore();
+    if (near) K.sweat(86, 480, 1, T);
+    // the bank and its drop zone
+    const kk = bin.r / 66, wy = won ? Math.max(0, rT - .45) : 0, hop = won ? Math.abs(Math.sin(wy * 9)) * 12 * (wy > 0 ? 1 : 0) : 0;
+    X.save(); X.setLineDash([14, 10]); X.lineDashOffset = -T * 22; X.lineCap = 'butt'; X.strokeStyle = INK; X.lineWidth = 9; X.beginPath(); X.arc(bin.x, bin.y + 6, bin.r + 22, 0, TAU); X.stroke(); X.strokeStyle = tok.drag ? '#FFE14D' : '#fff'; X.lineWidth = 4.5; X.stroke(); X.restore();
+    const slotY = bin.y - 58 * kk;
+    if (won) { const k = ease(rT / .4); X.save(); X.beginPath(); X.rect(bin.x - 80, slotY - 140, 160, 142); X.clip(); token(bin.x, slotY - 70 + k * 64, 24 - k * 4); X.restore(); }
+    const pm = won ? 'happy' : lost ? 'sad' : tok.drag && Math.hypot(tok.x - bin.x, tok.y - bin.y) < 260 ? 'panic' : 'idle', plook = [tok.x < bin.x ? -1 : 1, clamp((tok.y - bin.y) / 200, -1, 1)];
+    pig(bin.x, bin.y, kk, pm === 'panic' ? 'idle' : pm, plook, T, hop, won && rT > .4 ? 0 : (won ? Math.sin(rT / .2 * Math.PI) * .6 : 0));
+    if (lost) for (let i = 0; i < 2; i++) { const q = (rT * 1.6 + i * .5) % 1; K.sweat(bin.x - 54 * kk + i * 28, bin.y - 20 * kk, 1.1, q * .4 + i * .3); }
+    if (won) for (let i = 0; i < 6; i++) { const q = ((rT - .2) * 1.1 + i * .17) % 1; if (rT > .2) K.heart(bin.x + (i - 2.5) * 22 + Math.sin(rT * 4 + i) * 8, bin.y - 70 * kk - q * 130, 1.1 - q * .4, 1 - q * q); }
+    // the ladybug guard (faces the way it walks) with a STOP paddle
+    const down = gv > 0, bx = 400, gm = won ? 'happy' : lost ? 'happy' : hit > 0 ? 'panic' : 'idle', glk = [clamp((tok.x - bx) / 200, -1, 1), down ? .6 : -.6];
+    X.fillStyle = 'rgba(20,16,28,.28)'; el(bx + 3, gy + 46, 40, 11); X.fill();
+    X.save(); X.translate(bx + 46, gy + 6); K.line([[0, 40], [0, -10]], 5, '#a5622c'); X.rotate(Math.sin(T * 9) * .06); X.beginPath(); for (let i = 0; i < 8; i++) { const a = Math.PI / 8 + i * Math.PI / 4; X.lineTo(Math.cos(a) * 24, -34 + Math.sin(a) * 24); } X.closePath(); ink('#ff4d5e', 3.5);
+    X.fillStyle = 'rgba(255,255,255,.4)'; el(-8, -46, 7, 3, -.5); X.fill(); X.restore(); txt(won || lost ? 'GO' : 'STOP', bx + 46, gy - 28, 14, '#fff');
+    bug(bx, gy, down, glk, gm, T, hit);
+    if (hit > 0) { for (let i = 0; i < 3; i++) { const a = T * 8 + i * TAU / 3; star(bx + Math.cos(a) * 30, gy - 56 + Math.sin(a) * 9, 7, 3, 5, a, '#FFE14D', 2); } }
+    // the coin: lifts when held
+    if (!won) { X.fillStyle = `rgba(20,16,28,${tok.drag ? .18 : .28})`; X.beginPath(); X.ellipse(tok.x + 4, tok.y + 34 + (tok.drag ? 8 : 0), 26, 8, 0, 0, TAU); X.fill(); token(tok.x, tok.y - (tok.drag ? 6 : 0), tok.drag ? 33 : 30); }
+    vignette(.14);
+  }
+  return { draw };
+})();
+
 /* 14 ── DRAG: carry the token into the bin, avoid the guard (mouse drag) */
 function gDrag(sp) {
   const sy = 140 + Math.random() * 300, sx = 120 - OX * .8, tok = { x: sx, y: sy, drag: false };
   const bin = { x: 690 + OX * .8, y: 140 + Math.random() * 300, r: sp > 1.5 ? 50 : 66 };
-  let gy = 120, gv = 260 * sp;
+  let gy = 120, gv = 260 * sp, rT0 = -1, hitT = -9;   // rT0, hitT: art only
   const g = {
     wide: true, cmd: 'DRAG!', hint: 'DRAG THE TOKEN INTO THE BIN', thint: 'DRAG THE TOKEN INTO THE BIN', dur: 5.5,
     down(p) { if (Math.hypot(p.x - tok.x, p.y - tok.y) < 48) { tok.drag = true; sfx.click(); ring(tok.x, tok.y, '#fff', 44, .25); } },
@@ -371,17 +466,12 @@ function gDrag(sp) {
       if (Math.hypot(tok.x - bin.x, tok.y - bin.y) < bin.r * .75) { tok.drag = false; tok.x = bin.x; tok.y = bin.y; g.result = 'win'; sfx.coin(); sfx.sparkle(); burst(bin.x, bin.y, '#4DB8FF', 16); ring(bin.x, bin.y, '#fff', 90); floatText('NICE!', bin.x, bin.y - 70, '#fff'); }
     },
     update(dt) {
+      if (g.result && rT0 < 0) rT0 = now;
       if (g.result) return;
       gy += gv * dt; if (gy > 470) { gy = 470; gv = -gv; } if (gy < 100) { gy = 100; gv = -gv; }
-      if (Math.hypot(tok.x - 400, tok.y - gy) < 62) { tok.x = sx; tok.y = sy; tok.drag = false; sfx.buzz(); sfx.zap(); shake(7, .25); burst(tok.x, tok.y, '#FF4D4D', 14); ring(tok.x, tok.y, '#FF4D4D', 80); }
+      if (Math.hypot(tok.x - 400, tok.y - gy) < 62) { tok.x = sx; tok.y = sy; tok.drag = false; hitT = now; sfx.buzz(); sfx.zap(); shake(7, .25); burst(tok.x, tok.y, '#FF4D4D', 14); ring(tok.x, tok.y, '#FF4D4D', 80); }
     },
-    draw(t) {
-      bg('#8EE3EF', '#7ed7e4', t);
-      ctx.setLineDash([14, 10]); ctx.strokeStyle = INK; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(bin.x, bin.y, bin.r + 12, 0, 7); ctx.stroke(); ctx.setLineDash([]);
-      circ(bin.x, bin.y, bin.r, '#4DB8FF', 5); txt('IN', bin.x, bin.y + 3, 40);
-      shadow(400, gy + 46, 44, 12); drawBug(400, gy, Math.PI / 2 * (gv > 0 ? 1 : -1), 1.5, now);
-      shadow(tok.x + 4, tok.y + 34 + (tok.drag ? 8 : 0), 26, 8, tok.drag ? .18 : .28); token(tok.x, tok.y - (tok.drag ? 6 : 0), tok.drag ? 33 : 30);
-    }
+    draw() { if (g.result && rT0 < 0) rT0 = now; W3DRAG.draw({ tok, bin, gy, gv, sx, sy, res: g.result, rT: now - rT0, T: now, hitT }); }
   };
   return g;
 }
@@ -1245,11 +1335,106 @@ function gShell(sp) {
   return g;
 }
 
+/* SCRUB art (stage 4). Scene: the outside of a brick house. The sponge scrubs a muddy window; the room behind it, with Claude waving, shows
+   through as the glass gets clean. Win: sparkles and squeaks, Claude waves. Fail: a pigeon on the sill leaves a splat and Claude looks sad.
+   Cosmetic only (K.hash for variety, never Math.random). */
+const W3SCRUB = (() => {
+  const K = W3K, { rr, el, ink, TAU, ease, outBack, clamp, hash } = K;
+  let BG = null, trail = [], lx = 0, ly = 0, lT = 0, acc = 0, spd = 0;
+  const GX = 100, GY = 90, GW = 600, GH = 380;
+  function bakeBg() {
+    return K.bake(VW, H, X => {
+      X.translate(OX, 0); const L = -OX - 2, R = W + OX + 2;
+      X.fillStyle = '#e8875a'; X.fillRect(L, 0, R - L, H);
+      for (let y = 0, r = 0; y < H; y += 26, r++) for (let x = L - (r % 2) * 32; x < R; x += 64) { rr(x + 2, y + 2, 60, 22, 4); X.fillStyle = (hash(x * .1 + r * 7) > .5) ? '#f2996b' : '#d9774b'; X.fill(); }
+      X.fillStyle = 'rgba(255,255,255,.12)'; for (let y = 0; y < H; y += 52) X.fillRect(L, y + 2, R - L, 4);
+      // the room behind the glass
+      X.save(); rr(GX, GY, GW, GH, 6); X.clip();
+      let g = X.createLinearGradient(0, GY, 0, GY + GH); g.addColorStop(0, '#d9a86a'); g.addColorStop(1, '#ffe0a8'); X.fillStyle = g; X.fillRect(GX, GY, GW, GH);
+      X.fillStyle = 'rgba(200,120,70,.16)'; for (let x = GX; x < GX + GW; x += 44) X.fillRect(x, GY, 22, GH);
+      X.fillStyle = 'rgba(255,120,150,.45)'; for (let i = 0; i < 14; i++) { X.beginPath(); X.arc(GX + 22 + i * 44, GY + 40 + (i % 3) * 36, 4, 0, TAU); X.fill(); }
+      X.fillStyle = '#b97a46'; X.fillRect(GX, GY + 310, GW, 80); X.strokeStyle = 'rgba(20,16,28,.25)'; X.lineWidth = 3; for (let x = GX; x < GX + GW; x += 60) { X.beginPath(); X.moveTo(x, GY + 310); X.lineTo(x - 20, GY + GH); X.stroke(); }
+      X.fillStyle = INK; X.fillRect(GX, GY + 306, GW, 5);
+      rr(GX + 410, GY + 40, 120, 90, 8); ink('#fff', 4); X.fillStyle = '#86d8fb'; rr(GX + 420, GY + 50, 100, 70, 4); X.fill(); X.fillStyle = '#5fb944'; X.beginPath(); X.moveTo(GX + 420, GY + 110); X.quadraticCurveTo(GX + 470, GY + 78, GX + 520, GY + 108); X.lineTo(GX + 520, GY + 120); X.lineTo(GX + 420, GY + 120); X.fill();
+      rr(GX + 40, GY + 50, 96, 110, 8); ink('#a5622c', 4); X.fillStyle = '#ffe3a3'; rr(GX + 52, GY + 62, 72, 86, 4); X.fill(); X.beginPath(); X.arc(GX + 88, GY + 96, 18, 0, TAU); ink('#ff9ac2', 3); X.beginPath(); X.arc(GX + 88, GY + 96, 8, 0, TAU); ink('#ffd23f', 2);
+      X.restore();
+      // glass reflections (static diagonal glints)
+      X.save(); rr(GX, GY, GW, GH, 6); X.clip(); X.fillStyle = 'rgba(255,255,255,.14)'; for (const [a, w] of [[80, 46], [170, 18], [470, 60]]) { X.beginPath(); X.moveTo(GX + a, GY); X.lineTo(GX + a + w, GY); X.lineTo(GX + a + w - 150, GY + GH); X.lineTo(GX + a - 150, GY + GH); X.closePath(); X.fill(); } X.restore();
+      // frame, cross bar, sill and flower pot
+      rr(GX - 24, GY - 24, GW + 48, GH + 48, 16); X.save(); X.beginPath(); X.rect(GX - 24, GY - 24, GW + 48, GH + 48); X.rect(GX, GY, GW, GH); X.clip('evenodd'); rr(GX - 24, GY - 24, GW + 48, GH + 48, 16); ink('#f6f1ff', 5); X.restore();
+      rr(GX, GY, GW, GH, 6); X.lineWidth = 5; X.strokeStyle = INK; X.stroke(); rr(GX - 24, GY - 24, GW + 48, GH + 48, 16); X.lineWidth = 5; X.strokeStyle = INK; X.stroke();
+      X.fillStyle = 'rgba(180,170,215,.55)'; X.fillRect(GX - 20, GY - 20, 6, GH + 40);
+      rr(GX - 46, GY + GH + 22, GW + 92, 26, 8); ink('#e6e1f2', 4); X.fillStyle = 'rgba(255,255,255,.5)'; rr(GX - 38, GY + GH + 26, GW + 76, 6, 3); X.fill();
+      X.beginPath(); X.moveTo(GX + 6, GY + GH + 22); X.lineTo(GX + 74, GY + GH + 22); X.lineTo(GX + 64, GY + GH - 22); X.lineTo(GX + 16, GY + GH - 22); X.closePath(); ink('#d9744a', 4);
+      for (const [fx, fy, c] of [[GX + 24, GY + GH - 36, '#ff4d5e'], [GX + 46, GY + GH - 46, '#ff5c8a'], [GX + 64, GY + GH - 34, '#ff4d5e']]) { X.beginPath(); X.arc(fx, fy - 8, 6, 0, TAU); ink('#3fb260', 2.5); for (let q = 0; q < 5; q++) { X.beginPath(); X.arc(fx + Math.cos(q * 1.257) * 7, fy + Math.sin(q * 1.257) * 7 - 14, 5, 0, TAU); ink(c, 2); } X.beginPath(); X.arc(fx, fy - 14, 3.5, 0, TAU); ink('#ffd23f', 1.5); }
+    });
+  }
+  function sponge(x, y, wet) {
+    const X = ctx; X.save(); X.translate(x, y); X.rotate(-.1 + Math.sin(now * 14) * .04 * wet);
+    X.fillStyle = 'rgba(20,16,28,.22)'; el(4, 20, 30, 7); X.fill();
+    const B = new Path2D(); B.roundRect(-28, -17, 56, 34, 10); K.cel(B, '#ffe14d', '#e0a800', 3, 5, 4);
+    X.save(); X.clip(B); X.fillStyle = '#4fd06a'; X.fillRect(-30, -19, 62, 12); X.fillStyle = '#24803a'; X.fillRect(-30, -9, 62, 3); X.restore();
+    X.fillStyle = '#c99512'; for (const [a, b, r] of [[-14, 6, 3.5], [4, 10, 3], [16, 4, 4], [-4, 2, 2.5], [22, 11, 2.5]]) { el(a, b, r, r * .8); X.fill(); }
+    K.glint(B, -16, -2, 9, 3, .55, -.3); X.restore();
+  }
+  function draw(s) {
+    const X = ctx, { dirt, cols, rows, cw, ch, ox, oy, res, rT, T, mx, my } = s, won = res === 'win', lost = res === 'lose';
+    if (!BG || BG.width !== VW) BG = bakeBg();
+    X.drawImage(BG, -OX, 0);
+    const clean = dirt.reduce((a, v) => a + (v < .25 ? 1 : 0), 0) / dirt.length;
+    // motion for the sponge's soap trail
+    const dt = Math.max(1 / 120, T - lT); if (T !== lT) { spd += (Math.hypot(mx - lx, my - ly) / dt - spd) * .3; acc += Math.hypot(mx - lx, my - ly); lx = mx; ly = my; lT = T; if (spd > 260 && !res && trail.length < 60 && acc > 18) { acc = 0; trail.push({ x: mx + (hash(T * 91) - .5) * 40, y: my + (hash(T * 37) - .5) * 24, t: T, r: 3 + hash(T * 11) * 6 }); } }
+    trail = trail.filter(b => T - b.t < 1.2 && T >= b.t);
+    // Claude in the room (waves when it clears, worried while it stays dirty)
+    const u = 17, cx = 400, cy = 450, wv = won ? Math.sin(T * 12) : Math.sin(T * 3) * .3, bob = won ? Math.abs(Math.sin(rT * 9)) * 18 : 0;
+    X.save(); X.beginPath(); X.rect(GX, GY, GW, GH); X.clip();
+    X.fillStyle = 'rgba(20,16,28,.28)'; el(cx, cy + 4, 120, 18); X.fill();
+    X.save(); X.translate(cx, cy - bob);
+    if (won) K.arms(u, -2.5 + wv * .4, 2.5 - wv * .4, 1); else if (lost) K.arms(u, -.5, .6, .9); else K.arms(u, -1.2 + wv * .3, 1.2 - wv * .3, .9);
+    claude(0, 0, u, { mood: won ? 'happy' : lost ? 'sad' : null }); X.restore();
+    if (lost) K.sweat(cx + 120, cy - 150, 1.8, T);
+    X.restore();
+    // the mud
+    X.save(); rr(GX, GY, GW, GH, 6); X.clip();
+    if (!won) {
+      const lostFade = 1;
+      for (let i = 0; i < dirt.length; i++) {
+        const d = dirt[i]; if (d <= .02) continue; const x = ox + (i % cols + .5) * cw + (hash(i) - .5) * 8, y = oy + ((i / cols | 0) + .5) * ch + (hash(i + 500) - .5) * 8, r = 13 + 17 * Math.sqrt(d);
+        X.fillStyle = `rgba(105,78,50,${d * .93})`; el(x, y, r, r * .94); X.fill();
+        if (d > .45) { X.fillStyle = `rgba(70,48,28,${d * .4})`; el(x + 5, y + 4, r * .5, r * .4); X.fill(); }
+      }
+      // a few drips of mud run down the glass
+      X.strokeStyle = 'rgba(80,55,32,.6)'; X.lineWidth = 4; X.lineCap = 'round'; for (let i = 0; i < 6; i++) { const x = GX + 40 + i * 104 + hash(i + 70) * 30, d = dirt[Math.floor((i * 2.7 + 1) * cols % dirt.length)]; if (d > .3) { X.beginPath(); X.moveTo(x, GY + 20 + hash(i + 80) * 200); X.lineTo(x, GY + 60 + hash(i + 80) * 200 + Math.sin(T * 2 + i) * 4); X.stroke(); } }
+    } else {
+      for (let i = 0; i < 14; i++) { const q = clamp((rT - hash(i + 3) * .5) * 3, 0, 1), px = GX + 40 + hash(i + 20) * (GW - 80), py = GY + 30 + hash(i + 40) * (GH - 60); if (q > 0 && q < 1) { X.save(); X.translate(px, py); X.rotate(.0); star(0, 0, 26 * Math.sin(q * Math.PI), 6 * Math.sin(q * Math.PI), 4, 0, '#fff', 0); X.restore(); } }
+    }
+    if (lost) { const k = ease(rT / .25), px = GX + 440, py = GY + 90; X.save(); X.translate(px, py); X.scale(k, k * (1 + ease(rT / 1) * .6)); X.fillStyle = INK; X.beginPath(); for (let a = 0; a < 14; a++) { const r = a % 2 ? 26 : 38; X.lineTo(Math.cos(a / 14 * TAU) * r + 3, Math.sin(a / 14 * TAU) * r * .8 + 3); } X.fill(); X.fillStyle = '#fff'; X.beginPath(); for (let a = 0; a < 14; a++) { const r = a % 2 ? 24 : 36; X.lineTo(Math.cos(a / 14 * TAU) * r, Math.sin(a / 14 * TAU) * r * .8); } X.fill(); X.fillStyle = '#d9dff0'; el(10, 8, 14, 9); X.fill(); X.restore(); }
+    X.restore();
+    // the pigeon on the sill: bobs, then flaps off after leaving its mark
+    {
+      const px = GX + GW - 70 + (lost ? Math.max(0, rT - .1) * 340 : 0), py = GY + GH + 22 - (lost ? Math.max(0, rT - .1) * 140 : 0), bob = lost ? 0 : Math.abs(Math.sin(T * 5)) * 3;
+      X.save(); X.translate(px, py - bob); X.fillStyle = 'rgba(20,16,28,.25)'; el(0, 2 + bob, 26, 6); X.fill();
+      if (lost && rT > .1) { for (const s2 of [-1, 1]) { X.save(); X.translate(s2 * 10, -22); X.rotate(s2 * (-.5 + Math.sin(T * 30) * .7)); X.beginPath(); X.ellipse(s2 * 14, 0, 16, 7, 0, 0, TAU); ink('#9aa3b8', 3); X.restore(); } }
+      const B = K.pEl(0, -20, 22, 18); K.cel(B, '#c9d0e0', '#8f9cb3', 3, 4, 3.5); K.glint(B, -8, -28, 7, 3, .5);
+      X.beginPath(); X.moveTo(18, -26); X.lineTo(30, -22); X.lineTo(18, -18); X.closePath(); ink('#ffd23f', 2.5);
+      X.beginPath(); X.arc(10, -29, 6, 0, TAU); ink('#fff', 2); X.fillStyle = INK; X.beginPath(); X.arc(12, -29, 2.6, 0, TAU); X.fill();
+      X.restore();
+    }
+    // soap bubbles + the sponge
+    for (const b of trail) { const a = 1 - (T - b.t) / 1.2; X.save(); X.globalAlpha = a; X.beginPath(); X.arc(b.x, b.y - (T - b.t) * 24, b.r, 0, TAU); X.fillStyle = 'rgba(255,255,255,.35)'; X.fill(); X.lineWidth = 2; X.strokeStyle = 'rgba(255,255,255,.95)'; X.stroke(); X.fillStyle = '#fff'; el(b.x - b.r * .3, b.y - (T - b.t) * 24 - b.r * .35, b.r * .25, b.r * .15); X.fill(); X.restore(); }
+    sponge(mx, my, Math.min(1, spd / 400));
+    // progress: the window itself is the meter, plus a squeaky-clean badge when close
+    if (!res && clean > .55) { const k = (clean - .55) / .35; txt('ALMOST!', 400 + OX * 0, 66 + Math.sin(T * 10) * 2, 22 + k * 6, '#FFE14D'); }
+    vignette(.14);
+  }
+  return { draw };
+})();
+
 /* 21 ── SCRUB: wipe the grime off the window (mouse, rub back and forth) */
 function gScrub(sp) {
   const cols = 16, rows = 10, cw = 37.5, ch = 38, ox = 100, oy = 90;
   const dirt = Array.from({ length: cols * rows }, () => 1);
-  let prev = null;
+  let prev = null, rT0 = -1;   // rT0: art only
   const g = {
     wide: true, cmd: 'SCRUB!', hint: 'RUB THE MOUSE ALL OVER', thint: 'RUB YOUR FINGER ALL OVER', dur: 5.5,
     move(p) {
@@ -1265,19 +1450,8 @@ function gScrub(sp) {
       }
       prev = p;
     },
-    update() {},
-    draw(t) {
-      bg('#A8DADC', '#97cfd2', t);
-      box3(ox, oy, cols * cw, rows * ch, '#cfefff', 8, 8);
-      claude(400, 450, 17, { mood: g.result === 'win' ? 'happy' : null });
-      for (let i = 0; i < dirt.length; i++) {
-        if (g.result === 'win' || dirt[i] <= .02) continue;
-        ctx.fillStyle = `rgba(105,78,50,${dirt[i] * .93})`;
-        ctx.fillRect(ox + (i % cols) * cw, oy + (i / cols | 0) * ch, cw + 1, ch + 1);
-      }
-      if (g.result === 'win') star(560, 180, 26, 10, 4, now * 2, '#fff', 3);
-      const m = mouse; box3(m.x - 24, m.y - 16, 48, 32, '#FFE14D', 4, 4);
-    }
+    update() { if (g.result && rT0 < 0) rT0 = now; },
+    draw() { if (g.result && rT0 < 0) rT0 = now; const m = mouse; W3SCRUB.draw({ dirt, cols, rows, cw, ch, ox, oy, res: g.result, rT: now - rT0, T: now, mx: m.x, my: m.y }); }
   };
   return g;
 }

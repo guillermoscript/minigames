@@ -292,6 +292,13 @@ Every point here was a real review finding.
 **Verify.** Render each game at start, mid, a real win and a real loss (scripted `--inputs`), at sp 1 and sp 2, with `--fuse --hint --stamp`.
 Put them next to the DUO reference sheets and the `--rev=HEAD` before frames. Then run `node test/party-catalog.test.js`, `node scripts/party-catalog.js --check`, `node test/i18n.test.js` and `node --check` on each file.
 
+**Stage 4 lessons (MOUSE MAYHEM).**
+- `scripts/art/shoot.js` calls `draw()` only once, at the shot time. If the outro clock (`rT0`) is set inside `draw()`, every outro frame renders at `rT = 0`. Set it in `update()` (before any early `return` after the verdict) and keep the `draw()` line as a fallback.
+- `star()`, `txt()`, `shadow()` and `vignette()` draw on the global `ctx`, not on a kit's `X`. Never call them while baking; use a local `spark()` there.
+- A prop must not cover a clickable target: the robot on the WIRES floor first covered a socket, so it was shrunk and moved to the centre.
+- When a game's hero is tiny (STEADY, `u` 2.6), enlarge the gag prop (the lemonade glass) so the joke reads.
+- Make a boss's hit zone readable in the scene (FAN lanes are dirt paths), and keep the wave counter as a sign below y 58.
+
 ## References (best example of each rule)
 
 - Restyled solo games (stage 1): `js/games/wave1.js` (swat picnic, spot class photo), `wave2.js` (count apartment block, slice kitchen), `wave3.js` (whack cheese, dodge bed), `bosses.js` `bug` (picnic boss with a wooden health sign).

@@ -39,6 +39,13 @@ const GAMES = {
   du_hose: { dur: 15, pts: false, duo: true },
   du_keys: { dur: 15, pts: false, duo: true },
   du_barber: { dur: 15, pts: false, duo: true },
+  /* SQUAD games: 3 or 4 players, one role each, ONE shared verdict. min/max = how many seats the game supports (default 2/2 = a DUO game).
+     One file per game in js/games/squad/. Keep dur in sync with the game's g.dur. */
+  sq_pizza: { dur: 18, pts: false, duo: true, min: 3, max: 4 },
+  sq_pit: { dur: 14, pts: false, duo: true, min: 3, max: 4 },
+  sq_circus: { dur: 16, pts: false, duo: true, min: 3, max: 4 },
+  sq_sub: { dur: 18, pts: false, duo: true, min: 3, max: 4 },
+  sq_movers: { dur: 17, pts: false, duo: true, min: 3, max: 4 },
 };
 const TURN_CATALOG = require(typeof __hooks === "string" ? `${__hooks}/party_catalog.js` : "./party_catalog.js");
 Object.assign(GAMES, TURN_CATALOG);
@@ -46,6 +53,9 @@ const TURN_IDS = Object.keys(TURN_CATALOG);
 GAMES.pc_draw = { dur: 30, pts: false, menu: true };
 const GAME_IDS = ["pt_mash", "pt_sync", "pt_memo", "pt_grab"];
 const DUO_IDS = Object.keys(GAMES).filter((g) => GAMES[g].duo);
+const DUO_MAX = 4;                                                       // DUO/SQUAD rooms take 2 to 4 players; each game declares how many seats it uses
+const seatsOf = (g) => ({ min: GAMES[g].min || 2, max: GAMES[g].max || 2 });
+const duoIdsFor = (n) => DUO_IDS.filter((g) => { const s = seatsOf(g); return n >= s.min && n <= s.max; });
 const SLOTS = ["a", "b", "c", "d"];
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";   // no 0/O/1/I
 
@@ -63,8 +73,8 @@ const contenders = (room) => active(room).filter((p) => (!elimination(room) || p
 const nextActor = (room, id) => { const all = active(room), i = all.findIndex((p) => p.id === id); return all[(i + 1) % all.length].id; };
 const player = (room, id) => room.players.find((p) => p.id === id);
 const cleanMode = (m) => (MODES.includes(m) ? m : "versus");
-/* DUO roles (0 or 1) rotate every round so both players get to play each one; js/party.js derives them with the same formula */
-const roleOf = (room, id) => { const i = room.players.filter((p) => !p.left).findIndex((p) => p.id === id); return i < 0 ? -1 : (i + room.round) % 2; };
+/* DUO/SQUAD roles (0..n-1, n = seated players) rotate every round so everybody plays each one; js/party.js derives them with the same formula */
+const roleOf = (room, id) => { const a = room.players.filter((p) => !p.left), i = a.findIndex((p) => p.id === id); return i < 0 ? -1 : (i + room.round) % a.length; };
 
 function newRoom(code, mode, now) {
   return { code, mode: cleanMode(mode), state: "lobby", round: 0, total: 0, players: [], keys: {}, host: "", game: "", seed: 0, sp: 1,
@@ -113,9 +123,10 @@ function leave(room, id, now = 0) {
     if (alive.length < 2) { if (room.last) room.last.final = true; endGame(room); }
     return false;
   }
-  if (room.mode === "duo" && alive.length < 2 && (room.state === "round" || room.state === "between")) {   // the partner is gone: the team loses this round and the run ends
+  const seats = room.mode === "duo" && room.state === "round" ? room.extra.seats || 2 : 2;   // the round was built for this many seats
+  if (room.mode === "duo" && (alive.length < 2 || alive.length < seats) && (room.state === "round" || room.state === "between")) {   // a teammate is gone: the team loses this round; with fewer than 2 left the run ends
     if (room.state === "round") { alive.forEach((p) => { if (!room.cur[p.id]) room.cur[p.id] = { r: "lose", t: 0, pts: 0 }; }); finishRound(room, 0); }
-    room.last.final = true;
+    if (alive.length < 2) room.last.final = true;
   } else if (room.state === "round") maybeFinishRound(room, 0);
   else if (room.state !== "done" && alive.length < 2 && room.state !== "lobby") endGame(room);
   return false;
@@ -131,7 +142,7 @@ function start(room, id, now, rand) {
   if (room.host !== id) fail("Only the host can start", 403);
   if (room.state !== "lobby") fail("Game already started", 409);
   if (active(room).length < 2) fail("Need at least 2 players", 409);
-  if (room.mode === "duo" && active(room).length !== 2) fail("DUO needs exactly 2 players", 409);
+  if (room.mode === "duo" && active(room).length > DUO_MAX) fail("DUO takes 2 to 4 players", 409);
   room.total = ROUNDS[room.mode];
   room.lives = LIVES; room.teamScore = 0; room.round = 0; room.last = null;
   room.players.forEach((p) => { p.score = 0; p.lives = room.mode === "knockout" ? 1 : 3; });
@@ -178,11 +189,13 @@ function takeRoomGame(room, rand, ids) {
   return room.keys._roomGameBag.pop();
 }
 function beginRound(room, now, rand) {
-  const ids = room.mode === "duo" ? DUO_IDS : GAME_IDS;
+  const ids = room.mode === "duo" ? duoIdsFor(active(room).length) : GAME_IDS;
+  if (room.mode === "duo" && Array.isArray(room.keys._roomGameBag)) room.keys._roomGameBag = room.keys._roomGameBag.filter((g) => ids.includes(g));   // somebody left since the bag was shuffled
   room.game = room.mode === "cards" ? (room.extra.phase === "draw" ? "pc_draw" : room.extra.remaining[0]) : turnMode(room) ? takeTurnGame(room, rand) : takeRoomGame(room, rand, ids);
   room.seed = 1 + Math.floor(rand() * 2147483646);
   room.sp = +(1 + Math.min(room.round, 12) * 0.07).toFixed(2);
   room.state = "round"; room.roundAt = now; room.cur = {};
+  if (room.mode === "duo") room.extra.seats = active(room).length;
   if (room.mode === "cards") room.extra.stealing = {};
 }
 
@@ -396,4 +409,4 @@ function vsigPayload(room, id, to, k, d) {
 /* what clients may see (the record itself hides `keys`; this is for tests and logs) */
 const publicRoom = (room) => { const o = Object.assign({}, room); delete o.keys; return o; };
 
-module.exports = { fail, MAX_PLAYERS, ROUNDS, LIVES, AWARD, GAMES, GAME_IDS, DUO_IDS, TURN_IDS, takeTurnGame, MODES, roleOf, cleanMode, drawCard, stealCard, pump, turnMode, sigPayload, SIG_MAX, SIG_FRAME_MAX, PRE_MS_TURN, vsigPayload, VSIG_MAX, PartyError, cleanName, cleanCode, makeCode, active, newRoom, addPlayer, auth, leave, setMode, start, again, report, tick, advance, roundMs, publicRoom };
+module.exports = { fail, MAX_PLAYERS, ROUNDS, LIVES, AWARD, GAMES, GAME_IDS, DUO_IDS, duoIdsFor, seatsOf, TURN_IDS, takeTurnGame, MODES, roleOf, cleanMode, drawCard, stealCard, pump, turnMode, sigPayload, SIG_MAX, SIG_FRAME_MAX, PRE_MS_TURN, vsigPayload, VSIG_MAX, PartyError, cleanName, cleanCode, makeCode, active, newRoom, addPlayer, auth, leave, setMode, start, again, report, tick, advance, roundMs, publicRoom };

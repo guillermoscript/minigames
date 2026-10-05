@@ -3,18 +3,19 @@
    Each seat owns one station. Absolute progress survives duplicate/reordered relay packets;
    role zero alone decides and publishes the shared verdict. */
 (function () {
-const colors = ['#4DB8FF', '#FF4D9E', '#FFE14D', '#5CFF7A'];
-const backdrops = Array(7).fill(['#36b0ea', '#d6f7ff']);
-function scene(kind,role,progress,value,target,c,charge,flash,result,n,end=0) {
-  CrewArt.draw({kind,role,progress,value,target,c,charge,flash,result,n,colors,end});
-}
+const DEF = ['#4DB8FF', '#FF4D9E', '#FFE14D', '#5CFF7A'];                      // seat colours when the table gives none (screenshot harness)
+const backdrops = [['#9fd0e6', '#e3f6fb'], ['#d9a86a', '#ffe0a8'], ['#c93a4a', '#ffd9b0'], ['#36b0ea', '#d6f7ff'], ['#f6c98a', '#ffe9c6'], ['#6fc2e8', '#cdeefb'], ['#a8503c', '#f2c184']];
+function scene(v) { CrewArt.draw(v); }
 
 function build(kind, sp, D) {
   D = D || { role: 0, roles: 2, seats: [], byRole: [], send() {}, onMsg() {} };
   const n = D.roles, role = D.role;
+  const seat = r => { const b = (D.byRole || [])[r] || {}; return { color: b.color || DEF[r], name: b.name || 'P' + (r + 1) }; };
+  const seatList = () => Array.from({ length: n }, (_, r) => seat(r));
   const targets = Array.from({ length: n }, () => .25 + Math.random() * .5);
   const progress = Array(n).fill(0);
   let artEndAt = null;
+  const disp = Array(n).fill(0), act = Array(n).fill(0), xs = Array(n).fill(.5), txs = Array(n).fill(.5), seen = Array(n).fill(0);   // art only: smoothed progress, 'just scored' pulses, teammates' cursor x
   let interacted = false, charge = 0, flash = 0, lastHit = -10, lastEgg = -1;
   let c = 0, value = .5, previous = null, angle = null, direction = 0, holding = false, keyboardSpin = false, broadcast = 0;
   const names = ['WIPE TOGETHER!', 'SPIN TOGETHER!', 'BALANCE TOGETHER!', 'FEED THE FROGS!', 'PUMP THE DRAGON!', 'FIX THE BRIDGE!', 'CATCH THE EGGS!'];
@@ -23,11 +24,19 @@ function build(kind, sp, D) {
     roles: Array.from({ length: n }, (_, i) => ({ label: 'STATION ' + (i + 1), short: names[kind], how: hints[kind], demo: time => {
       const pos = kind === 2 ? targets[i] + .2 * Math.sin(time * 3) : kind === 6 ? .18 + ((Math.floor(time / 1.2) * .37 + targets[i]) % .64) : .5 + .3 * Math.sin(time * 3);
       const success = kind === 3 ? Math.abs(Math.sin(time * 3)) < .38 : kind === 5 ? Math.abs(Math.sin(time * 3.5)) < .35 : time % 1 > .7;
-      ctx.save(); ctx.scale(.65,.65); ctx.translate(0,-170);
-      scene(kind,i,Array(n).fill((time*.22) % 1),pos,targets[i],time,time%1,success?1:0,null,n);
+      const prog = Array.from({ length: n }, (_, r) => (time * .2 + r * .13) % 1), pulse = Array.from({ length: n }, (_, r) => Math.max(0, 1 - ((time + r * .31) % 1) * 2.4));
+      ctx.save(); ctx.scale(.65,.65); ctx.translate(0, kind === 0 ? -60 : kind === 6 ? -56 : -70);
+      scene({ kind, role: i, progress: prog, value: pos, target: targets[i], c: time, charge: time % 1, flash: success ? 1 : 0, result: null, n, seats: seatList(), act: pulse,
+        xs: Array.from({ length: n }, (_, r) => .5 + .3 * Math.sin(time * 2.6 + r * 1.7)), end: 0, demo: true });
       ctx.restore();
     } })),
     update(dt) {
+      if (g.result && artEndAt === null) artEndAt = now;                // the outro clock starts on the verdict (also when only update() runs, as in the art harness)
+      for (let r = 0; r < n; r++) {                                       // art only: teammates glide to their reported progress, pulses mark every point scored
+        if (progress[r] > seen[r] + 1e-6) act[r] = 1; seen[r] = progress[r]; act[r] = Math.max(0, act[r] - dt * 2.2);
+        disp[r] = r === role ? progress[r] : disp[r] + (progress[r] - disp[r]) * Math.min(1, dt * 9);
+        if (r === role) txs[r] = value; xs[r] += (txs[r] - xs[r]) * Math.min(1, dt * 12);
+      }
       if (g.result) return;
       c += dt; flash = flash > 0 ? Math.max(0, flash - dt * 3) : Math.min(0, flash + dt * 3);
       if (kind === 4) {
@@ -76,17 +85,18 @@ function build(kind, sp, D) {
     keyup(e) { if (['ArrowLeft', 'ArrowRight', 'KeyA', 'KeyD'].includes(e.code)) direction = 0; if (e.code === 'Space' || e.code === 'Enter') { release(); keyboardSpin = false; } },
     draw(phase) {
       if (g.result && artEndAt === null) artEndAt = now;
-      scene(kind, role, progress, value, targets[role], c, charge, flash, g.result, n, artEndAt === null ? 0 : Math.max(0, now - artEndAt));
+      scene({ kind, role, progress: disp, value, target: targets[role], c, charge, flash, result: g.result, n, seats: seatList(), act, xs, end: artEndAt === null ? 0 : Math.max(0, now - artEndAt), touch: TOUCH });
     },
   };
   function eggX(cycle) { return .18 + ((cycle * .37 + targets[role]) % .64); }
-  function reward() { progress[role] = Math.min(1, progress[role] + 1 / (3 + (sp > 1.5 ? 1 : 0))); flash = 1; sfx.coin(); burst(400, 330, colors[role], 8); }
+  function reward() { progress[role] = Math.min(1, progress[role] + 1 / (3 + (sp > 1.5 ? 1 : 0))); flash = 1; sfx.coin(); burst(400, 330, seat(role).color, 8); }
   function release() { if (kind === 4 && !g.result) { if (charge >= .55 && charge <= .95) reward(); else if (charge > .05) { flash = -1; sfx.miss(); } charge = 0; } }
-  g.dbg = { target: () => targets[role], clock: () => c, charge: () => charge, eggX: () => eggX(Math.floor(c / 1.2)) };
+  g.dbg = { prog: progress, act, target: () => targets[role], clock: () => c, charge: () => charge, eggX: () => eggX(Math.floor(c / 1.2)) };
   function finish(result) { if (g.result) return; g.result = result; D.send('crew_end', result); if (result === 'win') { sfx.sparkle(); confetti(400, 330, 30); } else sfx.miss(); }
   D.onMsg((type, data, from) => {   // from = the sender's role (party.js duoCtx), so a seat can only report its own station
     if (type === 'crew_progress' && data && Number.isInteger(data.role) && data.role >= 0 && data.role < n && data.role !== role && data.role === from && Number.isFinite(data.p) && data.p >= 0 && data.p <= 1) {
       progress[data.role] = Math.max(progress[data.role], data.p);
+      if (Number.isFinite(data.x)) txs[data.role] = Math.max(0, Math.min(1, data.x));
     }
     if (type === 'crew_end' && role !== 0 && from === 0 && ['win', 'lose'].includes(data)) g.result = data;
   });

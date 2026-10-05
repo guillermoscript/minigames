@@ -72,8 +72,8 @@ P.report(d, "b", 0, "lose", 11, 0, 0);                         // partner timed 
 assert.equal(d.last.teamWin, true); assert.ok(d.teamScore >= 200); assert.equal(d.lives, 4); assert.ok(d.last.results.every((x) => x.award === 100 && x.r === "win" && x.t === 3));   // one verdict on both rows
 P.advance(d, 0, 9000, rand); assert.equal(d.round, 1); assert.equal(P.roleOf(d, "a"), 1); assert.equal(P.roleOf(d, "b"), 0);   // roles swap
 for (const g of P.DUO_IDS) assert.ok(P.GAMES[g].roles === undefined || P.GAMES[g].roles === 2);
-assert.ok(P.duoIdsFor(2).length >= 14 && P.duoIdsFor(2).every((g) => !g.startsWith("sq_")) && P.duoIdsFor(2).includes("du_wipers"));   // two players only get the DUO games
-assert.ok(P.duoIdsFor(3).length >= 5 && P.duoIdsFor(3).every((g) => g.startsWith("sq_") || /crew$|^du_wipers$/.test(g)) && !P.duoIdsFor(3).includes("du_hippo") && P.duoIdsFor(4).join() === P.duoIdsFor(3).join());
+assert.ok(P.duoIdsFor(2).length >= 14 && P.duoIdsFor(2).every((g) => !g.startsWith("sq_")) && P.duoIdsFor(2).includes("du_squeegee"));   // two players only get the DUO games
+assert.ok(P.duoIdsFor(3).length >= 5 && P.duoIdsFor(3).every((g) => g.startsWith("sq_")) && !P.duoIdsFor(3).includes("du_hippo") && P.duoIdsFor(4).join() === P.duoIdsFor(3).join());
 // --- SQUAD: 3 and 4 players, one role each, roles rotate over all seats, game pool depends on the head count ---
 for (const n of [3, 4]) {
   const q = P.newRoom("SQD" + n, "duo", 0); for (let i = 0; i < n; i++) P.addPlayer(q, { name: "P" + i }, rand);

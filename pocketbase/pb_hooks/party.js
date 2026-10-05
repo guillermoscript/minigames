@@ -39,14 +39,14 @@ const GAMES = {
   du_hose: { dur: 15, pts: false, duo: true },
   du_keys: { dur: 15, pts: false, duo: true },
   du_barber: { dur: 15, pts: false, duo: true },
-  /* CREW games (js/games/crew.js): every seat owns a station, 2 to 4 players */
-  du_wipers: { dur: 14, pts: false, duo: true, min: 2, max: 4 },
-  du_spincrew: { dur: 14, pts: false, duo: true, min: 2, max: 4 },
-  du_balancecrew: { dur: 14, pts: false, duo: true, min: 2, max: 4 },
-  du_frogcrew: { dur: 14, pts: false, duo: true, min: 2, max: 4 },
-  du_dragoncrew: { dur: 14, pts: false, duo: true, min: 2, max: 4 },
-  du_bridgecrew: { dur: 14, pts: false, duo: true, min: 2, max: 4 },
-  du_eggcrew: { dur: 14, pts: false, duo: true, min: 2, max: 4 },
+  /* Twisted-inspired DUO games (one file each in js/games/duo/): two roles that NEED each other, ONE shared verdict */
+  du_squeegee: { dur: 15, pts: false, duo: true },
+  du_reel: { dur: 15, pts: false, duo: true },
+  du_jar: { dur: 15, pts: false, duo: true },
+  du_pump: { dur: 15, pts: false, duo: true },
+  du_bridge: { dur: 15, pts: false, duo: true },
+  du_frog: { dur: 15, pts: false, duo: true },
+  du_lighthouse: { dur: 16, pts: false, duo: true },
   /* SQUAD games: 3 or 4 players, one role each, ONE shared verdict. min/max = how many seats the game supports (default 2/2 = a DUO game).
      One file per game in js/games/squad/. Keep dur in sync with the game's g.dur. */
   sq_pizza: { dur: 18, pts: false, duo: true, min: 3, max: 4 },
@@ -54,6 +54,9 @@ const GAMES = {
   sq_circus: { dur: 16, pts: false, duo: true, min: 3, max: 4 },
   sq_sub: { dur: 18, pts: false, duo: true, min: 3, max: 4 },
   sq_movers: { dur: 17, pts: false, duo: true, min: 3, max: 4 },
+  sq_vault: { dur: 16, pts: false, duo: true, min: 3, max: 4 },
+  sq_blanket: { dur: 16, pts: false, duo: true, min: 3, max: 4 },
+  sq_storm: { dur: 18, pts: false, duo: true, min: 3, max: 4 },
 };
 const TURN_CATALOG = require(typeof __hooks === "string" ? `${__hooks}/party_catalog.js` : "./party_catalog.js");
 Object.assign(GAMES, TURN_CATALOG);

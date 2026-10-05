@@ -39,6 +39,14 @@ const GAMES = {
   du_hose: { dur: 15, pts: false, duo: true },
   du_keys: { dur: 15, pts: false, duo: true },
   du_barber: { dur: 15, pts: false, duo: true },
+  /* CREW games (js/games/crew.js): every seat owns a station, 2 to 4 players */
+  du_wipers: { dur: 14, pts: false, duo: true, min: 2, max: 4 },
+  du_spincrew: { dur: 14, pts: false, duo: true, min: 2, max: 4 },
+  du_balancecrew: { dur: 14, pts: false, duo: true, min: 2, max: 4 },
+  du_frogcrew: { dur: 14, pts: false, duo: true, min: 2, max: 4 },
+  du_dragoncrew: { dur: 14, pts: false, duo: true, min: 2, max: 4 },
+  du_bridgecrew: { dur: 14, pts: false, duo: true, min: 2, max: 4 },
+  du_eggcrew: { dur: 14, pts: false, duo: true, min: 2, max: 4 },
   /* SQUAD games: 3 or 4 players, one role each, ONE shared verdict. min/max = how many seats the game supports (default 2/2 = a DUO game).
      One file per game in js/games/squad/. Keep dur in sync with the game's g.dur. */
   sq_pizza: { dur: 18, pts: false, duo: true, min: 3, max: 4 },

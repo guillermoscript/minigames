@@ -42,7 +42,7 @@ I18N.add('es', {
   'JACK IT UP!': '¡SUBE EL COCHE!',
   'GRIPPY!': '¡AGARRADA!',
   'TIGHT!': '¡APRETADA!',
-  'SPLASH!': '¡SPLASH!',
+  'SPLASH!': '¡AL AGUA!',
   'FULL!': '¡LLENO!',
   'TOO MUCH!': '¡DEMASIADO!',
   'MORE!': '¡MÁS!',

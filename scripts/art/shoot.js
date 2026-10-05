@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* SOLO microgame screenshot harness (art work: docs/ART-STYLE.md, skill .claude/skills/restyle-stage).
    node scripts/art/shoot.js <outdir> <file.js,...> <id> <times...> [--sp=1] [--seed=77] [--inputs=<file.js | inline fn>]
-        [--stamp] [--hint] [--vig] [--fuse] [--sheet] [--tag=name] [--rev=HEAD]
+        [--stamp] [--hint] [--vig] [--fuse] [--sheet] [--tag=name] [--rev=HEAD] [--role=0 --roles=4  (DUO/SQUAD games: which seat, how many seats)]
    - --fuse draws main.js's bottom fuse band/bomb/countdown and --hint the top hint line: use both to check the HUD zones
    - --rev=<git rev> renders the game files as they are in that revision (the 'before' of a restyle)
    - files are repo-relative (js/games/wave1.js) or absolute; js/i18n.js + js/core.js are always loaded first
@@ -40,7 +40,7 @@ fs.mkdirSync(outdir, { recursive: true });
   await p.evaluate(list => loadScripts(list), list);
   const shots = [];
   for (const tm of times) {
-    const info = await p.evaluate(([id, sp, at, inputs, o]) => shot(id, sp, at, inputs, o), [id, sp, +tm, inputs, { seed, stamp: !!flags.stamp, hint: !!flags.hint, vig: !!flags.vig, fuse: !!flags.fuse }]);
+    const info = await p.evaluate(([id, sp, at, inputs, o]) => shot(id, sp, at, inputs, o), [id, sp, +tm, inputs, { seed, role: +(flags.role || 0), roles: +(flags.roles || 0), stamp: !!flags.stamp, hint: !!flags.hint, vig: !!flags.vig, fuse: !!flags.fuse }]);
     const file = path.join(outdir, `${tag}_${tm}.png`);
     await p.locator('#c').screenshot({ path: file });
     shots.push(file); console.log(file, JSON.stringify(info));

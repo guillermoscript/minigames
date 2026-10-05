@@ -19,5 +19,6 @@ run("partyChooseMode('balloon');"); assert.equal(sb.calls.length, 1, 'selected m
 const serverModes = require('../pocketbase/pb_hooks/party.js').MODES;
 assert.deepEqual(JSON.parse(run('JSON.stringify(Object.keys(PARTY_GUIDE))')).sort(), serverModes.slice().sort());
 run("party.room.mode = 'duo';"); assert.equal(run('canStart(party.room)'), true);
-run("party.room.players.push({id:'c'});"); assert.equal(run('canStart(party.room)'), false, 'DUO retains its exact two-player requirement');
+run("party.room.players.push({id:'c'},{id:'d'});"); assert.equal(run('canStart(party.room)'), true, 'CO-OP takes 3 and 4 players (squad games)');
+run("party.room.players.push({id:'e'});"); assert.equal(run('canStart(party.room)'), false, 'CO-OP takes at most 4 players');
 console.log('party menu: guest previews, host selection, complete mode guides and start requirements OK');

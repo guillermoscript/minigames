@@ -717,16 +717,19 @@ function dsFan(sp) {
     const wx = 56 - OX * .2, wy = GY - 6; K.polyP([[0, 0]]); c.beginPath(); c.moveTo(wx - 22, wy); c.lineTo(wx - 10, wy - 90); c.lineTo(wx + 10, wy - 90); c.lineTo(wx + 22, wy); c.closePath(); K.ink('#f1e4c4', 4);
   };
   const g = {
-    wide: true, cmd: 'BLOW!', hint: 'WAVE THE MOUSE TO FAN HIM ONTO THE PAD', thint: 'WAVE YOUR FINGER TO FAN HIM ONTO THE PAD', dur: 4.8,
+    wide: true, fistHand: true, cmd: 'BLOW!', hint: 'WAVE THE MOUSE TO FAN HIM ONTO THE PAD', thint: 'WAVE YOUR FINGER TO FAN HIM ONTO THE PAD', dur: 4.8,
     update(dt) {
       if (g.result && rT0 < 0) rT0 = now;
       if (g.result) { return; }
       const gt = dt * k, mx = mouse.x, my = mouse.y;
+      const px0 = px, py0 = py;
       spd = dt > 0 ? Math.hypot(mx - px, my - py) / dt : 0; px = mx; py = my; spd = Math.min(spd, 3000);
       const cy = ch.y - 50, dx = ch.x - mx, dy = cy - my, d = Math.hypot(dx, dy);
       if (d < R && d > 1) {
         const F = 1700 * (1 - d / R) * Math.min(1, .15 + spd / 900) * (spd / 700 > 0 ? 1 : 1);
-        ch.vx += dx / d * F * gt; ch.vy += dy / d * F * gt * .6;
+        const mv = Math.hypot(mx - px0, my - py0), ux = mv > 2 ? (mx - px0) / mv : 0, uy = mv > 2 ? (my - py0) / mv : 0;   // the gust follows the swing as well as pushing away from the fan
+        const wx = dx / d * .55 + ux * .45, wy = dy / d * .55 + uy * .45, wl = Math.hypot(wx, wy) || 1;
+        ch.vx += wx / wl * F * gt; ch.vy += wy / wl * F * gt * .6;
       }
       ch.vx *= Math.exp(-1.5 * gt); ch.vx = Math.max(-340, Math.min(340, ch.vx));
       ch.vy += 420 * gt; ch.vy = Math.min(ch.vy, 100); ch.vy = Math.max(ch.vy, -120);

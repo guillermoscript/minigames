@@ -1096,7 +1096,7 @@ function wiiFanBg() {
 function wiiFan(sp) {
   const grav = 320 * Math.pow(sp, .6), B = { x: 300 + Math.random() * 200, y: 250, vx: 0, vy: 0 }; let lx = mouse.x, ly = mouse.y, spd = 0, wind = 0, t = 0, lw = 0, ph = Math.random() * 6, endAt = -1, aMoved = false;
   const g = {
-    wide: true, cmd: 'FAN IT!', hint: 'WAVE THE MOUSE BELOW THE BUTTERFLY', thint: 'WAVE YOUR FINGER BELOW IT', dur: 5.2, timeWin: true,
+    wide: true, fistHand: true, cmd: 'FAN IT!', hint: 'WAVE THE MOUSE BELOW THE BUTTERFLY', thint: 'WAVE YOUR FINGER BELOW IT', dur: 5.2, timeWin: true,
     update(dt) {
       t += dt;
       const sx = (Math.abs(mouse.x - lx) + Math.abs(mouse.y - ly) * .5) / Math.max(dt, .001); lx = mouse.x; ly = mouse.y;

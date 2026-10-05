@@ -751,6 +751,281 @@ const SIMONART = (() => {
   return { draw };
 })();
 
+/* ───────────── DJ DISCO BALL BOSS art (stage 15 final boss "rhythm"), in the DUO look (docs/ART-STYLE.md) ─────────────
+   A cursed ballroom: velvet curtains, speaker stacks, a beat-lit dance floor and a food crowd that panics or cheers with the fight.
+   The ball sits on a DJ tower whose woofer is the target, a hot dog DJ rides on top, a ghost in shades floats past the wall.
+   Win: the ball falls off its tower (game logic) and bursts into sandwiches, the crowd goes wild. Lose: the ball howls with laughter, lights go red.
+   ART ONLY: no RNG calls (cosmetic noise is a hash). */
+const RHYART = (() => {
+  const TAU = Math.PI * 2;
+  let X = null;
+  const clamp = (v, a, b) => v < a ? a : v > b ? b : v, lerp = (a, b, k) => a + (b - a) * k;
+  const outBack = k => { const c = 1.70158; k = clamp(k, 0, 1) - 1; return 1 + (c + 1) * k * k * k + c * k * k; };
+  const hash = i => { const s = Math.sin(i * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
+  const PAL = ['#FF3EA5', '#7B3FE4', '#19C6B7', '#FFE14D', '#5CFF7A', '#FF8A3D'];
+  function rr(x, y, w, h, r) { X.beginPath(); X.moveTo(x + r, y); X.arcTo(x + w, y, x + w, y + h, r); X.arcTo(x + w, y + h, x, y + h, r); X.arcTo(x, y + h, x, y, r); X.arcTo(x, y, x + w, y, r); X.closePath(); }
+  function el(x, y, rx, ry, rot = 0) { X.beginPath(); X.ellipse(x, y, rx, ry, rot, 0, TAU); }
+  function ink(fill, o = 4) { X.lineJoin = 'round'; X.lineCap = 'round'; if (o) { X.lineWidth = o * 2; X.strokeStyle = INK; X.stroke(); } if (fill) { X.fillStyle = fill; X.fill(); } }
+  function cel(f, base, shade, sx, sy, o = 4) { f(); ink(shade, o); X.save(); f(); X.clip(); X.translate(-sx, -sy); f(); X.fillStyle = base; X.fill(); X.restore(); }
+  function glint(f, x, y, rx, ry, col, rot = -.5) { X.save(); f(); X.clip(); X.fillStyle = col; el(x, y, rx, ry, rot); X.fill(); X.restore(); }
+  function tube(pts, w, col) { X.lineJoin = 'round'; X.lineCap = 'round'; X.beginPath(); pts.forEach((p, i) => i ? X.lineTo(p[0], p[1]) : X.moveTo(p[0], p[1])); X.strokeStyle = INK; X.lineWidth = w + 7; X.stroke(); X.strokeStyle = col; X.lineWidth = w; X.stroke(); }
+  function badge(s, x, y, size, bgc, rot, sc = 1) {
+    X.font = `900 ${size}px "Arial Black", Impact, sans-serif`; const w = Math.min(420, X.measureText(t(s)).width + size * .9), h = size * 1.45;
+    X.save(); X.translate(x, y); X.rotate(rot); X.scale(sc, sc);
+    X.fillStyle = 'rgba(20,16,28,.3)'; rr(-w / 2 + 4, -h / 2 + 7, w, h, h * .46); X.fill();
+    rr(-w / 2, -h / 2, w, h, h * .46); ink(bgc, 4); X.fillStyle = 'rgba(255,255,255,.35)'; rr(-w / 2 + 8, -h / 2 + 5, w - 16, h * .26, h * .13); X.fill();
+    txt(s, 0, 2, size, '#fff', 'center', w - 18); X.restore();
+  }
+  function heart(x, y, s, col = '#ff5c8a') { X.save(); X.translate(x, y); X.scale(s, s); X.beginPath(); X.moveTo(0, 6); X.bezierCurveTo(-14, -4, -8, -14, 0, -7); X.bezierCurveTo(8, -14, 14, -4, 0, 6); X.closePath(); ink(col, 2.5); X.restore(); }
+  function sweat(x, y, s, T) { const k = (T * 2.2) % 1; X.globalAlpha = 1 - k; X.save(); X.translate(x + k * 6, y + k * 14); X.scale(s, s); X.beginPath(); X.moveTo(0, -8); X.quadraticCurveTo(6, 0, 0, 5); X.quadraticCurveTo(-6, 0, 0, -8); ink('#9fe3ff', 2); X.restore(); X.globalAlpha = 1; }
+  /* eye: mood calm | smug | angry | panic | dizzy | happy | dead ; look = (lx, ly) in -1..1 */
+  function eye(x, y, r, mood, lx, ly, T, k) {
+    if (mood === 'happy') { X.beginPath(); X.arc(x, y + r * .35, r * .8, Math.PI * 1.1, Math.PI * 1.9); X.lineWidth = r * .42; X.strokeStyle = INK; X.lineCap = 'round'; X.stroke(); return; }
+    if (mood === 'dead') { X.lineWidth = r * .3; X.strokeStyle = INK; X.lineCap = 'round'; X.beginPath(); X.moveTo(x - r * .6, y - r * .6); X.lineTo(x + r * .6, y + r * .6); X.moveTo(x + r * .6, y - r * .6); X.lineTo(x - r * .6, y + r * .6); X.stroke(); return; }
+    const pan = mood === 'panic', blink = Math.sin(T * 1.9 + k) > .985;
+    if (blink) { X.beginPath(); X.moveTo(x - r, y); X.lineTo(x + r, y); X.lineWidth = r * .3; X.strokeStyle = INK; X.lineCap = 'round'; X.stroke(); return; }
+    const sr = pan ? r * 1.25 : r; el(x, y, sr, sr * 1.08); ink('#fff', Math.max(2, r * .14));
+    if (mood === 'dizzy') { X.beginPath(); for (let i = 0; i < 40; i++) { const a = i * .5 + T * 8, rr2 = i * sr * .021; i ? X.lineTo(x + Math.cos(a) * rr2, y + Math.sin(a) * rr2) : X.moveTo(x, y); } X.lineWidth = Math.max(2, r * .16); X.strokeStyle = INK; X.stroke(); return; }
+    const pr = r * (pan ? .3 : .52), px = x + lx * r * .38, py = y + ly * r * .38;
+    el(px, py, pr, pr); X.fillStyle = INK; X.fill(); X.fillStyle = '#fff'; el(px - pr * .35, py - pr * .4, pr * .35, pr * .35); X.fill();
+    if (mood === 'smug') { X.fillStyle = '#c9d3ec'; X.save(); el(x, y, sr, sr * 1.08); X.clip(); X.fillRect(x - sr, y - sr * 1.2, sr * 2, sr * 1.2 + sr * .15); X.restore(); X.beginPath(); X.moveTo(x - sr, y + sr * .15); X.lineTo(x + sr, y + sr * .15); X.lineWidth = r * .28; X.strokeStyle = INK; X.stroke(); }
+    if (mood === 'angry') { X.beginPath(); X.moveTo(x - sr * 1.1, y - sr * 1.15); X.lineTo(x + sr * 1.0, y - sr * .5); X.lineWidth = r * .36; X.strokeStyle = INK; X.lineCap = 'round'; X.stroke(); }
+  }
+
+  /* ── the baked ballroom (static), VW wide ── */
+  let BG = null, BW = 0;
+  const HZ = 440;                                           // the stage edge: ink line where the floor starts
+  function curtain(x, w, dir) {                             // velvet curtain drawn from the screen edge inward
+    const f = () => { X.beginPath(); X.moveTo(x, -10); X.lineTo(x + dir * w, -10); X.quadraticCurveTo(x + dir * (w * .55), 160, x + dir * (w * .9), HZ + 6); X.lineTo(x, HZ + 6); X.closePath(); };
+    f(); ink('#8a1a3c', 4); X.save(); f(); X.clip();
+    X.fillStyle = '#c0264f'; for (let i = 0; i < 6; i++) { const cx = x + dir * (i * w / 5.2); X.beginPath(); X.moveTo(cx - dir * w * .08, -10); X.quadraticCurveTo(cx + dir * 8, 200, cx - dir * w * .04, HZ + 6); X.lineTo(cx + dir * w * .12, HZ + 6); X.quadraticCurveTo(cx + dir * 16, 200, cx + dir * w * .1, -10); X.closePath(); X.fill(); }
+    X.fillStyle = 'rgba(255,150,170,.28)'; for (let i = 0; i < 6; i++) { const cx = x + dir * (i * w / 5.2); X.beginPath(); X.moveTo(cx, -10); X.quadraticCurveTo(cx + dir * 10, 200, cx + dir * 4, HZ + 6); X.lineWidth = 5; X.strokeStyle = 'rgba(255,150,170,.28)'; X.stroke(); }
+    X.restore(); f(); X.lineWidth = 8; X.strokeStyle = INK; X.stroke();
+    X.beginPath(); X.moveTo(x + dir * w * .9, 70); X.quadraticCurveTo(x + dir * w * .6, 80, x + dir * w * .5, 120); X.lineWidth = 12; X.strokeStyle = INK; X.stroke(); X.lineWidth = 6; X.strokeStyle = '#ffd23f'; X.stroke();   // tie-back rope
+    X.fillStyle = '#ffd23f'; X.beginPath(); X.arc(x + dir * w * .5, 124, 9, 0, TAU); ink('#ffd23f', 3);
+  }
+  function speaker(cx, base, w, h) {
+    cel(() => rr(cx - w / 2, base - h, w, h, 10), '#3a3354', '#241e38', 6, 6, 4);
+    X.fillStyle = 'rgba(255,255,255,.12)'; rr(cx - w / 2 + 6, base - h + 6, 10, h - 12, 5); X.fill();
+    X.fillStyle = '#ff3ea5'; rr(cx - w / 2 + 12, base - h + 12, w - 24, 5, 2.5); X.fill();
+  }
+  function bake() {
+    const c = document.createElement('canvas'); c.width = VW; c.height = H; const old = X; X = c.getContext('2d'); X.translate(OX, 0);
+    const L = -OX - 2, R = W + OX + 2; let g = X.createLinearGradient(0, 0, 0, HZ); g.addColorStop(0, '#1d0a3a'); g.addColorStop(.55, '#4a1a78'); g.addColorStop(1, '#7a2aa8'); X.fillStyle = g; X.fillRect(L, 0, R - L, HZ + 4);
+    X.save(); X.beginPath(); X.rect(L, 0, R - L, HZ); X.clip(); X.strokeStyle = 'rgba(255,120,200,.13)'; X.lineWidth = 3;           // damask diamonds on the wall
+    for (let x = L - 20; x < R + 40; x += 60) for (let y = 70; y < HZ + 30; y += 60) { X.beginPath(); X.moveTo(x, y - 24); X.lineTo(x + 24, y); X.lineTo(x, y + 24); X.lineTo(x - 24, y); X.closePath(); X.stroke(); el(x, y, 5, 5); X.stroke(); }
+    X.restore();
+    X.fillStyle = 'rgba(255,255,255,.07)'; for (let i = 0; i < 40; i++) { el(L + hash(i + 3) * (R - L), 40 + hash(i + 9) * 380, 2 + hash(i) * 3, 2 + hash(i) * 3); X.fill(); }
+    speaker(L + 62 + OX * 0 + (OX > 0 ? 0 : 0), HZ, 100, 190); speaker(R - 62, HZ, 100, 190);                          // speaker stacks right at the edges
+    speaker(L + 62, HZ - 190, 80, 110); speaker(R - 62, HZ - 190, 80, 110);
+    curtain(L - 6, 150, 1); curtain(R + 6, 150, -1);
+    /* lighting truss */
+    X.fillStyle = INK; X.fillRect(L, 56, R - L, 14); X.fillStyle = '#6b6488'; X.fillRect(L, 59, R - L, 8); X.strokeStyle = '#a49ec2'; X.lineWidth = 2; for (let x = L; x < R; x += 22) { X.beginPath(); X.moveTo(x, 59); X.lineTo(x + 11, 67); X.lineTo(x + 22, 59); X.stroke(); }
+    X.fillStyle = INK; X.fillRect(L, 70, R - L, 4);
+    /* the ink stage edge + a velvet lip */
+    X.fillStyle = INK; X.fillRect(L, HZ, R - L, 6); X.fillStyle = '#8a1a3c'; X.fillRect(L, HZ + 6, R - L, 6);
+    X = old; return c;
+  }
+
+  /* ── perspective dance floor: tiles pulse with the beat ── */
+  const ROWS = [HZ + 12, 470, 504, 548, 600, 640];
+  function floor(B, hype, win, lose, T) {
+    const VX = 400, VY = 150;
+    for (let r = 0; r < ROWS.length - 1; r++) {
+      const y0 = ROWS[r], y1 = ROWS[r + 1], s0 = (y0 - VY) / 290 * 64, s1 = (y1 - VY) / 290 * 64;
+      for (let c = -12; c < 12; c++) {
+        const x0 = VX + c * s0, x1 = VX + (c + 1) * s0, x2 = VX + (c + 1) * s1, x3 = VX + c * s1;
+        if (x2 < -OX - 80 && x1 < -OX - 80) continue; if (x3 > W + OX + 80 && x0 > W + OX + 80) continue;
+        const h = hash(c * 7 + r * 13 + Math.floor(B * 1.0) * 5 + 1), on = h < .28 + hype * .35;
+        let col = (c + r) & 1 ? '#2a1250' : '#35185f';
+        if (on) col = lose ? '#a3243a' : win ? PAL[(c + r + Math.floor(T * 6)) % 6] : PAL[(c * 3 + r + Math.floor(B)) % 6];
+        X.beginPath(); X.moveTo(x0, y0); X.lineTo(x1, y0); X.lineTo(x2, y1); X.lineTo(x3, y1); X.closePath(); X.fillStyle = col; X.globalAlpha = on ? .85 : 1; X.fill(); X.globalAlpha = 1;
+        X.strokeStyle = 'rgba(20,16,28,.55)'; X.lineWidth = 2; X.stroke();
+      }
+    }
+    X.fillStyle = 'rgba(255,255,255,.07)'; X.beginPath(); X.moveTo(-OX, HZ + 12); X.lineTo(W + OX, HZ + 12); X.lineTo(W + OX, HZ + 22); X.lineTo(-OX, HZ + 22); X.fill();
+  }
+
+  /* ── food dancers ── */
+  const KINDS = ['dog', 'donut', 'cheese', 'banana', 'soda'];
+  function dancer(x, fy, u, kind, T, i, mood, bounce, up) {
+    const hop = Math.abs(Math.sin(T * 4.4 + i * 1.7)) * 10 * u * bounce * (mood === 'cheer' ? 1.6 : 1), y = fy - hop;
+    X.save(); X.translate(x, y); X.scale(u, u);
+    const sway = Math.sin(T * 4.4 + i * 1.7);
+    X.restore();
+    X.save(); X.translate(x, fy + 2); el(0, 0, 16 * u, 4.4 * u); X.fillStyle = 'rgba(20,16,28,.3)'; X.fill(); X.restore();
+    X.save(); X.translate(x, y); X.scale(u, u); X.rotate(sway * .08 * bounce);
+    const raise = mood === 'cheer' ? -1.2 : mood === 'boo' ? .35 : Math.sin(T * 4.4 + i) * .7;
+    const arm = (sx, d) => tube([[sx * 10, -26], [sx * (17 + 4 * Math.cos(raise)), -28 - 14 * (mood === 'cheer' ? 1 : .5 + .5 * Math.sin(T * 4.4 + i * 2 + sx))], [sx * (21), -38 - 12 * (mood === 'cheer' ? 1.3 : Math.sin(T * 4.4 + i + (sx > 0 ? 0 : 2)))]], 4, '#f3a283');
+    tube([[-5, -10], [-6, 0]], 4, '#4a3d6a'); tube([[5, -10], [6, 0]], 4, '#4a3d6a');
+    if (kind === 'dog') {
+      arm(-1); arm(1);
+      cel(() => rr(-11, -52, 22, 44, 11), '#f0b35a', '#c98430', 3, 2, 3);
+      X.fillStyle = '#e8434f'; rr(-6, -56, 12, 46, 6); X.fill(); X.beginPath(); X.arc(0, -30, 6, 0, TAU); X.fillStyle = '#ffd23f'; X.fill();
+    } else if (kind === 'donut') {
+      arm(-1); arm(1);
+      cel(() => { X.beginPath(); X.arc(0, -26, 20, 0, TAU); }, '#ff8fd0', '#d65da6', 4, 4, 3);
+      X.fillStyle = '#fff'; for (let k = 0; k < 6; k++) { X.save(); X.translate(Math.cos(k * 1.05) * 12, -26 + Math.sin(k * 1.05) * 12); X.rotate(k); rr(-3, -1, 6, 2.4, 1); X.fill(); X.restore(); }
+      X.beginPath(); X.arc(0, -3, 0, 0, 0);
+    } else if (kind === 'cheese') {
+      arm(-1); arm(1);
+      cel(() => { X.beginPath(); X.moveTo(-20, -4); X.lineTo(0, -52); X.lineTo(20, -4); X.closePath(); }, '#ffd23f', '#d9a21a', 4, 3, 3);
+      X.fillStyle = '#f3b11e'; for (const [hx, hy, hr] of [[-7, -14, 3.4], [5, -22, 2.8], [6, -9, 2.4]]) { el(hx, hy, hr, hr); X.fill(); }
+    } else if (kind === 'banana') {
+      arm(-1); arm(1);
+      cel(() => { X.beginPath(); X.moveTo(-12, -6); X.quadraticCurveTo(-22, -34, -2, -54); X.quadraticCurveTo(12, -34, 12, -6); X.closePath(); }, '#ffe14d', '#d9b21a', 4, 3, 3);
+      X.fillStyle = '#6b4a22'; rr(-5, -58, 6, 6, 2); X.fill();
+    } else {
+      arm(-1); arm(1);
+      cel(() => rr(-12, -50, 24, 44, 8), '#4db8ff', '#2f84c8', 3, 3, 3);
+      X.fillStyle = '#fff'; rr(-12, -34, 24, 14, 2); X.fill(); X.fillStyle = '#e8434f'; rr(-12, -30, 24, 6, 2); X.fill();
+      rr(-8, -57, 16, 8, 4); ink('#e8434f', 2.5);
+    }
+    const ey = kind === 'cheese' ? -22 : kind === 'dog' ? -40 : kind === 'soda' ? -44 : -28, ex = kind === 'cheese' ? 6 : 6;
+    const em = mood === 'cheer' ? 'happy' : mood === 'boo' ? 'angry' : mood === 'panic' ? 'panic' : 'calm';
+    X.restore();
+    X.save(); X.translate(x, y); X.rotate(sway * .08 * bounce); X.scale(u, u);
+    eye(-ex, ey, 4.6, em, 0, up ? -.6 : .2, T, i); eye(ex, ey, 4.6, em, 0, up ? -.6 : .2, T, i + 1);
+    X.beginPath(); if (mood === 'cheer') { X.arc(0, ey + 8, 4.5, .1, Math.PI - .1); X.fillStyle = INK; X.fill(); } else if (mood === 'boo') { X.arc(0, ey + 12, 4, Math.PI * 1.1, Math.PI * 1.9); X.lineWidth = 2.4; X.strokeStyle = INK; X.stroke(); } else if (mood === 'panic') { el(0, ey + 10, 2.8, 3.6); X.fillStyle = INK; X.fill(); } else { X.arc(0, ey + 7, 3.4, .2, Math.PI - .2); X.lineWidth = 2.4; X.strokeStyle = INK; X.stroke(); }
+    X.restore();
+    if (mood === 'cheer') heart(x + 12 * u, y - 62 * u - ((T * 1.2 + i * .3) % 1) * 14, .9, '#ff5c8a');
+    if (mood === 'panic') sweat(x + 14 * u, y - 48 * u, 1, T + i);
+  }
+
+  /* ── the DJ hot dog riding on top of the ball ── */
+  function djDog(x, y, T, hype, mood) {
+    const b = Math.sin(T * 7) * 2 * (1 + hype);
+    X.save(); X.translate(x, y + b); X.rotate(Math.sin(T * 7) * .06);
+    const arm = tube([[10, 10], [22, -2 - Math.abs(Math.sin(T * 7)) * 8], [26, -14 - Math.abs(Math.sin(T * 7)) * 8]], 4.4, '#f3a283');
+    cel(() => rr(-11, -20, 22, 38, 11), '#f0b35a', '#c98430', 3, 2, 3);
+    X.fillStyle = '#e8434f'; rr(-6, -23, 12, 40, 6); X.fill(); X.strokeStyle = '#ffd23f'; X.lineWidth = 2.4; X.beginPath(); X.moveTo(-5, 4); X.lineTo(-2, 8); X.lineTo(1, 4); X.lineTo(4, 8); X.stroke();
+    eye(-4, -12, 3.6, mood === 'lose' ? 'happy' : mood === 'win' ? 'dead' : 'smug', 0, .3, T, 3); eye(4, -12, 3.6, mood === 'lose' ? 'happy' : mood === 'win' ? 'dead' : 'smug', 0, .3, T, 4);
+    X.beginPath(); X.moveTo(-11, -14); X.quadraticCurveTo(0, -34, 11, -14); X.lineWidth = 8; X.strokeStyle = INK; X.lineCap = 'round'; X.stroke(); X.lineWidth = 3.4; X.strokeStyle = '#ff3ea5'; X.stroke();     // headphones
+    X.beginPath(); X.arc(-12, -12, 5.4, 0, TAU); ink('#ff3ea5', 2.5); X.beginPath(); X.arc(12, -12, 5.4, 0, TAU); ink('#ff3ea5', 2.5);
+    X.restore();
+  }
+
+  /* ── the giant ball: mirror tiles projected on a sphere, rotating ── */
+  function ball(bx, by, br, T, rot, hits, k, mood, mo, sx) {
+    X.save(); X.translate(bx, by); X.rotate(rot); X.translate(-bx, -by);
+    const f = () => { X.beginPath(); X.arc(bx, by, br, 0, TAU); };
+    cel(f, '#d6defa', '#8f9ecf', br * .12, br * .1, 5);
+    X.save(); f(); X.clip();
+    const NL = 8, NO = 12, ph = T * (1 + k * 3) * .9;
+    for (let j = 0; j < NL; j++) {
+      const p0 = -Math.PI / 2 + j * Math.PI / NL, p1 = p0 + Math.PI / NL;
+      for (let i = 0; i < NO; i++) {
+        const t0 = i * TAU / NO + ph, t1 = t0 + TAU / NO, tm = (t0 + t1) / 2 % TAU; if (Math.cos(tm) < .02) continue;
+        const id = i * 9 + j, hole = hash(id + 40) < k * .5 && hits > 0;
+        const P = (th, p) => [bx + br * Math.cos(p) * Math.sin(th), by - br * Math.sin(p)];
+        const a = P(t0, p0), b = P(t1, p0), c = P(t1, p1), d = P(t0, p1);
+        X.beginPath(); X.moveTo(a[0], a[1]); X.lineTo(b[0], b[1]); X.lineTo(c[0], c[1]); X.lineTo(d[0], d[1]); X.closePath();
+        const lit = Math.sin(T * 3 + id * 1.7) > .86, fa = (Math.cos(tm) * .6 + .4);
+        X.fillStyle = hole ? '#3a2a66' : lit ? PAL[id % 6] : (id % 3 === 0 ? '#ffffff' : id % 3 === 1 ? '#c2cdf0' : '#9fb0d6'); X.globalAlpha = hole ? 1 : .35 + fa * .65; X.fill(); X.globalAlpha = 1;
+        X.lineWidth = 1.8; X.strokeStyle = 'rgba(75,85,150,.6)'; X.stroke();
+      }
+    }
+    /* shade crescent + gloss */
+    X.fillStyle = 'rgba(70,50,150,.28)'; X.beginPath(); X.arc(bx, by, br, 0, TAU); X.arc(bx - br * .16, by - br * .14, br * .96, 0, TAU, true); X.fill();
+    X.fillStyle = 'rgba(255,255,255,.55)'; el(bx - br * .45, by - br * .55, br * .26, br * .1, -.6); X.fill();
+    X.restore();
+    f(); X.lineWidth = 10; X.strokeStyle = INK; X.stroke();
+    /* face plate */
+    const ex = Math.sin(T * (3 + k * 6)) * (k > .5 ? 1 : .3), ey = .55 + Math.cos(T * 4) * (k > .5 ? .8 : 0);
+    const em = mood === 'lose' ? 'happy' : mood === 'win' ? 'dizzy' : k > .66 ? 'panic' : k > .3 ? 'angry' : 'smug';
+    const er = br * .27, exx = br * .32;
+    eye(bx - exx, by + br * .02, er, em, ex, ey, T, 1); eye(bx + exx, by + br * .02, er, em, -ex, ey, T, 2);
+    if (em === 'panic') { const sw = Math.sin(T * 30) * br * .05; X.fillStyle = INK; el(bx - exx + sw, by + br * .02, er * .22, er * .22); X.fill(); el(bx + exx - sw, by + br * .02, er * .22, er * .22); X.fill(); }
+    if (em === 'happy') { X.beginPath(); X.moveTo(bx - exx - er, by - br * .24); X.quadraticCurveTo(bx - exx, by - br * .14, bx - exx + er * .6, by - br * .22); X.lineWidth = 4; X.strokeStyle = INK; X.stroke(); }
+    if (k > .3 && em !== 'happy') { for (const s of [-1, 1]) { X.beginPath(); X.moveTo(bx + s * exx - s * er * 1.1, by - br * .06 - er * 1.1 + (s < 0 ? 0 : 0)); X.lineTo(bx + s * exx + s * er * (em === 'angry' ? -.9 : .9), by - br * .06 - er * (em === 'angry' ? .4 : 1.1)); X.lineWidth = 4.5; X.strokeStyle = INK; X.lineCap = 'round'; X.stroke(); } }
+    /* mouth */
+    const my = by + br * .52, mw = br * .26;
+    if (em === 'happy') { X.beginPath(); X.moveTo(bx - mw * 1.3, my - mo * .2); X.quadraticCurveTo(bx, my + br * .5, bx + mw * 1.3, my - mo * .2); X.closePath(); ink('#3a0f3a', 3); X.fillStyle = '#ff3ea5'; X.beginPath(); X.ellipse(bx, my + br * .2, mw * .8, br * .09, 0, 0, TAU); X.fill(); X.fillStyle = '#fff'; rr(bx - mw * .9, my - mo * .15, mw * 1.8, br * .08, 3); X.fill(); }
+    else { X.beginPath(); X.ellipse(bx, my, mw, br * .05 + mo, 0, 0, TAU); ink('#3a0f3a', 3); if (mo > br * .08) { X.save(); X.beginPath(); X.ellipse(bx, my, mw, br * .05 + mo, 0, 0, TAU); X.clip(); X.fillStyle = '#ff3ea5'; X.beginPath(); X.ellipse(bx, my + mo * .9, mw * .7, mo * .6, 0, 0, TAU); X.fill(); X.fillStyle = '#fff'; X.fillRect(bx - mw, my - mo - br * .05, mw * 2, br * .05 + mo * .35); X.restore(); } else { X.fillStyle = '#fff'; X.save(); X.beginPath(); X.ellipse(bx, my, mw, br * .05 + mo, 0, 0, TAU); X.clip(); X.fillRect(bx - mw, my - br * .06, mw * 2, br * .06); X.restore(); } }
+    if (k > .4 && mood !== 'lose') sweat(bx + br * .62, by - br * .35, 1.5, T);
+    X.restore();
+  }
+
+  function draw(S) {
+    X = ctx;
+    const { clock, beat, hits, need, notes, flash, fb, fbT, slam, slamT, slamC, win, lose, wt, kick, tiles, bx, alive } = S;
+    const by = S.by + 14, br = S.br * .94; /* art-only offset: game keeps HEAD's 150/70 so the fall and burst timing are unchanged */
+    const T = S.T, k = hits / need, B = clock / beat, pulse = Math.max(0, Math.sin(B * Math.PI * 2)), hype = clamp(k + (win ? 1 : 0), 0, 1);
+    if (!BG || BW !== VW) { BG = bake(); BW = VW; }
+    X.drawImage(BG, -OX, 0);
+    /* wall lights: spots orbiting the ball + swinging spotlight cones */
+    X.save(); X.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 16; i++) { const a = i * .39 + T * (.3 + k * .6), rx = 150 + (i % 4) * 70, x = 400 + Math.cos(a) * rx * 1.5, y = 200 + Math.sin(a * 1.3 + i) * 120; if (y > HZ - 6) continue; const col = lose ? '#ff4d5e' : PAL[(i + Math.floor(B)) % 6]; X.fillStyle = col; X.globalAlpha = .22; el(x, y, 14, 9, a); X.fill(); X.globalAlpha = .4; el(x, y, 5, 3.4, a); X.fill(); }
+    for (const [sx0, i] of [[110 - OX * .3, 0], [690 + OX * .3, 1], [-OX + 40, 2], [W + OX - 40, 3]]) {
+      const col = lose ? '#ff4d5e' : win ? PAL[(Math.floor(T * 5) + i) % 6] : PAL[(i * 2 + Math.floor(B / 2)) % 6], ang = Math.atan2(by - 70, bx - sx0) + Math.sin(T * 1.3 + i * 2) * .25;
+      X.save(); X.translate(sx0, 70); X.rotate(ang - Math.PI / 2); const gr = X.createLinearGradient(0, 0, 0, 380); gr.addColorStop(0, col); gr.addColorStop(1, 'rgba(0,0,0,0)'); X.fillStyle = gr; X.globalAlpha = .2 + pulse * .08; X.beginPath(); X.moveTo(-6, 0); X.lineTo(6, 0); X.lineTo(70, 380); X.lineTo(-70, 380); X.closePath(); X.fill(); X.restore();
+    }
+    X.restore(); X.globalAlpha = 1;
+    for (const [sx0, i] of [[110 - OX * .3, 0], [690 + OX * .3, 1], [-OX + 40, 2], [W + OX - 40, 3]]) { X.save(); X.translate(sx0, 72); X.rotate(Math.sin(T * 1.3 + i * 2) * .25); rr(-9, 0, 18, 16, 4); ink('#4b4468', 3); X.restore(); }
+    /* neon sign + the ghost gag */
+    const gx = ((T * 34) % (VW + 240)) - OX - 120, gy = 118 + Math.sin(T * 2) * 10;
+    X.save(); X.translate(gx, gy); X.globalAlpha = .88; X.scale(1, 1);
+    X.beginPath(); X.moveTo(-18, 22); X.lineTo(-18, -6); X.quadraticCurveTo(-18, -26, 0, -26); X.quadraticCurveTo(18, -26, 18, -6); X.lineTo(18, 22); for (let i = 0; i < 4; i++) X.lineTo(18 - (i + 1) * 9, 22 + (i & 1 ? -6 : 4) + Math.sin(T * 6 + i) * 2); X.closePath(); ink('#f1ecff', 3);
+    rr(-15, -12, 12, 7, 3); ink('#14101c', 1.5); rr(3, -12, 12, 7, 3); ink('#14101c', 1.5); X.fillStyle = INK; X.fillRect(-4, -10, 8, 2);
+    X.fillStyle = '#fff'; el(-11, -10, 2, 1.2); X.fill(); el(7, -10, 2, 1.2); X.fill(); X.beginPath(); X.arc(0, 6, 4, .2, Math.PI - .2); X.lineWidth = 2.4; X.strokeStyle = INK; X.stroke(); X.restore(); X.globalAlpha = 1;
+    { const sx0 = 34 - OX * 0 , fl = Math.sin(T * 17) > .93 ? .55 : 1; X.save(); X.translate(W - 110 + OX * 0, 112); rr(-92, -22, 184, 44, 14); ink('#2b1050', 4); rr(-84, -15, 168, 30, 9); X.lineWidth = 2.4; X.strokeStyle = 'rgba(255,62,165,.7)'; X.stroke(); X.globalAlpha = fl; X.fillStyle = '#ff3ea5'; X.shadowColor = '#ff3ea5'; X.shadowBlur = 0; txt('DANCE-OFF!', 0, 2, 22, '#ffb3e0'); X.globalAlpha = 1; X.restore(); void sx0; }
+    /* floor + crowd */
+    floor(B, hype, win, lose, T);
+    const cm = win ? 'cheer' : lose ? 'boo' : k > .5 ? 'panic' : 'calm', bo = (lose ? .3 : 1) * (.5 + k * .8 + (win ? 1 : 0));
+    const slots = []; for (let c = -OX - 20, i = 0; c < W + OX + 40; c += 74, i++) { const x = c + hash(i + 17) * 24; if (x > 262 && x < 538) continue; slots.push([x, i]); }
+    for (const [x, i] of slots) if (i & 1) dancer(x, 486, 1.0, KINDS[(i * 2) % 5], T, i, cm, bo, true);
+    /* DJ tower (static) */
+    const tx = 400, tTop = 252;
+    cel(() => rr(tx - 52, tTop, 104, 222, 12), '#8a6ad8', '#5b3fa8', 7, 5, 4.5);
+    glint(() => rr(tx - 52, tTop, 104, 222, 12), tx - 36, tTop + 70, 6, 50, 'rgba(255,255,255,.35)', 0);
+    X.fillStyle = '#ff3ea5'; rr(tx - 46, tTop + 6, 92, 5, 2.5); X.fill(); X.fillStyle = '#19C6B7'; rr(tx - 46, tTop + 205, 92, 5, 2.5); X.fill();
+    for (const [x, i] of slots) if (!(i & 1)) dancer(x, 520, 1.15, KINDS[(i * 2 + 1) % 5], T, i, cm, bo, true);
+    /* bulb plaque = the hit counter */
+    rr(tx - 44, tTop + 20, 88, 30, 10); ink('#3a2a66', 3.5);
+    for (let i = 0; i < need; i++) { const x = tx - 33 + i * 13.2, on = i < hits, pop = on && hits - 1 === i ? outBack((T - (S.lastHitT || 0)) * 5) : 1; X.save(); X.translate(x, tTop + 35); X.scale(.4 + .6 * pop, .4 + .6 * pop); X.beginPath(); X.arc(0, 0, 5.4, 0, TAU); ink(on ? (win ? PAL[(i + Math.floor(T * 8)) % 6] : '#FFE14D') : '#5a4a8a', 2); if (on) { X.fillStyle = 'rgba(255,255,255,.7)'; el(-1.6, -1.8, 1.6, 1.1); X.fill(); } X.restore(); }
+    /* woofer = the target */
+    const wr = 46 * (1 + pulse * .06 + kick * .3), wy = 360;
+    X.beginPath(); X.arc(tx, wy, wr, 0, TAU); ink('#2b2540', 4.5); X.beginPath(); X.arc(tx, wy, wr * .72, 0, TAU); ink('#4b4468', 3); X.beginPath(); X.arc(tx, wy, wr * .34, 0, TAU); ink(lose ? '#ff4d5e' : win ? '#5CFF7A' : '#ff3ea5', 3);
+    X.fillStyle = 'rgba(255,255,255,.3)'; el(tx - wr * .4, wy - wr * .45, wr * .2, wr * .09, -.6); X.fill();
+    /* spring + boss */
+    const mood = win ? 'win' : lose ? 'lose' : 'play';
+    if (!win) { const x0 = tx, y0 = tTop + 2, x1 = bx, y1 = by + br * .85, pts = [[x0, y0]]; for (let i = 1; i < 8; i++) pts.push([lerp(x0, x1, i / 8) + (i & 1 ? 12 : -12), lerp(y0, y1, i / 8)]); pts.push([x1, y1]); tube(pts, 4, '#c9ced6'); }
+    if (alive) {
+      const mo = lose ? br * .3 : (win ? br * .35 : pulse * br * .22 * (1 + k));
+      ball(bx, by, br, T, S.rot, hits, k, mood, mo);
+      if (!win) djDog(bx, by - br + 14 + kick * 6, T, hype, mood);
+    }
+    /* mirror tiles flying off */
+    for (const o of tiles) if (o.life > 0) { X.save(); X.translate(o.x, o.y); X.rotate(o.r); rr(-8, -8, 16, 16, 3); ink(o.c ? '#fff' : '#9fb0d6', 2.5); X.fillStyle = 'rgba(255,255,255,.7)'; X.fillRect(-5, -5, 5, 3); X.restore(); }
+    /* sandwiches */
+    if (win && S.boomed) { const e = wt - .75; if (e > 0) for (let i = 0; i < 6; i++) { const a = -1.2 - i * .5, v = 380 + i * 60, sx = bx + Math.cos(a) * v * e * (i & 1 ? -1 : 1), sy = 440 + Math.sin(a) * v * e + 700 * e * e;
+      X.save(); X.translate(sx, sy); X.rotate(e * (4 + i)); rr(-24, -17, 48, 34, 8); ink('#F0B35A', 3.5);
+      X.fillStyle = '#5CFF7A'; rr(-22, -4, 44, 5, 2.5); X.fill(); X.fillStyle = '#FF8FD0'; rr(-19, 1, 38, 5, 2.5); X.fill(); X.fillStyle = '#c98430'; rr(-22, 9, 44, 6, 3); X.fill(); X.fillStyle = 'rgba(255,255,255,.45)'; el(-10, -11, 8, 2.6, -.2); X.fill(); X.restore(); } }
+    /* play UI: the target ring + closing rings */
+    X.lineCap = 'round'; X.beginPath(); X.arc(400, 360, 60, 0, TAU); X.lineWidth = 15; X.strokeStyle = INK; X.stroke(); X.lineWidth = 8; X.strokeStyle = flash > 0 ? '#fff' : '#FFE14D'; X.stroke();
+    for (const n of notes) { const d = n.t - clock; if (n.done || d > .9 || d < -.3) continue; const rr2 = 60 + Math.max(0, d) * 220; X.beginPath(); X.arc(400, 360, rr2, 0, TAU); X.lineWidth = 11; X.strokeStyle = INK; X.stroke(); X.lineWidth = 5.5; X.strokeStyle = 'rgba(255,255,255,.95)'; X.stroke(); }
+    /* Claude on the dance floor, disco pose */
+    const cy = 522 + Math.sin(clock * Math.PI / beat * 2) * 0, jump = win ? Math.abs(Math.sin(T * 9)) * 18 : lose ? 0 : Math.abs(Math.sin(B * Math.PI)) * 6, cx = 400;
+    X.save(); X.translate(cx, cy + 2); el(0, 0, 40, 9); X.fillStyle = 'rgba(20,16,28,.35)'; X.fill(); X.restore();
+    if (!lose) tube(win ? [[cx + 28, cy - jump - 38], [cx + 40, cy - jump - 66], [cx + 34, cy - jump - 88]] : [[cx + 28, cy - jump - 38], [cx + 38, cy - jump - 66 - pulse * 4], [cx + 56, cy - jump - 86 - pulse * 6]], 9, OR);
+    claude(cx, cy - jump, 5, { mood: lose ? 'sad' : win ? 'happy' : null, run: g_run(S) });
+    if (win) tube([[cx - 28, cy - jump - 38], [cx - 40, cy - jump - 66], [cx - 34, cy - jump - 88]], 9, OR);
+    if (lose) sweat(cx + 32, cy - 54, 1.4, T);
+    if (!win && !lose) { X.save(); X.translate(cx, cy - 66 - jump - Math.abs(Math.sin(T * 5)) * 4); X.beginPath(); X.moveTo(-9, -12); X.lineTo(9, -12); X.lineTo(0, 0); X.closePath(); ink('#FFE14D', 3); X.restore(); }
+    /* the boss talks: speech bubble beside it */
+    if (slamT > 0 && slam) { const sc = outBack((.5 - slamT) / .14), bxx = clamp(bx + 185, 470, W + OX - 110), byy = 150; X.save(); X.translate(bxx, byy); X.rotate(-.05); X.scale(sc, sc); X.globalAlpha = Math.min(1, slamT * 12);
+      X.font = '900 28px "Arial Black", Impact, sans-serif'; const w = Math.max(90, X.measureText(t(slam)).width + 34);
+      X.beginPath(); X.moveTo(-w / 2 + 6, 8); X.lineTo(-w / 2 - 22, 28); X.lineTo(-w / 2 + 24, 20); X.closePath(); ink('#fff', 3);
+      rr(-w / 2, -24, w, 46, 20); ink('#fff', 4); X.lineWidth = 3; X.strokeStyle = slamC; rr(-w / 2 + 5, -19, w - 10, 36, 15); X.stroke();
+      txt(slam, 0, 0, 26, slamC === '#FFE14D' ? '#d94f9a' : slamC, 'center', w - 20); X.restore(); }
+    if (fbT > 0) badge(fb, 590, 268, 30, fb === 'PERFECT!' ? '#ff3ea5' : fb === 'GOOD' ? '#19a8a0' : '#ff4d5e', -.05, outBack((.4 - fbT) / .12));
+    if (win && wt > .9) badge('SANDWICHES?!', W / 2, 205, 44, '#2fb85a', -.04, outBack((wt - .9) / .2));
+    vignette(.2);
+  }
+  function g_run(S) { return S.result ? null : S.T; }
+  return { draw };
+})();
+
 const BOSSES = {
   /* a giant bug: click it until its health bar is empty */
   bug(sp, s) {
@@ -781,7 +1056,7 @@ const BOSSES = {
   /* rhythm: FINAL BOSS of the cursed disco. Hit Space when the ring closes on the target; 6 of 8 notes win.
      A giant DJ disco ball taunts, sheds tiles and gets more unhinged with every hit; on a win it falls off its pedestal and explodes into sandwiches. */
   rhythm(sp, s) {
-    const need = 6, beat = 1.05 / Math.sqrt(sp), notes = []; let hits = 0, miss = 0, flash = 0, fb = '', fbT = 0, slam = '', slamT = 0, slamC = '#FFE14D', winAt = 0, boomed = false, kick = 0;
+    const need = 6, beat = 1.05 / Math.sqrt(sp), notes = []; let hits = 0, miss = 0, flash = 0, fb = '', fbT = 0, slam = '', slamT = 0, slamC = '#FFE14D', winAt = 0, boomed = false, kick = 0, lastHitT = 0;
     for (let i = 0; i < 8; i++) notes.push({ t: 1.2 + i * beat, done: false });
     let clock = 0;
     const tiles = []; for (let i = 0; i < 14; i++) tiles.push({ x: 0, y: 0, vx: 0, vy: 0, r: 0, vr: 0, c: 0, life: 0 });
@@ -791,7 +1066,7 @@ const BOSSES = {
     const hit = () => {
       if (g.result) return; const n = notes.find(n => !n.done && Math.abs(n.t - clock) < .3);
       if (!n) { miss++; sfx.miss(); fb = 'OOPS'; fbT = .4; return; }
-      n.done = true; hits++; const d = Math.abs(n.t - clock); fb = d < .1 ? 'PERFECT!' : 'GOOD'; fbT = .4; flash = .12; kick = .35; sfx.blip(hits * 2); ring(400, 360, '#FFE14D', 100, .3);
+      n.done = true; hits++; lastHitT = now; const d = Math.abs(n.t - clock); fb = d < .1 ? 'PERFECT!' : 'GOOD'; fbT = .4; flash = .12; kick = .35; sfx.blip(hits * 2); ring(400, 360, '#FFE14D', 100, .3);
       shed(2); sfx.boing(); slam = SLAMS[(hits - 1) % SLAMS.length]; slamT = hits < need ? .5 : 0; slamC = MVC[hits % 6];
       if (hits >= need) { g.result = 'win'; winAt = now; confetti(W / 2, 300, 50); sfx.sparkle(); shake(10, .3); shed(14); }
     };
@@ -808,43 +1083,15 @@ const BOSSES = {
       },
       draw(t) {
         const k = hits / need, win = g.result === 'win', lose = g.result === 'lose', wt = win ? now - winAt : 0, B = clock / beat;
-        mvWarp(.4 + k * 1.6 + (lose ? 1 : 0), now);
-        mvPsy(Math.floor(B) % 2 ? '#3a1457' : '#4a1a70', Math.floor(B) % 2 ? '#6a1f9a' : '#7d2ab0', now, .5 + k * 1.1);
-        mvTiles(470, now, 100 + k * 80);
-        mvAudience(468, now, .6 + k * 1.4 + (win ? 1 : 0) + (lose ? -.5 : 0), .85, Math.sin(now * 2), -.3);
-        /* the boss: giant DJ disco ball on a pedestal */
+        /* the boss: giant DJ disco ball on a tower */
         let bx = 400 + Math.sin(now * (2 + k * 4)) * (6 + k * 26), by = 150 + Math.sin(now * 3) * 6 - kick * 40, br = 70 * (1 + Math.max(0, Math.sin(B * Math.PI * 2)) * .05 + kick * .4);
         if (win) { const f = Math.min(wt, 1); by = 150 + 900 * f * f * .33 + 320 * f; bx += wt * 60; }
         const alive = !win || by < 440;
-        if (!win) { ctx.fillStyle = INK; ctx.fillRect(bx - 34, 232, 68, 240); ctx.fillStyle = '#8a6ad8'; ctx.fillRect(bx - 28, 236, 56, 236); }
-        if (alive) {
-          ctx.save(); ctx.translate(bx, by); ctx.rotate((win ? wt * 12 : Math.sin(now * (3 + k * 5)) * .12 * (1 + k * 2))); ctx.translate(-bx, -by);
-          mvBall(bx, by, br, now * (1 + k * 3));
-          const ex = Math.sin(now * (3 + k * 6)) * (k > .5 ? 1 : .3), ey = .8 + Math.cos(now * 4) * (k > .5 ? 1 : 0);
-          mvEye(bx - br * .32, by + br * .05, br * .26, ex, ey); mvEye(bx + br * .32, by + br * .05, br * .26, -ex, ey);
-          if (k > .6) { const sw = Math.sin(now * 30) * br * .1; ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(bx - br * .32 + sw, by + br * .05, br * .09, 0, 7); ctx.arc(bx + br * .32 - sw, by + br * .05, br * .09, 0, 7); ctx.fill(); }
-          ctx.fillStyle = INK; ctx.beginPath(); const mo = lose ? br * .3 : (win ? br * .35 : Math.max(0, Math.sin(B * Math.PI * 2 + 1)) * br * .22 * (1 + k));
-          ctx.ellipse(bx, by + br * .55, br * .22, br * .05 + mo, 0, 0, 7); ctx.fill();
-          if (mo > br * .08) { ctx.fillStyle = '#FF3EA5'; ctx.fillRect(bx - br * .1, by + br * .55 + mo * .3, br * .2, mo * .6); }
-          ctx.restore();
-          /* DJ hot dog riding on top, headphones on */
-          if (!win) { mvFoodie(bx, by - br + 14, .55, 0, now, 1 + k * 2); ctx.strokeStyle = INK; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(bx, by - br - 22, 15, Math.PI, 0); ctx.stroke(); circ(bx - 15, by - br - 20, 6, '#FF3EA5', 3); circ(bx + 15, by - br - 20, 6, '#FF3EA5', 3); }
-        } else if (!boomed) {
+        const rot = win ? wt * 12 : Math.sin(now * (3 + k * 5)) * .12 * (1 + k * 2);
+        if (!alive && !boomed) {
           boomed = true; sfx.splat(); sfx.boing(); shake(14, .5); confetti(bx, 440, 60); burst(bx, 440, '#F0B35A', 24, 420); ring(bx, 440, '#fff', 200, .5);
         }
-        /* flying mirror tiles */
-        for (const o of tiles) if (o.life > 0) { ctx.save(); ctx.translate(o.x, o.y); ctx.rotate(o.r); ctx.fillStyle = o.c ? '#fff' : '#9fb0d6'; ctx.strokeStyle = INK; ctx.lineWidth = 3; ctx.fillRect(-8, -8, 16, 16); ctx.strokeRect(-8, -8, 16, 16); ctx.restore(); }
-        /* explosion of sandwiches */
-        if (win && boomed) { const e = wt - .75; if (e > 0) for (let i = 0; i < 6; i++) { const a = -1.2 - i * .5, v = 380 + i * 60, sx = bx + Math.cos(a) * v * e * (i & 1 ? -1 : 1), sy = 440 + Math.sin(a) * v * e + 700 * e * e;
-          ctx.save(); ctx.translate(sx, sy); ctx.rotate(e * (4 + i)); ctx.fillStyle = INK; ctx.fillRect(-27, -19, 54, 38); ctx.fillStyle = '#F0B35A'; ctx.fillRect(-23, -15, 46, 10); ctx.fillRect(-23, 5, 46, 10); ctx.fillStyle = '#5CFF7A'; ctx.fillRect(-25, -5, 50, 5); ctx.fillStyle = '#FF8FD0'; ctx.fillRect(-21, 0, 42, 5); ctx.restore(); } }
-        txt('DANCE-OFF!', W / 2, 40, 28, '#fff'); txt(`${hits} / ${need}`, W / 2, 262, 26, '#FFE14D');
-        ctx.lineWidth = 8; ctx.strokeStyle = flash > 0 ? '#fff' : '#FFE14D'; ctx.beginPath(); ctx.arc(400, 360, 60, 0, 7); ctx.stroke();
-        for (const n of notes) { const d = n.t - clock; if (n.done || d > .9 || d < -.3) continue; ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(400, 360, 60 + Math.max(0, d) * 220, 0, 7); ctx.stroke(); }
-        claude(400, 380 + Math.sin(clock * Math.PI / beat * 2) * 8, 3, { mood: lose ? 'sad' : win ? 'happy' : null, run: g.result ? null : now });
-        if (fbT > 0) txt(fb, 400, 300, 40, '#fff');
-        if (win && wt > .9) mvSlam('SANDWICHES?!', Math.max(.3, 1 - (wt - .9) * 1.5), '#5CFF7A', 330, 80); else mvSlam(slam, slamT * 2, slamC, 330, 90);
-        ctx.restore();
-        vignette(.3);
+        RHYART.draw({ T: now, clock, beat, hits, need, notes, flash, fb, fbT, slam, slamT, slamC, win, lose, wt, kick, tiles, bx, by, br, alive, rot, boomed, result: g.result, lastHitT });
       }
     };
     return g;

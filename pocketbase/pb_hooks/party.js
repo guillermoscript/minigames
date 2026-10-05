@@ -409,4 +409,4 @@ function vsigPayload(room, id, to, k, d) {
 /* what clients may see (the record itself hides `keys`; this is for tests and logs) */
 const publicRoom = (room) => { const o = Object.assign({}, room); delete o.keys; return o; };
 
-module.exports = { fail, MAX_PLAYERS, ROUNDS, LIVES, AWARD, GAMES, GAME_IDS, DUO_IDS, duoIdsFor, seatsOf, TURN_IDS, takeTurnGame, MODES, roleOf, cleanMode, drawCard, stealCard, pump, turnMode, sigPayload, SIG_MAX, SIG_FRAME_MAX, PRE_MS_TURN, vsigPayload, VSIG_MAX, PartyError, cleanName, cleanCode, makeCode, active, newRoom, addPlayer, auth, leave, setMode, start, again, report, tick, advance, roundMs, publicRoom };
+module.exports = { fail, MAX_PLAYERS, ROUNDS, LIVES, AWARD, GAMES, GAME_IDS, DUO_IDS, duoIdsFor, seatsOf, takeRoomGame, TURN_IDS, takeTurnGame, MODES, roleOf, cleanMode, drawCard, stealCard, pump, turnMode, sigPayload, SIG_MAX, SIG_FRAME_MAX, PRE_MS_TURN, vsigPayload, VSIG_MAX, PartyError, cleanName, cleanCode, makeCode, active, newRoom, addPlayer, auth, leave, setMode, start, again, report, tick, advance, roundMs, publicRoom };

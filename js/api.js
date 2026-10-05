@@ -154,13 +154,13 @@ const api = {
     if (!m.ok) return { ok: false, status: m.status, data: { error: m.error || 'Server unreachable' } };
     if (!m.available) return Object.assign(oauthFailure('Sign-in not available right now'), { unavailable: true });
     const g = m.provider;
-    const redirect = new URL(location.href);
-    redirect.searchParams.set('oauth_callback', 'google');
-    redirect.hash = '';
-    const redirectURL = redirect.href;
+    // One fixed callback URI (origin + '/'), whatever URL the player started from (challenge links, ?lang=, fbclid...);
+    // Google only accepts exact registered URIs. The page they were on is restored after sign-in via returnTo.
+    const redirectURL = location.origin + '/?oauth_callback=google';
+    const returnTo = location.href.split('#')[0];
     try {
       // sessionStorage keeps the verifier in this tab and survives the Google round trip.
-      sessionStorage.setItem(OAUTH_KEY, JSON.stringify({ name: g.name, state: g.state, codeVerifier: g.codeVerifier, redirectURL, created: Date.now() }));
+      sessionStorage.setItem(OAUTH_KEY, JSON.stringify({ name: g.name, state: g.state, codeVerifier: g.codeVerifier, redirectURL, returnTo, created: Date.now() }));
       navigate(g.authURL + encodeURIComponent(redirectURL));
       return { ok: true, redirecting: true };
     } catch (e) {
@@ -179,7 +179,9 @@ const api = {
     } catch (_) {}
     // Remove credentials from the address bar before any network exchange.
     for (const key of ['oauth_callback', 'code', 'state', 'error', 'error_description', 'error_uri', 'scope', 'authuser', 'prompt', 'hd']) url.searchParams.delete(key);
-    history.replaceState(null, '', url.href);
+    let back = url.href;
+    try { if (pending && pending.returnTo && new URL(pending.returnTo).origin === location.origin) back = pending.returnTo; } catch (_) {}
+    history.replaceState(null, '', back);
     if (!pending || !state || pending.state !== state || !pending.codeVerifier ||
         !Number.isFinite(pending.created) || Date.now() - pending.created > 10 * 60000 || pending.created > Date.now()) {
       return oauthFailure('Sign-in could not be verified - try again');

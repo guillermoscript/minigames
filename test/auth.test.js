@@ -55,6 +55,15 @@ T('same-tab redirect keeps provider state and PKCE in tab storage', async () => 
   assert.strictEqual(JSON.parse(w.session[pendingKey]).codeVerifier, 'V');
   assert.ok(!w.esList.length && !w.net.user);
 });
+T('redirect_uri is fixed even when started from a challenge/lang/index.html URL, and the page is restored after', async () => {
+  const start = 'https://game.test/index.html?c=900&s=3&f=ANA&lang=es&fbclid=X';
+  const first = world({ href: start }); assert.ok((await first.api.googleSignIn()).redirecting);
+  assert.strictEqual(new URL(first.ctx.location.href).searchParams.get('redirect_uri'), 'https://game.test/?oauth_callback=google');
+  const w = world({ session: first.session, href: 'https://game.test/?oauth_callback=google&state=S&code=CODE' });
+  const r = await w.api.completeGoogleSignIn();
+  assert.ok(r.ok); assert.strictEqual(w.calls[0].body.redirectURL, 'https://game.test/?oauth_callback=google');
+  assert.strictEqual(w.ctx.location.href, start);
+});
 T('callback after reload exchanges exact redirectURL and saves session', async () => {
   const w = await callback({ isNew: true });
   const r = await w.api.completeGoogleSignIn();

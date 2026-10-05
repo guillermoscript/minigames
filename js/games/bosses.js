@@ -1149,8 +1149,8 @@ const BOSSES = {
   },
   /* a bigger swarm of bouncing bugs */
   dodge(sp, s) {
-    const g = gDodge(sp + .2, s.bossBalls || 3);
-    g.cmd = 'BOSS!'; g.hint = 'SURVIVE THE SWARM!'; g.thint = 'DRAG TO DODGE'; g.dur = 9; g.boss = true;
+    const g = gDodge(sp * .85, s.bossBalls || 3);
+    g.cmd = 'BOSS!'; g.hint = 'SURVIVE THE SWARM!'; g.thint = 'DRAG TO DODGE'; g.dur = 8; g.boss = true;
     const d = g.draw; g.draw = t => { d(t); vignette(.3); };
     return g;
   }

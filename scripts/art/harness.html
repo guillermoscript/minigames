@@ -15,12 +15,13 @@ window.loadScripts = async function (list) {
   return 'ok';
 };
 /* build a game: id = a REGMAP id, or 'boss:<name>' (BOSSES[name](sp, stage); stage = STAGES[stageIdx] if stages.js is loaded) */
-function build(id, sp, seed, stageIdx) {
+function build(id, sp, seed, stageIdx, o) {
   if (id.startsWith('boss:')) {
     const name = id.slice(5), st = (typeof STAGES !== 'undefined' && (STAGES.find(s => s.boss === name) || STAGES[stageIdx || 0])) || { bossHp: 10 };
     return withSeed(seed, () => BOSSES[name](sp, st));
   }
   if (!REGMAP[id]) throw new Error('no game ' + id);
+  if (REGMAP[id].duo && o && o.roles) { const D = { role: o.role || 0, roles: o.roles, partner: { name: 'PEPE', color: '#6EA8FE' }, seats: [], byRole: [], send() {}, onMsg() {} }; return withSeed(seed, () => REGMAP[id].fn(sp, D)); }   // DUO/SQUAD game seen from one seat: --role=N --roles=3|4
   return withSeed(seed, () => REGMAP[id].fn(sp));
 }
 /* step(g, T, opts): runs the main.js play loop with a fixed dt. inputs(g, T, dt, api) is called every step before update:
@@ -30,7 +31,7 @@ function run(id, sp, until, inputs, opts) {
   const dt = opts.dt || 1 / 60, seed = opts.seed == null ? 77 : opts.seed;
   parts.length = 0; fxs.length = 0; shakeT = 0; for (const k in keys) delete keys[k];
   now = 0;
-  const g = build(id, sp, seed, opts.stage);
+  const g = build(id, sp, seed, opts.stage, opts);
   const dur = g.boss ? g.dur : g.dur / Math.sqrt(sp);
   const fired = new Set();
   const api = {

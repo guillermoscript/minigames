@@ -203,16 +203,19 @@ function onSig(d) {
 }
 /* context handed to a DUO microgame: { role: 0|1, partner, send(type, data, latest), onMsg(fn(type, data)), away() } */
 function duoCtx(R) {
-  const S = party.sig, act = R.players.filter(p => !p.left), i = act.findIndex(p => p.id === party.you.id), pn = act.find(p => p.id !== party.you.id);
+  const S = party.sig, act = R.players.filter(p => !p.left), n = act.length, i = act.findIndex(p => p.id === party.you.id), pn = act.find(p => p.id !== party.you.id);
   Object.assign(S, { q: [], busy: false, frameBusy: false, retryAt: 0, frameRetry: 0, last: 0, hbAt: now, round: R.round, handler: null, rx: now, since: now });
   S.buf = S.buf.filter(x => x.round === R.round);
+  const roleOfSeat = k => (k + R.round) % n, seats = act.map((p, k) => ({ id: p.id, name: p.name, color: p.color, role: roleOfSeat(k), you: k === i }));
+  const fromRole = id => { const s = seats.find(x => x.id === id); return s ? s.role : -1; };
   return {
-    role: (i + R.round) % 2, roles: 2, partner: pn ? { name: pn.name, color: pn.color } : null,
+    role: roleOfSeat(i), roles: n, partner: pn ? { name: pn.name, color: pn.color } : null,
+    seats, byRole: seats.slice().sort((a, b) => a.role - b.role),   // everybody at the table: byRole[r] = who plays role r
     send(type, data, latest) {
       if (latest) { const k = S.q.findIndex(m => m.t === type && m.l); if (k >= 0) { S.q[k].d = data; delete S.q[k].n; return; } }
       S.q.push({ t: type, d: data === undefined ? null : data, l: !!latest });
     },
-    onMsg(fn) { S.handler = fn; S.buf.splice(0).forEach(x => x.round === S.round && fn(x.t, x.d, x.from)); },
+    onMsg(fn) { S.handler = (t, d, from) => fn(t, d, fromRole(from)); S.buf.splice(0).forEach(x => x.round === S.round && S.handler(x.t, x.d, x.from)); },   // fn(type, data, senderRole)
   };
 }
 const duoAway = () => !!party.room && party.room.mode === 'duo' && party.sig.round === party.room.round && now - party.sig.since > SIG_AWAY && now - party.sig.rx > SIG_AWAY;
@@ -338,7 +341,7 @@ async function partyAct(action, extra) {
   if (r.status === 404) roomGone(); else say(partyErr(r), '#FF4D4D');
   return false;
 }
-const canStart = R => { const n = R.players.filter(p => !p.left).length; return R.mode === 'duo' ? n === 2 : n >= 2; };
+const canStart = R => { const n = R.players.filter(p => !p.left).length; return R.mode === 'duo' ? n >= 2 && n <= 4 : n >= 2; };
 const partyStart = () => { if (isHost() && canStart(party.room)) { track('party_start', { mode: party.room.mode, players: party.room.players.length }); partyAct('start'); } };
 const MODE_NEXT = { versus: 'team', team: 'duo', duo: 'survival', survival: 'knockout', knockout: 'lantern', lantern: 'cards', cards: 'balloon', balloon: 'versus' };
 const partyMode = () => partyAct('mode', { mode: MODE_NEXT[party.room.mode] || 'versus' });
@@ -358,13 +361,13 @@ function statusDot(x, y, r, s) {
 }
 const partyElimination = R => R.mode === 'survival' || R.mode === 'knockout';
 const partyTeam = R => R.mode === 'team' || R.mode === 'duo' || R.mode === 'lantern';
-const modeLabel = m => m === 'lantern' ? 'LANTERNS' : m === 'cards' ? 'CARDS' : m === 'balloon' ? 'BALLOON' : m === 'survival' ? 'SURVIVAL' : m === 'knockout' ? 'KNOCKOUT' : m === 'team' ? 'TEAM' : m === 'duo' ? 'DUO' : 'VERSUS';
-const modeBlurb = m => m === 'lantern' ? 'ONE PLAYS IN THE DARK · THE OTHERS MOVE THE LIGHTS · 3 SHARED LIVES' : m === 'cards' ? 'DRAW CARDS · BEAT THE PILE TO KEEP IT · STEAL WHILE OTHERS PLAY' : m === 'balloon' ? 'ONE PLAYS · THE OTHERS PUMP · WIN TO PASS THE TURN · AVOID THE POP' : m === 'survival' ? '3 LIVES EACH · FAIL AND LOSE A LIFE · LAST PLAYER STANDING WINS' : m === 'knockout' ? 'ONE LIFE · ONE MISTAKE AND YOU ARE OUT · LAST PLAYER WINS' : m === 'duo' ? 'TWO PLAYERS · ONE GAME · DIFFERENT ROLES · WIN OR LOSE TOGETHER' : m === 'team' ? 'TEAMWORK: SHARED LIVES · EVERYONE NEEDS TO PULL THEIR WEIGHT' : 'EVERYONE PLAYS THE SAME GAME · FASTEST AND BEST TAKE THE POINTS';
+const modeLabel = m => m === 'lantern' ? 'LANTERNS' : m === 'cards' ? 'CARDS' : m === 'balloon' ? 'BALLOON' : m === 'survival' ? 'SURVIVAL' : m === 'knockout' ? 'KNOCKOUT' : m === 'team' ? 'TEAM' : m === 'duo' ? 'CO-OP' : 'VERSUS';
+const modeBlurb = m => m === 'lantern' ? 'ONE PLAYS IN THE DARK · THE OTHERS MOVE THE LIGHTS · 3 SHARED LIVES' : m === 'cards' ? 'DRAW CARDS · BEAT THE PILE TO KEEP IT · STEAL WHILE OTHERS PLAY' : m === 'balloon' ? 'ONE PLAYS · THE OTHERS PUMP · WIN TO PASS THE TURN · AVOID THE POP' : m === 'survival' ? '3 LIVES EACH · FAIL AND LOSE A LIFE · LAST PLAYER STANDING WINS' : m === 'knockout' ? 'ONE LIFE · ONE MISTAKE AND YOU ARE OUT · LAST PLAYER WINS' : m === 'duo' ? '2-4 PLAYERS · ONE GAME · A ROLE EACH · WIN OR LOSE TOGETHER' : m === 'team' ? 'TEAMWORK: SHARED LIVES · EVERYONE NEEDS TO PULL THEIR WEIGHT' : 'EVERYONE PLAYS THE SAME GAME · FASTEST AND BEST TAKE THE POINTS';
 /* Each mode explains the actor, the companions and the stakes before anyone starts. */
 const PARTY_HELP = {
   versus: ['EVERYONE PLAYS', 'EVERYONE: PLAY THE SAME MICROGAME', 'RACE: FINISH FAST TO EARN MORE POINTS', 'WIN: THE HIGHEST SCORE AFTER 6 ROUNDS', 'FOLLOW THE MICROGAME CONTROLS'],
   team: ['WIN TOGETHER', 'EVERYONE: PLAY THEIR MICROGAME', 'HELP: EVERY SUCCESS HELPS THE WHOLE TEAM', 'GOAL: CLEAR 8 ROUNDS WITH SHARED LIVES', 'FOLLOW THE MICROGAME CONTROLS'],
-  duo: ['TWO ROLES, ONE TEAM', 'YOU: DO THE ROLE SHOWN BEFORE EACH GAME', 'PARTNER: DO THE OTHER HALF OF THE PUZZLE', 'GOAL: CLEAR 8 ROUNDS TOGETHER', 'EXACTLY 2 PLAYERS · WATCH THE ROLE DEMO'],
+  duo: ['ONE ROLE EACH, ONE TEAM', 'YOU: DO THE ROLE SHOWN BEFORE EACH GAME', 'TEAMMATES: DO THE OTHER PARTS OF THE PUZZLE', 'GOAL: CLEAR 8 ROUNDS TOGETHER', '2 PLAYERS: DUO GAMES · 3-4 PLAYERS: SQUAD GAMES'],
   survival: ['LAST ONE STANDING', 'EVERYONE: PLAY THE SAME MICROGAME', 'FAIL: LOSE ONE OF YOUR 3 LIVES', 'WIN: BE THE LAST PLAYER WITH LIVES', 'ELIMINATED PLAYERS WATCH UNTIL THE END'],
   knockout: ['ONE MISTAKE AND OUT', 'EVERYONE: PLAY THE SAME MICROGAME', 'FAIL: YOUR ONLY LIFE IS GONE', 'WIN: BE THE LAST PLAYER STANDING', 'ELIMINATED PLAYERS WATCH UNTIL THE END'],
   lantern: ['LIGHT THE WAY TOGETHER', 'PLAYER: BEAT THE MICROGAME IN THE DARK', 'FRIENDS: MOVE THEIR LIGHTS TO HELP THEM SEE', 'GOAL: CLEAR 12 ROUNDS WITH 3 SHARED LIVES', 'LIGHT: MOUSE / DRAG / ARROW KEYS'],
@@ -460,7 +463,7 @@ function drawLobby(R) {
   button(174, 547, 206, 43, 'INVITE FRIENDS', partyInvite, { fill: '#4DB8FF', size: 20 });
   if (isHost()) {
     if (canStart(R)) button(400, 547, 376, 43, t('START {mode}', { mode: t(modeLabel(R.mode)) }), partyStart, { fill: '#5CFF7A', size: 27 });
-    else { box3(400, 547, 376, 43, '#4a5065', 4, 4); txt(R.mode === 'duo' ? 'DUO NEEDS EXACTLY 2' : 'NEED 2+ PLAYERS', 588, 569, 20, '#ddd', 'center', 352); }
+    else { box3(400, 547, 376, 43, '#4a5065', 4, 4); txt('NEED 2+ PLAYERS', 588, 569, 20, '#ddd', 'center', 352); }
   } else { box3(400, 547, 376, 43, '#4a5065', 4, 4); txt(t('WAITING FOR {name} TO START', { name: pName(R, R.host).toUpperCase() }), 588, 569, 17, '#ddd', 'center', 352); }
 }
 
@@ -563,32 +566,42 @@ function duoBadge(pn) {
   const c = duoMeColor();
   ctx.save(); ctx.lineWidth = 8; ctx.strokeStyle = c; ctx.strokeRect(4, 4, W - 8, H - 8); ctx.restore();
   box(10 - OX, 88, 300, 34, c, 3); txt(t('YOU: {role}', { role: t(cur.roleLabel) }), 20 - OX, 106, 20, INK, 'left', 282);
-  if (cur.roles && pn) txt(t('{name}: {role}', { name: pn.name.toUpperCase(), role: t(cur.roles[1 - cur.role].label) }), 14 - OX, 140, 15, '#fff', 'left', 290);
+  const R = party.room, act = R.players.filter(p => !p.left), n = act.length;
+  if (cur.roles) act.filter(p => p.id !== party.you.id).forEach((p, k) => { const role = cur.roles[(act.findIndex(q => q.id === p.id) + R.round) % n]; if (role) txt(t('{name}: {role}', { name: p.name.toUpperCase(), role: t(role.label) }), 14 - OX, 140 + k * 17, 15, p.color, 'left', 290); });
 }
 /* intro card, three beats: 1 what YOU do (animated demo + the control), 2 what your friend does, 3 get ready / GO */
 function drawDuoIntro(left) {
-  const R = party.room, m = me(), pn = R.players.find(p => !p.left && p.id !== party.you.id); if (!m || !pn || !cur.roles) return;
+  const R = party.room, m = me(), act = R.players.filter(p => !p.left), others = act.filter(p => p.id !== party.you.id); if (!m || !others.length || !cur.roles) return;
+  const n = act.length, roleOf = p => cur.roles[(act.findIndex(q => q.id === p.id) + R.round) % n], mine = cur.roles[cur.role];
   const el = DUO_PRE - left, beat = el < DUO_A ? 0 : el < DUO_A + DUO_B ? 1 : 2, bt = beat === 0 ? el : beat === 1 ? el - DUO_A : el - DUO_A - DUO_B;
   const k = Math.min(1, bt / .22), pop = 1 + (1 - k) * .25, pulse = .5 + .5 * Math.sin(now * 9);
-  const steps = ['YOU', 'YOUR FRIEND', 'GO!'], stepCol = [m.color, pn.color, '#5CFF7A'];
+  const steps = ['YOU', n > 2 ? 'YOUR TEAM' : 'YOUR FRIEND', 'GO!'], stepCol = [m.color, others[0].color, '#5CFF7A'];
   steps.forEach((sl, i) => { const x = 150 + i * 250, on = i === beat; ctx.globalAlpha = on ? 1 : .4; box(x - 100, 14, 200, 34, on ? stepCol[i] : '#3a3550', 3); txt(String(i + 1) + ' · ' + t(sl), x, 40, 20, on ? INK : '#fff', 'center', 188); }); ctx.globalAlpha = 1;
-  if (beat < 2) {
-    const you = beat === 0, p = you ? m : pn, r = cur.roles[you ? cur.role : 1 - cur.role];
+  const card = (p, r, x, y, w, h, tag) => {   // one player's role card: name, role, one line
+    box(x, y, w, h, '#2b2845', 4); ctx.lineWidth = 7; ctx.strokeStyle = p.color; ctx.strokeRect(x, y, w, h);
+    claude(x + 50, y + h - 34, 3, { col: p.color, mood: 'happy' }); txt(tag ? t('YOU') : p.name.toUpperCase(), x + w / 2 + 38, y + 34, 22, p.color, 'center', w - 110);
+    txt(r.label, x + w / 2 + 38, y + h / 2 + 4, w > 300 ? 34 : 26, '#FFE14D', 'center', w - 110); txt(r.short, x + w / 2 + 38, y + h - 26, 15, '#fff', 'center', w - 110);
+  };
+  if (beat < 2 && (beat === 0 || n === 2)) {
+    const you = beat === 0, p = you ? m : others[0], r = you ? mine : roleOf(others[0]);
     ctx.save(); ctx.translate(W / 2, 330); ctx.scale(pop, pop); ctx.translate(-W / 2, -330); ctx.globalAlpha = k;
-    box(40, 64, 650, 62, p.color, 4); txt(you ? 'YOU DO THIS' : t('{name} DOES THIS', { name: pn.name.toUpperCase() }), 365, 108, 44, INK, 'center', 620);
+    box(40, 64, 650, 62, p.color, 4); txt(you ? 'YOU DO THIS' : t('{name} DOES THIS', { name: p.name.toUpperCase() }), 365, 108, 44, INK, 'center', 620);
     claude(84, 196, 4.6, { col: p.color, mood: 'happy' });
     txt(r.label, 470, 168, 56, '#FFE14D', 'center', 560); txt(r.short, 470, 212, 26, '#fff', 'center', 560);
     box(140, 236, 520, 240, '#2b2845', 4); ctx.lineWidth = 6; ctx.strokeStyle = p.color; ctx.strokeRect(140, 236, 520, 240);
     ctx.save(); ctx.beginPath(); ctx.rect(142, 238, 516, 236); ctx.clip(); ctx.translate(140, 236); try { r.demo(bt + (you ? 0 : 1.3)); } catch (e) {} ctx.restore();
     box(160, 494, 480, 52, '#fff', 4); txt(r.how, W / 2, 532, 30, INK, 'center', 460);
-    txt(you ? 'YOUR FRIEND DOES THE OTHER PART ON THEIR OWN SCREEN' : 'YOU WATCH - THEY DO THIS ON THEIR SCREEN', W / 2, 584, 17, '#c9c6e0', 'center', 740);
+    txt(you ? (n > 2 ? 'YOUR TEAM DOES THE OTHER PARTS ON THEIR OWN SCREENS' : 'YOUR FRIEND DOES THE OTHER PART ON THEIR OWN SCREEN') : 'YOU WATCH - THEY DO THIS ON THEIR SCREEN', W / 2, 584, 17, '#c9c6e0', 'center', 740);
     ctx.restore();
+  } else if (beat === 1) {   // SQUAD: the whole team at once, one card per teammate
+    ctx.save(); ctx.translate(W / 2, 330); ctx.scale(pop, pop); ctx.translate(-W / 2, -330); ctx.globalAlpha = k;
+    txt('THE TEAM', W / 2, 108, 52, '#fff'); others.forEach((p, j) => card(p, roleOf(p), 60 + (j % 2) * 340, 140 + Math.floor(j / 2) * 200, 320, 180, false));
+    txt('EACH DOES THEIR PART ON THEIR OWN SCREEN', W / 2, 584, 17, '#c9c6e0', 'center', 740); ctx.restore();
   } else {
-    txt('GET READY!', W / 2, 112, 56, '#fff'); [[m, cur.roles[cur.role], 'YOU', 40], [pn, cur.roles[1 - cur.role], null, 420]].forEach(([p, r, tag, x]) => {
-      box(x, 170, 340, 190, '#2b2845', 4); ctx.lineWidth = 7; ctx.strokeStyle = p.color; ctx.strokeRect(x, 170, 340, 190);
-      claude(x + 60, 290, 3.6, { col: p.color, mood: 'happy' }); txt(tag ? t('YOU') : p.name.toUpperCase(), x + 205, 220, 24, p.color, 'center', 200); txt(r.label, x + 205, 280, 34, '#FFE14D', 'center', 200); txt(r.short, x + 205, 326, 17, '#fff', 'center', 200);
-    });
-    ctx.save(); ctx.translate(W / 2, 470); ctx.scale(1 + pulse * .15, 1 + pulse * .15); txt('GO!', 0, 40, 120, '#5CFF7A', 'center', 600); ctx.restore();
+    txt('GET READY!', W / 2, 112, 56, '#fff');
+    if (n === 2) [[m, mine, true, 40], [others[0], roleOf(others[0]), false, 420]].forEach(([p, r, tag, x]) => card(p, r, x, 170, 340, 190, tag));
+    else act.forEach((p, j) => card(p, p === m ? mine : roleOf(p), 60 + (j % 2) * 340, 140 + Math.floor(j / 2) * 140, 320, 130, p === m));
+    ctx.save(); ctx.translate(W / 2, 470); ctx.scale(1 + pulse * .15, 1 + pulse * .15); txt('GO!', 0, n > 2 ? 90 : 40, n > 2 ? 90 : 120, '#5CFF7A', 'center', 600); ctx.restore();
   }
   ctx.globalAlpha = 1;
 }

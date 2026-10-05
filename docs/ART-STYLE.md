@@ -299,6 +299,11 @@ Put them next to the DUO reference sheets and the `--rev=HEAD` before frames. Th
 - When a game's hero is tiny (STEADY, `u` 2.6), enlarge the gag prop (the lemonade glass) so the joke reads.
 - Make a boss's hit zone readable in the scene (FAN lanes are dirt paths), and keep the wave counter as a sign below y 58.
 
+**Stage 5 lessons (BRAIN BREAK).**
+- Art-only state kept at module level (card flip angles, bounce flashes) must be keyed to the game's own objects (`cards`, `ball`), not to the clock, or it leaks between rounds and between `shoot.js` shots.
+- Some `timeWin` games (PONG) can't be lost before the timer at low `sp`. To render a lose frame, wrap the art function inside `--inputs` (`const o = W4A.pong; W4A.pong = s => { window.__s = s; return o(s); }`). That also exposes hidden state such as the card kinds or the boss sequence, so a script can win or lose on purpose.
+- When a game has no character, add one at the controls (Claude at the table, with a name tag) and keep it off the clickable area.
+
 ## References (best example of each rule)
 
 - Restyled solo games (stage 1): `js/games/wave1.js` (swat picnic, spot class photo), `wave2.js` (count apartment block, slice kitchen), `wave3.js` (whack cheese, dodge bed), `bosses.js` `bug` (picnic boss with a wooden health sign).

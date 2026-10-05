@@ -2,10 +2,11 @@
 /* Wave 4 — each game: {cmd, hint, dur, update(dt), draw(t), key/down/up/move}; set g.result = 'win'|'lose' */
 /* 23 ── BALANCE: keep Claude upright on the ball (← → / A D, or mouse left-right of centre) */
 function gBalance(sp) {
-  let a = (Math.random() < .5 ? -1 : 1) * .12, w = 0, bx = 0, c = 0, warn = 0; const ph = Math.random() * 6;
+  let a = (Math.random() < .5 ? -1 : 1) * .12, w = 0, bx = 0, c = 0, warn = 0, rT0 = -1; const ph = Math.random() * 6;   // rT0: art only
   const g = {
     cmd: 'BALANCE!', wide: true, hint: 'LEAN THE SAME WAY: ← → OR MOUSE', thint: 'TOUCH LEFT OR RIGHT', dur: 5, timeWin: true,
     update(dt) {
+      if (g.result && rT0 < 0) rT0 = now;
       if (g.result) return;
       c = (keys.ArrowRight || keys.KeyD ? 1 : 0) - (keys.ArrowLeft || keys.KeyA ? 1 : 0);
       if (!c) c = Math.max(-1, Math.min(1, (mouse.x - W / 2) / 250));
@@ -15,15 +16,7 @@ function gBalance(sp) {
       if (Math.abs(a) < .55) warn = 0;
       if (Math.abs(a) > 1) { g.result = 'lose'; sfx.thud(); sfx.buzz(); shake(8, .3); burst(W / 2 + bx, 440, '#FF4D4D', 12); }
     },
-    draw(t) {
-      bg('#FFB3D9', '#ff9fcd', t);
-      ctx.fillStyle = INK; ctx.fillRect(-OX, 516, VW, 90); ctx.fillStyle = '#9b6bd1'; ctx.fillRect(-OX, 524, VW, 80);
-      const cx = W / 2 + bx;
-      shadow(cx, 520, 56, 12, .3); circ(cx, 466, 50, '#4DB8FF', 5);
-      ctx.save(); ctx.translate(cx, 466); ctx.rotate(bx / 50); ctx.fillStyle = '#fff'; ctx.fillRect(-6, -48, 12, 96); ctx.fillRect(-48, -6, 96, 12); ctx.fillStyle = 'rgba(255,255,255,.4)'; ctx.beginPath(); ctx.ellipse(-18, -22, 12, 7, -.6, 0, 7); ctx.fill(); ctx.restore();
-      ctx.save(); ctx.translate(cx, 416); ctx.rotate(g.result === 'lose' ? Math.sign(a) * 1.3 : a);
-      claude(0, 0, 8, { mood: g.result === 'lose' ? 'sad' : g.result === 'win' ? 'happy' : null }); ctx.restore();
-    }
+    draw() { if (g.result && rT0 < 0) rT0 = now; W4A.balance({ a, bx, warn, res: g.result, rT: now - rT0, T: now }); }
   };
   return g;
 }
@@ -33,7 +26,7 @@ function gFlip(sp) {
   const n = sp > 1.5 ? 6 : 4, kinds = shuffle([...Array(n / 2).keys(), ...Array(n / 2).keys()]);
   const cw = n === 4 ? 140 : 108, gap = n === 4 ? 24 : 14, x0 = (W - (n * cw + (n - 1) * gap)) / 2;
   const cards = kinds.map((k, i) => ({ k, x: x0 + i * (cw + gap), up: true, done: false, pk: 1 }));
-  let clock = 0, lock = 0, sel = [], pairs = 0, flipped = false; const peek = 1.6 / Math.sqrt(sp);
+  let clock = 0, lock = 0, sel = [], pairs = 0, flipped = false, rT0 = -1; const peek = 1.6 / Math.sqrt(sp);
   const g = {
     cmd: 'FLIP!', wide: true, hint: 'REMEMBER, THEN MATCH PAIRS', thint: 'REMEMBER, THEN TAP PAIRS', dur: 6.5,
     down(p) {
@@ -47,25 +40,13 @@ function gFlip(sp) {
       }
     },
     update(dt) {
+      if (g.result && rT0 < 0) rT0 = now;
       clock += dt;
       if (clock >= peek && !flipped) { flipped = true; cards.forEach(c => c.up = false); sfx.whoosh(false); sfx.thud(); }
       cards.forEach(c => c.pk = Math.min(1, c.pk + dt * 4));
       if (lock > 0 && (lock -= dt) <= 0) { sel.forEach(c => c.up = false); sel = []; }
     },
-    draw(t) {
-      bg('#FFE29A', '#ffd97f', t);
-      for (const c of cards) {
-        const cx = c.x + cw / 2;
-        const s = 1 + Math.sin(c.pk * Math.PI) * .08; shadow(cx + 4, 384, cw / 2, 10); ctx.save(); ctx.translate(cx, 270); ctx.scale(s, s); ctx.translate(-cx, -270);
-        box3(c.x, 170, cw, 200, c.done ? '#5CFF7A' : c.up ? '#fff' : '#7C4DFF', 6, c.done ? 3 : 6);
-        if (!c.up && !c.done) txt('?', cx, 270, 70);
-        else if (c.k === 0) circ(cx, 270, 38, '#ff4d4d', 5);
-        else if (c.k === 1) star(cx, 270, 48, 22, 5, -Math.PI / 2, '#ffd23f', 5);
-        else box(cx - 34, 236, 68, 68, '#4DB8FF', 5);
-        ctx.restore();
-      }
-      if (clock < peek) txt('MEMORISE!', W / 2, 110, 40, '#fff');
-    }
+    draw() { if (g.result && rT0 < 0) rT0 = now; W4A.flip({ cards, cw, n, peek, clock, lock, res: g.result, rT: now - rT0, T: now }); }
   };
   return g;
 }
@@ -121,13 +102,14 @@ function gFlap(sp) {
 
 /* 27 ── PONG: don't let the ball past you (mouse or ↑ ↓) */
 function gPong(sp) {
-  const pad = { y: 300, h: 120 }; let target = 300, hits = 0;
+  const pad = { y: 300, h: 120 }; let target = 300, hits = 0, rT0 = -1;   // rT0: art only
   const vs = VW / W, rx = W + OX - 50, px = -OX + 62, vMax = 360 * sp * vs, ball = { x: 300, y: 200 + Math.random() * 200, vx: 230 * Math.sqrt(sp) * vs, vy: (Math.random() < .5 ? -1 : 1) * (100 + Math.random() * 80) * Math.sqrt(sp), r: 16 };
   const faster = () => { ball.vx = Math.sign(ball.vx) * Math.min(vMax, Math.abs(ball.vx) * 1.12); };
   const g = {
     cmd: 'PONG!', wide: true, hint: 'BLOCK THE BALL: MOUSE OR ↑ ↓', thint: 'DRAG UP AND DOWN', dur: 4.8, timeWin: true,
     move(p) { target = p.y; },
     update(dt) {
+      if (g.result && rT0 < 0) rT0 = now;
       if (g.result) return;
       if (keys.ArrowUp || keys.KeyW) target -= 650 * dt; if (keys.ArrowDown || keys.KeyS) target += 650 * dt;
       target = Math.max(130, Math.min(480, target)); pad.y += (target - pad.y) * Math.min(1, 20 * dt);
@@ -140,14 +122,7 @@ function gPong(sp) {
       }
       if (ball.x < -OX) { g.result = 'lose'; sfx.miss(); sfx.buzz(); shake(9, .3); burst(-OX + 10, ball.y, '#FF4D4D', 14); }
     },
-    draw(t) {
-      bg('#1f2a44', '#26335a', t);
-      ctx.fillStyle = '#fff'; ctx.fillRect(-OX + 20, 64, VW - 40, 8); ctx.fillRect(-OX + 20, 524, VW - 40, 8);
-      for (let i = 0; i < 9; i++) { box(rx, 80 + i * 50, 30, 42, i % 2 ? '#ff6b6b' : '#ffd23f', 3); }
-      box3(-OX + 34, pad.y - pad.h / 2, 22, pad.h, OR, 4, 4);
-      claude(-OX + 120, pad.y + 30, 3.2, { mood: g.result === 'lose' ? 'sad' : g.result === 'win' ? 'happy' : null });
-      shadow(ball.x + 4, 536, ball.r, 5, .35); token(ball.x, ball.y, ball.r + 4);
-    }
+    draw() { if (g.result && rT0 < 0) rT0 = now; W4A.pong({ pad, ball, rx, px, res: g.result, rT: now - rT0, T: now }); }
   };
   return g;
 }
@@ -887,7 +862,297 @@ const W4A = (() => {
     }
     vignette(.14);
   }
-  return { maze, flap, charge, crank, wires };
+  /* ═════════════ shared bits for stage 5 (BALANCE, FLIP, PONG) ═════════════ */
+  function pill(x, y, label, col, up) {   // name tag with a pointer; up = pointer on top
+    X.font = '700 15px Fredoka, "Helvetica Neue", Arial, sans-serif'; const w = Math.min(130, X.measureText(t(label)).width + 24), d = up ? -1 : 1;
+    X.beginPath(); X.moveTo(x - 8, y + d * 11); X.lineTo(x, y + d * 21); X.lineTo(x + 8, y + d * 11); X.closePath(); ink(col, 2.5);
+    rr(x - w / 2, y - 12, w, 24, 12); ink(col, 3); X.fillStyle = 'rgba(255,255,255,.35)'; rr(x - w / 2 + 6, y - 9, w - 12, 6, 3); X.fill();
+    txt(label, x, y + 1, 15, INK, 'center', w - 12);
+  }
+  function badge(s, x, y, size, bgc, rot) {   // shouted word on a coloured slab
+    X.save(); X.translate(x, y); X.rotate(rot || 0); X.font = `900 ${size}px "Arial Black", Impact, sans-serif`; const w = Math.min(330, X.measureText(t(s)).width + size * .9), h = size * 1.3;
+    X.fillStyle = 'rgba(20,16,28,.3)'; rr(-w / 2 + 4, -h / 2 + 7, w, h, h * .46); X.fill();
+    rr(-w / 2, -h / 2, w, h, h * .46); ink(bgc, 4); X.fillStyle = 'rgba(255,255,255,.3)'; rr(-w / 2 + 8, -h / 2 + 5, w - 16, h * .22, h * .1); X.fill();
+    txt(s, 0, 2, size, '#fff', 'center', w - 16); X.restore();
+  }
+  function spk(x, y, ro, ri, n, fill, o = 0, rot = -Math.PI / 2) { X.beginPath(); for (let i = 0; i < n * 2; i++) { const r = i % 2 ? ri : ro, a = rot + i * Math.PI / n; X.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); } X.closePath(); ink(fill, o); }
+  function crowdFolk(x, y, i, mood, look, T, hop) {   // a spectator: head, hair, shirt, eyes that follow the action
+    const sk = ['#ffd7b0', '#e8b48a', '#c98b63', '#f4c9a0'][Math.floor(hr(i + 8) * 4)], hair = ['#3a2a1a', '#d9944f', '#14101c', '#e8434f', '#6b4a9e'][Math.floor(hr(i + 28) * 5)], sh = ['#ff5c8a', '#4db8ff', '#ffd23f', '#5CFF7A', '#b49cff', '#ff9a3a'][Math.floor(hr(i + 48) * 6)];
+    const by = y - hop + Math.sin(T * 3 + i * 1.3) * 1.5;
+    rr(x - 14, by + 11, 28, 30, 9); ink(sh, 3);
+    X.beginPath(); X.arc(x, by, 13, 0, TAU); ink(sk, 3);
+    X.beginPath(); X.arc(x, by - 2, 13, Math.PI * 1.05, Math.PI * 1.95); X.lineTo(x + 11, by - 4); X.quadraticCurveTo(x, by - 10, x - 11, by - 4); X.closePath(); X.fillStyle = hair; X.fill(); X.strokeStyle = INK; X.lineWidth = 2.5; X.stroke();
+    const w = mood === 'gasp';
+    for (const sd of [-1, 1]) { X.beginPath(); X.arc(x + sd * 5, by + 1, w ? 3.4 : 2.6, 0, TAU); X.fillStyle = '#fff'; X.fill(); X.lineWidth = 1.8; X.strokeStyle = INK; X.stroke(); X.beginPath(); X.arc(x + sd * 5 + look * 1.2, by + 1, 1.5, 0, TAU); X.fillStyle = INK; X.fill(); }
+    X.strokeStyle = INK; X.lineWidth = 2.5; X.lineCap = 'round';
+    if (w) { el(x, by + 8, 3, 3.6); ink('#ff6b6b', 1.8); } else { X.beginPath(); X.arc(x, by + 5, 4.5, .15 * Math.PI, .85 * Math.PI); X.stroke(); }
+  }
+
+  /* ═════════════ BALANCE: the big top (stage 5) ═════════════
+     Claude stands on a circus ball in the ring. The crowd cheers, a seal juggles a ball on its nose, a wobble dial hangs from the roof.
+     Win: Claude hops on the ball, the crowd throws hearts and stars. Fail: Claude tumbles off, the ball rolls away, the crowd gasps. */
+  let BLBG = null, BLW = -1;
+  function balBg() {
+    if (BLBG && BLW === VW) return BLBG; BLW = VW;
+    return BLBG = bake(() => {
+      const L = -OX - 2, R = W + OX + 2, FL = 512, N = 30;
+      X.save(); X.beginPath(); X.rect(L, 0, R - L, 308); X.clip();
+      for (let i = 0; i < N; i++) { const a0 = Math.PI / 2 + (i - N / 2) * (3.4 / N), a1 = a0 + 3.4 / N; X.beginPath(); X.moveTo(400, -150); X.lineTo(400 + Math.cos(a0) * 1500, -150 + Math.sin(a0) * 1500); X.lineTo(400 + Math.cos(a1) * 1500, -150 + Math.sin(a1) * 1500); X.closePath(); X.fillStyle = i % 2 ? '#fff0c9' : '#ff7b6b'; X.fill(); }
+      X.restore();
+      for (let x = L - 20, i = 0; x < R + 30; x += 56, i++) { X.beginPath(); X.arc(x, 308, 28, 0, Math.PI); ink(i % 2 ? '#fff0c9' : '#ff7b6b', 3); }
+      X.fillStyle = INK; X.fillRect(L, 306, R - L, 4);
+      for (let i = 0; i < 4; i++) { const px = L + (i + .5) * (R - L) / 4; X.strokeStyle = INK; X.lineWidth = 3; X.beginPath(); X.moveTo(px - 160, 262); X.quadraticCurveTo(px, 308, px + 160, 262); X.stroke();
+        for (let f = 0; f < 6; f++) { const q = (f + .5) / 6, fx = lerp(px - 160, px + 160, q), fy = lerp(262, 262, q) + Math.sin(q * Math.PI) * 24; X.beginPath(); X.moveTo(fx - 9, fy); X.lineTo(fx + 9, fy); X.lineTo(fx, fy + 20); X.closePath(); ink(['#ffd23f', '#4db8ff', '#ff5c8a'][f % 3], 2); } }
+      wall(L, R, 310, FL, '#5b3a9e', '#2f1f62');
+      for (const sy of [360, 404]) { rr(L - 10, sy, R - L + 20, 14, 5); ink('#7c58d0', 3); X.fillStyle = 'rgba(255,255,255,.2)'; X.fillRect(L, sy + 3, R - L, 3); }
+      const bz = X.createLinearGradient(0, 438, 0, FL); bz.addColorStop(0, '#fff'); bz.addColorStop(1, '#ece4f5'); X.fillStyle = bz; X.fillRect(L, 438, R - L, FL - 438);
+      X.save(); X.beginPath(); X.rect(L, 438, R - L, FL - 438); X.clip(); X.fillStyle = '#ff4d5e'; for (let x = L - 40; x < R + 40; x += 64) X.fillRect(x, 438, 32, FL - 438);
+      X.fillStyle = 'rgba(20,16,28,.14)'; X.fillRect(L, 438, R - L, 6); for (let x = L + 16; x < R; x += 64) { spk(x + 32 - 16 + 0, 478, 12, 5, 5, '#ffd23f', 2); } X.restore();
+      rr(L - 10, 430, R - L + 20, 14, 6); ink('#ffd23f', 3.5); X.fillStyle = 'rgba(255,255,255,.5)'; rr(L, 433, R - L, 3, 1.5); X.fill();
+      const fg = X.createLinearGradient(0, FL, 0, H); fg.addColorStop(0, '#f2cd8a'); fg.addColorStop(1, '#c98443'); X.fillStyle = fg; X.fillRect(L, FL, R - L, H - FL);
+      X.fillStyle = 'rgba(120,70,30,.3)'; for (let i = 0; i < 80; i++) { X.beginPath(); X.arc(L + hr(i + 7) * (R - L), FL + 10 + hr(i + 77) * 88, 1.6 + hr(i + 5) * 1.6, 0, TAU); X.fill(); }
+      X.strokeStyle = 'rgba(255,255,255,.55)'; X.lineWidth = 4; X.beginPath(); X.ellipse(400, 590, 420, 56, 0, Math.PI, TAU); X.stroke();
+      X.fillStyle = INK; X.fillRect(L, FL - 2, R - L, 4);
+      // the seal's pedestal
+      rr(66, 462, 108, 50, 8); ink('#4db8ff', 4); X.save(); rr(66, 462, 108, 50, 8); X.clip(); X.fillStyle = '#fff'; for (let i = 0; i < 4; i++) X.fillRect(66 + 10 + i * 28, 462, 12, 50); X.restore(); rr(60, 452, 120, 14, 6); ink('#ffd23f', 3.5);
+    });
+  }
+  function seal(x, y, T, res, rT) {   // sits on the pedestal at (x, y); balances a ball on its nose
+    const won = res === 'win', lost = res === 'lose', bob = Math.sin(T * 3) * 2;
+    X.save(); X.translate(x, y + bob);
+    celF(() => { X.beginPath(); X.ellipse(0, -24, 26, 34, 0, 0, TAU); }, '#9fb3d8', '#6f86b4', 6, 4, 4);
+    el(0, -16, 16, 22); ink('#e8f0ff', 0);
+    const clap = won ? Math.sin(T * 14) * .35 : 0;
+    for (const sd of [-1, 1]) { X.save(); X.translate(sd * 22, -24); X.rotate(sd * (.7 - clap)); el(0, 8, 8, 18); ink('#7f95c2', 3); X.restore(); }
+    celF(() => { X.beginPath(); X.ellipse(0, -62, 21, 19, 0, 0, TAU); }, '#9fb3d8', '#6f86b4', 4, 3, 4);
+    el(0, -55, 13, 9); ink('#e8f0ff', 2.5); X.beginPath(); X.arc(0, -61, 4.4, 0, TAU); X.fillStyle = INK; X.fill();
+    for (const sd of [-1, 1]) { eye(sd * 9, -69, 5.2, won ? 'happy' : lost ? 'wide' : 'idle', 0, .1, T, sd); X.strokeStyle = INK; X.lineWidth = 1.8; for (let w = 0; w < 2; w++) { X.beginPath(); X.moveTo(sd * 8, -55 + w * 4); X.lineTo(sd * 24, -57 + w * 7); X.stroke(); } }
+    const by = -92 - Math.abs(Math.sin(T * 3.2)) * (won ? 16 : 8);
+    X.beginPath(); X.arc(0, by, 11, 0, TAU); ink('#ff5c8a', 3); X.fillStyle = 'rgba(255,255,255,.6)'; el(-4, by - 4, 3.5, 2, -.5); X.fill();
+    X.restore();
+  }
+  function crowd(look, res, rT, T) {
+    const won = res === 'win', lost = res === 'lose';
+    for (let r = 0; r < 2; r++) { const sy = r ? 404 : 360, n = Math.ceil(VW / 46) + 1;
+      for (let i = 0; i < n; i++) { const x = -OX + 14 + i * 46 + r * 23, hop = won ? Math.abs(Math.sin(rT * 8 + i * 1.7)) * 12 * Math.min(1, rT * 3) : 0;
+        crowdFolk(x, sy - 28, i + r * 40, lost ? 'gasp' : 'ok', clamp((look - x) / 300, -1, 1), T, hop); } }
+  }
+  function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+  function balance(s) {
+    X = ctx; const { a, bx, warn, res, rT, T } = s, won = res === 'win', lost = res === 'lose', cx = 400 + bx, sgn = a < 0 ? -1 : 1;
+    layer(balBg());
+    // spotlight cone follows the ball (additive)
+    X.save(); X.globalCompositeOperation = 'lighter'; const sc = lost ? 0 : 1;
+    X.fillStyle = `rgba(255,248,190,${.2 * sc})`; X.beginPath(); X.moveTo(cx - 14, -8); X.lineTo(cx + 14, -8); X.lineTo(cx + 150, 520); X.lineTo(cx - 150, 520); X.closePath(); X.fill();
+    X.fillStyle = `rgba(255,248,190,${.14 * sc})`; el(cx, 516, 150, 18); X.fill(); X.restore();
+    crowd(cx, res, rT, T);
+    seal(120, 452, T, res, rT);
+    pill(120, 330, 'SEAL', '#9fb3d8', false);
+    // the wobble dial, hung from the roof on two strings
+    {
+      const sw = warn && !res ? Math.sin(T * 40) * 2 : Math.sin(T * 1.3) * 1; const dx = 400 + sw, dy = 168;
+      X.strokeStyle = INK; X.lineWidth = 3; X.lineCap = 'round'; X.beginPath(); X.moveTo(342, 60); X.lineTo(dx - 56, dy - 76); X.moveTo(458, 60); X.lineTo(dx + 56, dy - 76); X.stroke();
+      X.fillStyle = 'rgba(20,16,28,.3)'; rr(dx - 100 + 4, dy - 80 + 7, 200, 86, 14); X.fill();
+      rr(dx - 100, dy - 80, 200, 86, 14); ink('#a5622c', 4); rr(dx - 94, dy - 74, 188, 74, 10); ink('#d9944f', 0); X.fillStyle = 'rgba(255,255,255,.25)'; rr(dx - 90, dy - 72, 120, 5, 2.5); X.fill();
+      const R0 = 62, zs = [[-1, -.7, '#ff4d5e'], [-.7, -.55, '#ffd23f'], [-.55, .55, '#5CFF7A'], [.55, .7, '#ffd23f'], [.7, 1, '#ff4d5e']];
+      for (const [u0, u1, c] of zs) { X.beginPath(); X.arc(dx, dy - 2, R0, -Math.PI / 2 + u0 * 1.25, -Math.PI / 2 + u1 * 1.25); X.arc(dx, dy - 2, R0 - 16, -Math.PI / 2 + u1 * 1.25, -Math.PI / 2 + u0 * 1.25, true); X.closePath(); X.fillStyle = c; X.fill(); X.strokeStyle = INK; X.lineWidth = 2.5; X.stroke(); }
+      const an = -Math.PI / 2 + clamp(a, -1.1, 1.1) * 1.25; line([[dx, dy - 2], [dx + Math.cos(an) * (R0 - 4), dy - 2 + Math.sin(an) * (R0 - 4)]], 4, '#fff');
+      X.beginPath(); X.arc(dx, dy - 2, 8, 0, TAU); ink('#ffd23f', 3);
+    }
+    // the ball
+    const bxx = lost ? cx - sgn * ease(rT / .9) * 260 : cx, bro = lost ? bx / 50 - sgn * rT * 6 : bx / 50, byy = 466;
+    shadowEl(bxx, 514, 56, 11, .3);
+    X.save(); X.translate(bxx, byy);
+    const BC = () => { X.beginPath(); X.arc(0, 0, 50, 0, TAU); };
+    celF(BC, '#4DB8FF', '#2a86c9', 8, 8, 5);
+    X.save(); BC(); X.clip(); X.rotate(bro); X.fillStyle = 'rgba(255,255,255,.9)'; X.fillRect(-6, -52, 12, 104); X.fillRect(-52, -6, 104, 12); spk(0, 0, 18, 8, 5, '#ffd23f', 2.5); X.restore();
+    X.strokeStyle = INK; X.lineWidth = 2; BC(); X.stroke(); glint(BC, -18, -24, 14, 7, .5, -.6); X.restore();
+    // Claude: upright and wobbling, a hopping winner, or a tumbling loser
+    if (lost) {
+      const e = ease(rT / .5), rot = sgn * (.4 + e * 1.1), px = cx + sgn * e * 70, py = 416 + e * 54;
+      X.save(); X.translate(px, py); X.rotate(rot); arms(8, -2.4 + Math.sin(T * 25) * .3, 2.4 - Math.sin(T * 25) * .3, 1, OR); claude(0, 0, 8, { mood: 'sad' }); X.restore();
+      const hx = px + Math.sin(rot) * 66, hy = py - Math.cos(rot) * 66 - 12; stars(hx, hy - 24, 26, T);
+      shadowEl(px + sgn * 30, 516, 60, 9, .25);
+      if (rT > .35) badge('BONK!', clamp(px + sgn * 20, 130, 670), 392, 34, '#ff4d5e', -sgn * .12);
+    } else {
+      const hop = won ? Math.abs(Math.sin(rT * 9)) * 18 : 0, ar = won ? 2.5 + Math.sin(T * 14) * .2 : 0;
+      X.save(); X.translate(cx, 416 - hop); X.rotate(won ? 0 : a);
+      if (won) arms(8, -ar, ar, 1, OR); else { const f = clamp(Math.abs(a) * 1.6, 0, 1.2); arms(8, -1.35 + a * .9 - f * Math.sin(T * 22) * .15, 1.35 + a * .9 + f * Math.sin(T * 22) * .15, 1, OR); }
+      claude(0, 0, 8, { mood: won ? 'happy' : null }); X.restore();
+      if (!res && warn) drop(cx + 56 * (a < 0 ? -1 : 1), 352, 1.2, 1);
+      if (!res) pill(cx, 322 - 0, 'YOU', '#FFE14D', false);
+      if (won) for (let i = 0; i < 6; i++) { const q = (rT * .9 + i * .17) % 1; heart(120 + i * 118 + Math.sin(rT * 3 + i) * 10, 330 - q * 90, 1.1 - q * .3, i % 2 ? '#ff5c8a' : '#ffd23f', 1 - q); }
+      if (won) for (let i = 0; i < 14; i++) { const cc = ['#ff5c8a', '#ffd23f', '#4db8ff', '#5CFF7A', '#b49cff'][i % 5], x = 40 + hr(i + 90) * 720, y = ((hr(i + 110) * 220 + rT * (160 + hr(i + 120) * 120)) % 380) + 30; X.save(); X.translate(x, y); X.rotate(T * 4 + i); X.fillStyle = cc; X.fillRect(-5, -2.5, 10, 5); X.restore(); }
+    }
+    vignette(.16);
+  }
+
+  /* ═════════════ FLIP: the owl's library (stage 5) ═════════════
+     Cards lie on a green-felt reading table, Claude stands at the table, an owl professor with round glasses watches from the shelf and
+     follows the cards you pick. Win: the owl hoots, hearts, cards dance. Fail: the owl covers its eyes and Claude slumps. */
+  let FLBG = null, FLBW = -1, flFa = [], flLast = -1, flPop = [], flRef = null;
+  function flipBg() {
+    if (FLBG && FLBW === VW) return FLBG; FLBW = VW;
+    return FLBG = bake(() => {
+      const L = -OX - 2, R = W + OX + 2;
+      wall(L, R, 0, 140, '#e8c58e', '#ffe0a8'); X.fillStyle = 'rgba(200,120,70,.16)'; for (let x = L; x < R; x += 44) X.fillRect(x, 0, 22, 140);
+      X.fillStyle = 'rgba(255,120,150,.4)'; for (let i = 0; i < 30; i++) { X.beginPath(); X.arc(L + hr(i + 3) * (R - L), 8 + hr(i + 33) * 120, 3, 0, TAU); X.fill(); }
+      // window with the night, a moon and a drifting cloud (cloud is live)
+      rr(590, 60, 112, 78, 8); ink('#fff', 4.5); const ng = X.createLinearGradient(0, 66, 0, 134); ng.addColorStop(0, '#1d1840'); ng.addColorStop(1, '#3d3480'); X.fillStyle = ng; rr(598, 68, 96, 62, 4); X.fill();
+      X.beginPath(); X.arc(668, 90, 12, 0, TAU); X.fillStyle = '#fff3b0'; X.fill(); X.fillStyle = '#3d3480'; X.beginPath(); X.arc(673, 86, 10, 0, TAU); X.fill();
+      X.fillStyle = '#fff'; for (const [sx, sy] of [[614, 82], [632, 104], [650, 78], [620, 118]]) { X.fillRect(sx, sy, 3, 3); }
+      X.fillStyle = INK; X.fillRect(644 - 2, 68, 4, 62); X.fillRect(598, 98, 96, 4);
+      rr(584, 134, 124, 10, 4); ink('#d9944f', 3.5);
+      // framed picture
+      rr(180, 66, 70, 58, 5); ink('#a5622c', 4); X.fillStyle = '#9be38a'; rr(188, 74, 54, 42, 3); X.fill(); X.fillStyle = '#5fb944'; X.beginPath(); X.moveTo(188, 116); X.quadraticCurveTo(205, 92, 224, 116); X.fill(); X.beginPath(); X.arc(228, 88, 7, 0, TAU); X.fillStyle = '#ffd23f'; X.fill();
+      // the owl's shelf: a plank, books on the end, a candle
+      rr(6, 146, 126, 14, 5); ink('#d9944f', 3.5); X.fillStyle = 'rgba(255,255,255,.4)'; rr(12, 149, 110, 3, 1.5); X.fill();
+      for (const bk of [[108, 112, 12, 34, '#ff5c8a'], [118, 118, 10, 28, '#4db8ff'], [10, 120, 11, 26, '#5CFF7A']]) { rr(bk[0], bk[1] + 0 + (146 - bk[1] - bk[3]), bk[2], bk[3], 3); ink(bk[4], 2.5); }
+      for (const sx of [24, 112]) { X.beginPath(); X.moveTo(sx, 160); X.lineTo(sx + 12, 160); X.lineTo(sx, 180); X.closePath(); ink('#a5622c', 3); }
+      // the reading table: wooden rim, green felt, wooden apron with drawers
+      const fg = X.createLinearGradient(0, 500, 0, H); fg.addColorStop(0, '#c98a58'); fg.addColorStop(1, '#8a5530'); X.fillStyle = fg; X.fillRect(L, 500, R - L, H - 500);
+      X.strokeStyle = 'rgba(20,16,28,.25)'; X.lineWidth = 3; for (let y = 530, r = 0; y < H; y += 34, r++) { X.beginPath(); X.moveTo(L, y); X.lineTo(R, y); X.stroke(); for (let x = L + (r % 2) * 60; x < R; x += 120) { X.beginPath(); X.moveTo(x, y); X.lineTo(x, y + 34); X.stroke(); } }
+      X.fillStyle = INK; X.fillRect(L, 498, R - L, 5);
+      rr(-20 - OX, 420, VW + 40, 82, 8); ink('#b06d33', 4); for (let x = 60 - OX; x < R; x += 190) { rr(x, 432, 150, 58, 6); ink('#d9944f', 3); X.beginPath(); X.arc(x + 75, 461, 7, 0, TAU); ink('#ffd23f', 2.5); }
+      rr(-30 - OX, 134, VW + 60, 296, 26); ink('#d9944f', 5); rr(-14 - OX, 150, VW + 28, 264, 18); ink('#3fb260', 3.5);
+      X.save(); rr(-14 - OX, 150, VW + 28, 264, 18); X.clip(); X.fillStyle = 'rgba(255,255,255,.12)'; for (let x = L - 60; x < R; x += 100) X.fillRect(x, 150, 50, 264); X.fillStyle = 'rgba(20,16,28,.18)'; X.fillRect(L, 150, R - L, 10); X.restore();
+      X.fillStyle = 'rgba(255,255,255,.4)'; rr(10 - OX, 140, 300, 5, 2.5); X.fill();
+    });
+  }
+  function owl(x, y, mood, look, T, k) {   // perches at (x, y); mood: idle / happy / hide
+    X.save(); X.translate(x, y + (mood === 'happy' ? -Math.abs(Math.sin(T * 9)) * 6 : 0));
+    shadowEl(0, 2, 28, 5, .25);
+    celF(() => { X.beginPath(); X.ellipse(0, -30, 26, 32, 0, 0, TAU); }, '#c98443', '#a5622c', 6, 4, 4.5);
+    el(0, -24, 16, 22); ink('#f7d297', 0); for (let r = 0; r < 3; r++) for (let c = -1; c <= 1; c++) { X.strokeStyle = 'rgba(165,98,44,.5)'; X.lineWidth = 2; X.beginPath(); X.arc(c * 7, -34 + r * 10, 3.4, .2, Math.PI - .2); X.stroke(); }
+    for (const sd of [-1, 1]) { X.beginPath(); X.moveTo(sd * 14, -54); X.lineTo(sd * 24, -72); X.lineTo(sd * 6, -62); X.closePath(); ink('#a5622c', 3); el(sd * 28, -28, 7, 18, sd * .25); ink('#a5622c', 3); el(sd * 9, 1, 6, 3); ink('#ff9a3a', 2.5); }
+    for (const sd of [-1, 1]) { X.beginPath(); X.arc(sd * 11, -50, 14, 0, TAU); ink('#fff', 3); }
+    for (const sd of [-1, 1]) { const px = sd * 11 + look * 4, pr = mood === 'hide' ? 0 : 6; if (mood === 'happy') { X.beginPath(); X.arc(sd * 11, -48, 7, Math.PI * 1.1, Math.PI * 1.9); X.lineWidth = 4; X.strokeStyle = INK; X.stroke(); } else if (pr) { X.beginPath(); X.arc(px, -50, pr, 0, TAU); X.fillStyle = INK; X.fill(); X.beginPath(); X.arc(px - 2, -52, 2, 0, TAU); X.fillStyle = '#fff'; X.fill(); }
+      X.beginPath(); X.arc(sd * 11, -50, 15, 0, TAU); X.lineWidth = 2.6; X.strokeStyle = '#8f9cb3'; X.stroke(); }
+    X.beginPath(); X.moveTo(-3, -44); X.lineTo(3, -44); X.lineTo(0, -37); X.closePath(); ink('#ff9a3a', 2);
+    X.strokeStyle = '#8f9cb3'; X.lineWidth = 2.6; X.beginPath(); X.moveTo(-3, -50); X.lineTo(3, -50); X.stroke();
+    if (mood === 'hide') { X.save(); X.translate(-8, -48); X.rotate(.4); el(0, 0, 11, 24); ink('#a5622c', 3.5); X.restore(); }
+    X.restore();
+  }
+  function cardFace(k, cx, cy, sc) {
+    X.save(); X.translate(cx, cy); X.scale(sc, sc);
+    if (k === 0) { X.beginPath(); X.arc(0, 0, 38, 0, TAU); ink('#ff4d5e', 5); X.strokeStyle = '#fff'; X.lineWidth = 3.5; X.beginPath(); X.arc(-46, 0, 36, -.9, .9); X.stroke(); X.beginPath(); X.arc(46, 0, 36, Math.PI - .9, Math.PI + .9); X.stroke(); X.fillStyle = 'rgba(255,255,255,.55)'; el(-12, -16, 11, 6, -.6); X.fill(); }
+    else if (k === 1) { spk(0, 2, 48, 22, 5, '#ffd23f', 5); X.fillStyle = 'rgba(255,255,255,.55)'; el(-10, -14, 9, 5, -.6); X.fill(); }
+    else { rr(-32, -32, 64, 64, 8); ink('#4DB8FF', 5); X.fillStyle = '#2a86c9'; X.beginPath(); X.moveTo(-32, 32); X.lineTo(32, 32); X.lineTo(32, 6); X.lineTo(-32, 22); X.closePath(); X.fill(); X.fillStyle = 'rgba(255,255,255,.55)'; rr(-24, -24, 22, 9, 4); X.fill(); }
+    X.restore();
+  }
+  function flip(s) {
+    X = ctx; const { cards, cw, n, peek, clock, lock, res, rT, T } = s, won = res === 'win', lost = res === 'lose', pairs = cards.filter(c => c.done).length / 2;
+    layer(flipBg());
+    if (flRef !== cards || now < flLast) { flRef = cards; flFa = cards.map(c => (c.up || c.done) ? 1 : 0), flPop = cards.map(() => 0); }
+    const dd = clamp(now - flLast, 0, .1); flLast = now;
+    // moon-lit cloud (background gag) and the dust motes of the library
+    X.save(); X.beginPath(); rr(598, 68, 96, 62, 4); X.clip(); cloud(580 + (T * 6) % 150, 98, .5); X.restore();
+    // the owl watches the cards you picked
+    const sel = cards.map((c, i) => c.up && !c.done && clock >= peek ? i : -1).filter(i => i >= 0), tgt = sel.length ? cards[sel[sel.length - 1]].x + cw / 2 : 400 + Math.sin(T * .8) * 160;
+    owl(66, 146, won ? 'happy' : lost ? 'hide' : 'idle', clamp((tgt - 66) / 350, -1, 1), T, 0);
+    X.beginPath(); X.ellipse(108, 128, 4, 7 + Math.sin(T * 9) * 1.5, 0, 0, TAU); X.fillStyle = '#ffb347'; X.fill(); X.beginPath(); X.arc(108, 117, 3, 0, TAU); X.fillStyle = '#ffe14d'; X.fill();
+    // the pairs plaque (top centre, below the hint)
+    {
+      const m = n / 2, pw = 40 + m * 36, px = 400 - pw / 2;
+      X.fillStyle = 'rgba(20,16,28,.3)'; rr(px + 4, 64 + 6, pw, 30, 15); X.fill(); rr(px, 64, pw, 30, 15); ink('#d9944f', 3.5);
+      for (let i = 0; i < m; i++) { const on = i < pairs, sx = 400 - (m - 1) * 18 + i * 36; spk(sx, 80, 11, 5, 5, on ? '#ffd23f' : '#a5622c', 2.5); }
+    }
+    // the cards
+    for (let i = 0; i < cards.length; i++) {
+      const c = cards[i], cx = c.x + cw / 2, tg = (c.up || c.done) ? 1 : 0; flFa[i] += clamp(tg - flFa[i], -dd * 5, dd * 5); if (c.done && flPop[i] < 1) flPop[i] = Math.min(1, flPop[i] + dd * 3);
+      const fa = flFa[i], sx = Math.max(.04, Math.abs(Math.cos(fa * Math.PI))), front = fa > .5, bump = 1 + Math.sin(c.pk * Math.PI) * .08, dance = won ? Math.abs(Math.sin(rT * 7 + i * .9)) * 16 : 0, ty = 270 - dance - (c.done ? Math.sin(flPop[i] * Math.PI) * 12 : 0);
+      shadowEl(cx + 4, 386, cw / 2 * sx, 9, .28);
+      X.save(); X.translate(cx, ty); X.scale(sx * bump, bump); X.translate(-cx, -ty);
+      const cy0 = ty - 100, lost2 = lost && !c.done;
+      celF(() => rr(c.x, cy0, cw, 200, 14), front ? (c.done ? '#d6ffe0' : '#fff') : '#7C4DFF', front ? (c.done ? '#98e8ac' : '#d9d3ea') : '#5a35c9', 6, 6, 5);
+      if (front) { cardFace(c.k, cx, ty, cw > 120 ? 1 : .82); if (c.done) { X.beginPath(); X.arc(c.x + cw - 18, cy0 + 20, 12, 0, TAU); ink('#5CFF7A', 3); X.strokeStyle = '#fff'; X.lineWidth = 3.5; X.beginPath(); X.moveTo(c.x + cw - 24, cy0 + 20); X.lineTo(c.x + cw - 19, cy0 + 25); X.lineTo(c.x + cw - 11, cy0 + 14); X.stroke(); } }
+      else { rr(c.x + 10, cy0 + 10, cw - 20, 180, 8); X.lineWidth = 3; X.strokeStyle = '#f6f1ff'; X.stroke(); spk(cx, ty, 34, 16, 5, '#ffd23f', 4); X.fillStyle = 'rgba(255,255,255,.3)'; rr(c.x + 14, cy0 + 14, 40, 6, 3); X.fill(); if (lost2) { X.globalAlpha = .6; X.fillStyle = '#7C4DFF'; rr(c.x, cy0, cw, 200, 14); X.fill(); X.globalAlpha = 1; } }
+      X.restore();
+      if (c.done && flPop[i] < 1) { for (let q = 0; q < 5; q++) { const a = q * 1.26, rad = 20 + flPop[i] * 44; spk(cx + Math.cos(a) * rad, ty + Math.sin(a) * rad, 7, 3, 4, '#FFE14D', 1.5, a); } }
+    }
+    if (clock < peek && !res) badge('MEMORISE!', 400, 124, 34, '#ff5c8a', -.04);
+    // Claude at the table
+    {
+      const u = 5.2, cx0 = 400, cy0 = 536, jump = won ? Math.abs(Math.sin(rT * 9)) * 18 : 0, sag = lost ? 5 : 0;
+      shadowEl(cx0, cy0 + 2, 38, 7, .3); X.save(); X.translate(cx0, cy0 - jump + sag);
+      if (won) arms(u, -2.7 + Math.sin(T * 14) * .2, 2.7 - Math.sin(T * 14) * .2, 1, OR); else if (lost) arms(u, -.5, .6, .8, OR); else arms(u, -1.1 + Math.sin(T * 3) * .1, 1.1 - Math.sin(T * 3) * .1, 1, OR);
+      claude(0, 0, u, { mood: won ? 'happy' : lost ? 'sad' : null }); X.restore();
+      if (lost) drop(cx0 + 34, cy0 - 60, 1.1, 1);
+      if (!res) pill(cx0 + 74, 478, 'YOU', '#FFE14D', false);
+      if (won) for (let i = 0; i < 5; i++) { const q = (rT * 1.1 + i * .2) % 1; heart(cx0 + (i - 2) * 40, 470 - q * 60, .9 - q * .3, '#ff5c8a', 1 - q); }
+    }
+    if (won) for (let i = 0; i < 5; i++) { const q = (rT * 1.2 + i * .2) % 1; heart(80 + Math.sin(rT * 5 + i) * 14, 92 - q * 36, .8 - q * .3, '#ff5c8a', 1 - q); }
+    vignette(.16);
+  }
+
+  /* ═════════════ PONG: the squash court (stage 5) ═════════════
+     A wooden squash court seen from above. Claude holds a racket on the left, the front wall is a column of padded bumpers that jiggle
+     when the ball hits them, and a duck rides a robot vacuum across the floor. Win: the duck honks, hearts and confetti.
+     Fail: the ball gets past the racket and bonks Claude, then pops away. */
+  let PGBG = null, PGW = -1, pgPrev = 0, pgFlash = [], pgLast = -1, pgRef = null;
+  function pongBg() {
+    if (PGBG && PGW === VW) return PGBG; PGW = VW;
+    return PGBG = bake(() => {
+      const L = -OX - 2, R = W + OX + 2, rx = W + OX - 50;
+      let g = X.createLinearGradient(0, 72, 0, 524); g.addColorStop(0, '#f2c586'); g.addColorStop(1, '#d99a58'); X.fillStyle = g; X.fillRect(L, 64, R - L, 470);
+      X.strokeStyle = 'rgba(120,70,30,.28)'; X.lineWidth = 2.5; for (let y = 100, r = 0; y < 524; y += 38, r++) { X.beginPath(); X.moveTo(L, y); X.lineTo(R, y); X.stroke(); for (let x = L + (r % 2) * 90; x < R; x += 180) { X.beginPath(); X.moveTo(x, y); X.lineTo(x, y + 38); X.stroke(); } }
+      X.fillStyle = 'rgba(255,255,255,.12)'; for (let x = L; x < R; x += 120) X.fillRect(x, 72, 60, 452);
+      X.strokeStyle = 'rgba(255,77,94,.85)'; X.lineWidth = 6; X.beginPath(); X.moveTo(300, 76); X.lineTo(300, 524); X.moveTo(300, 300); X.lineTo(rx - 60, 300); X.stroke(); X.beginPath(); X.arc(300, 300, 36, 0, TAU); X.stroke();
+      // side walls (top and bottom), seen from above: pale concrete with a hard INK edge
+      for (const [y0, y1, e] of [[-4, 64, 64], [524, 604, 524]]) { g = X.createLinearGradient(0, y0, 0, y1); g.addColorStop(0, '#e6e9ee'); g.addColorStop(1, '#c9ced6'); X.fillStyle = g; X.fillRect(L, y0, R - L, y1 - y0); X.fillStyle = INK; X.fillRect(L, e + (y0 < 0 ? 0 : 0), R - L, 8); X.fillStyle = 'rgba(20,16,28,.14)'; X.fillRect(L, y0 < 0 ? 72 : 516, R - L, 8); }
+      X.fillStyle = 'rgba(255,255,255,.5)'; X.fillRect(L, 10, R - L, 4);
+      // the "OUT" gutter behind the racket: red and white hazard
+      X.save(); X.beginPath(); X.rect(L, 72, -OX + 30 - L, 452); X.clip(); X.fillStyle = '#ff4d5e'; X.fillRect(L, 72, 80, 452); X.fillStyle = '#fff'; for (let y = 60; y < 540; y += 36) { X.beginPath(); X.moveTo(L, y); X.lineTo(L + 80, y - 40); X.lineTo(L + 80, y - 22); X.lineTo(L, y + 18); X.closePath(); X.fill(); } X.restore();
+      X.fillStyle = INK; X.fillRect(-OX + 28, 72, 5, 452);
+      // front wall (right): a deep wall slab; the bumper pads are live
+      rr(rx - 10, 66, R - rx + 30, 466, 12); ink('#6b6580', 4); X.fillStyle = 'rgba(255,255,255,.2)'; rr(rx - 4, 72, 8, 454, 4); X.fill();
+    });
+  }
+  function pong(s) {
+    X = ctx; const { pad, ball, rx, px, res, rT, T } = s, won = res === 'win', lost = res === 'lose';
+    layer(pongBg());
+    if (pgRef !== ball || now < pgLast) { pgRef = ball; pgFlash = []; pgPrev = 0; } const dd = clamp(now - pgLast, 0, .1); pgLast = now;
+    const sgn = Math.sign(ball.vx) || 1;
+    if (!res) { if (pgPrev > 0 && sgn < 0) { pgFlash[clamp(Math.floor((ball.y - 80) / 50), 0, 8)] = .3; } pgPrev = sgn; }
+    // a duck rides a robot vacuum across the floor (background gag, always moving)
+    {
+      const q = (T * .12) % 1, tri = q < .5 ? q * 2 : 2 - q * 2, vx = -OX + 220 + tri * (VW - 520), vy = 440 + Math.sin(T * 1.2) * 4, dir = q < .5 ? 1 : -1;
+      shadowEl(vx + 3, vy + 18, 36, 9, .25);
+      X.save(); X.translate(vx, vy); celF(() => { X.beginPath(); X.ellipse(0, 0, 32, 20, 0, 0, TAU); }, '#c9ced6', '#8f9cb3', 5, 5, 3.5);
+      el(0, -2, 20, 11); ink('#2b2a52', 0); X.beginPath(); X.arc(-8 * dir, -2, 3, 0, TAU); X.fillStyle = '#5CFF7A'; X.fill();
+      X.save(); X.scale(dir, 1); celF(() => { X.beginPath(); X.ellipse(2, -16, 14, 11, 0, 0, TAU); }, '#ffe14d', '#e0b82e', 4, 3, 3); X.beginPath(); X.arc(10, -29, 9, 0, TAU); ink('#ffe14d', 3);
+      X.beginPath(); X.moveTo(17, -29); X.lineTo(26, -27); X.lineTo(17, -24); X.closePath(); ink('#ff9a3a', 2); X.beginPath(); X.arc(12, -31, 2.2, 0, TAU); X.fillStyle = INK; X.fill(); X.restore(); X.restore();
+    }
+    // the bumper pads on the front wall: they jiggle when hit
+    for (let i = 0; i < 9; i++) { pgFlash[i] = Math.max(0, (pgFlash[i] || 0) - dd); const f = pgFlash[i] > 0 ? Math.sin(pgFlash[i] / .3 * Math.PI) : 0, lit = f > 0, wob = won ? Math.sin(T * 14 + i) * 3 : 0;
+      celF(() => rr(rx - f * 7 + wob, 80 + i * 50, 30 + f * 5, 42, 10), lit ? '#fff' : (i % 2 ? '#ff6b6b' : '#ffd23f'), i % 2 ? '#c93a4a' : '#c99512', 5, 0, 3.5); glint(() => rr(rx, 80 + i * 50, 30, 42, 10), rx + 8, 90 + i * 50, 4, 8, .5, -.4); }
+    // the racket (hit-box x -OX+34..56) and Claude's arm reaching for the handle
+    const hy = pad.y + 13, cxC = -OX + 120, cyC = pad.y + 30, u = 3.2, bounce = won ? Math.abs(Math.sin(rT * 9)) * 12 : 0;
+    shadowEl(cxC, cyC + 3, 30, 6, .3);
+    line([[-OX + 56, pad.y], [-OX + 86, hy - bounce]], 7, '#a5622c');
+    celF(() => rr(-OX + 34, pad.y - pad.h / 2, 22, pad.h, 11), '#ff4d5e', '#b8283a', 3, 0, 4.5);
+    X.save(); rr(-OX + 38, pad.y - pad.h / 2 + 5, 14, pad.h - 10, 7); X.clip(); X.strokeStyle = 'rgba(255,255,255,.7)'; X.lineWidth = 1.5; for (let y = pad.y - 56; y < pad.y + 56; y += 8) { X.beginPath(); X.moveTo(-OX + 36, y); X.lineTo(-OX + 54, y); X.stroke(); } for (let x = -OX + 41; x < -OX + 52; x += 5) { X.beginPath(); X.moveTo(x, pad.y - 60); X.lineTo(x, pad.y + 60); X.stroke(); } X.restore();
+    X.save(); X.translate(cxC, cyC - bounce);
+    if (won) arms(u, -2.5 + Math.sin(T * 14) * .2, 2.5 - Math.sin(T * 14) * .2, 1, OR); else if (lost) arms(u, -.4, .5, .8, OR); else arms(u, -1.5, .9, 1, OR);
+    claude(0, 0, u, { mood: won ? 'happy' : lost ? 'sad' : null }); X.restore();
+    if (!res) pill(cxC + 6, cyC - 56, 'YOU', '#FFE14D', false);
+    // the ball: a yellow squash ball with a speed trail
+    if (!lost) {
+      const sp = Math.hypot(ball.vx, ball.vy) || 1;
+      for (let k = 3; k >= 1; k--) { X.globalAlpha = .18 * (4 - k) / 3; X.beginPath(); X.arc(ball.x - ball.vx / sp * k * 13, ball.y - ball.vy / sp * k * 13, ball.r * (1 - k * .13), 0, TAU); X.fillStyle = '#fff'; X.fill(); } X.globalAlpha = 1;
+      shadowEl(ball.x + 4, ball.y + 14, ball.r, 5, .28);
+      X.save(); X.translate(ball.x, ball.y); const BC = () => { X.beginPath(); X.arc(0, 0, ball.r, 0, TAU); }; celF(BC, '#d9f24a', '#a8c21f', 3, 3, 3.5); X.strokeStyle = '#fff'; X.lineWidth = 2; X.beginPath(); X.arc(-ball.r * 1.15, 0, ball.r * .95, -.7, .7); X.stroke(); X.beginPath(); X.arc(ball.r * 1.15, 0, ball.r * .95, Math.PI - .7, Math.PI + .7); X.stroke(); glint(BC, -5, -6, 5, 2.6, .6, -.6); X.restore();
+    } else {
+      // the ball bonks Claude, then pops up and away over the court
+      const bT = clamp(rT, 0, 1), bxp = cxC + 6 + bT * 300, byp = cyC - 40 - bT * 320 + bT * bT * 560;
+      X.save(); X.translate(bxp, byp); X.rotate(bT * 12); X.beginPath(); X.arc(0, 0, 16, 0, TAU); ink('#d9f24a', 3.5); X.strokeStyle = '#fff'; X.lineWidth = 2; X.beginPath(); X.arc(-18, 0, 15, -.7, .7); X.stroke(); X.restore();
+      stars(cxC, cyC - 38, 22, T); badge('BONK!', 400, 200, 36, '#ff4d5e', .08);
+    }
+    if (won) { for (let i = 0; i < 5; i++) { const q = (rT * 1.1 + i * .2) % 1; heart(cxC + 20 + i * 12, cyC - 60 - q * 70, .9 - q * .3, '#ff5c8a', 1 - q); }
+      for (let i = 0; i < 16; i++) { const cc = ['#ff5c8a', '#ffd23f', '#4db8ff', '#5CFF7A', '#b49cff'][i % 5], x = 160 + hr(i + 90) * 480, y = ((hr(i + 110) * 220 + rT * (160 + hr(i + 120) * 120)) % 400) + 70; X.save(); X.translate(x, y); X.rotate(T * 4 + i); X.fillStyle = cc; X.fillRect(-5, -2.5, 10, 5); X.restore(); } }
+    vignette(.14);
+  }
+  return { maze, flap, charge, crank, wires, balance, flip, pong };
 })();
 
 /* 29 ── MAZE: walk Claude to the star (arrows / WASD) */

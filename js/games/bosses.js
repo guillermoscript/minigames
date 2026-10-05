@@ -603,6 +603,154 @@ const STOMPART = (() => {
   return { draw };
 })();
 
+/* ───────────── DISCO BALL BOSS art (stage 5 boss "simon"), in the DUO look (docs/ART-STYLE.md) ─────────────
+   A neon dance floor. A mirror ball in shades hangs from the ceiling and flashes a beam at the pad it wants you to copy; Claude stands on the
+   centre disc and pulls the same moves. Each right step puts another crack in the ball (it is also the health: 4 cracks = beaten) and lights
+   a marquee bulb. Win: the ball splits in two and drops, shades flying. Lose: the floor goes dark under a laughing ball.
+   ART ONLY: no RNG calls (noise is a hash). */
+const SIMONART = (() => {
+  const TAU = Math.PI * 2, CX = 400, CY = 336;
+  let X = null;
+  const clamp = (v, a, b) => v < a ? a : v > b ? b : v, lerp = (a, b, k) => a + (b - a) * k;
+  const ease = k => (k = clamp(k, 0, 1), k * k * (3 - 2 * k)), outBack = k => { k = clamp(k, 0, 1) - 1; const c = 1.70158; return 1 + (c + 1) * k * k * k + c * k * k; };
+  const hash = i => { const s = Math.sin(i * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
+  function rr(x, y, w, h, r) { X.beginPath(); X.moveTo(x + r, y); X.arcTo(x + w, y, x + w, y + h, r); X.arcTo(x + w, y + h, x, y + h, r); X.arcTo(x, y + h, x, y, r); X.arcTo(x, y, x + w, y, r); X.closePath(); }
+  function el(x, y, rx, ry, rot = 0) { X.beginPath(); X.ellipse(x, y, Math.max(.01, rx), Math.max(.01, ry), rot, 0, TAU); }
+  function ink(fill, o = 4) { X.lineJoin = 'round'; X.lineCap = 'round'; if (o) { X.lineWidth = o * 2; X.strokeStyle = INK; X.stroke(); } if (fill) { X.fillStyle = fill; X.fill(); } }
+  function cel(f, base, shade, sx, sy, o = 4) { f(); ink(shade, o); X.save(); f(); X.clip(); X.translate(-sx, -sy); f(); X.fillStyle = base; X.fill(); X.restore(); }
+  function tube(pts, w, col) { X.lineJoin = 'round'; X.lineCap = 'round'; X.beginPath(); pts.forEach((p, i) => i ? X.lineTo(p[0], p[1]) : X.moveTo(p[0], p[1])); X.strokeStyle = INK; X.lineWidth = w + 7; X.stroke(); X.strokeStyle = col; X.lineWidth = w; X.stroke(); }
+  function spk(x, y, ro, ri, n, fill, o = 0, rot = -Math.PI / 2) { X.beginPath(); for (let i = 0; i < n * 2; i++) { const r = i % 2 ? ri : ro, a = rot + i * Math.PI / n; X.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); } X.closePath(); ink(fill, o); }
+  function badge(s, x, y, size, bgc, rot) {
+    X.font = `900 ${size}px "Arial Black", Impact, sans-serif`; const w = Math.min(320, X.measureText(t(s)).width + size * .9), h = size * 1.45;
+    X.save(); X.translate(x, y); X.rotate(rot); X.fillStyle = 'rgba(20,16,28,.3)'; rr(-w / 2 + 4, -h / 2 + 7, w, h, h * .46); X.fill();
+    rr(-w / 2, -h / 2, w, h, h * .46); ink(bgc, 4); X.fillStyle = 'rgba(255,255,255,.35)'; rr(-w / 2 + 8, -h / 2 + 5, w - 16, h * .26, h * .13); X.fill();
+    txt(s, 0, 2, size, '#fff', 'center', w - 18); X.restore();
+  }
+  function pill(x, y, label, col) {
+    X.font = '700 15px Fredoka, "Helvetica Neue", Arial, sans-serif'; const w = Math.min(130, X.measureText(t(label)).width + 24);
+    X.beginPath(); X.moveTo(x - 8, y + 11); X.lineTo(x, y + 21); X.lineTo(x + 8, y + 11); X.closePath(); ink(col, 2.5);
+    rr(x - w / 2, y - 12, w, 24, 12); ink(col, 3); X.fillStyle = 'rgba(255,255,255,.35)'; rr(x - w / 2 + 6, y - 9, w - 12, 6, 3); X.fill();
+    txt(label, x, y + 1, 15, INK, 'center', w - 12);
+  }
+  function heart(x, y, s, a = 1) { X.save(); X.globalAlpha = a; X.translate(x, y); X.scale(s, s); X.beginPath(); X.moveTo(0, 7); X.bezierCurveTo(-14, -2, -8, -12, 0, -5); X.bezierCurveTo(8, -12, 14, -2, 0, 7); X.closePath(); ink('#ff5c8a', 2.5); X.fillStyle = 'rgba(255,255,255,.6)'; el(-4, -3, 2, 1.2, -.5); X.fill(); X.restore(); }
+  function sweat(x, y, s, T) { const k = (T * 2.2) % 1; X.globalAlpha = 1 - k; X.save(); X.translate(x + k * 6, y + k * 14); X.scale(s, s); X.beginPath(); X.moveTo(0, -8); X.quadraticCurveTo(6, 0, 0, 5); X.quadraticCurveTo(-6, 0, 0, -8); ink('#9fe3ff', 2); X.restore(); X.globalAlpha = 1; }
+  function stars(x, y, rad, T) { for (let i = 0; i < 3; i++) { const a = T * 6 + i * TAU / 3; spk(x + Math.cos(a) * rad, y + Math.sin(a) * rad * .4, 8, 3.5, 5, '#FFE14D', 2.5, a); } }
+  function arms(u, la, ra, k, col) {
+    if (k <= .02) return; const ol = Math.max(3, u * .5), L = 3.3 * u * k, aw = 1.2 * u, hs = 2 * u, gap = .35 * u;
+    const one = (sx, an) => { X.save(); X.translate(sx * 6.6 * u, -5.2 * u); X.rotate(an); X.fillStyle = INK; X.fillRect(-aw / 2 - ol, -L - ol, aw + ol * 2, L + ol * 2); X.fillRect(-hs / 2 - ol, -L - gap - hs - ol, hs + ol * 2, hs + ol * 2); X.fillStyle = col; X.fillRect(-aw / 2, -L, aw, L); X.fillRect(-hs / 2, -L - gap - hs, hs, hs); X.fillStyle = 'rgba(255,255,255,.35)'; X.fillRect(-hs / 2, -L - gap - hs, hs * .45, hs * .4); X.restore(); };
+    one(-1, la); one(1, ra);
+  }
+  const COL = [['#ff4d5e', '#b8283a'], ['#5CFF7A', '#23a046'], ['#4da6ff', '#2a6fc0'], ['#FFE14D', '#c99512']];
+  const PAD = [[0, -110], [110, 0], [0, 110], [-110, 0]], BX = 122, BY = 214;     // pad offsets (they match the hit test: up, right, down, left); the ball's centre
+
+  /* ── baked: the club wall (neon strips, speaker stacks, ceiling rail) and the dance floor ── */
+  let BG = null, BW = -1;
+  function bakeBg() {
+    const c = document.createElement('canvas'); c.width = VW; c.height = H; const old = X; X = c.getContext('2d'); X.translate(OX, 0);
+    const L = -OX - 2, R = W + OX + 2, FH = 150; let g = X.createLinearGradient(0, 0, 0, FH); g.addColorStop(0, '#0b0726'); g.addColorStop(1, '#2a1a5e'); X.fillStyle = g; X.fillRect(L, 0, R - L, FH + 4);
+    for (let i = 0, x = L + 24; x < R; i++, x += 62) { const h = 40 + hash(i + 3) * 70; X.fillStyle = ['#7b5cff', '#ff5c8a', '#4dc8ff', '#ffd23f'][i % 4]; X.globalAlpha = .2; rr(x, FH - h, 18, h, 6); X.fill(); X.globalAlpha = 1; }
+    X.fillStyle = INK; X.fillRect(L, FH, R - L, 5);
+    g = X.createLinearGradient(0, FH + 5, 0, H); g.addColorStop(0, '#34206e'); g.addColorStop(1, '#1d1245'); X.fillStyle = g; X.fillRect(L, FH + 5, R - L, H - FH);
+    for (let r = 0, y = FH + 5; y < H; y += 50, r++) for (let x = L - ((L % 100) + 100) % 100 + (r % 2) * 50 - 100; x < R + 50; x += 100) { X.fillStyle = 'rgba(255,255,255,.05)'; X.fillRect(x, y, 50, 50); }
+    X.strokeStyle = 'rgba(20,16,28,.5)'; X.lineWidth = 2; for (let y = FH + 55; y < H; y += 50) { X.beginPath(); X.moveTo(L, y); X.lineTo(R, y); X.stroke(); }
+    X.beginPath(); X.ellipse(CX, CY + 6, 230, 196, 0, 0, TAU); X.fillStyle = 'rgba(123,92,255,.2)'; X.fill(); X.lineWidth = 7; X.strokeStyle = 'rgba(255,92,138,.55)'; X.stroke(); X.lineWidth = 3; X.strokeStyle = 'rgba(255,255,255,.5)'; el(CX, CY + 6, 218, 184); X.stroke();
+    // speaker stack, right
+    for (const [sx, sy, sw, sh] of [[646, 160, 118, 150], [660, 318, 104, 130]]) { rr(sx, sy, sw, sh, 12); ink('#4a4570', 4.5); X.fillStyle = 'rgba(255,255,255,.18)'; rr(sx + 6, sy + 6, 14, sh - 12, 5); X.fill(); X.fillStyle = 'rgba(20,16,28,.22)'; rr(sx + sw - 22, sy + 6, 16, sh - 12, 5); X.fill(); }
+    for (const [x, y] of [[652, 166], [758, 166], [652, 304], [758, 304]]) { X.beginPath(); X.arc(x, y, 3.4, 0, TAU); ink('#c9ced6', 1.5); }
+    // ceiling rail the ball hangs from
+    rr(L - 10, 52, R - L + 20, 10, 5); ink('#8f9cb3', 3); X.fillStyle = 'rgba(255,255,255,.4)'; X.fillRect(L, 54, R - L, 2);
+    X = old; return c;
+  }
+  const SPK_C = [[702, 232, 40, 22], [706, 385, 34, 18]];
+  function floorPads(s) {
+    const { lit, litT, ph, res, T } = s;
+    for (let i = 0; i < 4; i++) {
+      const [dx, dy] = PAD[i], x = CX + dx, y = CY + dy, on = litT > 0 && lit === i, bad = res === 'lose' && lit === i, d = on ? 3 : 9, c = COL[i];
+      X.fillStyle = 'rgba(20,16,28,.35)'; rr(x - 50 + 4, y - 50 + 12, 100, 100, 20); X.fill();
+      rr(x - 50, y - 50 + 9, 100, 100, 20); ink(bad ? '#6b6580' : c[1], 4);
+      const fc = bad ? '#ff4d5e' : on ? '#fff' : c[0], face = () => rr(x - 50, y - 50 + 9 - d, 100, 100, 20);
+      face(); ink(fc, 4); X.save(); face(); X.clip(); if (!on && !bad) { X.fillStyle = 'rgba(20,16,50,.42)'; X.fillRect(x - 52, y - 52, 104, 104); } X.fillStyle = on ? 'rgba(255,255,255,.55)' : 'rgba(255,255,255,.28)'; rr(x - 40, y - 44 + 9 - d, 80, 9, 4.5); X.fill(); X.restore();
+      // the arrow
+      X.save(); X.translate(x, y + 9 - d); X.rotate([0, Math.PI / 2, Math.PI, -Math.PI / 2][i]); const k = on ? 1.12 : 1;
+      X.beginPath(); X.moveTo(0, -26 * k); X.lineTo(24 * k, 0); X.lineTo(10 * k, 0); X.lineTo(10 * k, 24 * k); X.lineTo(-10 * k, 24 * k); X.lineTo(-10 * k, 0); X.lineTo(-24 * k, 0); X.closePath(); ink(on ? c[0] : bad ? '#fff' : 'rgba(255,255,255,.78)', 3.5); X.restore();
+      if (on) { X.save(); X.globalCompositeOperation = 'lighter'; X.fillStyle = `rgba(255,255,255,${.28 + Math.sin(T * 30) * .05})`; rr(x - 62, y - 56, 124, 124, 28); X.fill(); X.restore(); }
+    }
+  }
+  function discoBall(x, y, s) {
+    const { ph, idx, len, res, rT, T, lit, litT } = s, won = res === 'win', lost = res === 'lose', cr = idx, beat = Math.sin(T * 7);
+    // the ball: mirror facets (clip a grid), cel shade, crown of cracks as it takes damage
+    const br = 50, split = won && rT > .12, open = split ? ease((rT - .12) / .45) : 0;
+    const bd = () => { X.beginPath(); X.arc(0, 0, br, 0, TAU); };
+    const body = () => {                       // the mirror ball itself: cel shade, facet grid, twinkles, glint
+      cel(bd, '#dfe5ff', '#8f9cb3', 9, 8, 5);
+      X.save(); bd(); X.clip(); X.strokeStyle = 'rgba(95,100,170,.55)'; X.lineWidth = 1.8; for (let i = -4; i <= 4; i++) { X.beginPath(); X.ellipse(0, 0, Math.abs(i) / 4 * br, br, 0, 0, TAU); X.stroke(); X.beginPath(); X.moveTo(-br, i * br / 4.5); X.quadraticCurveTo(0, i * br / 4.5 + (i < 0 ? -10 : i > 0 ? 10 : 0), br, i * br / 4.5); X.stroke(); }
+      for (let i = 0; i < 9; i++) { const a = hash(i + 4) * TAU, rd = hash(i + 14) * br * .8, tw = Math.sin(T * 5 + i * 1.9) > .55; if (tw) { X.fillStyle = ['#fff', '#ffd23f', '#ff9ac2', '#9fe3ff'][i % 4]; X.fillRect(Math.cos(a) * rd - 4, Math.sin(a) * rd - 4, 8, 8); } }
+      X.fillStyle = 'rgba(255,255,255,.55)'; el(-22, -28, 14, 7, -.6); X.fill(); X.restore();
+    };
+    const fall = won ? ease((rT - .12) / .8) * 200 : 0;
+    X.save(); X.translate(x, y + fall); X.rotate(won ? 0 : Math.sin(T * (lost ? 7 : 2.4)) * (lost ? .12 : .05));
+    if (!won || !split) tube([[0, -(y - 62)], [0, -br + 2]], 6, '#c9ced6');
+    if (split) {
+      for (const sd of [-1, 1]) { X.save(); X.translate(sd * open * 46, open * 14); X.rotate(sd * open * .55); X.save(); X.beginPath(); X.rect(sd > 0 ? 0 : -br - 8, -br - 8, br + 8, br * 2 + 16); X.clip(); body(); X.restore(); X.beginPath(); X.moveTo(0, -br + 1); X.lineTo(0, br - 1); X.lineWidth = 6; X.strokeStyle = INK; X.stroke(); X.restore(); }
+    } else {
+      body();
+      X.strokeStyle = INK; X.lineWidth = 3.6; X.lineCap = 'round'; X.lineJoin = 'round'; const CR = [[[-6, -50], [-12, -34], [-2, -26], [-10, -12]], [[30, -40], [22, -26], [32, -14], [24, -2]], [[-40, 8], [-26, 14], [-30, 28], [-16, 34]], [[10, 20], [4, 34], [16, 44], [8, 52]]];
+      for (let i = 0; i < Math.min(4, cr); i++) { X.beginPath(); CR[i].forEach((p, j) => j ? X.lineTo(p[0], p[1]) : X.moveTo(p[0], p[1])); X.stroke(); }
+      bd(); X.lineWidth = 3; X.strokeStyle = INK; X.stroke();
+      // headphones, shades, mouth: the face carries the joke
+      for (const sd of [-1, 1]) { rr(sd * 52 - 9, -14, 18, 30, 8); ink('#ff5c8a', 3.5); } X.beginPath(); X.arc(0, -4, 54, Math.PI * 1.1, Math.PI * 1.9); X.lineWidth = 8; X.strokeStyle = INK; X.stroke(); X.lineWidth = 3.5; X.strokeStyle = '#ff5c8a'; X.stroke();
+      const slip = Math.min(8, cr * 2.2), sy = -8 + slip, shake = lost ? Math.sin(T * 40) * 1.5 : 0;
+      for (const sd of [-1, 1]) { rr(sd * 21 - 17 + shake, sy - 11, 34, 24, 9); ink('#14101c', 3); X.fillStyle = 'rgba(255,255,255,.45)'; el(sd * 21 - 6 + shake, sy - 4, 7, 2.6, -.4); X.fill(); }
+      line2(-4, sy, 4, sy);
+      X.strokeStyle = INK; X.lineWidth = 4; X.lineCap = 'round';
+      if (lost) { X.beginPath(); X.arc(0, 26, 12, .1, Math.PI - .1); X.fillStyle = '#ff6b6b'; X.fill(); X.stroke(); } else if (cr >= 3) { X.beginPath(); X.moveTo(-10, 28); X.quadraticCurveTo(-5, 22, 0, 28); X.quadraticCurveTo(5, 34, 10, 28); X.stroke(); } else if (ph === 'show') { X.beginPath(); X.arc(0, 22, 11, .15, Math.PI - .15); X.stroke(); } else { X.beginPath(); X.moveTo(-9, 28); X.quadraticCurveTo(0, 33, 10, 25); X.stroke(); }
+      if (cr >= 2 && !lost) sweat(34, -26, 1, T);
+    }
+    X.restore();
+    if (won && split) { const q = clamp((rT - .12) / .9, 0, 1), sx = x + q * 90, sy2 = y - Math.sin(q * Math.PI) * 130 + q * q * 160; X.save(); X.translate(sx, sy2); X.rotate(q * 7); for (const sd of [-1, 1]) { rr(sd * 21 - 17, -11, 34, 24, 9); ink('#14101c', 3); } line2(-4, 0, 4, 0); X.restore(); stars(x, y + ease((rT - .12) / .8) * 200 - 26, 38, T); }
+  }
+  function line2(x0, y0, x1, y1) { X.strokeStyle = INK; X.lineWidth = 5; X.beginPath(); X.moveTo(x0 - 6, y0); X.lineTo(x1 + 6, y1); X.stroke(); }
+  function speakers(s) {
+    const { litT, res, T } = s, thump = res === 'win' ? 0 : (litT > 0 ? 1 : 0) * .1 + Math.abs(Math.sin(T * 7)) * .05;
+    for (const [x, y, r, r2] of SPK_C) { const k = 1 + thump; X.beginPath(); X.arc(x, y, r * k, 0, TAU); ink('#2b2745', 4); X.beginPath(); X.arc(x, y, r2 * k, 0, TAU); ink('#6b6580', 3); X.beginPath(); X.arc(x, y, 7 * k, 0, TAU); ink('#9aa0c0', 2); X.fillStyle = 'rgba(255,255,255,.35)'; el(x - r * .4, y - r * .45, r * .28, 6, -.5); X.fill();
+      if (litT > 0 && res !== 'win') { X.save(); X.strokeStyle = `rgba(255,255,255,${litT * 2.5})`; X.lineWidth = 3; X.beginPath(); X.arc(x, y, r + 10 + (1 - litT * 4) * 14, 0, TAU); X.stroke(); X.restore(); } }
+  }
+  function marquee(s) {
+    const { idx, len, res, T } = s, w = 40 + len * 30, x = CX - w / 2;
+    X.fillStyle = 'rgba(20,16,28,.3)'; rr(x + 4, 66 + 6, w, 32, 16); X.fill(); rr(x, 66, w, 32, 16); ink('#4a4570', 4); X.fillStyle = 'rgba(255,255,255,.2)'; rr(x + 10, 70, w - 20, 5, 2.5); X.fill();
+    for (let i = 0; i < len; i++) { const bx = CX - (len - 1) * 15 + i * 30, on = i < idx || res === 'win', pop = i === idx - 1 ? outBack(s.pop / .25) : 1;
+      X.save(); X.translate(bx, 82); X.scale(.4 + .6 * clamp(pop, 0, 1.3), .4 + .6 * clamp(pop, 0, 1.3)); X.beginPath(); X.arc(0, 0, 10, 0, TAU); ink(res === 'win' ? `hsl(${i * 70 + T * 400},90%,60%)` : on ? '#FFE14D' : res === 'lose' ? '#ff4d5e' : '#6b6580', 3); if (on) { X.fillStyle = 'rgba(255,255,255,.8)'; el(-3, -3, 3, 2); X.fill(); } X.restore(); }
+  }
+  function draw(s) {
+    X = ctx; const { ph, lit, litT, idx, len, res, rT, T } = s, won = res === 'win', lost = res === 'lose';
+    if (!BG || BW !== VW) { BW = VW; BG = bakeBg(); }
+    X.drawImage(BG, -OX, 0);
+    // the beam from the ball to the lit pad (additive) and a strobe bar on the wall
+    if (litT > 0 && lit >= 0 && !res) { const [dx, dy] = PAD[lit], tx = CX + dx, ty = CY + dy; X.save(); X.globalCompositeOperation = 'lighter'; X.fillStyle = `rgba(255,255,255,${.16 + litT * .3})`; X.beginPath(); X.moveTo(BX - 8, BY + 30); X.lineTo(BX + 8, BY + 30); X.lineTo(tx + 52, ty + 30); X.lineTo(tx - 52, ty + 30); X.closePath(); X.fill(); X.fillStyle = COL[lit][0]; X.globalAlpha = .28; X.beginPath(); X.ellipse(tx, ty + 8, 70, 62, 0, 0, TAU); X.fill(); X.restore(); }
+    speakers(s);
+    floorPads(s);
+    // the centre disc and Claude
+    { X.fillStyle = 'rgba(20,16,28,.35)'; el(CX, CY + 24, 52, 14); X.fill(); X.beginPath(); X.ellipse(CX, CY + 18, 48, 16, 0, 0, TAU); ink('#7b5cff', 4); X.beginPath(); X.ellipse(CX, CY + 14, 48, 16, 0, 0, TAU); ink('#b49cff', 4); X.fillStyle = 'rgba(255,255,255,.45)'; el(CX - 14, CY + 10, 14, 3.4, -.1); X.fill();
+      const u = 3.6, hop = won ? Math.abs(Math.sin(rT * 9)) * 24 : lost ? 0 : (litT > 0 || (ph === 'show' && lit >= 0) ? 0 : 0) + Math.abs(Math.sin(T * 7)) * 3;
+      X.save(); X.translate(CX, CY + 12 - hop);
+      let la = -.9 + Math.sin(T * 7) * .15, ra = .9 - Math.sin(T * 7) * .15; const d = litT > 0 ? lit : -1;
+      if (d === 0) { la = -.3; ra = .3; } else if (d === 1) { la = -.3; ra = 1.6; } else if (d === 2) { la = -2.9; ra = 2.9; } else if (d === 3) { la = -1.6; ra = .3; }
+      if (won) { la = -2.6 + Math.sin(T * 14) * .2; ra = 2.6 - Math.sin(T * 14) * .2; } else if (lost) { la = -.4; ra = .5; }
+      arms(u, la, ra, lost ? .8 : 1, OR); claude(0, 0, u, { mood: won ? 'happy' : lost ? 'sad' : null }); X.restore();
+      if (lost) stars(CX, CY - 40, 22, T);
+      if (!res) pill(CX, CY - 44, 'YOU', '#FFE14D'); }
+    discoBall(BX, BY, s);
+    if (!res) pill(BX, BY + 76, 'DJ BALL', '#c9d0fb');
+    marquee(s);
+    if (!res) badge(ph === 'show' ? 'WATCH...' : 'YOUR TURN!', CX, 134, 30, ph === 'show' ? '#ff5c8a' : '#4fd06a', ph === 'show' ? -.03 : .03);
+    if (lost) { X.fillStyle = 'rgba(11,7,38,.38)'; X.fillRect(-OX, 0, VW, H); badge('NOPE!', CX, 134, 34, '#ff4d5e', -.05); for (let i = 0; i < 6; i++) { const q = (rT * 1.1 + i * .16) % 1; spk(BX - 34 + hash(i + 5) * 70, BY - 30 - q * 40, 6, 3, 4, '#fff', 1.5, T * 3); } }
+    if (won) { badge('DJ DOWN!', CX, 134, 34, '#5CFF7A', .03); for (let i = 0; i < 5; i++) { const q = (rT * 1.1 + i * .2) % 1; heart(CX + (i - 2) * 40, CY - 80 - q * 70, .9 - q * .3, 1 - q); }
+      for (let i = 0; i < 20; i++) { const cc = ['#ff5c8a', '#ffd23f', '#4db8ff', '#5CFF7A', '#b49cff'][i % 5], x = -OX + 40 + hash(i + 90) * (VW - 80), y = ((hash(i + 110) * 250 + rT * (160 + hash(i + 120) * 120)) % 460) + 60; X.save(); X.translate(x, y); X.rotate(T * 4 + i); X.fillStyle = cc; X.fillRect(-5, -2.5, 10, 5); X.restore(); } }
+    vignette(.3);
+  }
+  return { draw };
+})();
+
 const BOSSES = {
   /* a giant bug: click it until its health bar is empty */
   bug(sp, s) {
@@ -728,28 +876,21 @@ const BOSSES = {
   /* memory: watch the arrows, then repeat them */
   simon(sp, s) {
     const len = 4, seq = Array.from({ length: len }, () => Math.random() * 4 | 0), cols = ['#ff4d4d', '#4dff88', '#4da6ff', '#FFE14D'], names = ['ArrowUp', 'ArrowRight', 'ArrowDown', 'ArrowLeft'], alt = ['KeyW', 'KeyD', 'KeyS', 'KeyA'];
-    let ph = 'show', clock = 0, idx = 0, lit = -1, litT = 0; const step = .65 / Math.sqrt(sp);
+    let ph = 'show', clock = 0, idx = 0, lit = -1, litT = 0, rT0 = -1, popT = 9; const step = .65 / Math.sqrt(sp);
     const press = d => {
       if (g.result || ph !== 'input') return; lit = d; litT = .2;
       if (d !== seq[idx]) { g.result = 'lose'; sfx.buzz(); shake(8, .3); return; }
-      sfx.blip(d * 3 + 2); if (++idx >= len) { g.result = 'win'; confetti(W / 2, 300, 50); sfx.sparkle(); shake(10, .3); }
+      sfx.blip(d * 3 + 2); popT = 0; if (++idx >= len) { g.result = 'win'; confetti(W / 2, 300, 50); sfx.sparkle(); shake(10, .3); }
     };
     const g = {
       cmd: 'BOSS!', hint: 'REMEMBER, THEN REPEAT!', thint: 'TAP THE PADS', dur: 11, boss: true, wide: true,
       key(e) { let d = names.indexOf(e.code); if (d < 0) d = alt.indexOf(e.code); if (d >= 0) press(d); },
       down(p) { const dx = p.x - W / 2, dy = p.y - 330; if (Math.hypot(dx, dy) < 40) return; press(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : 3) : (dy > 0 ? 2 : 0)); },
       update(dt) {
-        litT = Math.max(0, litT - dt); if (g.result) return; clock += dt;
+        litT = Math.max(0, litT - dt); popT += dt; if (g.result && rT0 < 0) rT0 = now; if (g.result) return; clock += dt;
         if (ph === 'show') { const k = Math.floor((clock - .8) / step); if (clock < .8) lit = -1; else if (k < len) { const fr = (clock - .8) / step - k; if (fr < .1 && lit !== seq[k]) sfx.blip(seq[k] * 3 + 2); lit = fr < .7 ? seq[k] : -1; litT = .01; } else { ph = 'input'; lit = -1; } }
       },
-      draw(t) {
-        bg('#1d1a4d', '#262266', t);
-        txt(ph === 'show' ? 'WATCH...' : 'YOUR TURN!', W / 2, 110, 36, '#fff');
-        const pos = [[0, -110], [110, 0], [0, 110], [-110, 0]];
-        pos.forEach(([dx, dy], i) => { const on = litT > 0 && lit === i; ctx.fillStyle = on ? '#fff' : cols[i]; ctx.globalAlpha = on ? 1 : .55; ctx.strokeStyle = INK; ctx.lineWidth = 6; ctx.beginPath(); ctx.roundRect(W / 2 + dx - 50, 330 + dy - 50, 100, 100, 18); ctx.fill(); ctx.stroke(); ctx.globalAlpha = 1; });
-        for (let i = 0; i < len; i++) { ctx.fillStyle = i < idx ? '#FFE14D' : '#fff3'; ctx.beginPath(); ctx.arc(W / 2 - 45 + i * 30, 500, 9, 0, 7); ctx.fill(); }
-        vignette(.3);
-      }
+      draw() { if (g.result && rT0 < 0) rT0 = now; SIMONART.draw({ ph, lit, litT, idx, len, pop: popT, res: g.result, rT: now - rT0, T: now }); }
     };
     return g;
   },

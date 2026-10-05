@@ -1071,7 +1071,131 @@ const W1A = (() => {
     }
     vignette(.14);
   }
-  return { swat, spot, type, jump, mash };
+  /* ═════════════ CATCH: the gold mine (stage 5) ═════════════
+     Gold coins and grumpy dynamite drop from the cave ceiling. Claude carries a barrel over his head on the mine track, a mole peeks
+     out of its hill, lanterns swing, gems twinkle. Win: the barrel overflows, gold rains and hearts rise. Fail: the dynamite goes
+     off in the barrel (soot, stars, the barrel hops away); or, if too many coins were missed, Claude sags with an empty barrel. */
+  const CAHZ = 468;
+  let CABG = null, CAW = -1;
+  function pill(x, y, label, col) {
+    X.font = '700 15px Fredoka, "Helvetica Neue", Arial, sans-serif'; const w = Math.min(130, X.measureText(t(label)).width + 24);
+    X.beginPath(); X.moveTo(x - 8, y + 11); X.lineTo(x, y + 21); X.lineTo(x + 8, y + 11); X.closePath(); ink(col, 2.5);
+    rr(x - w / 2, y - 12, w, 24, 12); ink(col, 3); X.fillStyle = 'rgba(255,255,255,.35)'; rr(x - w / 2 + 6, y - 9, w - 12, 6, 3); X.fill();
+    txt(label, x, y + 1, 15, INK, 'center', w - 12);
+  }
+  function gem(x, y, s, col, lt) { X.save(); X.translate(x, y); X.scale(s, s); X.beginPath(); X.moveTo(0, -14); X.lineTo(11, -4); X.lineTo(7, 12); X.lineTo(-7, 12); X.lineTo(-11, -4); X.closePath(); ink(col, 2.5); X.fillStyle = lt; X.beginPath(); X.moveTo(0, -14); X.lineTo(-11, -4); X.lineTo(0, 0); X.closePath(); X.fill(); X.fillStyle = 'rgba(255,255,255,.7)'; el(-4, -6, 2.4, 3.4, -.5); X.fill(); X.restore(); }
+  function mineBg() {
+    if (CABG && CAW === VW) return CABG; CAW = VW;
+    return CABG = bake(() => {
+      const L = -OX - 2, R = W + OX + 2; let g = X.createLinearGradient(0, 0, 0, CAHZ); g.addColorStop(0, '#6a4a90'); g.addColorStop(1, '#a07ac2'); X.fillStyle = g; X.fillRect(L, 0, R - L, CAHZ + 4);
+      // rock boulders on the far wall: lighter plum with a coloured outline
+      for (let i = 0; i < 26; i++) { const x = L + hr(i + 3) * (R - L), y = 90 + hr(i + 33) * 360, rx = 34 + hr(i + 63) * 40; el(x, y, rx, rx * .62, hr(i + 9) - .5); X.fillStyle = i % 2 ? '#7d5ca3' : '#8d6bb2'; X.fill(); X.lineWidth = 3; X.strokeStyle = '#4a3670'; X.stroke(); X.fillStyle = 'rgba(255,255,255,.12)'; el(x - rx * .3, y - rx * .2, rx * .35, rx * .15, -.4); X.fill(); }
+      // gems in the wall
+      for (const [x, y, s, c, l] of [[96, 190, 1.2, '#ff5c8a', '#ffb6cf'], [250, 330, 1, '#4db8ff', '#a6dcff'], [560, 150, 1.1, '#5CFF7A', '#b6ffc6'], [700, 300, 1.3, '#b49cff', '#d9ccff'], [440, 420, .9, '#ffd23f', '#fff0a0']]) gem(x, y, s, c, l);
+      // timber frames
+      for (let xc = 130 - 540 * 2; xc < R + 540; xc += 540) {
+        if (xc < L - 120 || xc > R + 120) continue;
+        for (const dx of [-92, 70]) { rr(xc + dx, 80, 22, CAHZ - 76, 4); ink('#d9944f', 4); X.fillStyle = 'rgba(255,255,255,.25)'; rr(xc + dx + 3, 86, 5, CAHZ - 90, 2); X.fill(); X.fillStyle = 'rgba(165,98,44,.5)'; X.fillRect(xc + dx + 14, 82, 6, CAHZ - 80); }
+        rr(xc - 104, 66, 208, 28, 5); ink('#d9944f', 4); X.fillStyle = 'rgba(255,255,255,.3)'; rr(xc - 98, 70, 130, 5, 2.5); X.fill(); X.fillStyle = 'rgba(165,98,44,.45)'; X.fillRect(xc - 100, 84, 200, 7);
+        for (const sx of [-1, 1]) { X.beginPath(); X.moveTo(xc + sx * 82, 94); X.lineTo(xc + sx * 82 - sx * 34, 94); X.lineTo(xc + sx * 82, 128); X.closePath(); ink('#c98443', 3); }
+      }
+      // ceiling rock with stalactites
+      X.fillStyle = '#3a2a5e'; X.beginPath(); X.moveTo(L, -4); X.lineTo(R, -4); X.lineTo(R, 52); for (let x = R; x >= L; x -= 22) X.lineTo(x - 11, 52 + (Math.floor(x / 22) % 2 ? 16 + hr(x * .1) * 18 : 4)); X.lineTo(L, 52); X.closePath(); X.fill(); X.lineWidth = 4; X.strokeStyle = INK; X.stroke();
+      X.fillStyle = 'rgba(255,255,255,.1)'; for (let x = L + 10; x < R; x += 70) { el(x, 14 + hr(x) * 20, 18, 5, .1); X.fill(); }
+      // the dirt floor, the hard INK horizon, the track
+      g = X.createLinearGradient(0, CAHZ, 0, H); g.addColorStop(0, '#dca56a'); g.addColorStop(1, '#a96e3e'); X.fillStyle = g; X.fillRect(L, CAHZ, R - L, H - CAHZ);
+      X.fillStyle = INK; X.fillRect(L, CAHZ - 2, R - L, 5);
+      X.fillStyle = 'rgba(120,70,30,.3)'; for (let i = 0; i < 40; i++) { el(L + hr(i + 5) * (R - L), CAHZ + 14 + hr(i + 55) * 110, 3 + hr(i + 15) * 4, 2); X.fill(); }
+      for (let x = L - 20; x < R + 30; x += 56) { rr(x, 502, 36, 30, 3); ink('#b06d33', 3); X.fillStyle = 'rgba(255,255,255,.2)'; X.fillRect(x + 4, 505, 28, 3); }
+      for (const ry of [510, 528]) { rr(L - 10, ry, R - L + 20, 7, 3); ink('#c9ced6', 2.5); }
+      // the mole's hill and the mine cart full of gold
+      X.beginPath(); X.ellipse(690, CAHZ + 6, 52, 22, 0, Math.PI, TAU); ink('#b8834f', 3.5); X.fillStyle = 'rgba(255,255,255,.2)'; el(672, CAHZ - 8, 14, 5, -.3); X.fill();
+      el(690, CAHZ - 10, 18, 7); ink('#4a2f1a', 0);
+      X.save(); X.translate(116, 520);
+      for (let i = 0; i < 9; i++) { X.beginPath(); X.arc(-34 + i * 8.5, -62 - Math.sin(i * 1.2) * 8, 11, 0, TAU); ink('#FFC93C', 3); }
+      cel(() => { X.beginPath(); X.moveTo(-58, -62); X.lineTo(58, -62); X.lineTo(46, -8); X.lineTo(-46, -8); X.closePath(); }, '#8f9cb3', '#5f6a82', 4, 6, 3);
+      X.fillStyle = 'rgba(255,255,255,.35)'; rr(-50, -56, 40, 6, 3); X.fill(); rr(-62, -68, 124, 12, 5); ink('#c9ced6', 3.5);
+      for (const wx of [-30, 30]) { X.beginPath(); X.arc(wx, -2, 11, 0, TAU); ink('#3b3550', 3.5); X.beginPath(); X.arc(wx, -2, 4, 0, TAU); ink('#c9ced6', 1.5); }
+      X.restore();
+    });
+  }
+  function catchGame(s) {
+    X = ctx; const { items, me, caught, happy, FY, hitX, res, rT, T } = s, won = res === 'win', bomb = res === 'lose' && hitX != null, sag = res === 'lose' && !bomb;
+    layer(mineBg());
+    // swinging lanterns (their glow is additive) and twinkling gems
+    for (const [lx, ph] of [[240, 0], [560, 1.7]]) {
+      const sw = Math.sin(T * 1.6 + ph) * .14, ang = sw; X.save(); X.translate(lx, 56); X.rotate(ang);
+      X.strokeStyle = INK; X.lineWidth = 3; X.beginPath(); X.moveTo(0, 0); X.lineTo(0, 62); X.stroke();
+      rr(-13, 62, 26, 34, 6); ink('#ffd23f', 3.5); rr(-8, 69, 16, 20, 3); ink(`rgba(255,${230 + Math.sin(T * 9 + ph) * 15 | 0},150,1)`, 0); X.fillStyle = 'rgba(255,255,255,.7)'; el(-3, 74, 2, 4); X.fill();
+      rr(-16, 56, 32, 9, 4); ink('#8f9cb3', 3); X.restore();
+      const gx = lx + Math.sin(ang) * 80, gy = 56 + Math.cos(ang) * 80; torchGlow(gx, gy, 96, .45 + Math.sin(T * 9 + ph) * .05);
+    }
+    for (const [x, y, ph] of [[96, 190, 0], [560, 150, 1.2], [700, 300, 2.4]]) { const q = (T * .9 + ph) % 3; if (q < .5) star(x + 10, y - 12, 9 * Math.sin(q * Math.PI * 2), 2, 4, 0, '#fff', 0); }
+    // the mole watches from its hill, ducks when the dynamite goes off
+    { const mx = 690, up = bomb ? 0 : won ? 1 : clampK(Math.sin(T * 1.1) * 1.8 + .6); X.save(); X.beginPath(); X.rect(mx - 40, 360, 80, CAHZ - 360 - 4 + 0); X.clip();
+      const my = CAHZ - 6 - up * 30; X.translate(mx, my); celF(() => { X.beginPath(); X.ellipse(0, -2, 17, 20, 0, 0, TAU); }, '#8a6a58', '#6a4a3a', 4, 3, 4);
+      el(0, 6, 10, 8); ink('#e8b8a8', 2.5); X.beginPath(); X.arc(0, 2, 4, 0, TAU); ink('#ff8fa8', 2);
+      const em = won ? 'happy' : 'idle', lk = [clampK2((me.x - mx) / 300), .2]; eye(-8, -10, 4.2, lk, em, T, 1); eye(8, -10, 4.2, lk, em, T, 2);
+      X.fillStyle = INK; X.fillRect(-1, 0, 2, 3); X.restore(); }
+    // coins and dynamite: shadows on the track, then the things themselves
+    for (const it of items) {
+      if (!it.on || it.gone) continue;
+      X.fillStyle = `rgba(20,16,28,${.1 + it.y / 3000})`; el(it.x, FY + 4, 14 + it.y * .01, 4); X.fill();
+      if (it.k === 't') {
+        const c = () => { X.beginPath(); X.arc(it.x, it.y, 22, 0, TAU); };
+        celF(c, '#FFC93C', '#d99a12', 4, 4, 4); X.beginPath(); X.arc(it.x, it.y, 15, 0, TAU); X.lineWidth = 2.5; X.strokeStyle = '#d99a12'; X.stroke();
+        X.strokeStyle = OR; X.lineWidth = 5; X.lineCap = 'round'; for (let a = 0; a < 4; a++) { const an = a * Math.PI / 4 + T * 2; X.beginPath(); X.moveTo(it.x - Math.cos(an) * 10, it.y - Math.sin(an) * 10); X.lineTo(it.x + Math.cos(an) * 10, it.y + Math.sin(an) * 10); X.stroke(); }
+        glintC(c, it.x - 9, it.y - 11, 7, 3.4);
+      } else {
+        const c = () => { X.beginPath(); X.arc(it.x, it.y, 22, 0, TAU); };
+        celF(c, '#3a3a50', '#1d1d2c', 5, 5, 4); glintC(c, it.x - 9, it.y - 11, 7, 3.4, .5);
+        line([[it.x + 10, it.y - 18], [it.x + 15, it.y - 27], [it.x + 22, it.y - 30]], 4, '#c98443');
+        star(it.x + 24, it.y - 33, 9 + Math.sin(T * 30) * 3, 4, 6, T * 9, '#FFE14D', 2);
+        const lk = [clampK2((me.x - it.x) / 200), .5]; for (const sd of [-1, 1]) { el(it.x + sd * 8, it.y - 1, 5, 5.6); ink('#fff', 1.8); X.beginPath(); X.arc(it.x + sd * 8 + lk[0] * 1.6, it.y - 1 + lk[1] * 1.4, 2.2, 0, TAU); X.fillStyle = INK; X.fill(); X.strokeStyle = INK; X.lineWidth = 3; X.beginPath(); X.moveTo(it.x + sd * 13, it.y - 11 - 1); X.lineTo(it.x + sd * 3, it.y - 7); X.stroke(); }
+        X.strokeStyle = '#fff'; X.lineWidth = 2.5; X.beginPath(); X.arc(it.x, it.y + 12, 6, Math.PI * 1.15, Math.PI * 1.85); X.stroke();
+      }
+    }
+    // Claude with the barrel overhead
+    {
+      const u = 8, hop = won ? Math.abs(Math.sin(rT * 9)) * 22 : 0, x = me.x, ys = sag ? 6 : 0, run = Math.abs(me.tx - me.x) > 8, sq = happy > 0 ? 1 + Math.sin((.3 - happy) / .3 * Math.PI) * -.1 : 1;
+      shadowE(x, FY + 4, 56 - hop * .4, 10, .3);
+      X.save(); X.translate(x, FY - hop + ys);
+      // the barrel (its rim is the catch line)
+      let bxo = 0, byo = 0, bro = 0;
+      if (bomb) { const e = clamp01(rT / .8); bxo = (hitX < x ? 1 : -1) * 0; byo = -Math.sin(Math.min(1, rT / .5) * Math.PI) * 120 + Math.max(0, rT - .5) * 0; bro = rT * 5; }
+      X.save(); X.translate(bxo, byo - 86); X.rotate(bro); X.scale(1, sq);
+      const bar = () => { X.beginPath(); X.moveTo(-72, -20); X.lineTo(72, -20); X.lineTo(54, 18); X.lineTo(-54, 18); X.closePath(); };
+      if (!bomb) for (let i = 0; i < Math.min(3, caught) + (won ? 3 : 0); i++) { X.beginPath(); X.arc(-36 + i * 24 + (i % 2) * 8, -26 - (i % 2) * 8, 13, 0, TAU); ink('#FFC93C', 3); }
+      celF(bar, '#d9944f', '#a5622c', 6, 0, 4.5); el(0, -20, 72, 8); ink('#8a5530', 3.5); X.save(); bar(); X.clip(); X.fillStyle = '#8f9cb3'; X.strokeStyle = INK; X.lineWidth = 2.5; for (const hy of [-8, 8]) { X.fillRect(-80, hy - 3, 160, 6); X.strokeRect(-80, hy - 3, 160, 6); } X.restore();
+      X.fillStyle = 'rgba(255,255,255,.4)'; el(-40, -6, 9, 3, -.3); X.fill();
+      if (bomb && rT > .15) { X.strokeStyle = INK; X.lineWidth = 4; X.beginPath(); X.moveTo(-10, -20); X.lineTo(-2, -6); X.lineTo(-14, 6); X.moveTo(24, -20); X.lineTo(16, -4); X.stroke(); }
+      X.restore();
+      // arms up gripping the barrel, then the body
+      if (won) arms(u, -.5 - Math.sin(T * 14) * .1, .5 + Math.sin(T * 14) * .1, 1, OR); else if (bomb) arms(u, -2.6 + Math.sin(T * 25) * .3, 2.6 - Math.sin(T * 25) * .3, 1, '#4a4452'); else if (sag) arms(u, -.2, .3, .7, OR); else arms(u, -.45, .45, 1, OR);
+      claude(0, 0, u, { mood: won ? 'happy' : res === 'lose' ? 'sad' : happy > 0 ? 'happy' : null, run: run && !res ? T : null, col: bomb ? '#4a4452' : OR });
+      X.restore();
+      if (!res) pill(x, FY - 134, 'YOU', '#FFE14D');
+      if (bomb) { stars(x, FY - 110, 34, T); const pk = outBack(rT / .22), k = clamp01(rT / .6); X.globalAlpha = 1 - k * .8; star(x, FY - 70, 110 * pk, 54 * pk, 12, T * .8, '#ff9a3a', 6); star(x, FY - 70, 74 * pk, 36 * pk, 12, -T * .6, '#FFE14D', 0); star(x, FY - 70, 40 * pk, 20 * pk, 10, T, '#fff', 0); X.globalAlpha = 1;
+        for (let i = 0; i < 5; i++) { const q = (rT * .9 + i * .2) % 1; X.save(); X.globalAlpha = (1 - q) * .8; X.beginPath(); X.arc(x - 30 + i * 15 + q * 20, FY - 120 - q * 80, 12 + q * 16, 0, TAU); ink('#6b6580', 2.5); X.restore(); } }
+      if (sag) drop(x + 40, FY - 120, 1.2, 1);
+      if (won) for (let i = 0; i < 5; i++) { const q = (rT * 1.1 + i * .2) % 1; X.save(); X.globalAlpha = 1 - q; heart(x + (i - 2) * 38, FY - 160 - q * 70, 1 - q * .3); X.restore(); }
+    }
+    if (won) for (let i = 0; i < 14; i++) { const x = -OX + 40 + hr(i + 90) * (VW - 80), y = ((hr(i + 110) * 200 + rT * (230 + hr(i + 120) * 120)) % 480) + 20; X.save(); X.translate(x, y); X.rotate(T * 5 + i); X.beginPath(); X.arc(0, 0, 9, 0, TAU); ink('#FFC93C', 2.5); X.restore(); }
+    // the ore sign: three coin slots fill as you collect
+    {
+      const sx = 400 - 78;
+      X.strokeStyle = INK; X.lineWidth = 3; X.lineCap = 'round'; X.beginPath(); X.moveTo(sx + 22, 62); X.lineTo(sx + 22, 84); X.moveTo(sx + 134, 62); X.lineTo(sx + 134, 84); X.stroke();
+      X.fillStyle = 'rgba(20,16,28,.3)'; rr(sx + 4, 84 + 6, 156, 42, 14); X.fill(); celF(() => rr(sx, 84, 156, 42, 14), '#d9944f', '#a5622c', 0, 5, 4); X.fillStyle = 'rgba(255,255,255,.3)'; rr(sx + 8, 88, 100, 5, 2.5); X.fill();
+      for (let k = 0; k < 3; k++) { const cx = sx + 32 + k * 46, cy = 106; X.beginPath(); X.arc(cx, cy, 14, 0, TAU); ink('#6b4a2a', 3); if (k < caught || won) { const p = k === caught - 1 ? outBack((.3 - happy) / .3 + .0) : 1; X.save(); X.translate(cx, cy); X.scale(.4 + .6 * clamp01(p), .4 + .6 * clamp01(p)); X.beginPath(); X.arc(0, 0, 12, 0, TAU); ink('#FFC93C', 2.5); X.fillStyle = OR; X.fillRect(-1.5, -6, 3, 12); X.fillRect(-6, -1.5, 12, 3); X.restore(); } }
+    }
+    vignette(.16);
+  }
+  function clampK(v) { return v < 0 ? 0 : v > 1 ? 1 : v; }
+  function clampK2(v) { return v < -1 ? -1 : v > 1 ? 1 : v; }
+  function celF(path, base, shade, sx, sy, o = 4) { path(); ink(shade, o); X.save(); path(); X.clip(); X.translate(-sx, -sy); path(); X.fillStyle = base; X.fill(); X.restore(); }
+  function glintC(path, x, y, rx, ry, a = .45) { X.save(); path(); X.clip(); X.fillStyle = `rgba(255,255,255,${a})`; el(x, y, rx, ry, -.5); X.fill(); X.restore(); }
+  function shadowE(x, y, rx, ry, a) { X.fillStyle = `rgba(20,16,28,${a})`; X.beginPath(); X.ellipse(x, y, rx, ry, 0, 0, TAU); X.fill(); }
+  return { swat, spot, type, jump, mash, catchGame };
 })();
 
 /* 1 ── SWAT: click the bugs (mouse) */
@@ -1220,11 +1344,12 @@ function gCatch(sp) {
   const kinds = ['t', 't', 't', 'b', 'b'].sort(() => Math.random() - .5);
   const items = kinds.map((k, i) => ({ k, x: -OX + 90 + Math.random() * (VW - 180), y: -40, at: .2 + i * .6 / sp, on: false }));
   const me = { x: W / 2, tx: W / 2 };
-  let caught = 0, happy = 0, clock = 0;
+  let caught = 0, happy = 0, clock = 0, hitX = null, rT0 = -1;   // hitX, rT0: art only
   const g = {
     wide: true, cmd: 'CATCH!', hint: 'MOUSE OR ARROWS', thint: 'DRAG LEFT AND RIGHT', dur: 5.2,
     move(p) { me.tx = p.x; },
     update(dt) {
+      if (g.result && rT0 < 0) rT0 = now;
       happy = Math.max(0, happy - dt);
       if (g.result) return;
       clock += dt;
@@ -1238,35 +1363,14 @@ function gCatch(sp) {
         it.y += 380 * sp * dt;
         if (it.y + 22 >= FY - 100 && it.y - 22 <= FY && Math.abs(it.x - me.x) < 64 + 11) {
           it.gone = true;
-          if (it.k === 'b') { g.result = 'lose'; confetti(it.x, it.y, 20); sfx.splat(); sfx.thud(); sfx.buzz(); shake(12, .35); ring(it.x, it.y, '#FFE14D', 120); }
+          if (it.k === 'b') { g.result = 'lose'; hitX = it.x; confetti(it.x, it.y, 20); sfx.splat(); sfx.thud(); sfx.buzz(); shake(12, .35); ring(it.x, it.y, '#FFE14D', 120); }
           else { caught++; happy = .3; sfx.coin(); sfx.blip(caught * 3); burst(it.x, it.y, '#FFC93C', 10); floatText('+1', it.x, it.y - 30, '#FFE14D', 34); if (caught >= 3) { g.result = 'win'; sfx.sparkle(); } }
         } else if (it.y > H + 30) it.gone = true;
       }
       const left = items.filter(i => i.k === 't' && !i.gone).length;
       if (caught + left < 3) g.result = 'lose';
     },
-    draw(t) {
-      bg('#2A1B5C', '#34236e', t);
-      ctx.fillStyle = '#fff'; for (let i = 0; i < (24 * VW / W | 0); i++) ctx.fillRect((i * 97) % VW - OX, (i * 53 + now * 30 * (1 + i % 3)) % 520, 3, 3);
-      shadow(me.x, FY + 4, 56, 10, .3);
-      for (const it of items) {
-        if (!it.on || it.gone) continue;
-        shadow(it.x, FY + 4, 14 + it.y * .01, 4, .1 + it.y / 3000);
-        if (it.k === 't') {
-          circ(it.x, it.y, 22, '#FFC93C', 4);
-          ctx.strokeStyle = OR; ctx.lineWidth = 5; ctx.lineCap = 'round';
-          for (let a = 0; a < 4; a++) { const an = a * Math.PI / 4 + now * 2; ctx.beginPath(); ctx.moveTo(it.x - Math.cos(an) * 12, it.y - Math.sin(an) * 12); ctx.lineTo(it.x + Math.cos(an) * 12, it.y + Math.sin(an) * 12); ctx.stroke(); }
-          ctx.lineCap = 'butt';
-        } else {
-          circ(it.x, it.y, 22, '#2b2b3a', 4);
-          ctx.strokeStyle = INK; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(it.x + 10, it.y - 18); ctx.lineTo(it.x + 20, it.y - 32); ctx.stroke();
-          star(it.x + 21, it.y - 34, 9 + Math.sin(now * 30) * 3, 4, 6, now * 9, '#FFE14D', 2);
-          ctx.fillStyle = '#fff'; ctx.fillRect(it.x - 10, it.y - 8, 6, 6);
-        }
-      }
-      claude(me.x, FY, 8, { mood: g.result === 'lose' ? 'sad' : (happy > 0 || g.result === 'win') ? 'happy' : null, run: Math.abs(me.tx - me.x) > 8 ? now : null });
-      for (let k = 0; k < 3; k++) circ(W + OX - 100 + k * 36, 90, 12, k < caught ? '#FFC93C' : '#3d2f7a', 3);
-    }
+    draw() { if (g.result && rT0 < 0) rT0 = now; W1A.catchGame({ items, me, caught, happy, FY, hitX, res: g.result, rT: now - rT0, T: now }); }
   };
   return g;
 }

@@ -16,7 +16,7 @@ const stub = () => new Proxy(function () {}, { get: (_, k) => k === Symbol.toPri
 const sb = { console, Math, Date, JSON, setTimeout, clearTimeout, setInterval() {}, clearInterval() {}, requestAnimationFrame() {}, addEventListener() {}, performance: { now: () => 0 }, location: { search: '' }, navigator: { languages: ['en'], language: 'en', maxTouchPoints: 0 }, localStorage: { getItem: () => null, setItem() {} }, document: { getElementById: () => ({ getContext: () => stub(), addEventListener() {}, style: {} }), documentElement: {}, querySelectorAll: () => [], querySelector: () => null, createElement: () => stub(), addEventListener() {}, body: stub() }, AudioContext: function () {}, Image: function () {}, innerWidth: 800, innerHeight: 600, devicePixelRatio: 1 };
 sb.window = sb; vm.createContext(sb);
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-const files = ['js/i18n.js', 'js/core.js', ...[...html.matchAll(/<script src="(js\/(?:games|art)\/[^"?]+)(?:\?[^" ]*)?"/g)].map(m => m[1]).filter(f => !/\/td\d|\/td_core|\/du1|\/duo\/|microgame-gags/.test(f))];
+const files = ['js/i18n.js', 'js/core.js', ...[...html.matchAll(/<script src="(js\/(?:games|art)\/[^"?]+)(?:\?[^" ]*)?"/g)].map(m => m[1]).filter(f => !/\/td\d|\/td_core|\/du1|\/duo\/|\/squad\/|microgame-gags/.test(f))];
 for (const f of files) vm.runInContext(fs.readFileSync(path.join(root, f), 'utf8'), sb, { filename: f });
 vm.runInContext('globalThis.games = REGMAP;', sb);
 let constructed = 0;

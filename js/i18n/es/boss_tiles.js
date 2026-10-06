@@ -8,4 +8,5 @@ I18N.add('es', {
   'TOO SLOW!': '¡MUY LENTO!',
   'IMPOSSIBLE!': '¡IMPOSIBLE!',
   'SOLVE IT, EARTHLING!': '¡RESUÉLVELO, TERRÍCOLA!',
+  'DR. BRAIN': 'DR. CEREBRO',
 });

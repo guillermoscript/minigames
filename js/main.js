@@ -294,7 +294,7 @@ function beginGame() {
     recent.push(id); if (recent.length > Math.min(6, pool.length - 2)) recent.shift();
     s = speed(); cur = REGMAP[id].fn(s); curId = id; isBoss = false; dur = cur.dur / Math.sqrt(s); I18N.scope = I18N.scopeOf(curId);
   }
-  tt = 0; outcome = null; outT = 0; tickN = 0; preMax = mode === 'party' ? party.room.mode === 'duo' ? DUO_PRE : partyTurnMode(party.room) ? TURN_PRE : PRE : PRE; pre = preMax; state = 'play';
+  tt = 0; outcome = null; outT = 0; tickN = 0; preMax = mode === 'party' ? party.room.mode === 'duo' ? DUO_PRE : partyTurnMode(party.room) ? balloonPre(party.room) : PRE : PRE; pre = preMax; state = 'play';
 }
 function setOutcome(r) {
   outcome = r; outT = 0;

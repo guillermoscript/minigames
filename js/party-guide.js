@@ -39,8 +39,8 @@ const PARTY_GUIDE = {
   balloon: { color: '#F28CB1', kind: 'PARTY TURNS', format: 'SHARED SCREEN',
     steps: ['One player plays a minigame while the others watch.', 'The others pump up the balloon beside the live game.', 'Win to pass the turn. Fail and you must keep playing.'],
     win: 'Make it pop on another player’s turn.', lose: 'The balloon pops during your turn.',
-    you: 'When playing, beat the minigame to pass the turn before the balloon pops.', friends: 'Tap the pump or press Space repeatedly. You can watch the game as you inflate.',
-    tips: ['A simple party mode: one plays, everyone else pumps.', 'The balloon keeps growing between turns.', 'Air from each pump is balanced for 2, 3 or 4 players.'] }
+    you: 'When playing, beat the minigame to pass the turn before the balloon pops.', friends: 'Tap the pump or press Space repeatedly. Free a jammed valve with A / D and grab gold bubbles for TURBO.',
+    tips: ['A simple party mode: one plays, everyone else pumps.', 'The balloon keeps its air between turns and leaks only a tiny bit when nobody pumps.', 'Air from each pump is balanced for 2, 3 or 4 players.'] }
 };
 const PARTY_GUIDE_TABS = ['HOW TO PLAY', 'CONTROLS', 'GOOD TO KNOW'];
 function partyGuideMode(R) { return !isHost() && party.previewMode || R.mode; }

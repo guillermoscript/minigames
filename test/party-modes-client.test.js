@@ -6,7 +6,7 @@ const sb = { console, Math, Date, JSON, Array, Object, String, Number, Set, Map,
   addEventListener() {}, setInterval() {}, performance: { now: () => 0 }, innerWidth: 800, innerHeight: 600, devicePixelRatio: 1,
   location: { search: '' }, navigator: { languages: ['en'], language: 'en', maxTouchPoints: 0 }, localStorage: { getItem: () => null, setItem() {} },
   document: { getElementById: () => ({ getContext: () => stub(), addEventListener() {}, style: {} }), documentElement: {}, querySelectorAll: () => [], querySelector: () => null, createElement: () => ({ getContext: () => stub(), toDataURL: () => 'data:image/jpeg;base64,ZmFrZQ==' }), addEventListener() {}, body: stub() }, AudioContext: function () {}, Image: function () { Object.defineProperty(this, 'src', { set: () => this.onload && this.onload() }); },
-  modeLabel: m => m.toUpperCase(), pressing: false, party: { you: { id: 'a' } }, pendingMoves: [], button() {}, pcall: async () => ({ ok: false, status: 409 }), auth: () => ({}), applyRoom() {}, roomGone() {}, partyErr: () => '', say() {}, me: () => ({ color: '#fff' }),
+  modeLabel: m => m.toUpperCase(), pressing: false, party: { you: { id: 'a' } }, pendingMoves: [], btns: [], button() {}, pcall: async () => ({ ok: false, status: 409 }), auth: () => ({}), applyRoom() {}, roomGone() {}, partyErr: () => '', say() {}, me: () => ({ color: '#fff' }),
 };
 sb.window = sb; vm.createContext(sb);
 for (const file of ['js/i18n.js', 'js/core.js', 'js/games/pt1.js', 'js/party-modes.js']) vm.runInContext(fs.readFileSync(file, 'utf8'), sb, { filename: file });

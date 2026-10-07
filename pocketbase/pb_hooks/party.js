@@ -7,7 +7,7 @@ const MAX_PLAYERS = 4;
 const ROUNDS = { versus: 6, team: 8, duo: 8, survival: 30, knockout: 30, lantern: 12, cards: 80, balloon: 60 };
 const MODES = ["versus", "team", "duo", "survival", "knockout", "lantern", "cards", "balloon"];
 const LIVES = 4;
-const PRE_MS = 1400, PRE_MS_DUO = 4500;            // instruction card shown before each microgame (keep in sync with PRE in js/main.js)
+const PRE_MS = 1400, PRE_MS_DUO = 7300;            // instruction card shown before each microgame (keep in sync with PRE in js/main.js)
 const PRE_MS_TURN = 4000; // role instructions for Lanterns, Cards and Balloon (TURN_PRE in js/party.js)
 const GRACE_MS = 8000;          // a silent player is counted as a loss this long after the round should have ended
 const PRE_MS_BALLOON = 1400, BETWEEN_MS_BALLOON = 700, BETWEEN_MS_BALLOON_FINAL = 2500;   // BALLOON is meant to be frantic: almost no waiting (keep in sync with balloonPre/balloonBetween in js/party.js)

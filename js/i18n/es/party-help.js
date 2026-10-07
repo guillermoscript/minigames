@@ -11,11 +11,11 @@ I18N.add('es', {
   'EVERYONE: PLAY THEIR MICROGAME': 'TODOS: JUEGAN SU MINIJUEGO',
   'HELP: EVERY SUCCESS HELPS THE WHOLE TEAM': 'AYUDA: CADA ACIERTO AYUDA A TODO EL EQUIPO',
   'GOAL: CLEAR 8 ROUNDS WITH SHARED LIVES': 'META: SUPERAR 8 RONDAS CON VIDAS COMPARTIDAS',
-  'TWO ROLES, ONE TEAM': 'DOS ROLES, UN EQUIPO',
+  'ONE ROLE EACH, ONE TEAM': 'UN ROL CADA UNO, UN EQUIPO',
   'YOU: DO THE ROLE SHOWN BEFORE EACH GAME': 'TÚ: CUMPLE EL ROL QUE APARECE ANTES DE JUGAR',
-  'PARTNER: DO THE OTHER HALF OF THE PUZZLE': 'COMPAÑERO: RESUELVE LA OTRA PARTE DEL RETO',
+  'TEAMMATES: DO THE OTHER PARTS OF THE PUZZLE': 'EQUIPO: RESUELVEN LAS OTRAS PARTES DEL RETO',
   'GOAL: CLEAR 8 ROUNDS TOGETHER': 'META: SUPERAR 8 RONDAS JUNTOS',
-  'EXACTLY 2 PLAYERS · WATCH THE ROLE DEMO': 'SOLO 2 JUGADORES · MIRA LA DEMOSTRACIÓN',
+  '2 PLAYERS: DUO GAMES · 3-4 PLAYERS: SQUAD GAMES': '2 JUGADORES: JUEGOS DÚO · 3-4 JUGADORES: JUEGOS DE ESCUADRA',
   'LAST ONE STANDING': 'EL ÚLTIMO EN PIE',
   'FAIL: LOSE ONE OF YOUR 3 LIVES': 'FALLAS: PIERDES UNA DE TUS 3 VIDAS',
   'WIN: BE THE LAST PLAYER WITH LIVES': 'GANA: EL ÚLTIMO JUGADOR CON VIDAS',
@@ -52,7 +52,7 @@ I18N.add('es', {
   "COOPERATE": "COLABORAR",
   "PARTY TURNS": "POR TURNOS",
   "ALL AT ONCE": "A LA VEZ",
-  "TWO ROLES": "DOS ROLES",
+  "A ROLE EACH": "UN ROL CADA UNO",
   "SHARED SCREEN": "PANTALLA COMÚN",
   "HOW TO PLAY": "CÓMO JUGAR",
   "CONTROLS": "CONTROLES",
@@ -103,15 +103,15 @@ I18N.add('es', {
   "Try Versus first if your group is learning the controls.": "Prueben Versus primero si están aprendiendo los controles.",
   "The team can afford one failure with 3 or 4 players.": "Con 3 o 4 jugadores, el equipo puede admitir un fallo.",
   "All players succeeding gives your team bonus points.": "Si todos ganan, el equipo recibe puntos extra.",
-  "Exactly 2 players share one minigame.": "Exactamente 2 jugadores comparten un minijuego.",
+  "2 to 4 players share one minigame.": "De 2 a 4 jugadores comparten un minijuego.",
   "Watch the role demo: each player has a different job.": "Mira la demostración: cada jugador tiene una tarea distinta.",
   "Work together through 8 rounds. Roles change between games.": "Colaboren durante 8 rondas. Los roles cambian entre juegos.",
   "Clear 8 rounds together.": "Superen 8 rondas juntos.",
   "A failed round costs one of 4 shared lives.": "Un fallo cuesta una de las 4 vidas.",
   "Follow your role demo. Your controls depend on your assigned job.": "Sigue la demostración de tu rol. Tus controles dependen de la tarea asignada.",
-  "Your partner does the other half. Both roles are needed to solve the game.": "Tu compañero hace la otra parte. Ambos roles son necesarios para resolver el juego.",
-  "Best for a pair who want to cooperate.": "Ideal para una pareja que quiere colaborar.",
-  "Do your own job instead of copying your partner.": "Cumple tu tarea en lugar de copiar a tu compañero.",
+  "Your teammates do the other jobs. Every role is needed to solve the game.": "Tus compañeros hacen las otras tareas. Hacen falta todos los roles para resolver el juego.",
+  "2 players get duo games, 3 or 4 players get squad games.": "Con 2 jugadores salen juegos dúo, con 3 o 4 salen juegos de escuadra.",
+  "Do your own job instead of copying a teammate.": "Cumple tu tarea en lugar de copiar a un compañero.",
   "Use voice chat if you want to coordinate.": "Pueden usar el chat de voz para coordinarse.",
   "Each player starts with 3 lives.": "Cada jugador empieza con 3 vidas.",
   "Play the minigames. Every failure removes one of your lives.": "Juega los minijuegos. Cada fallo te quita una vida.",
@@ -166,3 +166,31 @@ I18N.add('es', {
 });
 
 I18N.add('es', {'STEALING...': 'ROBANDO...', 'Stealing takes 1.2 seconds. Watch the progress bar.': 'Robar tarda 1,2 segundos. Mira la barra de progreso.', 'Air from each pump is balanced for 2, 3 or 4 players.': 'El aire de cada bombeo se ajusta para 2, 3 o 4 jugadores.'});
+
+I18N.add('es', {
+ 'DUO / CREW': 'DÚO / GRUPO', 'SHARED ROLES': 'ROLES COMPARTIDOS',
+ '2 to 4 players share one minigame.': 'De 2 a 4 jugadores comparten un minijuego.',
+ 'Everyone has a role. All players are needed to solve the game.': 'Todos tienen un rol. Se necesita a todos para completar el juego.',
+ 'Best for friends who want to cooperate.': 'Ideal para amigos que quieren colaborar.',
+ '2-4 PLAYERS · ONE GAME · DIFFERENT ROLES · WIN OR LOSE TOGETHER': '2-4 JUGADORES · UN JUEGO · ROLES DISTINTOS · GANAN O PIERDEN JUNTOS',
+ '2-4 PLAYERS · WATCH THE ROLE DEMO': '2-4 JUGADORES · MIRA LAS INSTRUCCIONES'
+});
+
+I18N.add('es', {
+ 'FROG FEAST': 'BANQUETE DE RANAS', 'DRAGON BALLOON': 'DRAGÓN GLOBO', 'BRIDGE BUILDERS': 'CONSTRUCTORES DEL PUENTE', 'EGG RESCUE': 'RESCATE DE HUEVOS',
+ 'FEED THE FROGS!': '¡ALIMENTEN LAS RANAS!', 'PUMP THE DRAGON!': '¡INFLEN EL DRAGÓN!', 'FIX THE BRIDGE!': '¡REPAREN EL PUENTE!', 'CATCH THE EGGS!': '¡ATRAPEN LOS HUEVOS!',
+ 'TAP / SPACE WHEN THE FLY REACHES THE MOUTH': 'TOCA / ESPACIO CUANDO LA MOSCA LLEGUE A LA BOCA',
+ 'HOLD THEN RELEASE IN GREEN · DO NOT OVERFILL': 'MANTÉN Y SUELTA EN VERDE · NO INFLES DEMASIADO',
+ 'TAP / SPACE WHEN THE HAMMER IS IN GREEN': 'TOCA / ESPACIO CUANDO EL MARTILLO ESTÉ EN VERDE',
+ 'MOVE LEFT / RIGHT · CATCH YOUR FALLING EGGS': 'MUEVE A IZQUIERDA / DERECHA · ATRAPA TUS HUEVOS',
+ 'SWEEP LEFT / RIGHT': 'LIMPIA A IZQUIERDA / DERECHA', 'KEEP THE BALL IN GREEN': 'MANTÉN LA BOLA EN VERDE',
+ 'FEED NOW!': '¡ALIMENTA AHORA!', 'WAIT FOR THE FLY': 'ESPERA LA MOSCA',
+ 'RELEASE NOW!': '¡SUELTA AHORA!', 'HOLD TO PUMP': 'MANTÉN PARA INFLAR',
+ 'HAMMER NOW!': '¡GOLPEA AHORA!', 'WAIT FOR GREEN': 'ESPERA EL VERDE', 'MOVE TO CATCH THE EGGS': 'MUÉVETE PARA ATRAPAR LOS HUEVOS'
+});
+
+I18N.add('es', {
+ 'ALL CLEAN!': '¡TODO LIMPIO!', 'RESCUED!': '¡RESCATADO!', 'BALANCED!': '¡ESTABLE!',
+ 'READY TO FLY!': '¡LISTO PARA VOLAR!', 'BRIDGE READY!': '¡PUENTE LISTO!', 'EGGS SAVED!': '¡HUEVOS A SALVO!',
+ 'MUD AGAIN!': '¡OTRA VEZ BARRO!', 'DROPPED IT!': '¡SE CAYÓ!', 'POP!': '¡POP!', 'SPLASH!': '¡AL AGUA!', 'CRACK!': '¡CRAC!'
+});

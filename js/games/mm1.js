@@ -107,8 +107,8 @@
   /* ── 2 STAMP: stamp the paper when its target box is under the stamper ── */
   reg('mm_stamp', sp => {
     fx.length = 0;
-    const rs = Math.sqrt(sp), v = 320 * rs, SP = 250, SX = 400, PY = 300, PW = 128, PH = 112;
-    const papers = Array.from({ length: 4 }, (_, k) => ({ k, off: Math.round((Math.random() - .5) * 44 / 4) * 4, done: 0, mark: 0, gone: 0 }));
+    const rs = Math.sqrt(sp), v = 280 * rs, SP = 250, SX = 400, PY = 300, PW = 128, PH = 112;
+    const papers = Array.from({ length: 4 }, (_, k) => ({ k, off: Math.round((Math.random() - .5) * 32 / 4) * 4, done: 0, mark: 0, gone: 0 }));
     let t0 = 0, anim = 0, cd = 0, good = 0, fails = 0;
     const px = p => -90 + v * t0 - p.k * SP;
     const lose = (s) => { if (g.result) return; g.result = 'lose'; mLose(); shake(8, .3); ptxt(s, SX, 130); };
@@ -120,7 +120,7 @@
       if (!best) { for (const p of papers) if (Math.abs(px(p) - SX) < 100) { /* stamped an already-marked paper */ } lose('BLANK!'); pix(SX, 380, 12, 0); return; }
       const d = Math.abs(px(best) + best.off - SX);
       best.mark = SX - px(best);
-      if (d < 26) { best.done = 1; good++; ptxt('GOOD!', SX, 200); pix(SX, 330, 14, 0, 260); beep(1047, .08, .05, .05); beep(1319, .1, .05, .1); if (good >= 3) { g.result = 'win'; mWin(); } }
+      if (d < 38) { best.done = 1; good++; ptxt('GOOD!', SX, 200); pix(SX, 330, 14, 0, 260); beep(1047, .08, .05, .05); beep(1319, .1, .05, .1); if (good >= 3) { g.result = 'win'; mWin(); } }
       else { best.done = 2; fails++; ptxt('OFF!', SX, 200); pix(SX, 330, 8, 1); beep(150, .15, .06, .05); if (fails >= 2) lose('SMUDGE!'); }
     };
     const g = {
@@ -174,7 +174,7 @@
   /* ── 3 TOAST: hold to charge, release in the golden zone ── */
   reg('mm_toast', sp => {
     fx.length = 0;
-    const rs = Math.sqrt(sp), rate = .6 * rs, zs = .5 + Math.random() * .18, zw = Math.max(.12, .2 - .045 * (sp - 1)), ze = zs + zw;
+    const rs = Math.sqrt(sp), rate = .6 * rs, zs = .5 + Math.random() * .18, zw = Math.max(.16, .22 - .04 * (sp - 1)), ze = zs + zw;
     const BREAD = ['..000000..', '.0bbbbbb0.', '0bbbbbbbb0', '00bbbbbb00', '.0bbbbbb0.', '.0bbbbbb0.', '.0bbbbbb0.', '.0bbbbbb0.', '.00000000.'];
     let f = 0, hold = false, tk = 0, inZone = false, fly = null;
     const col = () => f < zs * .55 ? 3 : f < zs ? 2 : f <= ze ? 1 : 0;
@@ -248,7 +248,7 @@
   /* ── 4 SHOOT: aim the cannon and shoot all invaders before they land ── */
   reg('mm_shoot', sp => {
     fx.length = 0;
-    const rs = Math.sqrt(sp), cols = sp > 1.5 ? 4 : 3, rows = 2, CY = 570, LINE = 490;
+    const rs = Math.sqrt(sp), cols = sp > 1.8 ? 4 : 3, rows = 2, CY = 570, LINE = 490;
     const A = ['.0....0.', '..0..0..', '.111111.', '11311311', '11111111', '1.1111.1', '1.1..1.1', '..0..0..'];
     const B = ['.0....0.', '1.0..0.1', '11111111', '11311311', '11111111', '.111111.', '..1..1..', '.1.00.1.'];
     const inv = []; for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) inv.push({ c, r, alive: 1 });
@@ -257,7 +257,7 @@
     const px = i => ox + i.c * 76, py = i => oy + i.r * 62;
     const fire = () => {
       if (g.result || cd > 0 || bul.length >= 3) return;
-      cd = .2; rec = .1; bul.push({ x: cx, y: 480 }); beep(1175, .05, .05); beep(784, .06, .04, .03);
+      cd = .14; rec = .1; bul.push({ x: cx, y: 480 }); beep(1175, .05, .05); beep(784, .06, .04, .03);
     };
     const g = {
       cmd: 'SHOOT!', hint: 'MOUSE / ARROWS: AIM   CLICK / SPACE: FIRE', thint: 'DRAG TO AIM, TAP TO FIRE', dur: 5, wide: true,
@@ -271,7 +271,7 @@
         if (kd) { cx += kd * 460 * dt; tx = cx; } else cx += (tx - cx) * Math.min(1, dt * 20);
         cx = Math.max(40 - OX, Math.min(W + OX - 40, cx));
         const live = inv.filter(i => i.alive);
-        ox += dir * 120 * rs * VW / W * dt; oy += 36 * rs * dt;   // wider field, same bounce rhythm
+        ox += dir * 120 * rs * VW / W * dt; oy += 30 * rs * dt;   // wider field, same bounce rhythm
         const minX = Math.min(...live.map(px)), maxX = Math.max(...live.map(px)) + 48;
         if (maxX > W + OX - 24 && dir > 0) { dir = -1; oy += 22; beep(196, .05, .04); }
         else if (minX < 24 - OX && dir < 0) { dir = 1; oy += 22; beep(196, .05, .04); }

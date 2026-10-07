@@ -12,7 +12,7 @@ const PUR = '#7C4DFF', PUR2 = '#6a3de8', YEL = '#FFE14D', GRN = '#5CFF7A', RED =
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const mkR = () => mulberry32(Math.floor(Math.random() * 4294967296));   // Math.random is seeded while the constructor runs
 const END_SLACK = .6, LAG = .15;
-const SOLO = { role: 0, roles: 2, partner: null, send() {}, onMsg() {} };   // only used if a DUO game is ever built without a partner
+const SOLO = { role: 0, roles: 2, partner: null, seats: [], byRole: [], send() {}, onMsg() {} };   // only used if a DUO game is ever built without a partner
 const duBg = t => { bg(PUR, PUR2, t); ctx.fillStyle = 'rgba(255,255,255,.06)'; for (let i = 0; i < 6; i++) ctx.fillRect(-OX, 60 + i * 100, VW, 40); };
 const duWin = (x, y) => { sfx.coin(); sfx.sparkle(); confetti(x, y, 30); ring(x, y, '#fff', 110); };
 const duLose = (x, y) => { sfx.miss(); sfx.thud(); shake(8, .25); burst(x, y, RED, 14); ring(x, y, RED, 80); };
@@ -71,11 +71,12 @@ const DEMOS = {
   ],
 };
 function wire(g, D, judge, sp, id) {
-  g.roles = DUINFO[id].map(([label, short, how], r) => ({ label, short, how, demo: DEMOS[id][r] }));
+  const info = typeof DUINFO[id] === 'function' ? DUINFO[id](D.roles) : DUINFO[id], demos = typeof DEMOS[id] === 'function' ? DEMOS[id](D.roles) : DEMOS[id];   // SQUAD games give a function of the head count (3 or 4)
+  g.roles = info.map(([label, short, how], r) => ({ label, short, how, demo: demos[r] }));
   g.role = D.role; g.judge = D.role === judge; g.duoWait = !g.judge; g.limit = g.dur / Math.sqrt(sp) - END_SLACK;
-  D.onMsg((t, d) => {
+  D.onMsg((t, d, from) => {   // from = the sender's role (SQUAD games: who sent it)
     if (t === 'end') { if (!g.judge && !g.result) { g.result = d === 'win' ? 'win' : 'lose'; (g.result === 'win' ? duWin : duLose)(400, 330); } }
-    else if (g.msg) g.msg(t, d);
+    else if (g.msg) g.msg(t, d, from);
   });
   g.finish = res => { if (g.result) return; g.result = res; D.send('end', res); (res === 'win' ? duWin : duLose)(400, 330); };
 }

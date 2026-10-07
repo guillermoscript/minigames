@@ -603,6 +603,7 @@ function render() {
     else txt('PRACTICE', W + OX - 16, 30, 22, '#fff', 'right');
     button(W + OX - 78, 80, 66, 30, mode === 'party' ? 'LEAVE' : mode === 'practice' ? 'EXIT' : 'MENU', exitPlay, { size: 15, fill: 'rgba(255,255,255,.85)' });
     if (pre <= 0 && !cur.partyHelper && !cur.partyDraw && !cur.partyScene) fuse();
+    if (mouse.touch === false && !cur.noHand && !cur.partyHelper && !cur.partyScene) drawHandCursor(mouse.x, mouse.y, !!cur.fistHand, pressing);   // desktop: an easy-to-spot hand instead of the crosshair
   } else if (state === 'over') {
     bg('#3b0d14', '#4d1119', now);
     const gk = st < .14 ? 2.6 - 1.6 * easeOut(st / .14) : 1;
@@ -917,6 +918,7 @@ function loop(ts) {
     if (['stagein', 'menu', 'practice', 'profile', 'board', 'pview', 'party', 'friends'].includes(state) || (state === 'inter' && mode === 'stage')) sfx.whoosh(true);
     lastState = state;
   }
+  cv.style.cursor = state === 'play' && mouse.touch === false && cur && !cur.noHand && !cur.partyHelper && !cur.partyScene ? 'none' : '';
   ctx.setTransform(1, 0, 0, 1, OX, 0); ctx.save(); applyShake(dt); render(); drawFx(); if (sh.on) drawShareMenu(); ctx.restore();
   const hb = btns.find(b => hovered(b.x, b.y, b.w, b.h)), hk = hb ? hb.x + ',' + hb.y : '';
   if (hk !== hoverKey) { hoverKey = hk; if (hk && state !== 'play') sfx.tick(); }

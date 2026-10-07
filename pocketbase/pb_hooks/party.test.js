@@ -64,7 +64,6 @@ P.start(m, "a", 0, rand); assert.equal(m.state, "round");
 
 // --- DUO: exactly 2 players, rotating roles, one shared verdict, relay validation, partner leaving ---
 const d = P.newRoom("DUOO", "duo", 0); P.addPlayer(d, { name: "A" }, rand); P.addPlayer(d, { name: "B" }, rand); P.addPlayer(d, { name: "C" }, rand);
-throwsStatus(() => P.start(d, "a", 0, rand), 409);             // 3 players: not allowed
 P.leave(d, "c");
 P.start(d, "a", 0, rand); assert.equal(d.mode, "duo"); assert.equal(d.total, 8); assert.ok(P.DUO_IDS.includes(d.game));
 assert.equal(P.roleOf(d, "a"), 0); assert.equal(P.roleOf(d, "b"), 1);
@@ -73,6 +72,20 @@ P.report(d, "b", 0, "lose", 11, 0, 0);                         // partner timed 
 assert.equal(d.last.teamWin, true); assert.ok(d.teamScore >= 200); assert.equal(d.lives, 4); assert.ok(d.last.results.every((x) => x.award === 100 && x.r === "win" && x.t === 3));   // one verdict on both rows
 P.advance(d, 0, 9000, rand); assert.equal(d.round, 1); assert.equal(P.roleOf(d, "a"), 1); assert.equal(P.roleOf(d, "b"), 0);   // roles swap
 for (const g of P.DUO_IDS) assert.ok(P.GAMES[g].roles === undefined || P.GAMES[g].roles === 2);
+assert.ok(P.duoIdsFor(2).length >= 14 && P.duoIdsFor(2).every((g) => !g.startsWith("sq_")) && P.duoIdsFor(2).includes("du_squeegee"));   // two players only get the DUO games
+assert.ok(P.duoIdsFor(3).length >= 5 && P.duoIdsFor(3).every((g) => g.startsWith("sq_")) && !P.duoIdsFor(3).includes("du_hippo") && P.duoIdsFor(4).join() === P.duoIdsFor(3).join());
+// --- SQUAD: 3 and 4 players, one role each, roles rotate over all seats, game pool depends on the head count ---
+for (const n of [3, 4]) {
+  const q = P.newRoom("SQD" + n, "duo", 0); for (let i = 0; i < n; i++) P.addPlayer(q, { name: "P" + i }, rand);
+  P.start(q, "a", 0, rand); assert.ok(P.GAMES[q.game].duo && !P.GAMES[q.game].roles && P.seatsOf(q.game).min <= n && n <= P.seatsOf(q.game).max);
+  const ids = q.players.map((p) => p.id), seen = new Set(); for (let r = 0; r < n; r++) { q.round = r; seen.add(P.roleOf(q, ids[0])); assert.deepEqual(ids.map((i) => P.roleOf(q, i)).sort(), [...Array(n).keys()]); } assert.equal(seen.size, n);
+  q.round = 0; ids.slice(0, n - 1).forEach((i) => P.report(q, i, 0, "lose", 5, 0, 0)); assert.equal(q.state, "round"); P.report(q, ids[n - 1], 0, "win", 4, 0, 0);   // one winner anywhere = team win
+  assert.equal(q.last.teamWin, true); assert.ok(q.last.results.every((x) => x.r === "win"));
+}
+const q4 = P.newRoom("SQD5", "duo", 0); for (let i = 0; i < 4; i++) P.addPlayer(q4, { name: "P" + i }, rand); P.start(q4, "a", 0, rand);
+P.leave(q4, "d"); assert.equal(q4.state, "between"); assert.equal(q4.last.teamWin, false); assert.ok(!q4.last.final);   // 4 -> 3: the round is lost, the run goes on
+const q2 = P.newRoom("SQD6", "duo", 0); for (let i = 0; i < 3; i++) P.addPlayer(q2, { name: "P" + i }, rand); P.start(q2, "a", 0, rand);
+P.leave(q2, "c"); assert.ok(!q2.last.final); P.advance(q2, 0, 9000, rand); assert.ok(P.seatsOf(q2.game).min <= 2);                                       // 3 -> 2: back to DUO games
 const sg = P.sigPayload(d, "a", 1, [{ t: "bx", d: 120 }]); assert.equal(sg.from, "a"); assert.equal(sg.m[0].t, "bx");
 throwsStatus(() => P.sigPayload(d, "a", 0, [{ t: "bx", d: 1 }]), 409);                       // stale round
 throwsStatus(() => P.sigPayload(d, "a", 1, []), 400); throwsStatus(() => P.sigPayload(d, "a", 1, "x"), 400);

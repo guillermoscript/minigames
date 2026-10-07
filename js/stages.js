@@ -14,7 +14,7 @@ const STAGES = [
   { name: 'BRAIN BREAK', tag: 'Think fast!', col: '#B49CFF', bg: ['#A0E7E5', '#8fdbd9'],
     pool: ['flip', 'shell', 'rps', 'balance', 'catch', 'pong'], n: 8, sp0: 1.4, boss: 'simon' },
   { name: 'MEGA MIX', tag: 'Everything. At once.', col: '#FFD23F', bg: ['#FF9AA2', '#ff8892'],
-    pool: null /* every game */, n: 12, sp0: 1.5, boss: 'dodge', bossBalls: 5 },
+    pool: null /* every game */, n: 12, sp0: 1.5, boss: 'dodge', bossBalls: 1 },
   { name: 'WII WAGGLE', tag: 'Smooth moves, Claude!', col: '#4DB8FF', bg: ['#DDF3FF', '#c9ecff'],
     pool: ['wii_save', 'wii_zap', 'wii_draw', 'wii_sneak', 'wii_umbrella', 'wii_pop', 'wii_strike', 'wii_shave', 'wii_fan', 'wii_twirl', 'wii_roll', 'wii_close'], n: 8, sp0: 1.2, boss: 'conduct' },
   { name: 'CUBE PARTY', tag: 'Mega party game, mega fast!', col: '#9B6BD1', bg: ['#D9C7FF', '#cbb4ff'],

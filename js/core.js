@@ -272,6 +272,23 @@ function pos(e) {
 }
 
 
+/* the desktop cursor inside a microgame: a chunky white cartoon glove. Fingertip = the real pointer position. fist = it grips something (a fan): drawn just under the pointer so the held thing stays visible */
+function drawHandCursor(x, y, fist, down) {
+  ctx.save(); ctx.translate(x, y + (fist ? 40 : 0)); ctx.scale(down ? 1.15 : 1.3, down ? 1.15 : 1.3);
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  const shape = (o, col) => {
+    ctx.fillStyle = ctx.strokeStyle = col; ctx.lineWidth = o * 2;
+    const rr = (a, b, w, h, r) => { ctx.beginPath(); ctx.moveTo(a + r, b); ctx.arcTo(a + w, b, a + w, b + h, r); ctx.arcTo(a + w, b + h, a, b + h, r); ctx.arcTo(a, b + h, a, b, r); ctx.arcTo(a, b, a + w, b, r); ctx.closePath(); ctx.fill(); if (o) ctx.stroke(); };
+    if (fist) { ctx.translate(-14, -14); rr(0, 0, 30, 28, 11); for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.arc(4 + i * 7.4, 3, 5.4, 0, 7); ctx.fill(); if (o) ctx.stroke(); } ctx.beginPath(); ctx.ellipse(1, 16, 5.5, 8, .2, 0, 7); ctx.fill(); if (o) ctx.stroke(); ctx.translate(14, 14); }
+    else { rr(-5.5, 0, 11, 26, 5.5); rr(-12, 16, 29, 22, 9); rr(-9, 36, 23, 8, 3); ctx.beginPath(); ctx.ellipse(-12, 24, 5, 7.5, .5, 0, 7); ctx.fill(); if (o) ctx.stroke(); for (let i = 0; i < 2; i++) { ctx.beginPath(); ctx.arc(8 + i * 6, 17, 4.6, 0, 7); ctx.fill(); if (o) ctx.stroke(); } }
+  };
+  ctx.translate(2.5, 3); shape(3, 'rgba(20,16,28,.35)'); ctx.translate(-2.5, -3);   // soft drop shadow
+  shape(3.5, INK); shape(0, '#fff');
+  ctx.strokeStyle = 'rgba(20,16,28,.45)'; ctx.lineWidth = 2;                         // two crease lines on the curled fingers
+  if (!fist) { ctx.beginPath(); ctx.moveTo(4, 22); ctx.lineTo(4, 30); ctx.moveTo(10, 22); ctx.lineTo(10, 30); ctx.stroke(); ctx.fillStyle = '#FF4D6D'; ctx.fillRect(-9, 36, 23, 5); }
+  ctx.restore();
+}
+
 /* ───────────── touch + game registry ───────────── */
 const TOUCH = (typeof window !== 'undefined' && 'ontouchstart' in window) || (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0);
 const REG = [], REGMAP = {};

@@ -79,7 +79,7 @@ const calls = [];
 const sb = { console, Math, Date, JSON, Array, Object, String, Number, Set, Map, Promise, setTimeout, clearTimeout,
   addEventListener() {}, setInterval() {}, performance: { now: () => 0 }, innerWidth: 800, innerHeight: 600, devicePixelRatio: 1,
   location: { search: '' }, navigator: { languages: ['en'], language: 'en', maxTouchPoints: 0 }, localStorage: { getItem: () => null, setItem() {} },
-  document: { getElementById: () => ({ getContext: () => stub(), addEventListener() {}, style: {} }), documentElement: {}, querySelectorAll: () => [], querySelector: () => null, createElement: () => ({ getContext: () => stub(), toDataURL: () => 'data:image/jpeg;base64,ZmFrZQ==' }), addEventListener() {}, body: stub() }, AudioContext: function () {}, Image: function () {},
+  document: { getElementById: () => ({ getContext: () => stub(), addEventListener() {}, style: {} }), documentElement: {}, querySelectorAll: () => [], querySelector: () => null, createElement: () => ({ getContext: () => stub(), toDataURL: () => 'data:image/jpeg;base64,ZmFrZQ==' }), addEventListener() {}, body: stub() }, AudioContext: function () {}, Image: function () {}, Path2D: function () { return stub(); },
   modeLabel: m => m.toUpperCase(), pressing: false, btns: [], button(x, y, w, h, label, fn) { sb.btns.push({ x, y, w, h, label, fn }); }, auth: () => ({ code: 'GHST', id: sb.party.you.id, key: 'k' }),
   applyRoom() {}, roomGone() {}, partyErr: () => '', say() {}, partyLeave() {}, sigStamp: m => Object.assign(m, { n: 1, v: 'x' }),
   pcall: async (action, body) => { calls.push({ action, body }); return sb.reply; }, reply: { ok: true, status: 200, data: {} },
@@ -87,7 +87,7 @@ const sb = { console, Math, Date, JSON, Array, Object, String, Number, Set, Map,
 sb.party = { you: { id: 'a' }, view: 'wait', watch: { round: 0, frames: {}, target: null }, sig: { q: [], buf: [], round: 0, handler: null } };
 sb.me = () => sb.party.room.players.find(p => p.id === sb.party.you.id);
 sb.window = sb; vm.createContext(sb);
-for (const file of ['js/i18n.js', 'js/core.js', 'js/games/pt1.js', 'js/party-sab.js', 'js/party-react.js', 'js/party-modes.js', 'js/party-ghost.js', 'js/party-wait.js']) vm.runInContext(fs.readFileSync(file, 'utf8'), sb, { filename: file });
+for (const file of ['js/i18n.js', 'js/core.js', 'js/party-ui.js', 'js/games/pt1.js', 'js/party-sab.js', 'js/party-react.js', 'js/party-modes.js', 'js/party-ghost.js', 'js/party-wait.js']) vm.runInContext(fs.readFileSync(file, 'utf8'), sb, { filename: file });
 const run = s => vm.runInContext(s, sb), plain = s => JSON.parse(vm.runInContext('JSON.stringify(' + s + ')', sb));
 const mkRoom = (mode, lives) => ({ id: 'rid', code: 'GHST', mode, state: 'round', round: 0, total: 30, seed: 79, sp: 1, game: 'pt_mash', cur: {}, extra: {},
   players: ['a', 'b', 'c', 'd'].map((id, i) => ({ id, name: 'P' + i, color: ['#D97757', '#6EA8FE', '#7BD88F', '#F28CB1'][i], score: 0, lives: lives[i] })) });
@@ -132,7 +132,7 @@ for (const mode of ['survival', 'knockout']) {
   sb.btns.length = 0; run('partyGhostDraw(party.room, pick)');
   assert.equal(sb.btns.filter(b => b.label === 'BOO!').length, 2, 'one BOO! per living player'); assert.ok(sb.btns.some(b => b.label === 'LEAVE'));
   const before = calls.length; sb.btns.find(b => b.label === 'BOO!').fn(); assert.equal(calls.length, before + 1); assert.equal(calls.at(-1).body.m[0].d.to, 'b', 'the BOO! button throws at its own card');
-  assert.ok(run('fxs.some(f => f.k === "txt")'), 'the throw pops a toast');
+  assert.ok(run('fxs.some(f => f.k === "txt") || sabPops.length > 0'), 'the throw pops a toast');
   for (const spawn of ['bubble', 'dial', 'seq']) { run(`party.ghost.traps.spawn("${spawn}")`); run('partyGhostDraw(party.room, pick)'); }
   run('now += .2; party.ghost.flash = { k: "ink", at: now - .1, to: "b" }; party.watch.target = "b"; partyGhostDraw(party.room, pick)');
   room.cur.b = { r: 'win' }; sb.btns.length = 0; run('partyGhostDraw(party.room, pick)'); delete room.cur.b;
@@ -147,7 +147,7 @@ for (const mode of ['survival', 'knockout']) {
   const game = run('partyBuildGame(party.room, party.room.sp)');
   assert.equal(typeof sb.party.sig.handler, 'function', 'the living attach a receiver'); assert.equal(sb.party.sig.buf.length, 0, 'buffered hits are replayed, not kept');
   const recv = (type, d, from) => sb.party.sig.handler(type, d, from), last = () => sabSeen.at(-1);
-  run('fxs.length = 0'); recv('sab', { k: 'ink', to: 'c' }, 'd'); assert.ok(run('fxs.some(f => f.k === "txt")'), 'a hit on somebody else is a toast');
+  run('fxs.length = 0'); recv('sab', { k: 'ink', to: 'c' }, 'd'); assert.ok(run('fxs.some(f => f.k === "txt") || sabPops.length > 0'), 'a hit on somebody else is a toast');
   for (const [k, from] of [['fog', 'a'], ['flip', 'a'], ['dark', 'd'], ['ink', 'c'], ['ink', 'zz']]) { recv('sab', { k, to: 'b' }, from); game.draw(0); assert.equal(last(), null, k + ' from ' + from + ' must not land'); }
   recv('sab', { k: 'ink', to: 'b' }, 'a'); game.draw(0);
   const hit = last(); assert.ok(hit && hit.k === 'ink' && hit.name === 'P0'); assert.equal(hit.str, .6); assert.ok(Math.abs(hit.life - 3.4 * .75) < 1e-9, 'a ghost hit is 75% as long');

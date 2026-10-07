@@ -585,7 +585,7 @@ function render() {
         ctx.save(); ctx.translate(W / 2, H / 2 - 20); const sc = 1 + (1 - k) * .8; ctx.scale(sc, sc);
         ctx.rotate(Math.sin(now * 12) * .03); 
         txt(cur.cmd, 0, 0, 130, isBoss ? '#FF4D4D' : '#FFE14D', 'center', 760); txt(hintOf(cur), 0, 95, 34, '#fff', 'center', 760); ctx.restore();
-      } else if (!cur.partyScene) txt(hintOf(cur), W / 2, 36, 24, '#fff', 'center', mode === 'party' ? 400 : 520);
+      } else if (!cur.partyScene) txt(hintOf(cur), W / 2, 36, 24, '#fff', 'center', mode === 'party' ? 350 : 520);
     } else {
       const win = outcome === 'win', sc = outT < .14 ? 2.6 - 1.6 * easeOut(outT / .14) : 1 + Math.max(0, .12 - (outT - .14)) * 1.2, lab = t(win ? 'NICE!' : 'FAIL!'), cc = win ? '#5CFF7A' : '#FF4D4D';
       ctx.save(); ctx.translate(W / 2, H / 2); ctx.rotate(-.1); ctx.scale(sc, sc); ctx.globalAlpha = Math.min(1, outT / .06);
@@ -601,7 +601,8 @@ function render() {
       ctx.save(); const sp = 1 + scorePop * .3; ctx.translate(W + OX - 16, 62); ctx.scale(sp, sp); txt(String(Math.round(shownScore)), 0, 0, 22, '#FFE14D', 'right'); ctx.restore();
     } else if (mode === 'party') { if (!(pre > 0 && (preMax === DUO_PRE || partyTurnMode(party.room))) && !cur.partyScene) drawPartyHud(); }
     else txt('PRACTICE', W + OX - 16, 30, 22, '#fff', 'right');
-    button(W + OX - 78, 80, 66, 30, mode === 'party' ? 'LEAVE' : mode === 'practice' ? 'EXIT' : 'MENU', exitPlay, { size: 15, fill: 'rgba(255,255,255,.85)' });
+    if (mode === 'party' && typeof pui === 'function' && typeof PARTY_UI !== 'undefined') pui().btn(W + OX - 78, 80, 66, 30, 'LEAVE', exitPlay, { size: 15, depth: 4 });   // party shell plate, same rectangle
+    else button(W + OX - 78, 80, 66, 30, mode === 'party' ? 'LEAVE' : mode === 'practice' ? 'EXIT' : 'MENU', exitPlay, { size: 15, fill: 'rgba(255,255,255,.85)' });
     if (pre <= 0 && !cur.partyHelper && !cur.partyDraw && !cur.partyScene) fuse();
     if (mouse.touch === false && !cur.noHand && !cur.partyHelper && !cur.partyScene) drawHandCursor(mouse.x, mouse.y, !!cur.fistHand, pressing);   // desktop: an easy-to-spot hand instead of the crosshair
   } else if (state === 'over') {

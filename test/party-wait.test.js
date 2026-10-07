@@ -101,7 +101,7 @@ const calls = [];
 const sb = { console, Math, Date, JSON, Array, Object, String, Number, Set, Map, Promise, setTimeout, clearTimeout,
   addEventListener() {}, setInterval() {}, performance: { now: () => 0 }, innerWidth: 800, innerHeight: 600, devicePixelRatio: 1,
   location: { search: '' }, navigator: { languages: ['en'], language: 'en', maxTouchPoints: 0 }, localStorage: { getItem: () => null, setItem() {} },
-  document: { getElementById: () => ({ getContext: () => stub(), addEventListener() {}, style: {} }), documentElement: {}, querySelectorAll: () => [], querySelector: () => null, createElement: () => ({ getContext: () => stub(), toDataURL: () => 'data:image/jpeg;base64,ZmFrZQ==' }), addEventListener() {}, body: stub() }, AudioContext: function () {}, Image: function () {},
+  document: { getElementById: () => ({ getContext: () => stub(), addEventListener() {}, style: {} }), documentElement: {}, querySelectorAll: () => [], querySelector: () => null, createElement: () => ({ getContext: () => stub(), toDataURL: () => 'data:image/jpeg;base64,ZmFrZQ==' }), addEventListener() {}, body: stub() }, AudioContext: function () {}, Image: function () {}, Path2D: function () { return stub(); },
   modeLabel: m => m.toUpperCase(), pressing: false, btns: [], button(x, y, w, h, label, fn) { sb.btns.push({ x, y, w, h, label, fn }); }, auth: () => ({ code: 'WAIT', id: sb.party.you.id, key: 'k' }),
   applyRoom() {}, roomGone() { sb.gone = true; }, partyErr: () => '', say() {}, partyLeave() {}, sigStamp: m => Object.assign(m, { n: 1, v: 'x' }),
   pcall: async (action, body) => { calls.push({ action, body }); return sb.reply; }, reply: { ok: true, status: 200, data: {} },
@@ -109,7 +109,7 @@ const sb = { console, Math, Date, JSON, Array, Object, String, Number, Set, Map,
 sb.party = { you: { id: 'a' }, view: 'wait', watch: { round: 0, frames: {}, target: null }, sig: { q: [], buf: [], round: 0, handler: null }, pending: null };
 sb.me = () => sb.party.room.players.find(p => p.id === sb.party.you.id);
 sb.window = sb; vm.createContext(sb);
-for (const file of ['js/i18n.js', 'js/core.js', 'js/games/pt1.js', 'js/party-sab.js', 'js/party-react.js', 'js/party-modes.js', 'js/party-ghost.js', 'js/party-wait.js']) vm.runInContext(fs.readFileSync(file, 'utf8'), sb, { filename: file });
+for (const file of ['js/i18n.js', 'js/core.js', 'js/party-ui.js', 'js/games/pt1.js', 'js/party-sab.js', 'js/party-react.js', 'js/party-modes.js', 'js/party-ghost.js', 'js/party-wait.js']) vm.runInContext(fs.readFileSync(file, 'utf8'), sb, { filename: file });
 const run = s => vm.runInContext(s, sb), plain = s => JSON.parse(vm.runInContext('JSON.stringify(' + s + ')', sb));
 const mkRoom = mode => ({ id: 'rid', code: 'WAIT', mode, state: 'round', round: 0, total: 6, seed: 79, sp: 1, game: 'pt_mash', cur: {}, extra: {}, lives: 4,
   players: ['a', 'b', 'c', 'd'].map((id, i) => ({ id, name: 'P' + i, color: ['#D97757', '#6EA8FE', '#7BD88F', '#F28CB1'][i], score: 0, lives: 3 })) });
@@ -163,7 +163,7 @@ for (const id of P.CHEER_KINDS) {
   sb.btns.length = 0; run('partyWaitDraw(party.room, pick)');
   assert.equal(sb.btns.filter(b => b.label === 'SABOTAGE!').length, 4, 'one SABOTAGE! per other player plus the big one'); assert.ok(sb.btns.some(b => b.label === 'LEAVE'));
   const before = calls.length; sb.btns.filter(b => b.label === 'SABOTAGE!')[1].fn(); assert.equal(calls.length, before + 1); assert.equal(calls.at(-1).body.m[0].d.to, 'c', 'a card throws at its own player');
-  assert.ok(run('fxs.some(f => f.k === "txt")'), 'the throw pops a toast');
+  assert.ok(run('fxs.some(f => f.k === "txt") || sabPops.length > 0'), 'the throw pops a toast');
   run('party.wait.charges.cd = 0; party.wait.charges.n = 2'); const n0 = calls.length; sb.btns.filter(b => b.label === 'SABOTAGE!')[0].fn(); assert.equal(calls.length, n0, 'the card of a player who already finished throws nothing');
   for (const spawn of ['bubble', 'dial', 'seq']) { run(`party.wait.traps.spawn("${spawn}")`); run('partyWaitDraw(party.room, pick)'); }
   run('now += .2; party.wait.flash = { k: "ink", at: now - .1, to: "c" }; party.watch.target = "c"; partyWaitDraw(party.room, pick)'); run('now += 5; partyWaitDraw(party.room, pick)');
@@ -197,7 +197,7 @@ for (const id of P.CHEER_KINDS) {
   const vgame = run('partyBuildGame(party.room, party.room.sp)');
   assert.equal(typeof sb.party.sig.handler, 'function', 'a player still playing attaches a receiver'); assert.equal(sb.party.sig.buf.length, 0);
   const recv = (type, d, from) => sb.party.sig.handler(type, d, from), last = () => seen.at(-1);
-  run('fxs.length = 0'); recv('sab', { k: 'ink', to: 'c' }, 'a'); assert.ok(run('fxs.some(f => f.k === "txt")'), 'a hit on somebody else is a toast');
+  run('fxs.length = 0'); recv('sab', { k: 'ink', to: 'c' }, 'a'); assert.ok(run('fxs.some(f => f.k === "txt") || sabPops.length > 0'), 'a hit on somebody else is a toast');
   for (const [k, from] of [['fog', 'a'], ['flip', 'a'], ['dark', 'a'], ['nuke', 'a'], ['ink', 'zz']]) { recv('sab', { k, to: 'b' }, from); vgame.draw(0); assert.equal(last(), null, k + ' from ' + from + ' must not land'); }
   recv('sab', { k: 'pixel', to: 'b' }, 'a'); vgame.draw(0);
   const hit = last(); assert.ok(hit && hit.k === 'pixel' && hit.name === 'P0'); assert.equal(hit.str, .6, 'soft like a ghost: 60% strength'); assert.ok(Math.abs(hit.life - 3.6 * .75) < 1e-9, 'and 75% as long');

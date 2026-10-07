@@ -357,10 +357,129 @@ async function partyInvite() {
 }
 
 /* ───────────── drawing ───────────── */
+/* The party shell is drawn in the DUO look (docs/ART-STYLE.md): inked rounded slabs with depth, base/shade/light, chunky plates and name tags, avatars with eyes.
+   The shared kit is js/party-ui.js (PARTY_UI). It loads right after this file, so every piece below is built lazily on the first draw (never at load).
+   Local extras the kit does not have (TODO: promote into the kit): panel, btn, chip, plaque, sign, heart, crown, fade. Art only: nothing here reads or writes game state,
+   and cosmetic motion is a pure function of `now`. */
+let PUI = null;
+const pui = () => PUI || (PUI = buildPui(PARTY_UI));
+function buildPui(U) {
+  const { rr, ink, text, outBack, clamp, shade } = U;
+  const rgb = h => { const n = parseInt(h.slice(1), 16); return [n >> 16, n >> 8 & 255, n & 255]; };
+  const lum = c => { const [r, g, b] = rgb(c); return (.299 * r + .587 * g + .114 * b) / 255; };
+  const WHITE = ['#ffffff', '#b9b3cc'], PRE = { '#5cff7a': 'live', '#4db8ff': 'blue', '#ffe14d': 'yellow', '#ffd23f': 'yellow', '#ff4d4d': 'red', '#ff4d5e': 'red' };
+  const faceOf = fill => {   // button fill -> [face, base]: the shared plate presets where they match, else the colour with its own shade
+    const f = String(fill || '#fff').toLowerCase();
+    if (PRE[f]) return U.PLATE[PRE[f]];
+    if (/^#[0-9a-f]{6}$/.test(f) && f !== '#ffffff') return [fill, shade(fill, .36)];
+    return WHITE;
+  };
+  /* text width in the same face text() draws (Fredoka + its spacing for INK, Arial Black otherwise) */
+  function tw(s, size, dark) {
+    s = t(String(s)); ctx.save();
+    ctx.font = dark ? `700 ${size}px Fredoka, "Helvetica Neue", Arial, sans-serif` : `900 ${size}px "Arial Black", Impact, sans-serif`;
+    const w = ctx.measureText(s).width + (dark ? s.length * Math.max(.5, size / 24) : 0);
+    ctx.restore(); return w;
+  }
+  const fgOn = fill => (lum(fill) > .78 ? INK : '#fff');
+  /* a chunky control plate. Same hit rectangle as core button(); the slab hangs 5-8 px below it. Returns how far the face sits from y (hover lifts, press sinks) so icons can follow */
+  function btn(x, y, w, h, label, fn, o = {}) {
+    const live = !o.off && !!fn, hv = live && hovered(x, y, w, h), pr = hv && pressing, D = o.depth || (h >= 56 ? 8 : h >= 36 ? 5 : 3);
+    const [face, base] = o.off ? U.PLATE.off : faceOf(o.fill), dy = pr ? D - 2 : hv ? -2 : 0, r = Math.min(18, h * .42);
+    ctx.save();
+    ctx.fillStyle = 'rgba(20,16,28,.26)'; rr(x + 2, y + D + 6, w, h, r); ctx.fill();
+    rr(x, y + D, w, h, r); ink(base, 4);
+    rr(x, y + dy, w, h, r); ink(face, 4);
+    ctx.fillStyle = o.off ? 'rgba(255,255,255,.16)' : 'rgba(255,255,255,.32)'; rr(x + 9, y + dy + 5, w - 18, clamp(h * .14, 4, 11), 4); ctx.fill();
+    if (label) {
+      if (o.off) ctx.globalAlpha *= .72;   /* INK keeps the dark Fredoka label (no outline): about 7:1 on the pale off face, still reads as inactive */
+      text(label, x + w / 2 + (o.lx || 0), y + dy + h / 2 + 2 + (o.ly || 0), o.size || 26, o.off ? INK : (o.col || fgOn(face)), 'center', o.lw || w - 16);
+    }
+    ctx.restore();
+    if (live) btns.push({ x, y, w, h, fn });
+    return dy;
+  }
+  /* an inked rounded panel with a soft drop shadow, base over a crescent of its own shade, an optional header band / left edge in a colour, and one light strip */
+  function panel(x, y, w, h, face, o = {}) {
+    const r = o.r == null ? 16 : o.r, sh = o.sh == null ? 6 : o.sh;
+    ctx.save();
+    ctx.fillStyle = 'rgba(20,16,28,.3)'; rr(x + 4, y + 8, w, h, r); ctx.fill();
+    rr(x, y, w, h, r); ink(shade(face, .34), o.o || 4);
+    ctx.save(); rr(x, y, w, h, r); ctx.clip();
+    ctx.fillStyle = face; rr(x, y - sh, w, h, r); ctx.fill();
+    if (o.edge) { ctx.fillStyle = o.edge; rr(x - 4, y, (o.edgeW || 8) + 4, h, 0); ctx.fill(); }
+    if (o.band) { ctx.fillStyle = o.band; rr(x, y, w, o.bandH || 7, 0); ctx.fill(); }
+    ctx.fillStyle = 'rgba(255,255,255,.09)'; rr(x + 10, y + (o.band ? (o.bandH || 7) + 4 : 5), w - 20, 5, 2.5); ctx.fill();
+    ctx.restore(); ctx.restore();
+  }
+  /* a small fully round label (a name tag without the pointer). x = left edge, or the centre with o.center. Returns its width */
+  function chip(x, y, label, fill, o = {}) {
+    const size = o.size || 12, fg = o.fg || fgOn(fill), w = Math.min(o.maxW || 220, tw(label, size, fg === INK) + size * 1.7), h = size * 1.8, x0 = o.center ? x - w / 2 : x;
+    ctx.save();
+    ctx.fillStyle = 'rgba(20,16,28,.22)'; rr(x0 + 1, y - h / 2 + 3, w, h, h / 2); ctx.fill();
+    rr(x0, y - h / 2, w, h, h / 2); ink(fill, o.o || 2.5);
+    ctx.fillStyle = 'rgba(255,255,255,.34)'; rr(x0 + h * .3, y - h / 2 + 2, w - h * .6, h * .22, h * .11); ctx.fill();
+    text(label, x0 + w / 2, y + 1, size, fg, 'center', w - size * .9);
+    ctx.restore(); return w;
+  }
+  /* a dark rounded strip behind one line of text: status lines and countdowns stay readable over the spinning rays */
+  function plaque(cx, cy, label, size, fg, o = {}) {
+    if (!label) return 0;
+    const w = clamp(tw(label, size, fg === INK) + size * 1.5, o.minW || 0, o.maxW || 744), h = size * 1.75;
+    ctx.save(); ctx.globalAlpha *= o.a == null ? .9 : o.a;
+    ctx.fillStyle = 'rgba(20,16,28,.25)'; rr(cx - w / 2 + 2, cy - h / 2 + 5, w, h, h / 2); ctx.fill();
+    rr(cx - w / 2, cy - h / 2, w, h, h / 2); ink(o.fill || '#171c34', 3);
+    ctx.fillStyle = 'rgba(255,255,255,.1)'; rr(cx - w / 2 + h * .35, cy - h / 2 + 3, w - h * .7, h * .16, h * .08); ctx.fill();
+    ctx.restore();
+    text(label, cx, cy + 1, size, fg, 'center', w - size * 1.2); return w;
+  }
+  /* a wooden sign on two strings that sways: the round counter */
+  function sign(cx, label, size = 28, y = 12) {
+    const w = clamp(tw(label, size, false) + 72, 220, 440), h = 42, x0 = cx - w / 2;
+    ctx.save(); ctx.translate(cx, -4); ctx.rotate(Math.sin(now * 1.3) * .012); ctx.translate(-cx, 4);
+    ctx.lineCap = 'round';
+    for (const sx of [x0 + 26, x0 + w - 26]) {
+      ctx.beginPath(); ctx.moveTo(sx, -4); ctx.lineTo(sx, y + 8); ctx.strokeStyle = INK; ctx.lineWidth = 7; ctx.stroke(); ctx.strokeStyle = '#e6c58c'; ctx.lineWidth = 3; ctx.stroke();
+    }
+    ctx.fillStyle = 'rgba(20,16,28,.28)'; rr(x0 + 3, y + 14, w, h, 12); ctx.fill();
+    rr(x0, y + 6, w, h, 12); ink('#a5622c', 4);
+    rr(x0, y, w, h, 12); ink('#d9944f', 4);
+    ctx.strokeStyle = '#c98443'; ctx.lineWidth = 2; ctx.beginPath();
+    ctx.moveTo(x0 + 48, y + 9); ctx.quadraticCurveTo(cx - w * .2, y + 5, cx - w * .08, y + 9); ctx.moveTo(cx + w * .14, y + h - 8); ctx.quadraticCurveTo(cx + w * .3, y + h - 4, x0 + w - 46, y + h - 9); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,.26)'; rr(x0 + 10, y + 4, w - 20, 6, 3); ctx.fill();
+    for (const sx of [x0 + 26, x0 + w - 26]) { ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(sx, y + 8, 3.4, 0, 7); ctx.fill(); ctx.fillStyle = '#e6c58c'; ctx.beginPath(); ctx.arc(sx - 1, y + 7, 1.2, 0, 7); ctx.fill(); }
+    text(label, cx, y + h / 2 + 3, size, '#FFE14D', 'center', w - 56);
+    ctx.restore(); return w;
+  }
+  const HEART = 'M0 6 C-10 -1 -7 -9 0 -4 C7 -9 10 -1 0 6 Z', CROWN = 'M-11 6 L-13 -6 L-6 0 L0 -9 L6 0 L13 -6 L11 6 Z';
+  function heart(x, y, s, col = '#ff5c8a') {
+    ctx.save(); ctx.translate(x, y); ctx.scale(s / 8, s / 8);
+    U.inkP(U.P(HEART), col, 2.4 * 8 / s);
+    ctx.fillStyle = 'rgba(255,255,255,.75)'; ctx.beginPath(); ctx.ellipse(-3.6, -2.6, 1.9, 1.2, -.6, 0, 7); ctx.fill(); ctx.restore();
+  }
+  function crown(x, y, s, rot = 0) {
+    ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.scale(s / 10, s / 10);
+    U.inkP(U.P(CROWN), '#FFE14D', 2.6 * 10 / s);
+    ctx.fillStyle = '#ff5c8a'; ctx.beginPath(); ctx.arc(0, 1, 1.6, 0, 7); ctx.fill(); ctx.restore();
+  }
+  /* when a player/seat was first drawn: lets a seat pop in with outBack. Cosmetic memo only. */
+  const SEEN = Object.create(null);
+  const seen = key => { if (SEEN[key] === undefined) { if (Object.keys(SEEN).length > 200) for (const k in SEEN) delete SEEN[k]; SEEN[key] = now; } return now - SEEN[key]; };
+  return { U, lum, tw, btn, panel, chip, plaque, sign, heart, crown, seen, fgOn };
+}
+/* the round-result mark: a glossy inked orb with a tick (win), a cross (lose) or a breathing socket (still playing). Same signature as before; the DUO HUD uses it too */
 function statusDot(x, y, r, s) {
-  if (s === 'win') { circ(x, y, r, '#5CFF7A', 3); ctx.strokeStyle = INK; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(x - r * .5, y); ctx.lineTo(x - r * .1, y + r * .45); ctx.lineTo(x + r * .55, y - r * .4); ctx.stroke(); }
-  else if (s === 'lose') { circ(x, y, r, '#FF4D4D', 3); ctx.strokeStyle = INK; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(x - r * .4, y - r * .4); ctx.lineTo(x + r * .4, y + r * .4); ctx.moveTo(x + r * .4, y - r * .4); ctx.lineTo(x - r * .4, y + r * .4); ctx.stroke(); }
-  else { circ(x, y, r * (.7 + Math.sin(now * 8) * .08), '#6b6880', 3); }
+  const K = pui(), U = K.U;
+  if (s === 'win' || s === 'lose') {
+    U.orb(x, y, r, { col: s === 'win' ? '#5CFF7A' : '#ff4d5e', state: 'full', t: now });
+    ctx.save(); ctx.strokeStyle = INK; ctx.lineWidth = Math.max(2.4, r * .3); ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath();
+    if (s === 'win') { ctx.moveTo(x - r * .48, y + r * .02); ctx.lineTo(x - r * .1, y + r * .42); ctx.lineTo(x + r * .52, y - r * .36); }
+    else { ctx.moveTo(x - r * .36, y - r * .36); ctx.lineTo(x + r * .36, y + r * .36); ctx.moveTo(x + r * .36, y - r * .36); ctx.lineTo(x - r * .36, y + r * .36); }
+    ctx.stroke(); ctx.restore();
+  } else {
+    U.orb(x, y, r, { state: 'empty', t: now });
+    ctx.save(); ctx.strokeStyle = '#B49CFF'; ctx.globalAlpha = .45 + .45 * Math.sin(now * 8); ctx.lineWidth = Math.max(1.5, r * .22); ctx.beginPath(); ctx.arc(x, y, r * .5, 0, 7); ctx.stroke(); ctx.restore();
+  }
 }
 const partyElimination = R => R.mode === 'survival' || R.mode === 'knockout';
 const partyTeam = R => R.mode === 'team' || R.mode === 'duo' || R.mode === 'lantern';
@@ -380,97 +499,133 @@ const PARTY_HELP = {
 const TURN_PRE = 4;   // see balloonPre()
 function drawPartyModeIntro(left) {
   const R = party.room, actor = partyActor(R); if (!actor) return;
-  const mine = actor.id === party.you.id, help = PARTY_HELP[R.mode], color = mine ? actor.color : '#FFE14D';
-  txt(modeLabel(R.mode), W / 2, 40, 32, '#FFE14D');
-  box3(40, 74, 720, 68, color, 4, 5);
-  txt(mine ? 'YOUR TURN TO PLAY!' : t('{name} IS PLAYING', { name: actor.name.toUpperCase() }), W / 2, 112, 36, INK, 'center', 680);
-  claude(W / 2, 235, 5, { col: actor.color, mood: 'happy' });
+  const K = pui(), U = K.U, clamp = U.clamp, mine = actor.id === party.you.id, help = PARTY_HELP[R.mode], color = mine ? actor.color : '#FFE14D';
+  const G = typeof PARTY_GUIDE !== 'undefined' && PARTY_GUIDE[R.mode], mc = G ? G.color : '#FFE14D', go = left < 1, T = now;
+  /* ribbon: the mode's icon and name on a slab in the mode colour */
+  const label = modeLabel(R.mode), rw = clamp(K.tw(label, 30, false) + 110, 220, 520), rx = W / 2 - rw / 2;
+  ctx.save(); ctx.translate(W / 2, 38); ctx.rotate(Math.sin(T * 1.6) * .012); ctx.translate(-W / 2, -38);
+  ctx.fillStyle = 'rgba(20,16,28,.3)'; U.rr(rx + 3, 24, rw, 50, 25); ctx.fill();
+  U.rr(rx, 14, rw, 50, 25); U.ink(mc, 4);
+  ctx.fillStyle = 'rgba(255,255,255,.34)'; U.rr(rx + 18, 19, rw - 36, 9, 4.5); ctx.fill();
+  if (typeof partyModeIcon === 'function') partyModeIcon(R.mode, rx + 36, 39, 26, mc);
+  txt(label, W / 2 + 22, 41, 30, '#fff', 'center', rw - 100);
+  ctx.restore();
+  /* the actor's banner */
+  const dyb = K.btn(40, 78, 720, 62, '', null, { fill: color, depth: 7 });
+  txt(mine ? 'YOUR TURN TO PLAY!' : t('{name} IS PLAYING', { name: actor.name.toUpperCase() }), W / 2, 110 + dyb, 36, INK, 'center', 640);
+  /* the hero: Claude on a little stage, with its name tag */
+  const bob = Math.abs(Math.sin(T * 3)) * 6;
+  ctx.save(); ctx.fillStyle = 'rgba(20,16,28,.28)'; ctx.beginPath(); ctx.ellipse(W / 2 + 4, 258, 100 - bob, 12, 0, 0, 7); ctx.fill();
+  U.rr(W / 2 - 84, 246, 168, 20, 10); U.ink(U.shade(actor.color, .38), 3);
+  ctx.save(); U.rr(W / 2 - 84, 246, 168, 20, 10); ctx.clip(); ctx.fillStyle = actor.color; U.rr(W / 2 - 84, 242, 168, 20, 10); ctx.fill(); ctx.restore(); ctx.restore();
+  claude(W / 2, 252 - bob, 7.4, { col: actor.color, mood: 'happy' });
   if (R.mode === 'balloon') {
     partyBalloonDraw(690, 190, 30, partyBalloonShown(R), {});
   }
-  txt(mine ? cur.cmd : R.mode === 'lantern' ? 'YOU MOVE THE LIGHT!' : R.mode === 'balloon' ? 'YOU PUMP THE BALLOON!' : R.extra.phase === 'draw' ? 'WATCH THE NEXT CARD!' : 'YOU CAN STEAL CARDS!', W / 2, 294, 42, '#fff', 'center', 730);
-  box3(40, 328, 720, 136, '#35406a', 4, 5);
-  txt(mine ? cur.hint : R.mode === 'lantern' ? help[4] : R.mode === 'balloon' ? help[2] : R.extra.phase === 'draw' ? 'THE PLAYER CHOOSES ONE OF THE FACE-DOWN CARDS' : 'TAP A RIVAL TO STEAL ONE CARD PER MICROGAME', W / 2, 362, 24, '#FFE14D', 'center', 680);
-  txt(mine ? help[2] : R.mode === 'cards' ? 'WIN TRAPS TO CHARGE SABOTAGE' : help[1], W / 2, 407, 22, '#fff', 'center', 680);
-  txt(help[3], W / 2, 443, 18, '#ddd', 'center', 680);
-  txt(left < 1 ? 'GO!' : 'GET READY!', W / 2, 510, 42, '#5CFF7A');
-  if (R.mode === 'cards') txt(partyCardReveal(R), W / 2, 560, 20, '#F28CB1', 'center', 730);
+  U.pill(W / 2, 280, mine ? t('YOU') : actor.name, actor.color, true, 12);
+  txt(mine ? cur.cmd : R.mode === 'lantern' ? 'YOU MOVE THE LIGHT!' : R.mode === 'balloon' ? 'YOU PUMP THE BALLOON!' : R.extra.phase === 'draw' ? 'WATCH THE NEXT CARD!' : 'YOU CAN STEAL CARDS!', W / 2, 312, 42, '#fff', 'center', 730);
+  /* the rule card */
+  K.panel(40, 338, 720, 128, '#35406a', { r: 18, band: mc, bandH: 8 });
+  txt(mine ? cur.hint : R.mode === 'lantern' ? help[4] : R.mode === 'balloon' ? help[2] : R.extra.phase === 'draw' ? 'THE PLAYER CHOOSES ONE OF THE FACE-DOWN CARDS' : 'TAP A RIVAL TO STEAL ONE CARD PER MICROGAME', W / 2, 372, 24, '#FFE14D', 'center', 680);
+  txt(mine ? help[2] : R.mode === 'cards' ? 'WIN TRAPS TO CHARGE SABOTAGE' : help[1], W / 2, 412, 22, '#fff', 'center', 680);
+  txt(help[3], W / 2, 446, 18, '#ddd', 'center', 680);
+  /* GET READY! pops, then GO! */
+  const pre = typeof preMax === 'number' && preMax > 0 ? preMax : 4, k = go ? U.outBack((1 - left) / .25) : 1, bump = go ? 1 + (1 - Math.min(1, (1 - left) / .25)) * .3 : 1 + Math.sin(T * 6) * .03;
+  ctx.save(); ctx.translate(W / 2, 508); ctx.scale(bump, bump); txt(go ? 'GO!' : 'GET READY!', 0, 0, 42, '#5CFF7A'); ctx.restore();
+  if (!go) U.dots(W / 2, 542, 5, clamp(Math.round(5 * (1 - left / pre)), 0, 5), { r: 7, col: '#5CFF7A', t: T });
+  if (R.mode === 'cards') txt(partyCardReveal(R), W / 2, 566, 20, '#F28CB1', 'center', 730);
 }
 function mini(x, y, p, u) { claude(x, y, u, { col: p.color }); }
 
 function drawParty() {
   const R = party.room, v = party.view;
   bg('#1f2a44', '#26335a', now);
-  if (!R || v === 'menu' || v === 'joining') return drawPartyMenu();
+  if (!R || v === 'menu' || v === 'joining') { drawPartyMenu(); vignette(.14); return; }   // no voice button before there is a room
   if (v === 'lobby') drawLobby(R);
   else if (v === 'between') drawBetween(R);
   else if (v === 'end') drawEnd(R);
   else drawWait(R);
+  vignette(.14);
   voiceButton(W + OX - 164, 8, 150, 42);
 }
 
 function drawPartyMenu() {
-  txt('PLAY WITH FRIENDS', W / 2, 44, 35, '#FFE14D', 'center', 430);
-  button(14, 10, 130, 56, '◄ BACK', () => { goTitle(); }, { size: 22 });
-  button(W + OX - 204, 10, 190, 56, 'MY FRIENDS', goFriends, { size: 20, fill: '#B49CFF' });
-  if (net.user && frPending() > 0) { circ(W + OX - 20, 14, 14, '#FF4D4D', 3); txt(String(frPending()), W + OX - 20, 15, 15, '#fff'); }
+  const K = pui(), U = K.U;
+  const bob = Math.sin(now * 2) * 2;
+  txt('PLAY WITH FRIENDS', 372, 44 + bob, 35, '#FFE14D', 'center', 410);
+  K.btn(14, 10, 130, 56, '◄ BACK', () => { goTitle(); }, { size: 22 });
+  K.btn(W + OX - 204, 10, 190, 56, 'MY FRIENDS', goFriends, { size: 20, fill: '#B49CFF' });
+  if (net.user && frPending() > 0) { U.orb(W + OX - 20, 14, 14, { col: '#ff4d5e', t: now }); txt(String(frPending()), W + OX - 20, 15, 15, '#fff'); }
   ['INVITE FRIENDS', 'CHOOSE A MODE', 'PLAY TOGETHER'].forEach((label, i) => {
-    const x = 68 + i * 247; circ(x, 113, 15, i === 0 ? '#4DB8FF' : i === 1 ? '#B49CFF' : '#7BD88F', 0); txt(String(i + 1), x, 113, 17, INK); txt(label, x + 24, 113, 15, '#fff', 'left', 192);
+    const x = 68 + i * 247;
+    U.orb(x, 113, 15, { col: i === 0 ? '#4DB8FF' : i === 1 ? '#B49CFF' : '#7BD88F', t: now, seed: i * 1.3 }); txt(String(i + 1), x, 114, 17, INK); txt(label, x + 24, 113, 15, '#fff', 'left', 192);
   });
-  box3(40, 158, 720, 112, '#252c4b', 4, 5);
-  txt('HOST A PARTY', 64, 187, 26, '#7BD88F', 'left', 330);
-  txt('Create a room and invite your friends.', 64, 225, 16, '#fff', 'left', 350);
-  button(450, 180, 286, 66, 'CREATE ROOM', partyCreate, { fill: '#5CFF7A', size: 28 });
-  box3(40, 290, 720, 142, '#252c4b', 4, 5);
+  K.panel(40, 158, 720, 112, '#252c4b', { band: '#7BD88F' });
+  txt('HOST A PARTY', 64, 192, 26, '#7BD88F', 'left', 330);
+  txt('Create a room and invite your friends.', 64, 229, 16, '#fff', 'left', 350);
+  K.btn(450, 180, 286, 66, 'CREATE ROOM', partyCreate, { fill: '#5CFF7A', size: 28 });
+  K.panel(40, 290, 720, 142, '#252c4b', { band: '#4DB8FF' });
   txt('JOIN A ROOM', 400, 306, 17, '#4DB8FF');
-  button(480, 322, 120, 64, 'JOIN', joinTyped, { fill: '#4DB8FF', size: 28 });
-  txt('Enter the 4-character code shared by the host.', 400, 408, 16, '#ddd', 'center', 680);
+  ctx.save(); U.rr(190, 316, 280, 76, 18); U.ink('#171c34', 4); ctx.restore();       // the slot the code box (a DOM input at 200,322) sits in
+  K.btn(480, 322, 120, 64, 'JOIN', joinTyped, { fill: '#4DB8FF', size: 28 });
+  txt('Enter the 4-character code shared by the host.', 400, 412, 16, '#ddd', 'center', 680);
   const idn = partyIdentity();
-  box3(40, 458, 720, 82, '#171c34', 3, 3);
-  claude(83, 522, 3.4, { col: idn.color, mood: 'happy' });
+  K.panel(40, 458, 720, 82, '#171c34', { o: 3, sh: 4, edge: idn.color });
+  U.avatar(88, 497, 24, idn.color, { mood: 'happy', t: now, bob: true });
   txt(t('PLAYING AS {name}', { name: idn.name.toUpperCase() }), 124, 485, 21, idn.color, 'left', 612);
   txt(net.user ? 'Ready to play with your profile.' : 'Guest play is ready. No account needed.', 124, 519, 16, '#ddd', 'left', 612);
-  if (party.msg) txt(party.msg, W / 2, 571, 20, party.msgCol, 'center', 740);
+  if (party.msg) K.plaque(W / 2, 571, party.msg, 20, party.msgCol, { maxW: 760 });
   else txt('2-4 PLAYERS · ONLINE · MOUSE, KEYBOARD OR TOUCH', W / 2, 571, 14, '#B49CFF', 'center', 740);
 }
 
 function drawLobby(R) {
-  const n = R.players.filter(p => !p.left).length, m = partyGuideMode(R), preview = !isHost() && m !== R.mode;
-  box3(24, 8, 206, 59, '#171c34', 3, 3);
-  txt('ROOM CODE', 40, 22, 12, '#aaa', 'left'); txt(R.code, 215, 43, 37, '#FFE14D', 'right', 165);
-  txt('YOUR PARTY', W / 2, 29, 28, '#FFE14D');
+  const K = pui(), U = K.U, n = R.players.filter(p => !p.left).length, m = partyGuideMode(R), preview = !isHost() && m !== R.mode;
+  K.panel(24, 8, 206, 59, '#171c34', { r: 14, o: 3, sh: 4 });
+  txt('ROOM CODE', 40, 21, 12, '#aaa', 'left'); txt(R.code, 215, 46, 37, '#FFE14D', 'right', 165);
+  txt('YOUR PARTY', W / 2, 29 + Math.sin(now * 2) * 1.5, 28, '#FFE14D');
   txt(t(n === 1 ? '{n} PLAYER CONNECTED' : '{n} PLAYERS CONNECTED', { n }), W / 2, 58, 14, '#ddd');
   for (let i = 0; i < 4; i++) {
-    const p = R.players[i], x = 24 + i * 190, y = 82;
-    box3(x, y, 176, 64, p ? '#35406a' : '#202840', 3, 3);
-    claude(x + 29, y + 52, 2.7, { col: p ? p.color : '#4a4558', mood: p ? 'happy' : null });
-    txt(p ? p.name : 'WAITING...', x + 56, y + 26, 16, p ? p.color : '#8e8c9c', 'left', 112);
+    const p = R.players[i], x = 24 + i * 190, y = 82, cy = y + 33, mine = !!p && !!party.you && p.id === party.you.id;
     if (p) {
-      txt(R.host === p.id ? 'HOST' : party.you && p.id === party.you.id ? 'YOU' : 'READY', x + 56, y + 48, 11, '#ddd', 'left', 105);
-      if (voice.on && p.id !== party.you.id) {
-        const vs = voiceState(p.id); if (vs !== 'none') circ(x + 166, y + 11, 4, VCOL[vs], 0);
-        if (talking(p.id)) { ctx.strokeStyle = '#5CFF7A'; ctx.lineWidth = 3; ctx.strokeRect(x - 1, y - 1, 178, 66); }
-        button(x + 118, y + 40, 51, 20, voice.mutedBy[p.id] ? 'MUTED' : 'HEAR', () => voiceMuteOther(p.id), { size: 10, fill: voice.mutedBy[p.id] ? '#FF4D4D' : '#fff' });
+      const k = U.outBack(K.seen(R.id + p.id) / .35);
+      ctx.save(); ctx.translate(x + 88, y + 32); ctx.scale(.9 + .1 * k, .9 + .1 * k); ctx.globalAlpha = Math.min(1, k * 1.5); ctx.translate(-x - 88, -y - 32);
+      K.panel(x, y, 176, 64, '#35406a', { r: 14, o: 3, sh: 4, edge: p.color });
+      if (R.host === p.id) K.crown(x + 33, y + 8, 9, -.18);
+      U.avatar(x + 34, cy + 2, 19, p.color, { mood: 'happy', t: now, seed: i * 1.7, bob: true });
+      txt(p.name, x + 62, y + 22, 16, p.color, 'left', 108);
+      K.chip(x + 62, y + 46, R.host === p.id ? 'HOST' : mine ? 'YOU' : 'READY', R.host === p.id ? '#FFE14D' : mine ? '#4DB8FF' : '#5b6aa0', { size: 11, maxW: 54 });
+      ctx.restore();
+      if (voice.on && !mine) {
+        const vs = voiceState(p.id); if (vs !== 'none') U.orb(x + 164, y + 11, 5, { col: VCOL[vs], t: now, seed: i });
+        if (talking(p.id)) { ctx.save(); ctx.strokeStyle = '#5CFF7A'; ctx.globalAlpha = .65 + .35 * Math.sin(now * 10); ctx.lineWidth = 4; U.rr(x - 2, y - 2, 180, 68, 16); ctx.stroke(); ctx.restore(); }
+        K.btn(x + 118, y + 40, 51, 20, voice.mutedBy[p.id] ? 'MUTED' : 'HEAR', () => voiceMuteOther(p.id), { size: 10, fill: voice.mutedBy[p.id] ? '#FF4D4D' : '#fff', depth: 3 });
       }
+    } else {
+      K.panel(x, y, 176, 64, '#202840', { r: 14, o: 3, sh: 4 });
+      ctx.save(); ctx.globalAlpha = .55; U.avatar(x + 34, cy, 19, '#8e8c9c', { ghost: true, mood: 'sleepy', t: now, seed: i * 2.3 }); ctx.restore();
+      txt('WAITING...', x + 62, y + 32, 16, '#8e8c9c', 'left', 108);
     }
   }
-  box3(24, 158, 246, 366, '#171c34', 4, 5);
-  txt(isHost() ? 'CHOOSE A MODE' : 'EXPLORE THE MODES', 40, 175, 15, '#ddd', 'left', 222);
+  K.panel(24, 158, 246, 366, '#171c34', { r: 18 });
+  txt(isHost() ? 'CHOOSE A MODE' : 'EXPLORE THE MODES', 40, 177, 15, '#ddd', 'left', 222);
   Object.keys(PARTY_GUIDE).forEach((id, i) => {
     const y = 192 + i * 41, selected = m === id, active = R.mode === id, col = PARTY_GUIDE[id].color;
-    button(34, y, 226, 34, '', () => partyChooseMode(id), { fill: selected ? col : '#303a5b' });
-    partyModeIcon(id, 55, y + 17, 15, col);
-    txt(modeLabel(id), 80, y + 18, 17, selected ? INK : '#fff', 'left', 155);
-    if (active) circ(246, y + 17, 4, selected ? INK : '#7BD88F', 0);
+    const dy = K.btn(34, y, 226, 34, '', () => partyChooseMode(id), { fill: selected ? col : '#303a5b' });
+    partyModeIcon(id, 55, y + 17 + dy, 15, col);
+    txt(modeLabel(id), 80, y + 18 + dy, 17, selected ? INK : '#fff', 'left', 155);
+    if (active) U.orb(246, y + 17 + dy, 5.5, { col: '#5CFF7A', state: 'full', t: now, seed: i });
   });
   drawPartyGuide(R);
-  txt(preview ? t('PREVIEW ONLY · ROOM MODE: {mode}', { mode: t(modeLabel(R.mode)) }) : isHost() ? canStart(R) ? 'ROOM READY · PICK A MODE AND START' : 'INVITE A FRIEND TO START' : 'THE HOST CHOOSES THE MODE AND STARTS', W / 2, 533, 12, preview ? '#FFE14D' : '#ddd', 'center', 746);
-  button(24, 547, 134, 43, 'LEAVE', () => partyLeave('menu'), { fill: '#fff', size: 20 });
-  button(174, 547, 206, 43, 'INVITE FRIENDS', partyInvite, { fill: '#4DB8FF', size: 20 });
+  const note = preview ? t('PREVIEW ONLY · ROOM MODE: {mode}', { mode: t(modeLabel(R.mode)) }) : isHost() ? canStart(R) ? 'ROOM READY · PICK A MODE AND START' : 'INVITE A FRIEND TO START' : 'THE HOST CHOOSES THE MODE AND STARTS';
+  txt(note, W / 2, 539, 12, preview ? '#FFE14D' : '#ddd', 'center', 746);
+  K.btn(24, 547, 134, 43, 'LEAVE', () => partyLeave('menu'), { size: 20, depth: 5 });
+  K.btn(174, 547, 206, 43, 'INVITE FRIENDS', partyInvite, { fill: '#4DB8FF', size: 20 });
   if (isHost()) {
-    if (canStart(R)) button(400, 547, 376, 43, t('START {mode}', { mode: t(modeLabel(R.mode)) }), partyStart, { fill: '#5CFF7A', size: 27 });
-    else { box3(400, 547, 376, 43, '#4a5065', 4, 4); txt('NEED 2+ PLAYERS', 588, 569, 20, '#ddd', 'center', 352); }
-  } else { box3(400, 547, 376, 43, '#4a5065', 4, 4); txt(t('WAITING FOR {name} TO START', { name: pName(R, R.host).toUpperCase() }), 588, 569, 17, '#ddd', 'center', 352); }
+    if (canStart(R)) {
+      const label = t('START {mode}', { mode: t(modeLabel(R.mode)) }), dy = K.btn(400, 547, 376, 43, label, partyStart, { fill: '#5CFF7A', size: 25, lw: 226, lx: -12 });
+      U.keyCap(736, 547 + 21 + dy, 'ENTER');
+    } else K.btn(400, 547, 376, 43, 'NEED 2+ PLAYERS', null, { off: true, size: 20, lw: 352 });
+  } else K.btn(400, 547, 376, 43, t('WAITING FOR {name} TO START', { name: pName(R, R.host).toUpperCase() }), null, { off: true, size: 17, lw: 352 });
 }
 
 /* whom the spectator screens show: everybody else, the living ones among them, and the one being watched (the player's own pick, else whoever is still playing) */
@@ -487,92 +642,129 @@ function partyWatchPick(R) {
 function drawWait(R) {
   if (partyGhostOn(R)) { partyGhostDraw(R, partyWatchPick(R)); return; }   // SURVIVAL / KNOCKOUT: the eliminated play traps and haunt the living (js/party-ghost.js)
   if (partyWaitOn(R)) { partyWaitDraw(R, partyWatchPick(R)); return; }     // VERSUS / TEAM: a finished player plays traps to sabotage the racers / cheer the team (js/party-wait.js)
-  const my = R.cur && party.you && R.cur[party.you.id] || party.pending;
-  txt(t('ROUND {n} / {total}', { n: R.round + 1, total: R.total }), W / 2, 36, 28, '#FFE14D');
-  txt(party.view === 'loading' ? 'LOADING 3D GAME...' : partyElimination(R) && me().lives <= 0 ? 'YOU ARE OUT · KEEP WATCHING' : my ? my.r === 'win' ? 'YOU DID IT! WATCH YOUR FRIENDS' : 'ROUND FINISHED · WATCH YOUR FRIENDS' : 'WATCH YOUR FRIENDS PLAY', W / 2, 78, 23, '#fff', 'center', 740);
-  const { friends, target, frame } = partyWatchPick(R), watch = party.watch;
-  txt(target ? t('WATCHING: {name}', { name: target.name }) : 'WAITING FOR THE NEXT ROUND', 296, 119, 22, target ? target.color : '#ddd', 'center', 550);
-  box3(16, 140, 560, 424, target ? target.color : '#35406a', 4, 4);
-  ctx.fillStyle = '#19172d'; ctx.fillRect(20, 144, 552, 414);
+  const K = pui(), U = K.U, my = R.cur && party.you && R.cur[party.you.id] || party.pending;
+  K.sign(W / 2, t('ROUND {n} / {total}', { n: R.round + 1, total: R.total }), 28);
+  K.plaque(W / 2, 82, party.view === 'loading' ? 'LOADING 3D GAME...' : partyElimination(R) && me().lives <= 0 ? 'YOU ARE OUT · KEEP WATCHING' : my ? my.r === 'win' ? 'YOU DID IT! WATCH YOUR FRIENDS' : 'ROUND FINISHED · WATCH YOUR FRIENDS' : 'WATCH YOUR FRIENDS PLAY', 22, '#fff', { maxW: 760, a: .8 });
+  const { friends, target, frame } = partyWatchPick(R), watch = party.watch, tc = target ? target.color : '#35406a';
+  /* the live screen: a chunky inked TV frame in the watched player's colour, with a name tag that points at it */
+  ctx.save();
+  ctx.fillStyle = 'rgba(20,16,28,.3)'; U.rr(20, 148, 560, 424, 20); ctx.fill();
+  U.rr(16, 140, 560, 424, 20); U.ink(U.shade(tc, .3), 4);
+  ctx.save(); U.rr(16, 140, 560, 424, 20); ctx.clip(); ctx.fillStyle = tc; U.rr(16, 134, 560, 424, 20); ctx.fill(); ctx.restore();
+  ctx.fillStyle = 'rgba(255,255,255,.3)'; U.rr(30, 146, 300, 5, 2.5); ctx.fill();
+  U.rr(20, 144, 552, 414, 12); U.ink('#19172d', 3);
   if (frame && frame.image) {
-    ctx.drawImage(frame.image, 20, 144, 552, 414);
-    if (!R.cur[target.id] && now - frame.at > 3) { box(20, 144, 552, 42, 'rgba(0,0,0,.8)', 0); txt('RECONNECTING TO THE PLAYER...', 296, 165, 18, '#FFE14D', 'center', 530); }
-  } else txt('CONNECTING TO THE PLAYER...', 296, 351, 24, '#FFE14D', 'center', 530);
-  txt(frame && frame.cmd || '', 296, 582, 18, '#fff', 'center', 552);
+    ctx.save(); U.rr(20, 144, 552, 414, 12); ctx.clip(); ctx.drawImage(frame.image, 20, 144, 552, 414); ctx.restore();
+    if (!R.cur[target.id] && now - frame.at > 3) K.plaque(296, 165, 'RECONNECTING TO THE PLAYER...', 18, '#FFE14D', { maxW: 540, a: .92 });
+    else if (!R.cur[target.id]) { ctx.fillStyle = '#ff4d5e'; ctx.globalAlpha = .55 + .45 * Math.sin(now * 5); ctx.beginPath(); ctx.arc(550, 166, 6, 0, 7); ctx.fill(); }
+  } else {
+    ctx.save(); ctx.globalAlpha = .9; U.avatar(296, 330, 34, '#6b6880', { ghost: true, mood: 'sleepy', t: now }); ctx.restore();
+    txt('CONNECTING TO THE PLAYER...', 296, 410, 24, '#FFE14D', 'center', 530);
+  }
+  ctx.restore();
+  if (target) K.chip(296, 140, t('WATCHING: {name}', { name: target.name }), target.color, { size: 17, center: true, maxW: 520, o: 3 });
+  else K.plaque(296, 119, 'WAITING FOR THE NEXT ROUND', 20, '#ddd', { maxW: 540 });
+  txt(frame && frame.cmd || '', 296, 584, 18, '#fff', 'center', 552);
   txt('CHOOSE WHO TO WATCH', 686, 126, 16, '#FFE14D', 'center', 188);
   friends.forEach((p, i) => {
-    const y = 154 + i * 124, dead = partyElimination(R) && p.lives <= 0, c = R.cur && R.cur[p.id];
-    if (!dead) button(592, y, 188, 64, p.name, () => { watch.target = p.id; watch.manual = true; }, { size: 20, fill: p.id === watch.target ? '#FFE14D' : p.color });
-    else { box3(592, y, 188, 64, '#35406a', 3, 3); txt(p.name, 686, y + 32, 20, '#aaa', 'center', 176); }
-    txt(dead ? 'ELIMINATED' : c ? 'FINISHED' : 'PLAYING NOW', 686, y + 88, 17, dead ? '#F28CB1' : c ? '#ddd' : '#7BD88F', 'center', 180);
-    if (partyElimination(R)) txt(t('{n} LIVES', { n: p.lives }), 686, y + 109, 15, '#ddd');
+    const y = 154 + i * 124, dead = partyElimination(R) && p.lives <= 0, c = R.cur && R.cur[p.id], sel = p.id === watch.target;
+    if (!dead) {
+      const dy = K.btn(592, y, 188, 64, p.name, () => { watch.target = p.id; watch.manual = true; }, { size: 20, fill: sel ? '#FFE14D' : p.color, lx: 22, lw: 124 });
+      U.avatar(625, y + 32 + dy, 19, p.color, { mood: c ? (c.r === 'win' ? 'happy' : 'sad') : 'eager', look: [-1, 0], t: now, seed: i * 1.9 });
+    } else {
+      K.btn(592, y, 188, 64, p.name, null, { off: true, size: 20, lx: 22, lw: 124 });
+      ctx.save(); ctx.globalAlpha = .8; U.avatar(625, y + 32, 19, '#8e8c9c', { ghost: true, mood: 'sleepy', t: now, seed: i * 1.9 }); ctx.restore();
+    }
+    const tag = dead ? 'ELIMINATED' : c ? 'FINISHED' : 'PLAYING NOW', tcol = dead ? '#F28CB1' : c ? '#ddd' : '#7BD88F';
+    const cw = K.chip(686, y + 90, tag, '#171c34', { size: 14, fg: tcol, center: true, maxW: 176 });
+    if (!dead && !c && cw < 150) U.orb(686 - cw / 2 - 11, y + 90, 4.5, { col: '#5CFF7A', state: 'pulse', t: now, seed: i });
+    if (partyElimination(R)) { const lbl = t('{n} LIVES', { n: p.lives }), w = K.tw(lbl, 15, false); txt(lbl, 686 + 9, y + 112, 15, '#ddd', 'center', 150); K.heart(686 + 9 - Math.min(w, 150) / 2 - 12, y + 112, 9, p.lives > 0 ? '#ff5c8a' : '#6b6880'); }
   });
-  button(14, 10, 130, 44, 'LEAVE', () => partyLeave(), { size: 18, fill: 'rgba(255,255,255,.85)' });
+  K.btn(14, 10, 130, 44, 'LEAVE', () => partyLeave(), { size: 18 });
 }
 
 function drawBetween(R) {
   const L = R.last; if (!L) return;
-  txt(partyTurnMode(R) ? partyTurnLabel(R) : t('ROUND {n} / {total}', { n: L.round + 1, total: R.total }), W / 2, 36, 30, '#FFE14D');
-  const g = REGMAP[L.game]; I18N.scope = I18N.scopeOf(L.game); txt(g ? g.name : '', W / 2, 78, 22, '#fff'); I18N.scope = '';
+  const K = pui(), U = K.U;
+  K.sign(W / 2, partyTurnMode(R) ? partyTurnLabel(R) : t('ROUND {n} / {total}', { n: L.round + 1, total: R.total }), 30);
+  const g = REGMAP[L.game]; I18N.scope = I18N.scopeOf(L.game); K.plaque(W / 2, 82, g ? g.name : '', 22, '#fff', { maxW: 700, a: .85 }); I18N.scope = '';
   let y0 = 118;
+  const leave = () => K.btn(14, 10, 130, 44, 'LEAVE', () => partyLeave(), { size: 18 });
   if (R.mode === 'balloon') {
     drawBalloonBetween(R, L);
-    if (L.final) txt(t('FINAL RESULTS IN {n}', { n: Math.max(0, Math.ceil(balloonBetween(R) - (now - party.seenAt))) }), W / 2, 566, 24, '#fff');
-    button(14, 10, 130, 44, 'LEAVE', () => partyLeave(), { size: 18, fill: 'rgba(255,255,255,.85)' });
+    if (L.final) K.plaque(W / 2, 566, t('FINAL RESULTS IN {n}', { n: Math.max(0, Math.ceil(balloonBetween(R) - (now - party.seenAt))) }), 24, '#fff', { maxW: 700 });
+    leave();
     return;
   }
   if (partyTeam(R)) {
-    txt(L.teamWin ? 'TEAM WIN!' : 'TEAM FAILED!', W / 2, 118, 54, L.teamWin ? '#5CFF7A' : '#FF4D4D');
-    for (let i = 0; i < 4; i++) claude(W / 2 - 108 + i * 72, 190, 2.6, i < R.lives ? { col: OR } : { col: '#4a4558', mood: 'sad' });
-    txt(t('TEAM SCORE {n}', { n: R.teamScore }), W / 2, 214, 24, '#FFE14D'); y0 = 240;
+    U.badge(L.teamWin ? 'TEAM WIN!' : 'TEAM FAILED!', W / 2, 130, 34, L.teamWin ? '#5CFF7A' : '#ff4d5e', '#fff', U.outBack(st / .3), L.teamWin ? -.03 : .03, 420);
+    for (let i = 0; i < 4; i++) {
+      const alive = i < R.lives;
+      ctx.save(); if (!alive) ctx.globalAlpha = .85;
+      U.avatar(W / 2 - 108 + i * 72, 184, 13, alive ? OR : '#6b6880', { mood: alive ? (L.teamWin ? 'happy' : 'panic') : 'sad', t: now, seed: i * 1.3, bob: alive });
+      ctx.restore();
+    }
+    K.plaque(W / 2, 219, t('TEAM SCORE {n}', { n: R.teamScore }), 20, '#FFE14D', { maxW: 500 }); y0 = 240;
   }
   const rows = L.results.slice().sort((a, b) => b.award - a.award || (a.r === 'win' ? 0 : 1) - (b.r === 'win' ? 0 : 1) || a.t - b.t);
-  const rh = partyTeam(R) ? 62 : 74;
+  const rh = partyTeam(R) ? 62 : 74, MEDAL = ['#FFE14D', '#cfd8e6', '#e0955a'];
   rows.forEach((x, i) => {
     const p = R.players.find(q => q.id === x.id); if (!p) return;
-    const y = y0 + i * rh, k = easeOut((st - i * .1) / .25);
+    const y = y0 + i * rh, h = rh - 10, cy = y + h / 2, k = easeOut((st - i * .1) / .25), gold = x.award > 0 && i === 0 && R.mode === 'versus';
     ctx.save(); ctx.globalAlpha = k; ctx.translate((1 - k) * 60, 0);
-    box3(60, y, 680, rh - 10, x.award > 0 && i === 0 && R.mode === 'versus' ? '#5a4a2a' : '#35406a', 3, 4);
-    if (R.mode === 'versus') txt('#' + (i + 1), 92, y + (rh - 10) / 2, 26, '#fff', 'center', 60);
-    mini(150, y + rh - 14, p, 2.4);
-    txt(p.name, 190, y + (rh - 10) / 2, 22, p.color, 'left', 250);
-    statusDot(470, y + (rh - 10) / 2, 14, x.r);
-    txt(x.pts > 0 ? t('{n} PTS', { n: x.pts }) : x.r === 'win' ? x.t.toFixed(1) + 's' : '-', 540, y + (rh - 10) / 2, 20, '#ddd', 'center', 90);
-    if (partyElimination(R)) txt(t('{n} LIVES', { n: p.lives }), 700, y + (rh - 10) / 2, 22, p.lives ? '#5CFF7A' : '#FF4D4D', 'right', 180);
-    if (R.mode === 'cards') txt(t('{n} CARDS', { n: p.score }), 700, y + (rh - 10) / 2, 22, '#FFE14D', 'right', 180);
-    if (R.mode === 'balloon') txt(R.extra.loser === p.id ? 'POPPED!' : x.r === 'win' ? 'TURN PASSED!' : 'TRY AGAIN!', 700, y + (rh - 10) / 2, 20, '#FFE14D', 'right', 180);
-    if (R.mode === 'versus') { txt(x.award ? '+' + x.award : '', 618, y + (rh - 10) / 2, 26, '#FFE14D', 'center', 70); txt(String(p.score), 706, y + (rh - 10) / 2, 26, '#fff', 'right', 60); }
+    K.panel(60, y, 680, h, gold ? '#5a4a2a' : '#35406a', { r: 16, o: 3, sh: 5, edge: p.color });
+    if (R.mode === 'versus') { U.orb(96, cy, 17, { col: MEDAL[i] || '#8f88a6', t: now, seed: i }); txt('#' + (i + 1), 96, cy + 1, 16, INK, 'center', 28); }
+    if (gold) K.crown(150, cy - h * .5 + 1, 9, -.2);
+    U.avatar(150, cy + 1, Math.min(20, h * .4), p.color, { mood: x.r === 'win' ? 'happy' : x.r === 'lose' ? 'sad' : 'idle', t: now, seed: i * 1.7 });
+    K.chip(184, cy, p.name, p.color, { size: 18, maxW: 230, o: 3 });
+    statusDot(448, cy, 14, x.r);
+    txt(x.pts > 0 ? t('{n} PTS', { n: x.pts }) : x.r === 'win' ? x.t.toFixed(1) + 's' : '-', 524, cy, 20, '#ddd', 'center', 90);
+    if (partyElimination(R)) { const lbl = t('{n} LIVES', { n: p.lives }), w = Math.min(180, K.tw(lbl, 22, false)); txt(lbl, 716, cy, 22, p.lives ? '#5CFF7A' : '#FF4D4D', 'right', 180); K.heart(716 - w - 14, cy, 11, p.lives ? '#ff5c8a' : '#6b6880'); }
+    if (R.mode === 'cards') txt(t('{n} CARDS', { n: p.score }), 716, cy, 22, '#FFE14D', 'right', 180);
+    if (R.mode === 'balloon') txt(R.extra.loser === p.id ? 'POPPED!' : x.r === 'win' ? 'TURN PASSED!' : 'TRY AGAIN!', 716, cy, 20, '#FFE14D', 'right', 180);
+    if (R.mode === 'versus') { if (x.award) K.chip(614, cy, '+' + x.award, '#FFE14D', { size: 17, center: true, maxW: 76, o: 3 }); txt(String(p.score), 720, cy, 26, '#fff', 'right', 70); }
     ctx.restore();
   });
   const left = Math.max(0, Math.ceil(balloonBetween(R) - (now - party.seenAt)));
-  txt(L.final ? t('FINAL RESULTS IN {n}', { n: left }) : t('NEXT ROUND IN {n}', { n: left }), W / 2, 566, 24, '#fff');
-  button(14, 10, 130, 44, 'LEAVE', () => partyLeave(), { size: 18, fill: 'rgba(255,255,255,.85)' });
+  K.plaque(W / 2, 566, L.final ? t('FINAL RESULTS IN {n}', { n: left }) : t('NEXT ROUND IN {n}', { n: left }), 24, '#fff', { maxW: 700 });
+  leave();
 }
 
 function drawEnd(R) {
-  const team = partyTeam(R), sorted = R.players.filter(p => !p.left).slice().sort((a, b) => (partyElimination(R) ? b.lives - a.lives : 0) || b.score - a.score);
+  const K = pui(), U = K.U, team = partyTeam(R), sorted = R.players.filter(p => !p.left).slice().sort((a, b) => (partyElimination(R) ? b.lives - a.lives : 0) || b.score - a.score);
   const cleared = team && R.lives > 0;
   const tied = partyElimination(R) && sorted.length > 1 && sorted[0].lives === sorted[1].lives && sorted[0].score === sorted[1].score;
   const head = R.mode === 'balloon' ? (R.extra.loser ? t('{name} POPPED THE BALLOON!', { name: pName(R, R.extra.loser).toUpperCase() }) : 'DRAW!') : tied ? 'DRAW!' : team ? (cleared ? 'TEAM CLEARED!' : 'GAME OVER') : t('{name} WINS!', { name: sorted[0] ? sorted[0].name.toUpperCase() : '' });
-  const gk = st < .14 ? 2.6 - 1.6 * easeOut(st / .14) : 1;
-  ctx.save(); ctx.translate(W / 2, 80); ctx.rotate(-.04); ctx.scale(gk, gk); txt(head, 5, 6, 56, INK, 'center', 740); txt(head, 0, 0, 56, team && !cleared ? '#FF4D4D' : '#FFE14D', 'center', 740); ctx.restore();
-  if (team) txt(t('TEAM SCORE {n}', { n: R.teamScore }), W / 2, 140, 34, '#fff');
+  const gk = st < .14 ? 2.6 - 1.6 * easeOut(st / .14) : 1, hc = team && !cleared ? '#FF4D4D' : '#FFE14D';
+  /* light rays behind the headline, and a star at each end (the legs headline) */
+  ctx.save(); ctx.translate(W / 2, 92); ctx.fillStyle = team && !cleared ? 'rgba(255,77,94,.1)' : 'rgba(255,225,77,.11)';
+  for (let i = 0; i < 14; i++) { const a0 = now * .25 + i * Math.PI / 7, a1 = a0 + .13; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a0) * 270, Math.sin(a0) * 270); ctx.lineTo(Math.cos(a1) * 270, Math.sin(a1) * 270); ctx.fill(); }
+  ctx.restore();
+  /* the headline fits 600 px (it shrinks, never squeezes) so it stays clear of the voice button in the top-right corner */
+  const hs = Math.min(56, Math.floor(56 * 600 / Math.max(1, K.tw(head, 56, false)))), hw = Math.min(600, K.tw(head, hs, false)) * gk;
+  const hy = team ? 90 : 96;
+  ctx.save(); ctx.translate(W / 2, hy); ctx.rotate(-.04); ctx.scale(gk, gk); txt(head, 5, 6, hs, '#14101d', 'center', 600); txt(head, 0, 0, hs, hc, 'center', 600); ctx.restore();
+  if (st > .14 && hw < 640) for (const sd of [-1, 1]) { const sx = W / 2 + sd * Math.min(W / 2 - 34, hw / 2 + 36), sc = 1 + Math.sin(now * 5 + sd) * .12; ctx.save(); ctx.translate(sx, hy + Math.sin(now * 3 + sd) * 3); ctx.scale(sc, sc); star(0, 0, 17, 8, 5, now * 1.2 * sd, hc, 3); ctx.restore(); }
+  if (team) K.plaque(W / 2, 142, t('TEAM SCORE {n}', { n: R.teamScore }), 30, '#fff', { maxW: 500 });
+  const MEDAL = ['#FFE14D', '#cfd8e6', '#e0955a'];
   sorted.forEach((p, i) => {
-    const y = 170 + i * 74, k = easeOut((st - .3 - i * .12) / .3), top = !team && i === 0;
+    const y = 170 + i * 74, k = easeOut((st - .3 - i * .12) / .3), top = !team && i === 0, hop = top ? Math.abs(Math.sin(now * 6)) * 12 : 0;
     ctx.save(); ctx.globalAlpha = k; ctx.translate((1 - k) * 80, 0);
-    box3(110, y, 580, 64, top ? '#5a4a2a' : '#35406a', 3, 4);
-    if (!team) txt('#' + (i + 1), 146, y + 32, 28, '#fff', 'center', 60);
-    claude(220, y + 56 - (top ? Math.abs(Math.sin(now * 6)) * 12 : 0), 2.8, { col: p.color, mood: team ? (cleared ? 'happy' : 'sad') : (top ? 'happy' : null) });
-    txt(p.name, 262, y + 32, 24, p.color, 'left', 270);
+    K.panel(110, y, 580, 64, top ? '#5a4a2a' : '#35406a', { r: 16, o: 3, sh: 5, edge: p.color });
+    if (!team) { U.orb(150, y + 32, 19, { col: MEDAL[i] || '#8f88a6', t: now, seed: i }); txt('#' + (i + 1), 150, y + 33, 18, INK, 'center', 30); }
+    if (top) K.crown(224, y + 6 - hop, 11, -.2);
+    U.avatar(224, y + 33 - hop, 22, p.color, { mood: team ? (cleared ? 'happy' : 'sad') : (top ? 'happy' : i === sorted.length - 1 && sorted.length > 2 ? 'sad' : 'idle'), t: now, seed: i * 1.7 });
+    K.chip(262, y + 32, p.name, p.color, { size: 20, maxW: 280, o: 3 });
     if (!team) txt(R.mode === 'balloon' ? (p.id === R.extra.loser ? 'POPPED!' : 'SAFE!') : R.mode === 'cards' ? t('{n} CARDS', { n: p.score }) : String(p.score), 666, y + 32, 30, '#fff', 'right', 110);
-    else if (R.lives > 0) star(660, y + 32, 20, 9, 5, -Math.PI / 2, '#FFE14D', 3);
+    else if (R.lives > 0) { ctx.save(); ctx.translate(660, y + 32); ctx.rotate(Math.sin(now * 3 + i) * .12); star(0, 0, 20, 9, 5, -Math.PI / 2, '#FFE14D', 3); ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.beginPath(); ctx.ellipse(-6, -6, 3.5, 2, -.6, 0, 7); ctx.fill(); ctx.restore(); }
     ctx.restore();
   });
   drawParts();
   if (st > .6) {
-    if (isHost()) button(130, 500, 270, 70, 'PLAY AGAIN', partyAgain, { fill: '#5CFF7A', size: 30 });
-    else txt('WAITING FOR THE HOST...', 265, 535, 20, '#fff', 'center', 250);
-    button(420, 500, 250, 70, 'LEAVE', () => partyLeave(), { fill: '#fff', size: 30 });
+    const pop = U.outBack((st - .6) / .3);
+    if (isHost()) { const dy = K.btn(130, 500, 270, 70, 'PLAY AGAIN', partyAgain, { fill: '#5CFF7A', size: 28, ly: TOUCH ? 0 : -12 }); U.keyCap(265, 552 + dy, 'ENTER'); }
+    else K.plaque(265, 535, 'WAITING FOR THE HOST...', 20, '#fff', { maxW: 260 });
+    K.btn(420, 500, 250, 70, 'LEAVE', () => partyLeave(), { size: 30 });
   }
 }
 
@@ -581,34 +773,51 @@ function drawEnd(R) {
 const DUO_A = 1.9, DUO_B = 1.7, DUO_C = .9, DUO_PRE = DUO_A + DUO_B + DUO_C, DUO_WAIT = 1.5;   // YOU (1.9 s) -> YOUR FRIEND (1.7 s) -> GO (.9 s); keep PRE_MS_DUO in pocketbase/pb_hooks/party.js in sync
 function duoMeColor() { const m = me(); return m ? m.color : '#FFE14D'; }
 function duoBadge(pn) {
-  const c = duoMeColor();
-  ctx.save(); ctx.lineWidth = 8; ctx.strokeStyle = c; ctx.strokeRect(4, 4, W - 8, H - 8); ctx.restore();
-  box(10 - OX, 88, 300, 34, c, 3); txt(t('YOU: {role}', { role: t(cur.roleLabel) }), 20 - OX, 106, 20, INK, 'left', 282);
+  const c = duoMeColor(), K = pui(), U = K.U;
+  ctx.save(); U.rr(4, 4, W - 8, H - 8, 18); ctx.lineWidth = 12; ctx.strokeStyle = INK; ctx.stroke(); ctx.lineWidth = 7; ctx.strokeStyle = c; ctx.stroke(); ctx.restore();   // an inked frame in YOUR colour
+  const x = 10 - OX;
+  ctx.save();
+  ctx.fillStyle = 'rgba(20,16,28,.28)'; U.rr(x + 2, 88 + 5, 300, 34, 17); ctx.fill();
+  U.rr(x, 88, 300, 34, 17); U.ink(c, 3);
+  ctx.fillStyle = 'rgba(255,255,255,.34)'; U.rr(x + 12, 91, 276, 7, 3.5); ctx.fill();
+  ctx.restore();
+  txt(t('YOU: {role}', { role: t(cur.roleLabel) }), 20 - OX, 106, 20, INK, 'left', 282);
   const R = party.room, act = R.players.filter(p => !p.left), n = act.length;
   if (cur.roles) act.filter(p => p.id !== party.you.id).forEach((p, k) => { const role = cur.roles[(act.findIndex(q => q.id === p.id) + R.round) % n]; if (role) txt(t('{name}: {role}', { name: p.name.toUpperCase(), role: t(role.label) }), 14 - OX, 140 + k * 17, 15, p.color, 'left', 290); });
 }
 /* intro card, three beats: 1 what YOU do (animated demo + the control), 2 what your friend does, 3 get ready / GO */
 function drawDuoIntro(left) {
   const R = party.room, m = me(), act = R.players.filter(p => !p.left), others = act.filter(p => p.id !== party.you.id); if (!m || !others.length || !cur.roles) return;
+  const K = pui(), U = K.U;
   const n = act.length, roleOf = p => cur.roles[(act.findIndex(q => q.id === p.id) + R.round) % n], mine = cur.roles[cur.role];
   const el = DUO_PRE - left, beat = el < DUO_A ? 0 : el < DUO_A + DUO_B ? 1 : 2, bt = beat === 0 ? el : beat === 1 ? el - DUO_A : el - DUO_A - DUO_B;
   const k = Math.min(1, bt / .22), pop = 1 + (1 - k) * .25, pulse = .5 + .5 * Math.sin(now * 9);
   const steps = ['YOU', n > 2 ? 'YOUR TEAM' : 'YOUR FRIEND', 'GO!'], stepCol = [m.color, others[0].color, '#5CFF7A'];
-  steps.forEach((sl, i) => { const x = 150 + i * 250, on = i === beat; ctx.globalAlpha = on ? 1 : .4; box(x - 100, 14, 200, 34, on ? stepCol[i] : '#3a3550', 3); txt(String(i + 1) + ' · ' + t(sl), x, 40, 20, on ? INK : '#fff', 'center', 188); }); ctx.globalAlpha = 1;
-  const card = (p, r, x, y, w, h, tag) => {   // one player's role card: name, role, one line
-    box(x, y, w, h, '#2b2845', 4); ctx.lineWidth = 7; ctx.strokeStyle = p.color; ctx.strokeRect(x, y, w, h);
-    claude(x + 50, y + h - 34, 3, { col: p.color, mood: 'happy' }); txt(tag ? t('YOU') : p.name.toUpperCase(), x + w / 2 + 38, y + 34, 22, p.color, 'center', w - 110);
+  steps.forEach((sl, i) => {   // the three beats as plates: the current one is lit and bobs, the others sit dim
+    const x = 150 + i * 250, on = i === beat, lbl = String(i + 1) + ' · ' + t(sl);
+    ctx.save(); ctx.globalAlpha = on ? 1 : .45;
+    K.btn(x - 100, 14 - (on ? Math.abs(Math.sin(now * 5)) * 2 : 0), 200, 34, lbl, null, { fill: on ? stepCol[i] : '#3a3550', size: 20, depth: 4, lw: 188, col: on ? (K.lum(stepCol[i]) > .6 ? INK : '#fff') : '#fff' });
+    ctx.restore();
+  });
+  const card = (p, r, x, y, w, h, tag) => {   // one player's role card: avatar, name, role, one line
+    K.panel(x, y, w, h, '#2b2845', { r: 18 });
+    ctx.save(); ctx.strokeStyle = p.color; ctx.lineWidth = 6; U.rr(x + 3, y + 3, w - 6, h - 6, 15); ctx.stroke(); ctx.restore();
+    U.avatar(x + 50, y + h / 2 + 8, Math.min(30, h * .2), p.color, { mood: 'happy', t: now, seed: x * .01 + y * .02, bob: true });
+    txt(tag ? t('YOU') : p.name.toUpperCase(), x + w / 2 + 38, y + 34, 22, p.color, 'center', w - 110);
     txt(r.label, x + w / 2 + 38, y + h / 2 + 4, w > 300 ? 34 : 26, '#FFE14D', 'center', w - 110); txt(r.short, x + w / 2 + 38, y + h - 26, 15, '#fff', 'center', w - 110);
   };
   if (beat < 2 && (beat === 0 || n === 2)) {
     const you = beat === 0, p = you ? m : others[0], r = you ? mine : roleOf(others[0]);
     ctx.save(); ctx.translate(W / 2, 330); ctx.scale(pop, pop); ctx.translate(-W / 2, -330); ctx.globalAlpha = k;
-    box(40, 64, 650, 62, p.color, 4); txt(you ? 'YOU DO THIS' : t('{name} DOES THIS', { name: p.name.toUpperCase() }), 365, 108, 44, INK, 'center', 620);
-    claude(84, 196, 4.6, { col: p.color, mood: 'happy' });
+    K.btn(40, 64, 650, 62, '', null, { fill: p.color, depth: 7 });
+    txt(you ? 'YOU DO THIS' : t('{name} DOES THIS', { name: p.name.toUpperCase() }), 365, 100, 44, INK, 'center', 620);
+    U.avatar(88, 184, 40, p.color, { mood: 'happy', t: now, bob: true });
     txt(r.label, 470, 168, 56, '#FFE14D', 'center', 560); txt(r.short, 470, 212, 26, '#fff', 'center', 560);
-    box(140, 236, 520, 240, '#2b2845', 4); ctx.lineWidth = 6; ctx.strokeStyle = p.color; ctx.strokeRect(140, 236, 520, 240);
-    ctx.save(); ctx.beginPath(); ctx.rect(142, 238, 516, 236); ctx.clip(); ctx.translate(140, 236); try { r.demo(bt + (you ? 0 : 1.3)); } catch (e) {} ctx.restore();
-    box(160, 494, 480, 52, '#fff', 4); txt(r.how, W / 2, 532, 30, INK, 'center', 460);
+    K.panel(140, 236, 520, 240, '#2b2845', { r: 18 });
+    ctx.save(); ctx.strokeStyle = p.color; ctx.lineWidth = 6; U.rr(143, 239, 514, 234, 15); ctx.stroke(); ctx.restore();
+    ctx.save(); U.rr(146, 242, 508, 228, 12); ctx.clip(); ctx.translate(140, 236); try { r.demo(bt + (you ? 0 : 1.3)); } catch (e) {} ctx.restore();
+    K.btn(160, 494, 480, 52, '', null, { fill: '#fff', depth: 6 });
+    txt(r.how, W / 2, 522, 30, INK, 'center', 460);
     txt(you ? (n > 2 ? 'YOUR TEAM DOES THE OTHER PARTS ON THEIR OWN SCREENS' : 'YOUR FRIEND DOES THE OTHER PART ON THEIR OWN SCREEN') : 'YOU WATCH - THEY DO THIS ON THEIR SCREEN', W / 2, 584, 17, '#c9c6e0', 'center', 740);
     ctx.restore();
   } else if (beat === 1) {   // SQUAD: the whole team at once, one card per teammate
@@ -626,18 +835,21 @@ function drawDuoIntro(left) {
 /* in-game overlay for a party round: who has finished (live) + round counter. Called by main.js render() while playing. */
 function drawPartyHud() {
   const R = party.room; if (!R) return;
-  const act = R.players.filter(p => !p.left);
-  ctx.fillStyle = 'rgba(20,16,28,.4)'; ctx.fillRect(10 - OX, 36, 22 + act.length * 44, 44);
-  act.forEach((p, i) => { const c = R.cur && R.cur[p.id]; claude(36 - OX + i * 44, 74, 1.6, { col: p.color }); if (c) statusDot(48 - OX + i * 44, 44, 9, c.r);
-    if (voice.on && talking(p.id === party.you.id ? 'me' : p.id)) { ctx.fillStyle = '#5CFF7A'; ctx.fillRect(18 - OX + i * 44, 78, 36, 4); } });
+  const K = pui(), U = K.U, act = R.players.filter(p => !p.left);
+  ctx.save(); ctx.globalAlpha = .72; U.rr(10 - OX, 35, 24 + act.length * 44, 46, 16); U.ink('#171c34', 3); ctx.restore();   // a rounded tray for the player chips
+  act.forEach((p, i) => { const c = R.cur && R.cur[p.id], x = 36 - OX + i * 44;
+    U.avatar(x, 62, 13, p.color, { mood: c ? (c.r === 'win' ? 'happy' : 'sad') : 'idle', t: now, seed: i * 1.3 });
+    if (c) statusDot(x + 13, 46, 8, c.r);
+    if (voice.on && talking(p.id === party.you.id ? 'me' : p.id)) { ctx.save(); ctx.fillStyle = '#5CFF7A'; U.rr(x - 17, 76, 34, 5, 2.5); ctx.fill(); ctx.restore(); } });
   if (voice.on) txt(voice.muted ? 'MIC MUTED' : 'MIC ON', W + OX - 16, 84, 14, voice.muted ? '#FFE14D' : '#5CFF7A', 'right');
-  txt(partyTurnMode(R) ? partyTurnLabel(R) : t('ROUND {n} / {total}', { n: R.round + 1, total: R.total }), W + OX - 16, 30, 22, '#fff', 'right');
+  txt(partyTurnMode(R) ? partyTurnLabel(R) : t('ROUND {n} / {total}', { n: R.round + 1, total: R.total }), W + OX - 16, 30, 22, '#fff', 'right', 200);
   if (R.mode === 'duo') {
     const pn = act.find(p => p.id !== party.you.id);
     if (pn && cur && cur.roleLabel) duoBadge(pn);
     if (linkLabel()) txt(linkLabel(), 14 - OX, 162, 13, link.via === 'p2p' ? '#5CFF7A' : '#ddd', 'left', 200);
-    if (duoAway() && state === 'play' && !outcome) { ctx.fillStyle = 'rgba(20,16,28,.6)'; ctx.fillRect(-OX, 280, VW, 70); txt(t('{name} IS AWAY', { name: pn ? pn.name.toUpperCase() : '?' }), W / 2, 315, 34, '#FFE14D', 'center', 760); }
+    if (duoAway() && state === 'play' && !outcome) { ctx.save(); ctx.globalAlpha = .85; U.rr(40 - OX, 280, VW - 80, 70, 22); U.ink('#171c34', 4); ctx.restore(); txt(t('{name} IS AWAY', { name: pn ? pn.name.toUpperCase() : '?' }), W / 2, 315, 34, '#FFE14D', 'center', 760); }
   }
   if (partyTeam(R) || partyElimination(R)) txt(t('LIVES {n}', { n: partyElimination(R) ? me().lives : R.lives }), W + OX - 16, 60, 20, '#FF4D9E', 'right');
   else { const m = me(); if (m) txt(R.mode === 'cards' ? t('{n} CARDS', { n: m.score }) : R.mode === 'balloon' ? t('PLAYER: {name}', { name: partyActor(R).name }) : String(m.score), W + OX - 16, 60, 22, '#FFE14D', 'right'); }
+  if (typeof sabPopsDraw === 'function') sabPopsDraw();   // toasts and badges of the sabotage module also reach a screen that draws no sabotage UI of its own (once per frame)
 }

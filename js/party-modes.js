@@ -44,13 +44,99 @@ async function partyMoveAction(action, data, expectedRound) {
   else if (r.status === 404) roomGone();
   else if (r.status !== 409) say(partyErr(r), '#FF4D4D');
 }
+/* ───────────── DUO-look UI helpers (art only) ─────────────
+   The kit is js/party-ui.js (PARTY_UI, loaded before this file). These are the few pieces the kit does not have: a rounded inked panel with depth, a pointer-less tag,
+   a rounded bar, a button whose hit test is registered through button() and a text chip. TODO: promote pmSlab / pmTag / pmBar / pmChip into PARTY_UI.
+   Cosmetic randomness uses PARTY_UI.hash (a pure function of an index), never the seeded game RNG or Math.random. */
+const pmNum = v => Math.round(v * 10) / 10;
+function pmPath(x, y, w, h, r) {   // memoized rounded-rect Path2D (static rects only: the cache is keyed by the numbers)
+  r = pmNum(Math.max(0, Math.min(r, w / 2, h / 2))); x = pmNum(x); y = pmNum(y); w = pmNum(w); h = pmNum(h);
+  return PARTY_UI.P(`M${x + r} ${y}H${x + w - r}A${r} ${r} 0 0 1 ${x + w} ${y + r}V${y + h - r}A${r} ${r} 0 0 1 ${x + w - r} ${y + h}H${x + r}A${r} ${r} 0 0 1 ${x} ${y + h - r}V${y + r}A${r} ${r} 0 0 1 ${x + r} ${y}Z`);
+}
+const pmDark = c => { const n = parseInt(c.slice(1), 16); return (.299 * (n >> 16) + .587 * (n >> 8 & 255) + .114 * (n & 255)) / 255 < .3; };
+const pmW = {};
+function pmTextW(s, size, maxW) {   // width of a shouted (Arial Black) label, measured once per string
+  const k = size + '|' + s; if (pmW[k] === undefined) { if (Object.keys(pmW).length > 300) for (const q in pmW) delete pmW[q]; ctx.save(); ctx.font = '900 ' + size + 'px "Arial Black", Impact, sans-serif'; pmW[k] = ctx.measureText(s).width; ctx.restore(); }
+  return Math.min(maxW || 1e9, pmW[k]);
+}
+const pmHover = (x, y, w, h) => typeof hovered === 'function' && hovered(x, y, w, h);
+/* the click region still goes through button() (so tests and the input loop see the same rectangles); it draws nothing, the art is ours */
+function pmHit(x, y, w, h, fn) { ctx.save(); ctx.globalAlpha = 0; button(x, y, w, h, '', fn); ctx.restore(); }
+/* a rounded slab with depth, a soft drop shadow and a gloss strip (scoreboard 16, small panels 12). (x, y, w, h) is the face; the base peeks out d px below */
+function pmSlab(x, y, w, h, col, o = {}) {
+  const U = PARTY_UI, r = o.r == null ? 16 : o.r, d = o.d == null ? 5 : o.d, ol = o.o || 3.5;
+  ctx.save(); if (o.a != null) ctx.globalAlpha *= o.a;
+  ctx.fillStyle = 'rgba(20,16,28,.3)'; U.rr(x + 4, y + 7 + d, w, h, r); ctx.fill();
+  U.rr(x, y + d, w, h, r); U.ink(o.dk || U.shade(col, .36), ol);
+  U.rr(x, y, w, h, r); U.ink(col, ol);
+  if (!o.flat) { ctx.fillStyle = 'rgba(255,255,255,' + (o.gloss == null ? .15 : o.gloss) + ')'; U.rr(x + r * .55, y + 4, w - r * 1.1, Math.max(3, Math.min(9, h * .1)), 4); ctx.fill(); }
+  ctx.restore();
+}
+/* a name tag without a pointer: fully round, ink 3, gloss strip; dark colours get a white shouted label, light ones an INK Fredoka label */
+function pmTag(cx, cy, w, label, col, size = 14, o = {}) {
+  const U = PARTY_UI, h = Math.round(size * 1.75);
+  ctx.save(); if (o.rot) { ctx.translate(cx, cy); ctx.rotate(o.rot); ctx.translate(-cx, -cy); } if (o.a != null) ctx.globalAlpha *= o.a;
+  ctx.fillStyle = 'rgba(20,16,28,.24)'; U.rr(cx - w / 2 + 2, cy - h / 2 + 5, w, h, h / 2); ctx.fill();
+  U.rr(cx - w / 2, cy - h / 2, w, h, h / 2); U.ink(col, 3);
+  ctx.fillStyle = 'rgba(255,255,255,.35)'; U.rr(cx - w / 2 + size * .45, cy - h / 2 + 3, w - size * .9, h * .22, h * .11); ctx.fill();
+  if (pmDark(col)) U.text(label, cx, cy + 1, size * .9, '#fff', 'center', w - size); else U.text(label, cx, cy + 1, size, INK, 'center', w - size);
+  ctx.restore(); return h;
+}
+/* a shouted label (any colour) on a dark rounded chip that fits its text: for lines that used to float on the background */
+function pmChip(cx, cy, s, size, fill, maxW, o = {}) {
+  const U = PARTY_UI, label = U.tr(s), w = pmTextW(label, size, maxW) + size * 1.4, h = Math.round(size * 1.75);
+  ctx.save(); if (o.a != null) ctx.globalAlpha *= o.a;
+  ctx.fillStyle = 'rgba(20,16,28,.25)'; U.rr(cx - w / 2 + 2, cy - h / 2 + 5, w, h, h / 2); ctx.fill();
+  U.rr(cx - w / 2, cy - h / 2, w, h, h / 2); U.ink(o.bg || '#2b2845', 3);
+  ctx.fillStyle = 'rgba(255,255,255,.14)'; U.rr(cx - w / 2 + size * .45, cy - h / 2 + 3, w - size * .9, h * .2, h * .1); ctx.fill();
+  ctx.restore();
+  txt(s, cx, cy + 1, size, fill, 'center', maxW);
+  return w;
+}
+/* a rounded progress bar: the fill is clipped to the track, so a tiny value is a round dot */
+function pmBar(x, y, w, h, k, col, o = {}) {
+  const U = PARTY_UI; k = Math.max(0, Math.min(1, k));
+  ctx.save();
+  U.rr(x, y, w, h, h / 2); U.ink(o.track || '#2a2545', o.o || 2.5);
+  if (k > .001) {
+    ctx.save(); U.rr(x, y, w, h, h / 2); ctx.clip();
+    const fw = Math.max(h, w * k);
+    U.rr(x, y, fw, h, h / 2); ctx.fillStyle = col; ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.4)'; U.rr(x + 3, y + 1.5, Math.max(0, fw - 6), Math.max(1.5, h * .26), h * .13); ctx.fill();
+    ctx.restore();
+  }
+  ctx.restore();
+}
+/* a control plate: hover lifts it, a press drops it, `off` greys it. (x, y, w, h) is the old rectangle (face + depth). Returns { y, dy }: draw the content at y + dy */
+function pmBtn(x, y, w, h, fn, col, o = {}) {
+  const U = PARTY_UI, hv = !o.off && pmHover(x, y, w, h), down = !!o.down || (hv && typeof pressing !== 'undefined' && pressing), ty = y - (hv && !down ? 2 : 0);
+  if (fn) pmHit(x, y, w, h, fn);
+  const dy = U.plate([x, ty, w, h - 9], col, o.dk || U.shade(col, .3), down, o.lit, o.off);
+  return { y: ty, dy };
+}
+/* a four-point twinkle, tiny, for dark backdrops (cosmetic: a pure function of the index and the clock) */
+function pmTwinkle(x, y, s, a) {
+  ctx.save(); ctx.globalAlpha *= a; ctx.fillStyle = '#fff'; ctx.beginPath();
+  ctx.moveTo(x, y - s); ctx.quadraticCurveTo(x, y, x + s, y); ctx.quadraticCurveTo(x, y, x, y + s); ctx.quadraticCurveTo(x, y, x - s, y); ctx.quadraticCurveTo(x, y, x, y - s); ctx.fill(); ctx.restore();
+}
+const pmStar = (n, ro, ri) => { let d = ''; for (let i = 0; i < n * 2; i++) { const r = i % 2 ? ri : ro, a = -Math.PI / 2 + i * Math.PI / n; d += (i ? 'L' : 'M') + pmNum(Math.cos(a) * r) + ' ' + pmNum(Math.sin(a) * r); } return PARTY_UI.P(d + 'Z'); };
+
 function partyCardTable(R, interactive) {
-  const all = R.players.filter(p => !p.left), w = 720 / all.length;
+  const U = PARTY_UI, all = R.players.filter(p => !p.left), w = 720 / all.length;
   all.forEach((p, i) => {
-    const x = 40 + i * w, can = interactive && p.id !== party.you.id && p.score > 0 && R.extra.stolen[party.you.id] !== R.round;
-    if (can) button(x + 3, 518, w - 6, 68, t('STEAL: {name}', { name: p.name }), () => partyStartSteal(p.id, R.round), { size: 18, fill: p.color });
-    else { box(x + 3, 518, w - 6, 68, '#302b50', 3); txt(p.name, x + w / 2, 539, 17, p.color, 'center', w - 12); }
-    txt(t('{n} CARDS', { n: p.score }), x + w / 2, 572, 19, can ? INK : '#FFE14D', 'center', w - 12);
+    const x = 40 + i * w, can = interactive && p.id !== party.you.id && p.score > 0 && R.extra.stolen[party.you.id] !== R.round, turn = p.id === R.extra.actor && !interactive;
+    const face = turn ? U.mix('#35306a', '#FFE14D', .22) : '#2f2a52', mid = 518 + 31;
+    if (can) { const bt = pmBtn(x + 3, 518, w - 6, 68, () => partyStartSteal(p.id, R.round), p.color); pmTag(x + w / 2, bt.y + bt.dy + 17, w - 24, t('STEAL: {name}', { name: p.name }), '#fff', 15); }
+    else pmSlab(x + 3, 518, w - 6, 63, face, { r: 14, d: 5, o: 3.5, gloss: turn ? .24 : .13 });
+    const ax = x + 3 + Math.min(26, (w - 6) * .2);
+    U.avatar(ax, mid, Math.min(17, (w - 6) * .14), p.color, { t: now, seed: i * 1.3, mood: turn ? 'eager' : p.score > 0 ? 'idle' : 'sleepy', look: [0, -.4] });
+    const tx = ax + Math.min(17, (w - 6) * .14) + 8, tw = x + w - 9 - tx;
+    if (!can) txt(p.name, tx, 538, 17, p.color, 'left', tw);
+    txt(t('{n} CARDS', { n: p.score }), tx, 569, 19, can ? INK : '#FFE14D', 'left', tw);
+    if (turn) {   // whose turn it is at the table: a pulsing gold ring around the seat
+      ctx.save(); ctx.lineJoin = 'round'; U.rr(x - 1, 515, w + 2, 71, 17); ctx.lineWidth = 9; ctx.strokeStyle = INK; ctx.stroke();
+      ctx.globalAlpha = .75 + .25 * Math.sin(now * 6); ctx.lineWidth = 4.5; ctx.strokeStyle = '#FFE14D'; ctx.stroke(); ctx.restore();
+    }
   });
 }
 /* ───────────── BALLOON: one balloon, everybody watches the pressure ─────────────
@@ -59,7 +145,7 @@ function partyCardTable(R, interactive) {
 const BAL_LEAK = .9, BAL_PRE = 1.4;     // keep in sync with LEAK_PER_S / PRE_MS_BALLOON in pocketbase/pb_hooks/party.js
 const balloonView = { room: '', stamp: '', roundKey: '', roundAt: 0, recv: 0, base: 0, leak: 0, shown: 0, opt: 0, at: 0, frame: -1, init: false, contrib: {}, pumping: {}, pops: [], tick: 0, hiss: 0, lastPump: -9, lastSfx: 0, poppedRound: -1 };
 const balMix = (a, b, k) => { const f = c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16)); const x = f(a), y = f(b); k = Math.max(0, Math.min(1, k)); return '#' + x.map((v, i) => Math.round(v + (y[i] - v) * k).toString(16).padStart(2, '0')).join(''); };
-const balTry = fn => { try { fn(); } catch (_) { /* sound must never stop a round */ } };
+const balTry = fn => sabTry(fn);   // sabTry lives in js/party-sab.js
 const balUnit = R => { const b = balloonView, others = Math.max(1, R.players.filter(p => !p.left).length - 1); return 1 / others / (b.leak ? BAL_LEAK / b.leak : 140); };
 function partyBalloonShown(R) {
   const e = R.extra || {}, b = balloonView;
@@ -115,6 +201,7 @@ function partyBalloonDraw(cx, cy, r0, l, o = {}) {
   }
   ctx.restore();
   ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.beginPath(); ctx.ellipse(-rx * .45, -ry * .5, rx * .13, ry * .24, -.5, 0, 7); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,.4)'; ctx.beginPath(); ctx.ellipse(-rx * .62, -ry * .17, rx * .05, rx * .05, 0, 0, 7); ctx.fill();   // second glint: the rubber catches the light twice
   if (l > .9) {
     ctx.strokeStyle = INK; ctx.lineWidth = 3;
     [[.8, 1], [-.5, -1], [2.2, 1]].forEach(([a, s]) => { const x0 = Math.cos(a) * rx, y0 = Math.sin(a) * ry; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x0 - s * rx * .1, y0 - ry * .07); ctx.lineTo(x0 + s * rx * .02, y0 - ry * .15); ctx.lineTo(x0 - s * rx * .12, y0 - ry * .24); ctx.stroke(); });
@@ -144,108 +231,233 @@ function partyBalloonDraw(cx, cy, r0, l, o = {}) {
   ctx.globalAlpha = 1; ctx.restore();
 }
 function partyPumpers(R, x, y, w, rh, rows) {
-  const e = R.extra, b = balloonView, list = R.players.filter(p => !p.left && p.id !== e.actor).slice(0, rows), turn = e.turn || {}, top = Math.max(1, ...list.map(p => turn[p.id] || 0));
+  const U = PARTY_UI, e = R.extra, b = balloonView, list = R.players.filter(p => !p.left && p.id !== e.actor).slice(0, rows), turn = e.turn || {}, top = Math.max(1, ...list.map(p => turn[p.id] || 0)), l = partyBalloonShown(R);
   list.forEach((p, i) => {
-    const yy = y + i * (rh + 5), live = R.state === 'round' && now - (b.pumping[p.id] || -9) < .8, mine = p.id === party.you.id, n = turn[p.id] || 0;
-    box3(x, yy, w, rh, live ? balMix('#35406a', p.color, .5) : '#2b2845', 3, 3);
-    claude(x + 17, yy + rh - 3, 1.15, { col: p.color, mood: live ? 'happy' : null });
-    if (mine) { ctx.strokeStyle = '#FFE14D'; ctx.lineWidth = 3; ctx.strokeRect(x - 1, yy - 1, w + 2, rh + 2); }
-    txt(p.name, x + 36, yy + 12, 14, p.color, 'left', w - 100);
-    txt(live ? 'PUMPING!' : 'IDLE', x + 36, yy + rh - 9, 11, live ? '#fff' : '#9a98ad', 'left', 64);
-    if (live) for (let k = 0; k < 3; k++) { ctx.globalAlpha = Math.max(0, 1 - ((now * 3 + k * .33) % 1)); txt('>', x + 100 + k * 9, yy + rh - 9, 12, '#fff'); } ctx.globalAlpha = 1;
-    txt('+' + n, x + w - 8, yy + 13, 17, '#FFE14D', 'right', 46);
-    ctx.fillStyle = '#14101c'; ctx.fillRect(x + w - 62, yy + rh - 13, 54, 7); ctx.fillStyle = p.color; ctx.fillRect(x + w - 62, yy + rh - 13, 54 * n / top, 7);
-    if (n > 0 && n === top && list.length > 1) star(x + 8, yy + 9, 8, 4, 5, -Math.PI / 2, '#FFE14D', 2);
+    const yy = y + i * (rh + 5), live = R.state === 'round' && now - (b.pumping[p.id] || -9) < .8, mine = p.id === party.you.id, n = turn[p.id] || 0, sh = rh - 4;
+    pmSlab(x, yy, w, sh, live ? balMix('#35406a', p.color, .5) : '#2b2845', { r: 12, d: 4, o: 3, gloss: live ? .24 : .12 });
+    if (mine) { ctx.save(); U.rr(x - 3, yy - 3, w + 6, sh + 10, 15); ctx.lineWidth = 8; ctx.strokeStyle = INK; ctx.lineJoin = 'round'; ctx.stroke(); ctx.lineWidth = 4; ctx.strokeStyle = '#FFE14D'; ctx.stroke(); ctx.restore(); }
+    U.avatar(x + 22, yy + sh / 2 + 1, 14, p.color, { t: now, seed: i * 1.7, mood: live ? 'happy' : l > .75 ? 'panic' : 'idle', look: [0, -.6], bob: live });   // pumping = a happy hop; a hot balloon scares the idle ones
+    txt(p.name, x + 44, yy + 11, 14, p.color, 'left', w - 106);
+    txt(live ? 'PUMPING!' : 'IDLE', x + 44, yy + sh - 9, 11, live ? '#fff' : '#9a98ad', 'left', 58);
+    if (live) {
+      ctx.save(); ctx.lineCap = ctx.lineJoin = 'round';
+      for (let k = 0; k < 3; k++) { const cx = x + 106 + k * 9, cy = yy + sh - 9; ctx.globalAlpha = Math.max(0, 1 - ((now * 3 + k * .33) % 1)); ctx.beginPath(); ctx.moveTo(cx - 2.5, cy - 4.5); ctx.lineTo(cx + 2, cy); ctx.lineTo(cx - 2.5, cy + 4.5); ctx.lineWidth = 5.5; ctx.strokeStyle = INK; ctx.stroke(); ctx.lineWidth = 2.4; ctx.strokeStyle = '#fff'; ctx.stroke(); }
+      ctx.restore();
+    }
+    txt('+' + n, x + w - 9, yy + 11, 17, '#FFE14D', 'right', 46);
+    pmBar(x + w - 62, yy + sh - 15, 53, 9, n / top, p.color, { o: 2, track: '#171428' });
+    if (n > 0 && n === top && list.length > 1) star(x + 6, yy + 6, 8, 4, 5, -Math.PI / 2 + Math.sin(now * 2 + i) * .15, '#FFE14D', 2);
   });
 }
 /* right-hand column: the balloon, its pressure and who is inflating it */
 function partyBalloonSide(R, mine) {
-  const b = balloonView, l = partyBalloonShown(R), pu = .5 + .5 * Math.sin(now * (6 + l * 14));
-  box3(606, 110, 180, 262, balMix('#2a2547', '#5a1626', l * l), 4, 4);
-  ctx.save(); ctx.beginPath(); ctx.rect(606, 110, 180, 262); ctx.clip();
-  for (let i = 0; i < 8; i++) { const a = now * .15 + i * Math.PI / 4; ctx.fillStyle = 'rgba(255,255,255,' + (.04 + l * .05).toFixed(3) + ')'; ctx.beginPath(); ctx.moveTo(696, 232); ctx.arc(696, 232, 260, a, a + .2); ctx.closePath(); ctx.fill(); }
+  const U = PARTY_UI, b = balloonView, l = partyBalloonShown(R), pu = .5 + .5 * Math.sin(now * (6 + l * 14)), bx = 606, by = 118, bw = 180, bh = 254;   // starts under the LEAVE plate (y < 116) of the HUD
+  pmSlab(bx, by, bw, bh, balMix('#2a2547', '#5a1626', l * l), { r: 20, d: 6, o: 4, gloss: .1 });
+  const clip = pmPath(bx, by, bw, bh, 20);
+  ctx.save(); ctx.clip(clip);
+  for (let i = 0; i < 8; i++) { const a = now * .15 + i * Math.PI / 4; ctx.fillStyle = 'rgba(255,255,255,' + (.04 + l * .05).toFixed(3) + ')'; ctx.beginPath(); ctx.moveTo(696, 238); ctx.arc(696, 238, 260, a, a + .2); ctx.closePath(); ctx.fill(); }
+  for (let i = 0; i < 7; i++) pmTwinkle(bx + 14 + U.hash(i * 5 + 1) * (bw - 28), by + 30 + U.hash(i * 5 + 2) * (bh - 110), 2 + U.hash(i * 5 + 3) * 3, .25 + .6 * Math.max(0, Math.sin(now * (1.2 + U.hash(i * 5 + 4)) + i * 2)));   // twinkles, they wake up as the balloon gets hot
   const leaking = R.state === 'round' && now > b.roundAt + BAL_PRE && now - b.lastPump > .9 && l > .02;
-  partyBalloonDraw(696, 226, 56, l, { leak: leaking });
+  partyBalloonDraw(696, 232, 56, l, { leak: leaking });
   const ry = 56 * (.5 + .8 * l);
-  b.pops.forEach(p => { const age = now - p.at; if (age > 1) return; const pl = R.players.find(q => q.id === p.id); ctx.globalAlpha = 1 - age; txt('+' + p.n, 696 + (p.x - .5) * 120, 226 - ry - 6 - age * 46, 20, pl ? pl.color : '#fff'); ctx.globalAlpha = 1; });
-  if (l > .8) { ctx.fillStyle = 'rgba(255,40,60,' + ((l - .8) * .9 * pu * .6).toFixed(3) + ')'; ctx.fillRect(606, 110, 180, 262); }
+  b.pops.forEach(p => { const age = now - p.at; if (age > 1) return; const pl = R.players.find(q => q.id === p.id); ctx.globalAlpha = 1 - age; txt('+' + p.n, 696 + (p.x - .5) * 120, 232 - ry - 6 - age * 46, 20, pl ? pl.color : '#fff'); ctx.globalAlpha = 1; });
+  if (l > .8) { ctx.fillStyle = 'rgba(255,40,60,' + ((l - .8) * .9 * pu * .6).toFixed(3) + ')'; ctx.fill(clip); }
   ctx.restore();
-  txt(mine ? 'YOU PLAY' : 'YOU PUMP', 650, 128, 13, '#FFE14D', 'center', 80);
+  ctx.save(); U.rr(bx + 5, by + 5, bw - 10, bh - 10, 16); ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(255,255,255,.13)'; ctx.stroke(); ctx.restore();
+  pmTag(696, 135, 112, mine ? 'YOU PLAY' : 'YOU PUMP', '#FFE14D', 14);
   partyPumpers(R, 608, 386, 176, 40, 3);
 }
 /* big popping scene used on the between-turns card */
 function drawBalloonBetween(R, L) {
-  const e = R.extra, b = balloonView, res = L.results[0] || { id: e.actor, r: 'lose' }, actor = R.players.find(p => p.id === res.id) || partyActor(R), popped = !!e.loser, passed = res.r === 'win';
+  const U = PARTY_UI, e = R.extra, b = balloonView, res = L.results[0] || { id: e.actor, r: 'lose' }, actor = R.players.find(p => p.id === res.id) || partyActor(R), popped = !!e.loser, passed = res.r === 'win';
   partyBalloonShown(R);
   const fast = L.final ? 1 : 2.6, T = st * fast;   // regular turns blink by; only the last one gets its full show
   const k = easeOut(Math.min(1, T / 1.1)), lv = (popped ? Math.min(1, (e.start || 0) + (1 - (e.start || 0)) * k) : (e.start || 0) + ((e.danger || 0) - (e.start || 0)) * k);
-  box3(30, 108, 350, 392, popped && T > .9 ? '#4a1d2e' : balMix('#2a2547', '#5a1626', lv * lv), 4, 5);
-  ctx.save(); ctx.beginPath(); ctx.rect(30, 108, 350, 392); ctx.clip();
+  const boom = popped && T > .9;
+  pmSlab(30, 108, 350, 392, boom ? '#4a1d2e' : balMix('#2a2547', '#5a1626', lv * lv), { r: 24, d: 6, o: 4, gloss: .1 });
+  const clip = pmPath(30, 108, 350, 392, 24);
+  ctx.save(); ctx.clip(clip);
   for (let i = 0; i < 10; i++) { const a = now * .15 + i * Math.PI / 5; ctx.fillStyle = 'rgba(255,255,255,.05)'; ctx.beginPath(); ctx.moveTo(205, 290); ctx.arc(205, 290, 400, a, a + .18); ctx.closePath(); ctx.fill(); }
-  if (popped && T > .9) {
+  if (boom) {
     if (b.poppedRound !== R.round) { b.poppedRound = R.round; balTry(() => { burst(205, 290, '#ff5c8a', 34, 520); burst(205, 290, '#FFE14D', 18, 380); ring(205, 290, '#fff', 150, .5); confetti(205, 290, 40); shake(16, .6); sfx.pop(); noise(.5, .12, 900, 120, 'lowpass'); }); }
     const sc = easeOut(Math.min(1, (T - .9) / .25));
-    [[-70, 40, .4], [60, 70, -.9], [-10, 105, 2.2], [90, -20, 1.2]].forEach(([dx, dy, a]) => { ctx.save(); ctx.translate(205 + dx * sc, 330 + dy * sc * .6); ctx.rotate(a); ctx.beginPath(); ctx.moveTo(-26, 12); ctx.lineTo(0, -22); ctx.lineTo(30, 14); ctx.closePath(); ctx.lineWidth = 8; ctx.strokeStyle = INK; ctx.lineJoin = 'round'; ctx.stroke(); ctx.fillStyle = '#F28CB1'; ctx.fill(); ctx.restore(); });
-    ctx.save(); ctx.translate(205, 250); ctx.rotate(-.1); ctx.scale(.5 + sc * .45, .5 + sc * .45); star(0, 0, 110, 56, 12, 0, '#FFE14D', 5); txt('BOOM!', 0, 8, 56, '#FF3B3B', 'center', 170); ctx.restore();
-  } else partyBalloonDraw(205, 284, 84, lv, { leak: false });
+    for (let i = 0; i < 9; i++) pmTwinkle(60 + U.hash(i * 3 + 11) * 290, 140 + U.hash(i * 3 + 12) * 340, 3 + U.hash(i * 3 + 13) * 4, .3 + .6 * Math.max(0, Math.sin(now * 3 + i * 1.7)));
+    [[-70, 40, .4], [60, 70, -.9], [-10, 105, 2.2], [90, -20, 1.2]].forEach(([dx, dy, a], i) => {   // the shreds: inked, with a light edge, tumbling slowly
+      ctx.save(); ctx.translate(205 + dx * sc, 330 + dy * sc * .6); ctx.rotate(a + (T - .9) * (i % 2 ? 1.1 : -1.1)); ctx.scale(.9 + sc * .1, .9 + sc * .1);
+      U.cel(U.P('M-26 12L0 -22L30 14Z'), '#F28CB1', '#c25586', 5, 7, 4); U.glint(U.P('M-26 12L0 -22L30 14Z'), -8, -4, 9, 4, 'rgba(255,255,255,.55)', -.9); ctx.restore();
+    });
+    ctx.save(); ctx.translate(205, 250); ctx.rotate(-.1 + Math.sin(now * 5) * .015); const bs = .5 + sc * .45; ctx.scale(bs, bs);
+    U.cel(pmStar(12, 112, 58), '#FFE14D', '#f2b705', 0, 9, 5); ctx.save(); ctx.rotate(Math.PI / 12); U.inkP(pmStar(12, 80, 44), '#fff3a0', 0); ctx.restore();
+    txt('BOOM!', 0, 8, 56, '#FF3B3B', 'center', 170); ctx.restore();
+  } else {
+    for (let i = 0; i < 6; i++) pmTwinkle(60 + U.hash(i * 3 + 21) * 290, 140 + U.hash(i * 3 + 22) * 300, 2 + U.hash(i * 3 + 23) * 3, .2 + .5 * Math.max(0, Math.sin(now * 1.5 + i * 2.1)));
+    partyBalloonDraw(205, 284, 84, lv, { leak: false });
+  }
   ctx.restore();
-  const col = popped ? '#FF3B3B' : passed ? '#5CFF7A' : '#FFE14D';
-  box3(400, 108, 370, 112, '#35406a', 4, 5);
-  claude(450, 205, 3.4, { col: actor.color, mood: popped ? 'sad' : passed ? 'happy' : null });
-  txt(popped ? 'POPPED!' : passed ? 'TURN PASSED!' : 'TRY AGAIN!', 600, 140, popped ? 46 : 36, col, 'center', 280);
-  txt(actor.name, 600, 178, 20, actor.color, 'center', 280);
-  txt(popped ? t('{name} POPPED THE BALLOON!', { name: actor.name.toUpperCase() }) : passed ? 'WON THE MICROGAME' : 'LOST THE MICROGAME', 600, 203, 13, '#fff', 'center', 330);
-  if (!passed && !popped) { box(412, 228, 346, 30, '#5a1626', 3); txt('+8 AIR · THE BALLOON GREW', 585, 244, 16, '#FF8A8A', 'center', 330); }
-  txt(L.final ? 'WHOLE GAME · TOTAL AIR' : 'AIR ADDED BY', 585, 284, 15, '#FFE14D', 'center', 340);
+  ctx.save(); U.rr(35, 113, 340, 382, 20); ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(255,255,255,.12)'; ctx.stroke(); ctx.restore();
+  const col = popped ? '#FF4D5E' : passed ? '#5CFF7A' : '#FFE14D', title = popped ? 'POPPED!' : passed ? 'TURN PASSED!' : 'TRY AGAIN!';
+  pmSlab(400, 108, 370, 106, '#35406a', { r: 16, d: 6, o: 4 });
+  U.shadow(452, 196, 30, 7, .28);
+  U.avatar(452, 166, 28, actor.color, { t: now, seed: 2, mood: popped ? 'bonk' : passed ? 'happy' : 'sad', bob: true, look: [.3, 0], k: easeOut(T / .3) });
+  U.badge(title, 622, 142, popped ? 32 : 30, col, popped ? '#fff' : '#fff', U.outBack(T / .28), Math.sin(now * 2.3) * .025 - .02, 236);
+  txt(actor.name, 622, 176, 20, actor.color, 'center', 240);
+  txt(popped ? t('{name} POPPED THE BALLOON!', { name: actor.name.toUpperCase() }) : passed ? 'WON THE MICROGAME' : 'LOST THE MICROGAME', 600, 200, 13, '#fff', 'center', 330);
+  if (!passed && !popped) { pmSlab(412, 230, 346, 28, '#5a1626', { r: 14, d: 4, o: 3 }); txt('+8 AIR · THE BALLOON GREW', 585, 245, 16, '#FF8A8A', 'center', 330); }
+  pmTag(585, 284, L.final ? 262 : 220, L.final ? 'WHOLE GAME · TOTAL AIR' : 'AIR ADDED BY', '#FFE14D', 15);
   const turn = (L.final ? e.contrib : e.turn) || {}, list = R.players.filter(p => !p.left && p.id !== actor.id), top = Math.max(1, ...list.map(p => turn[p.id] || 0));
   list.slice(0, 3).forEach((p, i) => {
-    const y = 298 + i * 52, g = easeOut((T - .1 - i * .1) / .4), n = turn[p.id] || 0;
-    box3(400, y, 370, 44, '#2b2845', 3, 3); claude(430, y + 40, 1.6, { col: p.color, mood: n === top && n > 0 ? 'happy' : null });
-    txt(p.name, 462, y + 15, 17, p.color, 'left', 150);
-    ctx.fillStyle = '#14101c'; ctx.fillRect(462, y + 26, 220, 10); ctx.fillStyle = p.color; ctx.fillRect(462, y + 26, 220 * (n / top) * Math.max(0, g), 10);
-    txt('+' + Math.round(n * Math.max(0, g)), 750, y + 22, 24, '#FFE14D', 'right', 60);
-    if (n > 0 && n === top && list.length > 1) { star(580, y + 15, 10, 5, 5, -Math.PI / 2, '#FFE14D', 2); txt('MVP', 596, y + 15, 12, '#FFE14D', 'left', 36); }
+    const y = 306 + i * 52, g = easeOut((T - .1 - i * .1) / .4), n = turn[p.id] || 0, best = n === top && n > 0;
+    ctx.save(); ctx.globalAlpha = Math.max(0, Math.min(1, g * 2.2)); ctx.translate((1 - Math.max(0, Math.min(1, g))) * 36, 0);
+    pmSlab(400, y, 370, 40, best && list.length > 1 ? U.mix('#2b2845', '#B49CFF', .4) : '#2b2845', { r: 14, d: 4, o: 3 });
+    U.avatar(430, y + 21, 15, p.color, { t: now, seed: i * 1.9, mood: best ? 'happy' : n === 0 ? 'sleepy' : 'idle', bob: best });
+    txt(p.name, 458, y + 12, 17, p.color, 'left', 120);
+    pmBar(458, y + 22, 224, 11, n / top * Math.max(0, Math.min(1, g)), p.color, { track: '#171428' });
+    txt('+' + Math.round(n * Math.max(0, g)), 752, y + 20, 24, '#FFE14D', 'right', 60);
+    if (best && list.length > 1) { star(594, y + 12, 10, 5, 5, -Math.PI / 2 + Math.sin(now * 3) * .2, '#FFE14D', 2); txt('MVP', 610, y + 12, 12, '#FFE14D', 'left', 36); }
+    ctx.restore();
   });
   if (L.final) {
     const all = Object.values(e.contrib || {}).reduce((a, n) => a + n, 0), best = Math.max(...Object.values(e.contrib || { x: 0 }));
-    txt(t('{n} TURNS SURVIVED', { n: R.round }) + ' · ' + t('{n} AIR PUMPED', { n: all }), 585, 470, 16, '#fff', 'center', 360);
-    txt(t('BIGGEST PUMPER: {n} AIR', { n: best }), 585, 494, 14, '#FFE14D', 'center', 360);
+    pmSlab(400, 462, 370, 54, '#2b2845', { r: 16, d: 5, o: 3.5 });
+    txt(t('{n} TURNS SURVIVED', { n: R.round }) + ' · ' + t('{n} AIR PUMPED', { n: all }), 585, 481, 16, '#fff', 'center', 340);
+    txt(t('BIGGEST PUMPER: {n} AIR', { n: best }), 585, 503, 14, '#FFE14D', 'center', 340);
   }
   const next = R.players.find(p => p.id === e.next);
-  if (!L.final && next) txt(t('NEXT: {name}', { name: next.name }), 585, 470, 19, next.color, 'center', 340);
+  if (!L.final && next) pmTag(585, 478, 330, t('NEXT: {name}', { name: next.name }), next.color, 19);
 }
 function partyCardReveal(R) {
   if (!R.extra.card) return '';
   if (R.extra.card !== 'play') return 'MICROGAME CARD ADDED · NEXT PLAYER DRAWS';
   return R.extra.phase === 'challenge' ? 'PLAY CARD · BEAT THE PILE TO KEEP IT' : 'PLAY CARD · EMPTY PILE: NEXT PLAYER';
 }
+/* ───────────── CARDS: what the watchers do ─────────────
+   Everybody but the player at the table watches. They STEAL (the big buttons at the right) and keep busy with the shared kits: trap minigames, deck guesses and table
+   emotes (js/party-react.js) charge SABOTAGE (js/party-sab.js), which covers a rival's screen. The kit is per room, so what is earned while a deck is picked is still there in the challenge. */
+const CARDS_TRAPS = { fly: 0, jam: 0, bubble: .34, dial: .33, seq: .33 }, CARDS_WORDS = { bubble: 'NICE!', dial: 'PERFECT!', seq: 'COMBO!', over: 'TOO LATE!' };   // no pump to jam and no fly: only the three that pay a charge
+function partyCardsKit(R) {
+  let k = party.cards;
+  if (!k || k.room !== R.id) k = party.cards = { room: R.id, charges: createSabCharges(), pulse: -9, bet: null };
+  const bet = k.bet;
+  if (bet && bet.round < R.round) {                      // the deck pick I bet on has been made (the hook records it as extra.side): settle it
+    k.bet = null;
+    if (bet.round === R.round - 1 && R.extra && R.extra.side === bet.side) { k.charges.earn('trap'); partyCardsPulse(k, 'CALLED IT!', '#5CFF7A'); }
+  }
+  return k;
+}
+const partyCardsPulse = (k, word, col) => { k.pulse = now; sabTry(() => { sfx.hit(); ring(400, 300, '#FF9A3D', 130, .5); burst(400, 300, '#FF9A3D', 20, 360); floatText(word, 400, 280, col, 44); }); };
+const partyCardsTraps = k => createIdleTraps({ at: { x: 304, y: 534 }, first: [.8, .8], gap: [1.5, 1.7], weights: CARDS_TRAPS, words: CARDS_WORDS, onReward: () => { k.charges.earn('trap'); k.pulse = now; } });
+/* where a player's emotes start: the middle of their box on the table */
+const partyCardsSlot = (R, id) => { const all = R.players.filter(p => !p.left), i = Math.max(0, all.findIndex(p => p.id === id)); return { x: 40 + (i + .5) * 720 / all.length, y: 516 }; };
 function partyDrawGame(R) {
-  const actor = partyActor(R), mine = R.extra.actor === party.you.id, round = R.round;
+  const actor = partyActor(R), mine = R.extra.actor === party.you.id, round = R.round, kit = partyCardsKit(R), relay = duoCtx(R);
+  const rx = createReactions(R, relay, { origin: id => partyCardsSlot(R, id), onTap: streak => {
+    const before = kit.charges.n;
+    if (kit.charges.earn('combo', streak) && kit.charges.n > before) partyCardsPulse(kit, 'SABOTAGE!', '#FF9A3D');
+  } });
+  const gs = createGuess(R, relay, { onPick: side => { kit.bet = { round, side }; } });   // the player at the table only watches the bets pile up
+  relay.onMsg((type, data, role, from) => { rx.receive(type, data, from); gs.receive(type, data, from); });
   let busy = false;
   const choose = side => {
-    if (!mine || busy) return; busy = true;
+    if (!mine) { gs.pick(side); return; }
+    if (busy) return; busy = true;
     partyMoveAction('draw', { side }, round).finally(() => { busy = false; });
   };
   return {
     dur: 30, partyDraw: true, cmd: mine ? 'DRAW A CARD!' : 'CARD TABLE',
     hint: mine ? 'CHOOSE A DECK · ARROWS OR TAP' : t('{name} IS DRAWING', { name: actor.name }),
-    update() {},
-    draw() {
+    update(dt) { kit.charges.tick(dt); },
+    draw(tt) {
+      const U = PARTY_UI, age = Number.isFinite(tt) ? tt : 9;
       bg('#26304b', '#392d59', now);
-      txt(partyCardReveal(R), 400, 76, 19, '#F28CB1', 'center', 720);
-      txt('CARD TABLE', 400, 122, 42, '#FFE14D');
-      txt(t('{n} MICROGAMES IN THE PILE', { n: R.extra.pile.length }), 400, 184, 25, '#fff');
-      txt(t('{n} CARDS IN THE POT', { n: R.extra.pot }), 400, 223, 21, '#F28CB1');
+      const reveal = partyCardReveal(R); if (reveal) pmChip(400, 74, reveal, 19, '#F28CB1', 430);   // clear of the player chips at the left and the LEAVE plate at the right
+      U.badge('CARD TABLE', 400, 124, 40, '#8e6bff', '#FFE14D', U.outBack(age / .3), Math.sin(now * 1.3) * .02 - .015, 340);
+      pmChip(400, 178, t('{n} MICROGAMES IN THE PILE', { n: R.extra.pile.length }), 24, '#fff', 560);
+      pmChip(400, 214, t('{n} CARDS IN THE POT', { n: R.extra.pot }), 20, '#F28CB1', 520);
+      const bets = gs.sides();
       for (const [x, side, label] of [[180, 'left', 'LEFT DECK'], [430, 'right', 'RIGHT DECK']]) {
-        for (let i = 2; i >= 0; i--) box(x + i * 5, 268 - i * 5, 190, 150, '#493e7c', 4);
-        star(x + 95, 324, 34, 17, 5, -.2, '#FFE14D', 3);
-        if (mine) button(x, 369, 190, 54, busy ? 'ONE MOMENT...' : label, () => choose(side), { size: 21, fill: '#B49CFF' });
+        const hop = Math.sin(now * 2 + (side === 'left' ? 0 : 1.6)) * 1.5;   // the top card of the deck breathes
+        U.shadow(x + 98, 418, 100, 12, .26);
+        for (let i = 2; i >= 0; i--) {
+          const cp = pmPath(x + i * 5, 262 - i * 5, 190, 100, 16);
+          if (i) U.cel(cp, '#5b4d9c', '#3c3170', 0, 6, 4);
+          else {
+            ctx.save(); ctx.translate(0, hop); U.cel(pmPath(x, 262, 190, 100, 16), '#6e5db8', '#4a3d8c', 0, 8, 4);
+            ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,255,255,.22)'; U.rr(x + 9, 271, 172, 80, 10); ctx.stroke();
+            U.glint(pmPath(x, 262, 190, 100, 16), x + 40, 276, 34, 7, 'rgba(255,255,255,.35)', -.15);
+            star(x + 95, 300 + Math.sin(now * 2.2) * 2, 29, 14.5, 5, -.2 + Math.sin(now * 1.4) * .08, '#FFE14D', 3);
+            ctx.restore();
+          }
+        }
+        bets[side].forEach((id, i) => { const pl = R.players.find(p => p.id === id); if (pl) { const hp = Math.abs(Math.sin(now * 5 + i * 1.7)) * 7; U.shadow(x + 30 + i * 36, 264, 11 - hp * .3, 3, .22); U.avatar(x + 30 + i * 36, 250 - hp, 12, pl.color, { t: now, seed: i, mood: 'happy' }); } });   // the watchers' bets: their little players hop on the deck they chose
+        const on = !mine && gs.mine === side, lbl = mine ? (busy ? 'ONE MOMENT...' : label) : on ? 'YOUR GUESS!' : side === 'left' ? 'GUESS LEFT' : 'GUESS RIGHT', hint = side === 'left' ? '←' : '→';
+        const bt = pmBtn(x, 340, 190, 85, () => choose(side), on ? '#ffd23f' : '#9b7bff', { dk: on ? '#c99512' : '#5a3fc0', lit: on, down: busy && mine });
+        PARTY_UI.plateLabel([x, bt.y, 190, 76], bt.dy, lbl, hint, { size: 21 });
       }
-      txt(mine ? 'MICROGAME CARDS STACK UP · PLAY CARD STARTS THE CHALLENGE' : t('{name} IS DRAWING', { name: actor.name }), 400, 470, 18, '#fff', 'center', 740);
+      if (!mine) {
+        sabOrbs(kit.charges, 112, 450, { r: 12, gap: 31, pulse: kit.pulse });
+        rx.bar(244, 432, 312, 36);
+        const run = rx.streakNow(), per = kit.charges.cfg.comboEvery;
+        if (run) pmBar(244, 472, 312, 9, (run % per) / per, '#FF9A3D', { track: '#171428' });
+      }
+      pmChip(400, 497, mine ? 'MICROGAME CARDS STACK UP · PLAY CARD STARTS THE CHALLENGE' : t('{name} IS DRAWING', { name: actor.name }), 17, '#fff', 720);
       partyCardTable(party.room, false);
+      rx.draw();
     },
-    key(e) { if (e.repeat) return; if (e.code === 'ArrowLeft' || e.code === 'KeyA') choose('left'); if (e.code === 'ArrowRight' || e.code === 'KeyD' || e.code === 'Space') choose('right'); },
+    key(e) {
+      if (e.repeat) return;
+      if (e.code === 'ArrowLeft' || e.code === 'KeyA') choose('left');
+      if (e.code === 'ArrowRight' || e.code === 'KeyD' || e.code === 'Space') choose('right');
+      const n = /^Digit([1-5])$/.exec(e.code); if (n && !mine) rx.send(REACT_IDS[n[1] - 1]);
+    },
   };
+}
+/* the watchers' right-hand column: the pile at stake and one big STEAL button per rival (the progress of a steal in progress fills the button) */
+function partyCardsSteal(R, round) {
+  const U = PARTY_UI, e = R.extra, id = party.you.id, attempt = e.stealing && e.stealing[id], busy = !!attempt && attempt.round === round, done = e.stolen[id] === round;
+  pmSlab(608, 130, 176, 122, '#2f2a52', { r: 18, d: 5, o: 3.5 });
+  pmTag(696, 128, 150, 'YOU STEAL', '#FFE14D', 17);
+  const total = e.pile.length + e.pot;
+  const bob = Math.sin(now * 2.4) * 1.3;
+  for (let i = 2; i >= 0; i--) {   // the pile at stake: three little cards, the top one holds the count
+    ctx.save(); ctx.translate(i * 4, -i * 3 + (i ? 0 : bob)); U.cel(pmPath(650, 176, 76, 28, 9), i ? '#9a80f0' : '#B49CFF', '#6f55c4', 0, 5, 2.5);
+    if (!i) U.glint(pmPath(650, 176, 76, 28, 9), 662, 182, 14, 3, 'rgba(255,255,255,.55)', -.1);
+    ctx.restore();
+  }
+  txt(total, 688, 191 + bob, 20, INK);
+  txt(t('{n} CARDS AT STAKE', { n: total }), 696, 212, 16, '#FFE14D', 'center', 164);
+  txt(t('{n} MICROGAMES TO GO', { n: e.remaining.length }), 696, 234, 14, '#fff', 'center', 164);
+  const rivals = R.players.filter(p => !p.left && p.id !== id), h = rivals.length > 2 ? 86 : 100;
+  rivals.forEach((p, i) => {
+    const y = 262 + i * (h + 8), can = p.score > 0 && !done, aim = busy && attempt.target === p.id, cx = 696, fy = h - 9;
+    if (can) {
+      const bt = pmBtn(608, y, 176, h, () => partyStartSteal(p.id, round), p.color, { lit: true }), top = bt.y + bt.dy;
+      txt(t('STEAL: {name}', { name: p.name }), cx, top + 17, 16, INK, 'center', 160);
+      U.avatar(638, top + fy * .62, 16, U.lite(p.color, .35), { t: now, seed: i * 2.3, mood: aim ? 'panic' : 'eager', look: [0, -.5], bob: true });
+      txt(t('{n} CARDS', { n: p.score }), 722, top + fy * .62 + 1, 21, INK, 'center', 92);
+      if (aim) pmBar(620, top + fy - 11, 152, 7, Math.max(0, Math.min(1, 1 - (attempt.readyAt - Date.now()) / 1200)), '#fff', { track: 'rgba(20,16,28,.6)', o: 2 });
+    } else {
+      const bt = pmBtn(608, y, 176, h, null, '#d3cfe0', { off: true }), top = bt.y + bt.dy;
+      txt(p.name, cx, top + 17, 16, p.color, 'center', 160);
+      U.avatar(638, top + fy * .62, 16, p.color, { t: now, seed: i * 2.3, mood: p.score > 0 ? 'idle' : 'sleepy' });
+      txt(t('{n} CARDS', { n: p.score }), 722, top + fy * .62 + 1, 19, INK, 'center', 92);
+    }
+  });
+  const msg = busy ? 'STEALING...' : done ? 'CARD STOLEN! WAIT FOR THE NEXT GAME' : '';
+  if (msg) pmTag(696, 568, 176, msg, '#F28CB1', 13, { rot: Math.sin(now * 2) * .012 });
+}
+/* the watchers' middle column: sabotage orbs and one tap per rival (the player at the table included) */
+function partyCardsSab(ch, kit) {
+  const U = PARTY_UI, list = ch.targets(), ready = ch.charges.ready(), x = 488, n = Math.max(1, list.length), h = Math.min(84, (466 - 194 - 8 - 6 * (n - 1)) / n), tg = ch.target && ch.target();
+  pmSlab(x, 122, 104, 338, '#2f2a52', { r: 16, d: 6, o: 3.5 });
+  pmTag(540, 140, 92, 'SABOTAGE!', '#FF9A3D', 14);
+  sabOrbs(ch.charges, 540, 170, { r: 12, gap: 31, pulse: kit.pulse });
+  list.forEach((p, i) => {
+    const y = 192 + i * (h + 6), fh = h - 9;
+    const bt = pmBtn(x + 4, y, 96, h, () => ch.send(p.id), '#FF9A3D', { off: !ready, lit: ready && tg && tg.id === p.id }), top = bt.y + bt.dy;
+    const r = Math.max(12, Math.min(20, (fh - 24) / 2));
+    U.avatar(x + 52, top + 3 + r + (fh - 24 - r * 2) / 2, r, p.color, { t: now, seed: i * 2.1, mood: ready ? (tg && tg.id === p.id ? 'panic' : 'idle') : 'sleepy', look: [0, 0] });
+    txt(p.name, x + 52, top + fh - 11, 13, INK, 'center', 88);
+  });
 }
 // Normalize dimensions and pointer state for games that read global mouse/pressing or spawn in widescreen space.
 function partyGameScope(fn, pointer) {
@@ -256,8 +468,8 @@ function partyGameScope(fn, pointer) {
 }
 function partyWrapGame(base, R, sp) {
   const actor = partyActor(R), mine = actor.id === party.you.id, round = R.round;
-  const balloon = R.mode === 'balloon', canSab = balloon || R.mode === 'cards';
-  const view = balloon && !mine ? { x: 20, y: 126, w: 456, h: 342, scale: .57 } : { x: 16, y: 124, w: 576, h: 432, scale: .72 };
+  const balloon = R.mode === 'balloon', cards = R.mode === 'cards', canSab = SAB_MODES.includes(R.mode), watcher = !mine && (balloon || cards);   // watchers get the small television and the trap kit below it
+  const view = watcher ? { x: 20, y: 126, w: 456, h: 342, scale: .57 } : { x: 16, y: 124, w: 576, h: 432, scale: .72 };
   const g = { ...base, partyHelper: !mine, partyScene: true, wide: false, partyDark: R.mode === 'lantern' && mine };
   if (!mine) { g.dur = 3600; delete g.result; }
   let instruction = base.cmd || 'MICROGAME';
@@ -265,20 +477,21 @@ function partyWrapGame(base, R, sp) {
   g.hint = mine ? base.hint : R.mode === 'lantern' ? 'MOVE THE LIGHT · MOUSE / TOUCH / ARROWS' : R.mode === 'balloon' ? 'TAP / SPACE TO INFLATE · FIX JAMS WITH A / D · GRAB GOLD BUBBLES' : 'TAP A RIVAL TO STEAL ONE CARD PER MICROGAME';
   g.thint = mine ? base.thint : g.hint;
   let lx = 400, ly = 300, held = {}, elapsed = 0, lightAt = -1, taps = 0, lastTap = -1, sentAt = 0, pumping = false, frameAt = -1, frame = null, frameTime = -1, frameSeq = 0, sharedTime = 0, sharedDuration = 1, sharedClockAt = 0;
-  let combo = 0, comboAt = -9, turbo = 0, jam = null, bubble = null, nextTrap = 1.2 + Math.random() * 1.3, stall = 0, dial = null, seq = null, fly = null, charges = 0, sabAt = -9, sabotage = null, sabIdx = 0, chargeAt = 0, pumpKick = 0, jamShake = 0, trapFlash = 0;
+  let combo = 0, comboAt = -9, pumpKick = 0;
   const tapLog = [];
   const lights = {}, pointer = { pos: { x: 400, y: 300 }, held: false };
   const relay = duoCtx(R);
+  // Shared kit (js/party-sab.js): charges, sabotage channel and the pumpers' trap minigames. Built before onMsg, which replays buffered messages at once.
+  const kit = cards ? partyCardsKit(R) : null;   // CARDS keeps its charges from round to round (they are also earned while a deck is picked)
+  const charges = canSab ? kit ? kit.charges : createSabCharges() : null;
+  const ch = canSab ? createSabChannel(R, sabDirectRelay(R2 => R2.id === R.id && (cards || R2.round === round) ? charges : null), { charges, actorId: actor.id }) : null;   // straight to the server: it rate limits throws and a refused one gives the charge back
+  const traps = watcher ? balloon ? createIdleTraps({ onReward: () => charges.earn('trap') }) : partyCardsTraps(kit) : null;
   const capture = mine ? document.createElement('canvas') : null;
   if (capture) { capture.width = 400; capture.height = 300; }
   const dark = R.mode === 'lantern' && mine ? document.createElement('canvas') : null;
   if (dark) { dark.width = W; dark.height = H; }
-  relay.onMsg((type, data, from) => {
-    if (type === 'sab' && canSab && data && ['ink', 'fog', 'dark', 'bugs'].includes(data.k) && typeof data.to === 'string') {
-      const pl = R.players.find(p => p.id === from), tg = R.players.find(p => p.id === data.to);
-      if (data.to === party.you.id && from !== party.you.id) { sabotage = { k: data.k, at: now, name: pl ? pl.name : '', seed: Math.random() * 100 }; balTry(() => { sfx.whoosh(false); shake(5, .3); }); }
-      else if (from !== party.you.id) balTry(() => floatText(t('{a} SABOTAGES {b}!', { a: pl ? pl.name : '', b: tg ? tg.name : '' }), 300, 300, '#FF9A3D', 22));
-    }
+  relay.onMsg((type, data, role, from) => {   // `role` is the sender's seat in a DUO game; here only the id matters
+    if (ch) ch.receive(type, data, from);
     if (type === 'light' && from !== actor.id && data && Number.isFinite(data.x) && Number.isFinite(data.y)) {
       lights[from] = { x: Math.max(0, Math.min(W, data.x)), y: Math.max(0, Math.min(H, data.y)), at: now };
     }
@@ -292,59 +505,28 @@ function partyWrapGame(base, R, sp) {
   });
   const localPoint = data => ({ x: Math.max(0, Math.min(W, (data.x - view.x) / view.scale)), y: Math.max(0, Math.min(H, (data.y - view.y) / view.scale)) });
   const inside = data => data.x >= view.x && data.x <= view.x + view.w && data.y >= view.y && data.y <= view.y + view.h;
+  const keyMap = {};   // physical key -> key actually delivered, so a FLIP that starts or ends mid-press never leaves a key stuck
   const invoke = (type, data) => {
+    const flip = mine && sabMirrored(ch && ch.active());
     if (type === 'move' || type === 'down' || type === 'up') {
       if (type === 'down' && !inside(data)) return;
-      data = localPoint(data); pointer.pos = data;
+      data = localPoint(data); if (flip) data = { x: W - data.x, y: data.y }; pointer.pos = data;
       if (type === 'down') pointer.held = true;
       if (type === 'up') pointer.held = false;
     }
+    else if (type === 'key') { const phys = data.code; if (flip) data = sabMirrorKey(data); keyMap[phys] = data; }
+    else if (type === 'keyup') { const phys = data.code, sent = keyMap[phys]; delete keyMap[phys]; data = sent ? Object.assign({}, data, { code: sent.code, key: sent.key }) : flip ? sabMirrorKey(data) : data; }
     return partyGameScope(() => base[type] && base[type](data), pointer);
   };
-  // Pumper mini-game: tapping pumps; a stuck valve (wiggle left/right) and gold bubbles (TURBO, 2 air per tap) interrupt the mashing.
-  const nextTrapIn = () => { nextTrap = elapsed + 2.2 + Math.random() * 2.2; };
-  const reward = (sec, word, col) => { charges = Math.min(3, charges + 1); turbo = elapsed + sec; nextTrapIn(); trapFlash = 1; balTry(() => { sfx.hit(); burst(400, 534, col, 24, 400); ring(400, 534, col, 100, .4); floatText(word, 400, 500, col, 34); }); };
-  const failTrap = word => { stall = elapsed + .9; nextTrapIn(); jamShake = .4; balTry(() => { sfx.miss(); shake(6, .25); floatText(word, 400, 500, '#FF4D5E', 30); }); };
+  // Pumper mini-game: tapping pumps; the traps (stuck valve, gold bubbles, dial, arrows, fly) come from createIdleTraps and interrupt the mashing.
   const tap = () => {
     if (mine || !balloon || elapsed - lastTap < .085) return;
     lastTap = elapsed; pumpKick = 1;
-    if (jam || stall > elapsed) { jamShake = .3; balTry(() => sfx.miss()); return; }
-    const v = turbo > elapsed ? 2 : 1;
-    if (fly && Math.random() < .55) { balTry(() => noise(.06, .03, 1800, 2600, 'bandpass')); jamShake = .15; return; }
+    const v = traps.gate(); if (!v) return;
     taps = Math.min(8, taps + v); balloonView.opt += v * balUnit(R);
     combo = elapsed - comboAt < .45 ? combo + 1 : 1; comboAt = elapsed; tapLog.push(elapsed);
-    balTry(() => { sfx.blip(Math.min(16, combo / 2) + balloonView.shown * 8); if (combo % 10 === 0) { charges = Math.min(3, charges + 1); ring(150, 536, '#FFE14D', 70, .4); floatText(t('COMBO x{n}', { n: combo }), 116, 478, '#FFE14D', 22); } });
-  };
-  const sabTargets = () => R.players.filter(p => !p.left && p.id !== party.you.id);
-  const sab = id => {
-    if (!canSab || charges < 1 || elapsed - sabAt < 3) return;
-    const list = sabTargets(), to = typeof id === 'string' ? id : list.length ? list[sabIdx % list.length].id : '';
-    if (!to) return;
-    charges--; sabAt = elapsed; sabIdx++; const k = ['ink', 'fog', 'dark', 'bugs'][Math.floor(Math.random() * 4)];
-    relay.send('sab', { k, to }); balTry(() => { sfx.whoosh(true); floatText('SABOTAGE SENT!', 300, 300, '#FF9A3D', 30); });
-  };
-  const drawSabStrip = () => {
-    const list = sabTargets(), ready = charges > 0 && elapsed - sabAt >= 3, w = Math.min(190, 570 / Math.max(1, list.length));
-    list.forEach((p, i) => button(16 + i * w, 567, w - 6, 26, t('SABOTAGE {name}', { name: p.name }), () => sab(p.id), { size: 13, fill: ready ? p.color : '#d3cfe0' }));
-    txt(t('SAB: {n}/3', { n: charges }), 692, 581, 15, ready ? '#FF9A3D' : '#9a98ad', 'center', 150);
-  };
-  const swat = () => { if (!fly) return; fly = null; nextTrapIn(); trapFlash = 1; balTry(() => { sfx.hit(); burst(400, 536, '#9fe3ff', 14, 300); floatText('SPLAT!', 400, 500, '#9fe3ff', 30); }); };
-  const wiggle = side => {
-    if (!jam) return;
-    if (side === jam.side) { jamShake = .25; return; }
-    jam.side = side; jam.have++; balTry(() => sfx.blip(jam.have * 2));
-    if (jam.have >= jam.need) {
-      jam = null; turbo = elapsed + 1.6; nextTrapIn(); trapFlash = 1;
-      balTry(() => { sfx.whoosh(true); burst(400, 534, '#5CFF7A', 22, 380); floatText('UNJAMMED!', 400, 500, '#5CFF7A', 34); });
-    }
-  };
-  const hitBubble = () => { if (bubble) { bubble = null; reward(4, 'TURBO!', '#FFE14D'); } };
-  const dialPos = () => .5 + .5 * Math.sin(dial.seed + (elapsed - dial.at) * 4.6);
-  const dialStop = () => { if (!dial) return; const hit = Math.abs(dialPos() - dial.zone) < dial.w / 2; dial = null; if (hit) reward(3.5, 'PERFECT! TURBO', '#5CFF7A'); else failTrap('OVERPRESSURE!'); };
-  const seqPress = d => {
-    if (!seq) return;
-    if (d === seq.keys[seq.i]) { seq.i++; balTry(() => sfx.blip(seq.i * 3)); if (seq.i >= seq.keys.length) { seq = null; reward(3.5, 'COMBO! TURBO', '#4DB8FF'); } }
-    else { seq.i = 0; jamShake = .3; balTry(() => sfx.miss()); }
+    const bonus = charges.earn('combo', combo);
+    balTry(() => { sfx.blip(Math.min(16, combo / 2) + balloonView.shown * 8); if (bonus) { ring(150, 536, '#FFE14D', 70, .4); floatText(t('COMBO x{n}', { n: combo }), 116, 478, '#FFE14D', 22); } });
   };
   g.update = (dt, time) => {
     elapsed += dt;
@@ -362,23 +544,12 @@ function partyWrapGame(base, R, sp) {
       ly = Math.max(0, Math.min(H, ly + ((held.ArrowDown || held.KeyS ? 1 : 0) - (held.ArrowUp || held.KeyW ? 1 : 0)) * dt * 440));
       if (elapsed - lightAt > .08) { lightAt = elapsed; relay.send('light', { x: Math.round(lx), y: Math.round(ly) }, true); }
     }
-    if (canSab && elapsed - chargeAt > 6) { chargeAt = elapsed; charges = Math.min(3, charges + 1); }
-    if (!mine && balloon) {
-      pumpKick = Math.max(0, pumpKick - dt * 7); jamShake = Math.max(0, jamShake - dt); trapFlash = Math.max(0, trapFlash - dt * 2);
+    if (charges) charges.tick(dt);
+    if (traps) {
+      pumpKick = Math.max(0, pumpKick - dt * 7);
       if (elapsed - comboAt > .6) combo = 0;
       while (tapLog.length && elapsed - tapLog[0] > 1) tapLog.shift();
-      if (!jam && !bubble && !dial && !seq && !fly && elapsed >= nextTrap) {
-        const r = Math.random();
-        if (r < .18) { fly = { at: elapsed, life: 4.5, seed: Math.random() * 6 }; balTry(() => noise(.3, .04, 1500, 2500, 'bandpass')); }
-        else if (r < .38) { jam = { have: 0, need: 8, side: 0 }; balTry(() => { sfx.miss(); shake(7, .3); }); }
-        else if (r < .58) { bubble = { at: elapsed, life: 2.8, seed: Math.random() * 6, fakes: Math.random() < .5 ? [Math.random() * 6, Math.random() * 6] : [] }; balTry(() => sfx.blip(14)); }
-        else if (r < .8) { dial = { at: elapsed, life: 3.2, seed: Math.random() * 6, zone: .3 + Math.random() * .4, w: .2 }; balTry(() => sfx.blip(10)); }
-        else { seq = { at: elapsed, life: 4, i: 0, keys: [0, 1, 2].map(() => Math.floor(Math.random() * 3)) }; balTry(() => sfx.blip(12)); }
-      }
-      if (bubble && elapsed - bubble.at > bubble.life) { bubble = null; nextTrapIn(); }
-      if (dial && elapsed - dial.at > dial.life) { dial = null; nextTrapIn(); }
-      if (seq && elapsed - seq.at > seq.life) { seq = null; nextTrapIn(); }
-      if (fly && elapsed - fly.at > fly.life) { fly = null; nextTrapIn(); }
+      traps.update(dt);
     }
     if (!mine && R.mode === 'balloon' && taps && !pumping && elapsed - sentAt > .22) {
       const count = taps; taps = 0; pumping = true; sentAt = elapsed;
@@ -386,104 +557,71 @@ function partyWrapGame(base, R, sp) {
     }
   };
   const drawPumpUI = current => {
-    const e = current.extra, m = me(), turnN = (e.turn || {})[party.you.id] || 0, totalN = (e.contrib || {})[party.you.id] || 0, turboOn = turbo > elapsed, rate = tapLog.length;
-    box3(488, 122, 104, 344, '#2b2845', 3, 3);
-    txt('YOUR AIR', 540, 142, 14, '#FFE14D', 'center', 96);
-    claude(540, 232 - pumpKick * 6, 3.2, { col: m.color, mood: rate > 4 ? 'happy' : null });
-    txt('AIR THIS TURN', 540, 262, 11, '#fff', 'center', 96); txt(String(turnN), 540, 292, 36, m.color, 'center', 96);
-    txt('TOTAL', 540, 322, 11, '#fff', 'center', 96); txt(String(totalN), 540, 345, 20, '#fff', 'center', 96);
-    if (combo >= 10) { const fl = Math.sin(now * 20) * 3; ctx.fillStyle = '#FF9A3D'; ctx.beginPath(); ctx.moveTo(516, 400); ctx.quadraticCurveTo(522, 368 + fl, 540, 358 - fl); ctx.quadraticCurveTo(558, 368 - fl, 564, 400); ctx.closePath(); ctx.fill(); ctx.fillStyle = '#FFE14D'; ctx.beginPath(); ctx.moveTo(526, 400); ctx.quadraticCurveTo(540, 374 + fl, 554, 400); ctx.closePath(); ctx.fill(); }
-    txt('COMBO', 540, 358, 11, '#fff', 'center', 96); txt('x' + combo, 540, 384, 26, combo >= 10 ? INK : '#fff', 'center', 96);
-    txt(t('{n}/s', { n: rate }), 540, 410, 13, '#9fe3ff', 'center', 96);
-    const ready = charges > 0 && elapsed - sabAt >= 3, tgs = sabTargets(), tg = tgs[sabIdx % Math.max(1, tgs.length)];
-    if (tg) button(492, 414, 96, 20, tg.name, () => { sabIdx++; }, { size: 11, fill: tg.color });
-    button(492, 436, 96, 28, ready ? t('SABOTAGE x{n}', { n: charges }) : t('SAB: {n}/3', { n: charges }), () => sab(), { size: 12, fill: ready ? '#FF9A3D' : '#d3cfe0' });
-    box3(12, 484, 580, 104, '#2b2845', 4, 4);
-    const stuck = jam || stall > elapsed, kick = pumpKick * 6, face = stuck ? '#d3cfe0' : turboOn ? '#ffd23f' : '#4fd06a', base = stuck ? '#8f88a6' : turboOn ? '#c99512' : '#24803a';
-    ctx.save(); if (stuck && jamShake > 0) ctx.translate(Math.sin(now * 90) * 4, 0);
-    box(22, 500, 188, 80, base, 4); box(22, 492 + kick, 188, 80, face, 4);
-    ctx.fillStyle = 'rgba(255,255,255,.45)'; ctx.fillRect(26, 496 + kick, 180, 8);
-    box(174, 540 + kick, 16, 24, '#c9ced6', 3); box(160, 520 + kick * 2.2, 44, 8, '#8f9cb3', 3); box(179, 526 + kick * 2.2, 6, 16, '#8f9cb3', 1);
-    txt(stuck ? 'STUCK!' : 'PUMP!', 96, 518 + kick, 30, INK, 'center', 120);
-    box(40, 538 + kick, 112, 24, '#fff', 3); txt('SPACE / TAP', 96, 551 + kick, 13, INK, 'center', 104);
+    const U = PARTY_UI, e = current.extra, m = me(), turnN = (e.turn || {})[party.you.id] || 0, totalN = (e.contrib || {})[party.you.id] || 0, turboOn = traps.turboOn(), rate = tapLog.length, hot = combo >= 10;
+    pmSlab(488, 122, 104, 338, '#2f2a52', { r: 16, d: 6, o: 3.5 });
+    pmTag(540, 140, 92, 'YOUR AIR', '#FFE14D', 14);
+    U.shadow(540, 219, 26 - pumpKick * 3, 6, .26);
+    ctx.save(); ctx.translate(540, 217); ctx.scale(1 + pumpKick * .09, 1 - pumpKick * .09); ctx.translate(-540, -217);   // squashes with every tap
+    U.avatar(540, 190, 27, m.color, { t: now, seed: 1, mood: turboOn ? 'eager' : rate > 4 ? 'happy' : 'idle', look: [0, -.35] });
+    ctx.restore();
+    pmSlab(494, 228, 92, 46, '#211d40', { r: 11, d: 3, o: 2.5, gloss: .06 });
+    txt('AIR THIS TURN', 540, 238, 10, '#fff', 'center', 84); txt(String(turnN), 540, 259, 30, m.color, 'center', 84);
+    pmSlab(494, 282, 92, 34, '#211d40', { r: 11, d: 3, o: 2.5, gloss: .06 });
+    txt('TOTAL', 540, 291, 10, '#fff', 'center', 84); txt(String(totalN), 540, 306, 19, '#fff', 'center', 84);
+    pmSlab(494, 324, 92, 42, hot ? U.mix('#FF9A3D', '#FFE14D', .5 + .5 * Math.sin(now * 10) * .5) : '#211d40', { r: 11, d: 3, o: 2.5, gloss: hot ? .3 : .06 });
+    if (hot) {   // the combo is on fire: an inked flame that licks upwards
+      const fl = Math.sin(now * 14) * .06;
+      ctx.save(); ctx.translate(510, 360); ctx.rotate(Math.sin(now * 9) * .06); ctx.scale(.62 + fl, .62 - fl);
+      U.cel(U.P('M0 0C-24 -4 -28 -26 -10 -46C-8 -34 -2 -34 0 -52C14 -40 26 -20 24 -8C22 3 8 5 0 0Z'), '#FF9A3D', '#d3571a', 4, 4, 4);
+      U.inkP(U.P('M0 -2C-12 -4 -13 -16 -4 -26C0 -18 8 -14 10 -8C10 -3 5 -1 0 -2Z'), '#FFE14D', 0); ctx.restore();
+    }
+    const cx = hot ? 556 : 540;
+    txt('COMBO', cx, 334, 10, hot ? INK : '#fff', 'center', hot ? 52 : 84); txt('x' + combo, cx, 354, hot ? 22 : 24, hot ? INK : '#fff', 'center', hot ? 52 : 84);
+    pmChip(540, 388, t('{n}/s', { n: rate }), 12, '#9fe3ff', 66);
+    sabPicker(ch, 492, 414, 96);
+    pmSlab(12, 484, 580, 98, '#2f2a52', { r: 20, d: 6, o: 4 });
+    const stuck = traps.stuck(), pk = pumpKick, col = stuck ? '#d3cfe0' : turboOn ? '#ffd23f' : '#4fd06a', dk = stuck ? '#8f88a6' : turboOn ? '#c99512' : '#24803a';
+    ctx.save(); if (stuck && traps.shaking()) ctx.translate(Math.sin(now * 90) * 4, 0);
+    const bt = pmBtn(22, 492, 188, 88, null, col, { dk, off: stuck, lit: turboOn, down: pk > .4 }), top = bt.y + bt.dy;
+    const hy = top + 20 + pk * 9;   // the handle goes down with every tap
+    U.rr(181, hy + 7, 9, 26 + (1 - pk) * 4, 4); U.ink('#8f9cb3', 2.5);
+    U.rr(170, top + 40, 31, 30, 8); U.ink('#c9ced6', 3); ctx.fillStyle = 'rgba(255,255,255,.55)'; U.rr(174, top + 44, 6, 20, 3); ctx.fill();
+    U.rr(162, hy, 47, 11, 5.5); U.ink('#dde2ea', 3); ctx.fillStyle = 'rgba(255,255,255,.7)'; U.rr(167, hy + 2.5, 24, 3, 1.5); ctx.fill();
+    PARTY_UI.plateLabel([22, bt.y, 188, 79], bt.dy, stuck ? 'STUCK!' : 'PUMP!', 'SPACE / TAP', { size: 30, x: 91, w: 124, off: stuck });
     ctx.restore();
     btns.push({ x: 22, y: 492, w: 188, h: 88, fn: tap });
-    const mx = 222, mw = 362, cxm = mx + mw / 2;
-    if (jam) {
-      box(mx, 492, mw, 88, Math.sin(now * 12) > 0 ? '#7a1f2e' : '#5a1626', 3);
-      txt('VALVE JAMMED!', cxm, 510, 21, '#FFE14D', 'center', 340);
-      ctx.fillStyle = '#14101c'; ctx.fillRect(mx + 14, 522, mw - 28, 12); ctx.fillStyle = '#5CFF7A'; ctx.fillRect(mx + 14, 522, (mw - 28) * jam.have / jam.need, 12);
-      button(mx + 14, 542, mw / 2 - 18, 36, '< A / LEFT', () => wiggle(-1), { size: 18, fill: jam.side !== -1 ? '#FFE14D' : '#d3cfe0' });
-      button(mx + mw / 2 + 4, 542, mw / 2 - 18, 36, 'D / RIGHT >', () => wiggle(1), { size: 18, fill: jam.side !== 1 ? '#FFE14D' : '#d3cfe0' });
-    } else if (fly) {
-      const age = elapsed - fly.at, fx = cxm + Math.sin(age * 3.1 + fly.seed) * 140 + Math.sin(age * 9) * 12, fy = 536 + Math.sin(age * 4.7 + fly.seed) * 24;
-      box(mx, 492, mw, 88, '#322d52', 3); txt('A FLY! HALF YOUR PUMPS FAIL · SWAT IT! TAP / ENTER', cxm, 508, 13, '#FF9A3D', 'center', 345);
-      ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(mx + 14, 548); ctx.lineTo(mx + mw - 26, 548); ctx.strokeStyle = INK; ctx.lineWidth = 14; ctx.stroke(); ctx.strokeStyle = '#c9ced6'; ctx.lineWidth = 7; ctx.stroke();
-      ctx.fillStyle = INK; ctx.beginPath(); ctx.ellipse(fx, fy, 11, 7, 0, 0, 7); ctx.fill(); ctx.fillStyle = 'rgba(255,255,255,.8)'; const fl = Math.sin(now * 60) * 5; ctx.beginPath(); ctx.ellipse(fx - 5, fy - 8, 7, 4 + fl * .4, -.5, 0, 7); ctx.ellipse(fx + 5, fy - 8, 7, 4 - fl * .4, .5, 0, 7); ctx.fill();
-      btns.unshift({ x: fx - 34, y: fy - 34, w: 68, h: 68, fn: swat });
-    } else if (dial) {
-      const age = elapsed - dial.at, tx = mx + 30, tw = mw - 60, pos = dialPos();
-      box(mx, 492, mw, 88, '#3b3550', 3); txt('STOP IN THE GREEN! TAP / ENTER / W', cxm, 508, 14, '#FFE14D', 'center', 340);
-      box(tx, 522, tw, 22, '#14101c', 3); ctx.fillStyle = '#5CFF7A'; ctx.fillRect(tx + tw * (dial.zone - dial.w / 2), 524, tw * dial.w, 18);
-      ctx.fillStyle = age > dial.life * .75 ? '#FF4D5E' : '#fff'; ctx.beginPath(); ctx.moveTo(tx + tw * pos, 548); ctx.lineTo(tx + tw * pos - 9, 562); ctx.lineTo(tx + tw * pos + 9, 562); ctx.closePath(); ctx.fill(); ctx.fillRect(tx + tw * pos - 2, 520, 4, 26);
-      button(cxm - 70, 548, 140, 32, 'STOP!', dialStop, { size: 20, fill: '#5CFF7A' });
-    } else if (seq) {
-      box(mx, 492, mw, 88, '#3b3550', 3); txt('COPY THE ARROWS!', cxm, 508, 15, '#FFE14D', 'center', 340);
-      const tri = (x, y, d, col) => { ctx.fillStyle = col; ctx.strokeStyle = INK; ctx.lineWidth = 3; ctx.beginPath(); if (d === 0) { ctx.moveTo(x + 11, y - 11); ctx.lineTo(x - 11, y); ctx.lineTo(x + 11, y + 11); } else if (d === 1) { ctx.moveTo(x - 11, y + 10); ctx.lineTo(x, y - 12); ctx.lineTo(x + 11, y + 10); } else { ctx.moveTo(x - 11, y - 11); ctx.lineTo(x + 11, y); ctx.lineTo(x - 11, y + 11); } ctx.closePath(); ctx.stroke(); ctx.fill(); };
-      seq.keys.forEach((d, i) => { const x = cxm + (i - 1) * 56; box(x - 22, 518, 44, 34, i < seq.i ? '#5CFF7A' : i === seq.i ? '#FFE14D' : '#d3cfe0', 3); tri(x, 535, d, INK); });
-      [0, 1, 2].forEach(d => { const x = mx + 14 + d * ((mw - 28) / 3); button(x, 558, (mw - 28) / 3 - 8, 22, '', () => seqPress(d), { fill: '#fff' }); tri(x + ((mw - 28) / 3 - 8) / 2, 569, d, '#4fd06a'); });
-    } else if (bubble) {
-      const age = elapsed - bubble.at, u = Math.min(1, age / bubble.life), bx = mx + 60 + (mw - 120) * (.5 + .5 * Math.sin(bubble.seed + age * 2.2)), by = 548 + Math.sin(age * 5 + bubble.seed) * 8;
-      box(mx, 492, mw, 88, '#3b3550', 3); txt('GOLD BUBBLE! TAP IT / ENTER', cxm, 506, 14, '#FFE14D', 'center', 340);
-      ctx.strokeStyle = u > .7 ? '#FF4D5E' : '#FFE14D'; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(bx, by, 32, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (1 - u)); ctx.stroke();
-      (bubble.fakes || []).forEach((sd, i) => { const fx = mx + 60 + (mw - 120) * (.5 + .5 * Math.sin(sd + age * (1.6 + i * .7))), fy = 548 + Math.sin(age * 4 + sd) * 8; circ(fx, fy, 20, '#9a98ad', 3); txt('x0', fx, fy + 3, 15, INK, 'center', 30); btns.push({ x: fx - 30, y: fy - 30, w: 60, h: 60, fn: () => { bubble = null; failTrap('FAKE!'); } }); });
-      circ(bx, by, 22, '#FFD23F', 4); ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.beginPath(); ctx.ellipse(bx - 8, by - 9, 5, 8, -.5, 0, 7); ctx.fill(); txt('x2', bx + 2, by + 3, 18, INK, 'center', 30);
-      btns.unshift({ x: bx - 36, y: by - 36, w: 72, h: 72, fn: hitBubble });
-    } else {
-      box(mx, 492, mw, 88, '#322d52', 3);
-      txt(t('{n}/s', { n: rate }), mx + 12, 510, 15, '#9fe3ff', 'left', 80);
-      if (combo > 1) txt(t('COMBO x{n}', { n: combo }), mx + mw - 12, 510, 17, combo >= 10 ? '#FF9A3D' : '#fff', 'right', 160);
-      ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(mx + 14, 540); ctx.lineTo(mx + mw - 26, 540); ctx.strokeStyle = INK; ctx.lineWidth = 18; ctx.stroke();
-      ctx.strokeStyle = turboOn ? '#ffd23f' : '#c9ced6'; ctx.lineWidth = 10; ctx.stroke();
-      for (let i = 0; i < 8; i++) { const x = mx + 18 + ((now * (70 + rate * 45) + i * 44) % (mw - 56)); ctx.globalAlpha = rate ? .95 : .3; circ(x, 540, turboOn ? 6 : 4, turboOn ? '#fff3a0' : '#9fe3ff', 1.5); } ctx.globalAlpha = 1;
-      ctx.fillStyle = INK; ctx.beginPath(); ctx.moveTo(mx + mw - 30, 526); ctx.lineTo(mx + mw - 8, 540); ctx.lineTo(mx + mw - 30, 554); ctx.closePath(); ctx.fill();
+    traps.draw(222, 492, 362, (mx, y, mw) => {
+      const cxm = mx + mw / 2, pipeY = 527, pw = mw - 40;
+      pmSlab(mx, 492, mw, 82, '#3a3463', { r: 14, d: 4, o: 3, gloss: .1 });
+      txt(t('{n}/s', { n: rate }), mx + 14, 506, 15, '#9fe3ff', 'left', 80);
+      if (combo > 1) txt(t('COMBO x{n}', { n: combo }), mx + mw - 14, 506, 17, combo >= 10 ? '#FF9A3D' : '#fff', 'right', 160);
+      const pp = pmPath(mx + 14, pipeY, pw, 20, 10);   // the air hose: a steel pipe with bubbles racing towards the balloon
+      U.cel(pp, turboOn ? '#ffd23f' : '#c9ced6', turboOn ? '#c99512' : '#8f9cb3', 0, 5, 3);
+      ctx.save(); ctx.clip(pp);
+      for (let i = 0; i < 6; i++) { const bx = mx + 20 + ((now * (70 + rate * 45) + i * 52) % (pw - 12)), bs = turboOn ? 5 : 3.6; ctx.globalAlpha = rate ? .95 : .35; U.el(bx, pipeY + 10, bs, bs); ctx.fillStyle = turboOn ? '#fff3a0' : '#9fe3ff'; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = INK; ctx.stroke(); }
+      ctx.restore();
+      ctx.save(); ctx.translate(mx + mw - 19, pipeY + 10); ctx.scale(1 + Math.max(0, rate) * .03 * Math.sin(now * 14), 1); U.inkP(U.P('M-10 -13L11 0L-10 13Z'), turboOn ? '#FFE14D' : '#fff', 3); ctx.restore();
       if (turboOn) {
-        ctx.fillStyle = 'hsl(' + Math.round(now * 300 % 360) + ',90%,60%)'; ctx.fillRect(mx + 14, 518, (mw - 28) * Math.max(0, (turbo - elapsed) / 4), 8);
-        txt(t('TURBO x2 · {n}s', { n: Math.ceil(turbo - elapsed) }), cxm, 573, 15, '#FFE14D', 'center', 340);
-      } else if (nextTrap - elapsed < 1.2) { ctx.globalAlpha = .5 + .5 * Math.sin(now * 16); txt('HEADS UP!', cxm, 573, 16, '#FF4D5E', 'center', 340); ctx.globalAlpha = 1; }
-      else txt('KEEP TAPPING! TRAPS ARE COMING', cxm, 573, 14, '#c9c6e0', 'center', 340);
-    }
-    if (trapFlash > 0) { ctx.fillStyle = 'rgba(255,255,255,' + (trapFlash * .5).toFixed(2) + ')'; ctx.fillRect(mx, 492, mw, 88); }
-  };
-  const drawSab = () => {
-    if (!sabotage) return;
-    const age = now - sabotage.at, life = 3.4; if (age > life) { sabotage = null; return; }
-    const sd = sabotage.seed, k = sabotage.k; ctx.save(); ctx.globalAlpha = Math.max(0, Math.min(1, age / .25, (life - age) / .6));
-    if (k === 'ink') for (let i = 0; i < 6; i++) {
-      const x = 110 + (sd * 37 + i * 173) % 580, y = 90 + (sd * 91 + i * 131) % 420, r = 38 + (i * 13) % 30, g = Math.min(1, age / .3);
-      ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(x, y, r * g, 0, 7); for (let j = 0; j < 6; j++) { const a = j * 1.05 + i; ctx.moveTo(x + Math.cos(a) * r * 1.3 * g + 12, y + Math.sin(a) * r * 1.3 * g); ctx.arc(x + Math.cos(a) * r * 1.3 * g, y + Math.sin(a) * r * 1.3 * g, r * .28 * g, 0, 7); } ctx.fill();
-      ctx.fillRect(x - 6, y, 12, 30 + Math.min(80, age * 40 + i * 6));
-    }
-    else if (k === 'fog') { ctx.fillStyle = 'rgba(232,238,255,.8)'; ctx.fillRect(0, 0, W, H); ctx.fillStyle = 'rgba(255,255,255,.9)'; for (let i = 0; i < 9; i++) { ctx.beginPath(); ctx.arc((i * 120 + now * 40) % 900 - 50, 80 + (i * 67) % 460, 90, 0, 7); ctx.fill(); } }
-    else if (k === 'dark') { ctx.fillStyle = 'rgba(8,6,20,' + (.62 + Math.sin(now * 3) * .2).toFixed(2) + ')'; ctx.fillRect(0, 0, W, H); }
-    else for (let i = 0; i < 16; i++) {
-      const x = (sd * 50 + i * 57 + Math.sin(now * (1.5 + i % 3) + i) * 90 + 800) % 800, y = (i * 83 + Math.cos(now * (1.2 + i % 4) + i) * 70 + 600) % 600;
-      ctx.fillStyle = INK; ctx.beginPath(); ctx.ellipse(x, y, 16, 11, 0, 0, 7); ctx.fill(); ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.beginPath(); ctx.ellipse(x - 6, y - 12, 11, 6 + Math.sin(now * 50 + i) * 3, -.5, 0, 7); ctx.ellipse(x + 6, y - 12, 11, 6 - Math.sin(now * 50 + i) * 3, .5, 0, 7); ctx.fill();
-    }
-    ctx.restore();
+        pmBar(mx + 14, 515, mw - 28, 9, Math.max(0, traps.turboLeft() / 4), 'hsl(' + Math.round(now * 300 % 360) + ',90%,60%)', { o: 2, track: '#171428' });
+        txt(t('TURBO x2 · {n}s', { n: Math.ceil(traps.turboLeft()) }), cxm, 564, 15, '#FFE14D', 'center', 340);
+      } else if (traps.soon()) U.badge('HEADS UP!', cxm, 562, 14, '#ff4d5e', '#fff', 1 + .05 * Math.sin(now * 16), Math.sin(now * 12) * .02, 300);
+      else txt('KEEP TAPPING! TRAPS ARE COMING', cxm, 564, 14, '#c9c6e0', 'center', 340);
+    });
   };
   g.draw = gameTime => {
-    const current = party.room;
+    const current = party.room, hit = ch && ch.active(), fxFull = !mine ? sabBegin(hit, ctx, 'full') : null;   // a helper's whole screen takes the hit (shake, ink, pixels...)
     bg('#26304b', '#392d59', now);
     const bez = balloon ? balMix(actor.color, '#ff3b3b', (partyBalloonShown(current) - .7) / .3) : actor.color;
-    if (balloon && !mine) { box(10, 118, 472, 358, '#14101c', 5); box(14, 122, 464, 350, bez, 4); }
-    else { box(6, 115, 594, 448, '#14101c', 5); box(12, 120, 584, 440, bez, 4); }
-    // Chunky television bezel keeps the microgame and the surrounding party props in one stage.
-    circ(590, 110, 5, '#7BD88F', 0);
-    ctx.save(); ctx.beginPath(); ctx.rect(view.x, view.y, view.w, view.h); ctx.clip();
+    // Chunky television bezel keeps the microgame and the surrounding party props in one stage: an inked, cel-shaded slab with the screen set into it.
+    const bz = [view.x - 8, view.y - 8, view.w + 16, view.h + 16], bzp = pmPath(bz[0], bz[1], bz[2], bz[3], 22);   // the frame grows outwards: the screen keeps every pixel of the game
+    ctx.fillStyle = 'rgba(20,16,28,.32)'; PARTY_UI.rr(bz[0] + 5, bz[1] + 9, bz[2], bz[3], 22); ctx.fill();
+    PARTY_UI.cel(bzp, bez, PARTY_UI.shade(bez, .34), 0, 7, 5);
+    PARTY_UI.glint(bzp, bz[0] + 64, bz[1] + 3.5, 56, 3.5, 'rgba(255,255,255,.5)', 0);
+    PARTY_UI.rr(view.x - 2.5, view.y - 2.5, view.w + 5, view.h + 5, 13); ctx.fillStyle = INK; ctx.fill();
+    ctx.save(); ctx.clip(pmPath(view.x, view.y, view.w, view.h, 11));
     ctx.translate(view.x, view.y); ctx.scale(view.scale, view.scale);
     if (mine) {
-      partyGameScope(() => { base.draw(gameTime); if (typeof drawParts === 'function') drawParts(); drawSab(); }, pointer);
+      partyGameScope(() => { const fx = sabBegin(hit, ctx, 'view'); try { base.draw(gameTime); if (typeof drawParts === 'function') drawParts(); } finally { sabEnd(fx); } }, pointer);
       // Capture the actor's rendered game before darkness and controls. Helpers never simulate RNG or outcomes.
       if (elapsed - frameAt >= partyFrameGap() && !capture.partyEncoding && capture.getContext && capture.toDataURL) {
         frameAt = elapsed;
@@ -502,87 +640,101 @@ function partyWrapGame(base, R, sp) {
         mask.globalCompositeOperation = 'source-over'; ctx.drawImage(dark, 0, 0);
       }
     } else {
+      const fx = sabBegin(hit, ctx, 'tv');
       ctx.fillStyle = '#19172d'; ctx.fillRect(0, 0, W, H);
       if (frame) ctx.drawImage(frame, 0, 0, W, H);
       if (!frame || now - frameTime > 3) txt('CONNECTING TO THE PLAYER...', 400, 300, 28, '#FFE14D', 'center', 740);
       if (R.mode === 'lantern') { ctx.strokeStyle = me().color; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(lx, ly, 125, 0, Math.PI * 2); ctx.stroke(); }
+      sabEnd(fx);
     }
     ctx.restore();
     txt(instruction, 302, 28, 24, '#FFE14D', 'center', 550);
-    txt(t('{name} IS PLAYING', { name: actor.name }), 302, 59, 23, actor.color, 'center', 560);
-    if (mine) { if (sabotage) { ctx.globalAlpha = .6 + .4 * Math.sin(now * 14); txt(t('{name} SABOTAGES YOU!', { name: sabotage.name.toUpperCase() }), 302, 89, 19, '#FF9A3D', 'center', 552); ctx.globalAlpha = 1; } else txt(base.hint || '', 302, 89, 17, '#fff', 'center', 552); }
+    const playing = t('{name} IS PLAYING', { name: actor.name });
+    txt(playing, 302, 59, 23, actor.color, 'center', 560);
+    const pw = ctx.measureText(playing).width;   // txt() leaves its font on the context: the width of what was just drawn
+    if (302 - pw / 2 - 24 > 22) PARTY_UI.avatar(302 - pw / 2 - 22, 58, 13, actor.color, { t: now, seed: 3, mood: mine ? 'eager' : 'smug', look: [1, 0], bob: true });   // the one at the table, as a tiny portrait
+    if (mine) { if (hit) pmChip(302, 89, t('{name} SABOTAGES YOU!', { name: hit.name.toUpperCase() }), 16, '#FF9A3D', 540, { a: .75 + .25 * Math.sin(now * 14), bg: '#5a1626' }); else txt(base.hint || '', 302, 89, 17, '#fff', 'center', 552); }
     const seconds = mine ? Math.max(0, base.dur / Math.sqrt(sp) - gameTime) : Math.max(0, sharedTime - (now - sharedClockAt));
     const clockDuration = mine ? base.dur / Math.sqrt(sp) : sharedDuration;
-    txt(modeLabel(R.mode), 692, 28, 19, '#FFE14D', 'center', 168);
+    pmTag(692, 28, 156, modeLabel(R.mode), '#FFE14D', 17);
     txt(t('{n} SECONDS', { n: Math.ceil(seconds) }), 692, 66, 19, seconds < 2 ? '#F28CB1' : '#fff', 'center', 168);
     if (R.mode === 'lantern') txt(t('{n} TEAM LIVES', { n: current.lives }), 692, 97, 16, '#7BD88F', 'center', 168);
-    box(16, 107, 576, 6, '#14101c', 0);
-    box(16, 107, 576 * Math.max(0, Math.min(1, seconds / clockDuration)), 6, seconds < 2 ? '#F28CB1' : '#7BD88F', 0);
-    if (!balloon) {
-      txt(mine ? 'YOU PLAY' : R.mode === 'lantern' ? 'YOU LIGHT' : 'YOU STEAL', 692, 142, 20, '#FFE14D', 'center', 166);
-      const teammates = current.players.filter(p => !p.left && p.id !== actor.id);
-      txt(mine ? 'YOUR TEAMMATES' : 'HELPER TEAM', 692, 176, 15, '#fff', 'center', 164);
-      teammates.forEach((p, i) => txt(p.name, 692, 199 + i * 21, 15, p.color, 'center', 164));
+    const clockK = Math.max(0, Math.min(1, seconds / clockDuration));   // the fuse of the round: a rounded bar with a little spark at its head
+    pmBar(16, 103, 576, 9, clockK, seconds < 2 ? '#F28CB1' : '#7BD88F', { track: '#1b1830' });
+    if (clockK > .01) PARTY_UI.orb(16 + Math.max(9, 576 * clockK) - 4.5, 107.5, 5, { col: seconds < 2 ? '#FFE14D' : '#fff3a0', state: 'full', t: now });
+    const cardWatch = cards && !mine;
+    if (!balloon && !cardWatch) {
+      pmSlab(606, 132, 180, 428, '#2f2a52', { r: 18, d: 6, o: 3.5 });
+      pmTag(696, 132, 156, mine ? 'YOU PLAY' : R.mode === 'lantern' ? 'YOU LIGHT' : 'YOU STEAL', '#FFE14D', 17);
+    }
+    if (!balloon && !cardWatch && !cards) {
+      txt(mine ? 'YOUR TEAMMATES' : 'HELPER TEAM', 696, 178, 15, '#fff', 'center', 164);
+      current.players.filter(p => !p.left && p.id !== actor.id).forEach((p, i) => txt(p.name, 696, 201 + i * 21, 15, p.color, 'center', 164));
     }
     if (balloon) {
       partyBalloonSide(current, mine);
       if (!mine) drawPumpUI(current);
-    } else if (R.mode === 'cards') {
-      txt(t('{n} CARDS AT STAKE', { n: current.extra.pile.length + current.extra.pot }), 692, 305, 19, '#FFE14D', 'center', 168);
-      txt(t('{n} MICROGAMES TO GO', { n: current.extra.remaining.length }), 692, 345, 17, '#fff', 'center', 168);
-      txt('WIN TO KEEP THE PILE', 692, 396, 15, '#fff', 'center', 168);
-      const attempt = current.extra.stealing && current.extra.stealing[party.you.id];
-      if (!mine && attempt && attempt.round === round) {
-        box(610, 405, 172, 10, '#14101c', 0);
-        ctx.fillStyle = '#B49CFF'; ctx.fillRect(610, 405, 172 * Math.max(0, Math.min(1, 1 - (attempt.readyAt - Date.now()) / 1200)), 10);
-      }
-      txt(!mine && attempt && attempt.round === round ? 'STEALING...' : !mine && current.extra.stolen[party.you.id] === round ? 'CARD STOLEN! WAIT FOR THE NEXT GAME' : 'OTHERS CAN STEAL', 692, 427, 15, '#F28CB1', 'center', 168);
-      for (let i = 2; i >= 0; i--) { box(650 + i * 4, 258 - i * 3, 76, 32, '#B49CFF', 2); }
-      txt(current.extra.pile.length + current.extra.pot, 688, 275, 21, INK);
-      current.players.filter(p => !p.left).forEach((p, i) => {
-        const can = !mine && p.id !== party.you.id && p.score > 0 && current.extra.stolen[party.you.id] !== round;
-        const label = t('{name}: {n} CARDS', { name: p.name, n: p.score });
-        if (can) button(608, 444 + i * 32, 176, 31, label, () => partyStartSteal(p.id, round), { size: 15, fill: p.color });
-        else txt(label, 692, 460 + i * 32, 15, p.color, 'center', 168);
+    } else if (cardWatch) {
+      partyCardsSab(ch, kit); partyCardsSteal(current, round);
+      pmSlab(12, 484, 580, 98, '#2f2a52', { r: 20, d: 6, o: 4 });
+      traps.draw(16, 492, 572, (mx, y, mw) => {
+        pmSlab(mx, y, mw, 80, '#3a3463', { r: 14, d: 4, o: 3, gloss: .1 });
+        if (traps.soon()) PARTY_UI.badge('HEADS UP!', mx + mw / 2, y + 42, 26, '#ff4d5e', '#fff', 1 + .04 * Math.sin(now * 16), Math.sin(now * 12) * .018, 540);
+        else {
+          PARTY_UI.orb(mx + 30, y + 41, 12, { col: '#FF9A3D', state: 'full', t: now });
+          txt('WIN TRAPS TO CHARGE SABOTAGE', mx + mw / 2 + 12, y + 41, 20, '#c9c6e0', 'center', mw - 90);
+        }
       });
+    } else if (cards) {   // the player at the table: the pile, and who holds what (watchers have partyCardsSteal)
+      const U = PARTY_UI, total = current.extra.pile.length + current.extra.pot, bob = Math.sin(now * 2.4) * 1.3;
+      txt(t('{n} CARDS AT STAKE', { n: total }), 696, 305, 19, '#FFE14D', 'center', 168);
+      txt(t('{n} MICROGAMES TO GO', { n: current.extra.remaining.length }), 696, 345, 17, '#fff', 'center', 168);
+      txt('WIN TO KEEP THE PILE', 696, 396, 15, '#fff', 'center', 168);
+      txt('OTHERS CAN STEAL', 696, 427, 15, '#F28CB1', 'center', 168);
+      for (let i = 2; i >= 0; i--) { ctx.save(); ctx.translate(i * 4, -i * 3 + (i ? 0 : bob)); U.cel(pmPath(650, 252, 76, 32, 9), i ? '#9a80f0' : '#B49CFF', '#6f55c4', 0, 5, 2.5); if (!i) U.glint(pmPath(650, 252, 76, 32, 9), 662, 259, 14, 3, 'rgba(255,255,255,.55)', -.1); ctx.restore(); }
+      txt(total, 688, 270 + bob, 21, INK);
+      current.players.filter(p => !p.left).forEach((p, i) => txt(t('{name}: {n} CARDS', { name: p.name, n: p.score }), 696, 462 + i * 30, 15, p.color, 'center', 164));
     } else {
-      txt(mine ? 'YOUR FRIENDS MOVE THE LIGHT' : 'MOVE THE LIGHT', 692, 310, 19, '#FFE14D', 'center', 166);
-      txt(mine ? 'PLAY INSIDE THE LIGHT' : 'MOUSE / TOUCH', 692, 344, 16, '#fff', 'center', 166);
-      txt(mine ? 'FOLLOW YOUR GAME CONTROLS' : 'OR ARROW KEYS', 692, 371, 16, '#fff', 'center', 166);
-      txt('KEEP THE ACTION LIT!', 692, 425, 15, '#FFE14D', 'center', 168);
-      txt('WIN TOGETHER', 692, 470, 18, '#7BD88F', 'center', 168);
+      txt(mine ? 'YOUR FRIENDS MOVE THE LIGHT' : 'MOVE THE LIGHT', 696, 310, 19, '#FFE14D', 'center', 166);
+      txt(mine ? 'PLAY INSIDE THE LIGHT' : 'MOUSE / TOUCH', 696, 344, 16, '#fff', 'center', 166);
+      txt(mine ? 'FOLLOW YOUR GAME CONTROLS' : 'OR ARROW KEYS', 696, 371, 16, '#fff', 'center', 166);
+      txt('KEEP THE ACTION LIT!', 696, 425, 15, '#FFE14D', 'center', 168);
+      txt('WIN TOGETHER', 696, 470, 18, '#7BD88F', 'center', 168);
     }
-    if (!mine && !canSab) txt(g.hint, 400, 580, 17, '#fff', 'center', 770);
-    if (canSab && !(balloon && !mine)) drawSabStrip();
-    if (!mine) drawSab();
+    if (!mine && !canSab) pmChip(400, 578, g.hint, 17, '#fff', 740);
+    if (canSab && !watcher) sabStrip(ch);
+    sabEnd(fxFull);
   };
   for (const type of ['move', 'down', 'up', 'key', 'keyup']) g[type] = data => {
-    if (mine) { if (canSab && type === 'key' && data.code === 'KeyQ' && !data.repeat) sab(); else invoke(type, data); }
+    if (mine) { if (canSab && type === 'key' && data.code === 'KeyQ' && !data.repeat) ch.send(); else invoke(type, data); }
     else if (R.mode === 'lantern') {
       if ((type === 'move' || type === 'down') && inside(data)) { const p = localPoint(data); lx = p.x; ly = p.y; }
       if (type === 'key' || type === 'keyup') held[data.code] = type === 'key';
-    } else if (R.mode === 'cards' && type === 'key' && !data.repeat && data.code === 'KeyE') sab();
-    else if (balloon && type === 'key' && !data.repeat) {
-      const c = data.code, d = c === 'ArrowLeft' || c === 'KeyA' ? 0 : c === 'ArrowUp' || c === 'KeyW' ? 1 : c === 'ArrowRight' || c === 'KeyD' ? 2 : -1;
+    } else if (cards && type === 'key' && !data.repeat) {   // a watcher: a trap may take the key, then E throws a sabotage and R changes the target
+      if (traps.key(data.code)) { /* a trap took the key */ }
+      else if (data.code === 'KeyE') ch.send();
+      else if (data.code === 'KeyR') ch.next();
+    } else if (balloon && type === 'key' && !data.repeat) {
+      const c = data.code;
       if (c === 'Space' || c === 'ArrowDown') tap();
-      else if (jam && d !== 1 && d >= 0) wiggle(d - 1);
-      else if (seq && d >= 0) seqPress(d);
-      else if (dial && (c === 'Enter' || d === 1)) dialStop();
-      else if (c === 'KeyE') sab();
-      else if (c === 'KeyR') sabIdx++;
-      else if (fly && (c === 'Enter' || c === 'KeyF')) swat();
-      else if (c === 'Enter') hitBubble();
+      else if (traps.key(c)) { /* a trap took the key */ }
+      else if (c === 'KeyE') ch.send();
+      else if (c === 'KeyR') ch.next();
     }
   };
   return g;
 }
 // Passive spectators watch rendered pixels; the game keeps its original input, state and DUO channel.
+// In SURVIVAL and KNOCKOUT the living also take the ghosts' sabotage, in VERSUS the soft sabotage of players who already finished, in TEAM their cheers: it covers the game (and so the frames the spectators see)
+// and a pill says who did it (js/party-ghost.js, js/party-wait.js).
 function partySpectatorGame(base, R, sp) {
   if (base.partyScene || base.partyDraw || typeof base.draw !== 'function') return base;
-  const draw = base.draw;
+  const draw = base.draw, haunted = partyGhostReceiver(R) || partyWaitReceiver(R);
   let capture = null, frameAt = -Infinity;
   base.draw = function (...args) {
-    const value = draw.apply(this, args);
+    const fx = haunted ? sabBegin(haunted.active(), ctx, 'view') : null;
+    let value; try { value = draw.apply(this, args); } finally { sabEnd(fx); }
+    if (haunted) { partyGhostBanner(haunted.active()); if (haunted.after) haunted.after(); }   // after(): a teammate's cheer (TEAM)
     if (typeof partySendFrame !== 'function' || now - frameAt < partyFrameGap() || capture && capture.partyEncoding) return value;
     frameAt = now;
     try {

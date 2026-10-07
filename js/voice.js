@@ -119,8 +119,13 @@ async function onVsig(d) {
 
 /* ───────────── UI bits (drawn inside the party screens) ───────────── */
 function voiceButton(x, y, w, h) {
-  const lbl = voice.busy ? '...' : !voice.on ? 'VOICE OFF' : voice.muted ? 'MIC MUTED' : 'MIC ON';
-  button(x, y, w, h, lbl, voiceToggle, { size: 18, fill: !voice.on ? '#fff' : voice.muted ? '#FFE14D' : '#5CFF7A' });
+  const lbl = voice.busy ? '...' : !voice.on ? 'VOICE OFF' : voice.muted ? 'MIC MUTED' : 'MIC ON', fill = !voice.on ? '#fff' : voice.muted ? '#FFE14D' : '#5CFF7A';
+  if (typeof pui === 'function' && typeof PARTY_UI !== 'undefined') {   // the party shell's plate (art only: same rectangle, same callback)
+    if (voice.on && !voice.muted && talking('me')) { ctx.save(); ctx.globalAlpha = .55 + .35 * Math.sin(now * 12); PARTY_UI.rr(x - 5, y - 5, w + 10, h + 10, 20); ctx.strokeStyle = '#fff'; ctx.lineWidth = 4; ctx.stroke(); ctx.restore(); }
+    pui().btn(x, y, w, h, lbl, voiceToggle, { size: 17, fill, depth: 5 });
+    return;
+  }
+  button(x, y, w, h, lbl, voiceToggle, { size: 18, fill });
   if (voice.on && !voice.muted && talking('me')) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.strokeRect(x - 4, y - 4, w + 8, h + 8); }
 }
 const VCOL = { ok: '#5CFF7A', wait: '#FFE14D', bad: '#FF4D4D' };

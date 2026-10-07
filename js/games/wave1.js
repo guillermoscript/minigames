@@ -439,7 +439,7 @@ const W1A = (() => {
      The boss look (g.boss) is the same hall at night: torch glow, purple drapes, a bigger king in a taller crown. */
   const TYFL = 420;                                // wall / floor line
   /* throne: x, seat y, scale. Low and to the left so the king (drawn in front of the scroll) never covers a letter, even CLAUDE / REFACTOR */
-  const kGeo = boss => boss ? { x: 82, y: 464, s: 1.04 } : { x: 88, y: 452, s: .9 };
+  const kGeo = boss => boss ? { x: 94, y: 464, s: 1.04 } : { x: 88, y: 452, s: .9 };
   const tyPal = boss => boss
     ? { w0: '#241a40', w1: '#4a3970', mort: '#17112b', bl: .06, f0: '#4f4276', f1: '#3a2f5c', tile: 'rgba(10,6,24,.22)', vel: '#7b3fb0', velS: '#55267f', robe: '#7b3fb0', robeS: '#55267f', skin: '#ffd6b0', skinS: '#efa982' }
     : { w0: '#dfb174', w1: '#f6dcae', mort: '#c08a50', bl: .14, f0: '#f3e3c3', f1: '#e2c495', tile: 'rgba(150,96,40,.16)', vel: '#d23b4b', velS: '#a52a3a', robe: '#e8434f', robeS: '#b8283a', skin: '#ffd6b0', skinS: '#efa982' };
@@ -1177,6 +1177,10 @@ const W1A = (() => {
       if (!res) pill(x, FY - 134, 'YOU', '#FFE14D');
       if (bomb) { stars(x, FY - 110, 34, T); const pk = outBack(rT / .22), k = clamp01(rT / .6); X.globalAlpha = 1 - k * .8; star(x, FY - 70, 110 * pk, 54 * pk, 12, T * .8, '#ff9a3a', 6); star(x, FY - 70, 74 * pk, 36 * pk, 12, -T * .6, '#FFE14D', 0); star(x, FY - 70, 40 * pk, 20 * pk, 10, T, '#fff', 0); X.globalAlpha = 1;
         for (let i = 0; i < 5; i++) { const q = (rT * .9 + i * .2) % 1; X.save(); X.globalAlpha = (1 - q) * .8; X.beginPath(); X.arc(x - 30 + i * 15 + q * 20, FY - 120 - q * 80, 12 + q * 16, 0, TAU); ink('#6b6580', 2.5); X.restore(); } }
+      if (bomb && rT < .7) { const q = clamp01(rT / .7), pk = outBack(Math.min(1, rT / .2)), bx = Math.max(-OX + 40, Math.min(W + OX - 40, hitX)), by = FY - 96; X.save(); X.globalAlpha = 1 - q * q;
+        star(bx, by, 80 * pk, 38 * pk, 10, q * 1.5, '#ff9a3a', 5); star(bx, by, 48 * pk, 22 * pk, 10, -q, '#FFE14D', 0);
+        for (let i = 0; i < 6; i++) { const an = i * 1.05 + 0.4, rr2 = 30 + q * 60; X.beginPath(); X.arc(bx + Math.cos(an) * rr2, by + Math.sin(an) * rr2 * .7 - q * 20, 9 + q * 12, 0, TAU); ink('#4a4452', 2.5); }
+        X.restore(); }
       if (sag) drop(x + 40, FY - 120, 1.2, 1);
       if (won) for (let i = 0; i < 5; i++) { const q = (rT * 1.1 + i * .2) % 1; X.save(); X.globalAlpha = 1 - q; heart(x + (i - 2) * 38, FY - 160 - q * 70, 1 - q * .3); X.restore(); }
     }
@@ -1245,6 +1249,7 @@ function gJump(sp) {
     key(e) { if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') g.jump(); },
     down() { g.jump(); },
     update(dt) {
+      if (g.result && rT0 < 0) rT0 = now;   // art clock
       if (g.result) return;
       scroll += spd * dt;
       vy += 2600 * dt; py += vy * dt; if (py >= 0) { if (vy > 300) { sfx.thud(); burst(150, GY, '#c9e8a0', 5, 120); land = .15; } py = 0; vy = 0; }

@@ -276,7 +276,7 @@ function onRoom(R, old) {
   const entered = !old || old.state !== R.state || old.round !== R.round;
   if (R.state === 'lobby') {
     if (!old || old.mode !== R.mode) { party.previewMode = null; party.guideTab = 0; }
-    if (partyTurnMode(R)) loadThree();
+    if (R.mode !== 'duo') loadThree();   // every mode but DUO can draw a 3D solo game
     party.played = -1; party.pending = null; party.ghost = null; party.cards = null; party.wait = null;
     if (state === 'play' && mode === 'party') mode = 'stage';
     party.view = 'lobby'; if (state !== 'party') { state = 'party'; st = 0; }

@@ -67,6 +67,7 @@ Object.assign(GAMES, TURN_CATALOG);
 const TURN_IDS = Object.keys(TURN_CATALOG);
 GAMES.pc_draw = { dur: 30, pts: false, menu: true };
 const GAME_IDS = ["pt_mash", "pt_sync", "pt_memo", "pt_grab"];
+const SOLO_IDS = TURN_IDS.slice();                                      // every non-DUO room mode except the turn ones draws from the whole solo catalog (2D and 3D; the lobby preloads three.js)
 const DUO_IDS = Object.keys(GAMES).filter((g) => GAMES[g].duo);
 const DUO_MAX = 4;                                                       // DUO/SQUAD rooms take 2 to 4 players; each game declares how many seats it uses
 const seatsOf = (g) => ({ min: GAMES[g].min || 2, max: GAMES[g].max || 2 });
@@ -204,7 +205,7 @@ function takeRoomGame(room, rand, ids) {
   return room.keys._roomGameBag.pop();
 }
 function beginRound(room, now, rand) {
-  const ids = room.mode === "duo" ? duoIdsFor(active(room).length) : GAME_IDS;
+  const ids = room.mode === "duo" ? duoIdsFor(active(room).length) : turnMode(room) ? GAME_IDS : SOLO_IDS;
   if (room.mode === "duo" && Array.isArray(room.keys._roomGameBag)) room.keys._roomGameBag = room.keys._roomGameBag.filter((g) => ids.includes(g));   // somebody left since the bag was shuffled
   room.game = room.mode === "cards" ? (room.extra.phase === "draw" ? "pc_draw" : room.extra.remaining[0]) : turnMode(room) ? takeTurnGame(room, rand) : takeRoomGame(room, rand, ids);
   room.seed = 1 + Math.floor(rand() * 2147483646);
@@ -568,4 +569,4 @@ function vsigPayload(room, id, to, k, d) {
 /* what clients may see (the record itself hides `keys`; this is for tests and logs) */
 const publicRoom = (room) => { const o = Object.assign({}, room); delete o.keys; return o; };
 
-module.exports = { fail, MAX_PLAYERS, ROUNDS, LIVES, AWARD, GAMES, GAME_IDS, DUO_IDS, duoIdsFor, seatsOf, takeRoomGame, TURN_IDS, takeTurnGame, MODES, roleOf, cleanMode, drawCard, stealCard, pump, turnMode, sigPayload, SAB_KINDS, GHOST_KINDS, SAB_MODES, GHOST_MODES, RACE_MODES, RACE_GAP_MS, RACE_HIT_GAP_MS, RACE_ROUND_MAX, CHEER_KINDS, CHEER_MODES, CHEER_GAP_MS, CHEER_ROUND_MAX, REACT_KINDS, REACT_MODES, GUESS_SIDES, PRE_MS_CARDS, GHOST_GAP_MS, GHOST_HIT_GAP_MS, GHOST_ROUND_MAX, SAB_GAP_MS, SAB_HIT_GAP_MS, REACT_BURST, REACT_REFILL_MS, PRE_MS, sabAllowed, SIG_MAX, SIG_FRAME_MAX, PRE_MS_TURN, vsigPayload, VSIG_MAX, PartyError, cleanName, cleanCode, makeCode, active, newRoom, addPlayer, auth, leave, setMode, start, again, report, tick, advance, roundMs, publicRoom };
+module.exports = { fail, MAX_PLAYERS, ROUNDS, LIVES, AWARD, GAMES, GAME_IDS, SOLO_IDS, DUO_IDS, duoIdsFor, seatsOf, takeRoomGame, TURN_IDS, takeTurnGame, MODES, roleOf, cleanMode, drawCard, stealCard, pump, turnMode, sigPayload, SAB_KINDS, GHOST_KINDS, SAB_MODES, GHOST_MODES, RACE_MODES, RACE_GAP_MS, RACE_HIT_GAP_MS, RACE_ROUND_MAX, CHEER_KINDS, CHEER_MODES, CHEER_GAP_MS, CHEER_ROUND_MAX, REACT_KINDS, REACT_MODES, GUESS_SIDES, PRE_MS_CARDS, GHOST_GAP_MS, GHOST_HIT_GAP_MS, GHOST_ROUND_MAX, SAB_GAP_MS, SAB_HIT_GAP_MS, REACT_BURST, REACT_REFILL_MS, PRE_MS, sabAllowed, SIG_MAX, SIG_FRAME_MAX, PRE_MS_TURN, vsigPayload, VSIG_MAX, PartyError, cleanName, cleanCode, makeCode, active, newRoom, addPlayer, auth, leave, setMode, start, again, report, tick, advance, roundMs, publicRoom };

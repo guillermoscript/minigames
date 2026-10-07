@@ -40,17 +40,19 @@ for (const mode of ['lantern', 'balloon']) {
   for (let i = 0; i < 3; i++) assert.equal(new Set(seen.slice(i * 156, (i + 1) * 156)).size, 156);
   assert.ok(!('keys' in P.publicRoom(room)));
 }
-for (const mode of ['versus', 'team', 'survival', 'knockout']) {
+for (const [mode, ids] of [['versus', P.GAME_IDS], ['team', P.GAME_IDS], ['survival', P.SOLO_IDS], ['knockout', P.SOLO_IDS]]) {
   const room = make(mode), seen = [room.game];
-  for (let i = 1; i < P.GAME_IDS.length * 3; i++) { room.game = P.takeRoomGame(room, rand, P.GAME_IDS); assert.notEqual(room.game, seen.at(-1)); seen.push(room.game); }
-  for (let i = 0; i < 3; i++) assert.equal(new Set(seen.slice(i * P.GAME_IDS.length, (i + 1) * P.GAME_IDS.length)).size, P.GAME_IDS.length);
+  for (let i = 1; i < ids.length * 3; i++) { room.game = P.takeRoomGame(room, rand, ids); assert.notEqual(room.game, seen.at(-1)); seen.push(room.game); }
+  for (let i = 0; i < 3; i++) assert.equal(new Set(seen.slice(i * ids.length, (i + 1) * ids.length)).size, ids.length);
 }
+assert.ok(P.SOLO_IDS.length > 100 && P.SOLO_IDS.every(id => !id.startsWith('td_')));
 for (let i = 0; i < 10; i++) {
   const room = make('cards'), games = room.keys._deck.filter(id => id !== 'play');
   assert.equal(room.keys._deck.length, 24); assert.equal(games.length, 16); assert.equal(new Set(games).size, 16);
   assert.ok(games.every(id => P.TURN_IDS.includes(id)));
 }
 assert.deepEqual(P.GAME_IDS, ['pt_mash', 'pt_sync', 'pt_memo', 'pt_grab']);
-for (const mode of ['versus', 'team', 'survival', 'knockout']) assert.ok(P.GAME_IDS.includes(make(mode).game));
+for (const mode of ['versus', 'team']) assert.ok(P.GAME_IDS.includes(make(mode).game));
+for (const mode of ['survival', 'knockout']) assert.ok(P.SOLO_IDS.includes(make(mode).game));
 assert.ok(P.DUO_IDS.includes(make('duo').game));
 console.log(`Catalog tests passed: 156 games, ${constructed} real 2D constructions, 3 complete shuffle cycles, unique card decks, original pools preserved.`);

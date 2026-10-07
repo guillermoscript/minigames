@@ -67,7 +67,7 @@ Object.assign(GAMES, TURN_CATALOG);
 const TURN_IDS = Object.keys(TURN_CATALOG);
 GAMES.pc_draw = { dur: 30, pts: false, menu: true };
 const GAME_IDS = ["pt_mash", "pt_sync", "pt_memo", "pt_grab"];
-const SOLO_IDS = TURN_IDS.filter((g) => !g.startsWith("td_"));          // SURVIVAL / KNOCKOUT: every solo 2D microgame (3D ones stay out: a phone that cannot load WebGL would cost everybody a life)
+const SOLO_IDS = TURN_IDS.filter((g) => !g.startsWith("td_"));          // SURVIVAL / KNOCKOUT / TEAM: every solo 2D microgame (3D ones stay out: a phone that cannot load WebGL would cost everybody a life)
 const DUO_IDS = Object.keys(GAMES).filter((g) => GAMES[g].duo);
 const DUO_MAX = 4;                                                       // DUO/SQUAD rooms take 2 to 4 players; each game declares how many seats it uses
 const seatsOf = (g) => ({ min: GAMES[g].min || 2, max: GAMES[g].max || 2 });
@@ -205,7 +205,7 @@ function takeRoomGame(room, rand, ids) {
   return room.keys._roomGameBag.pop();
 }
 function beginRound(room, now, rand) {
-  const ids = room.mode === "duo" ? duoIdsFor(active(room).length) : room.mode === "survival" || room.mode === "knockout" ? SOLO_IDS : GAME_IDS;
+  const ids = room.mode === "duo" ? duoIdsFor(active(room).length) : room.mode === "survival" || room.mode === "knockout" || room.mode === "team" ? SOLO_IDS : GAME_IDS;
   if (room.mode === "duo" && Array.isArray(room.keys._roomGameBag)) room.keys._roomGameBag = room.keys._roomGameBag.filter((g) => ids.includes(g));   // somebody left since the bag was shuffled
   room.game = room.mode === "cards" ? (room.extra.phase === "draw" ? "pc_draw" : room.extra.remaining[0]) : turnMode(room) ? takeTurnGame(room, rand) : takeRoomGame(room, rand, ids);
   room.seed = 1 + Math.floor(rand() * 2147483646);

@@ -1,6 +1,8 @@
 'use strict';
 /* DUO mode: the four two-role microgames (scope 'du') + the room strings that only DUO uses (shared scope). */
 I18N.add('es', {
+  'EVERYONE HAS A DIFFERENT JOB': 'CADA UNO TIENE UN TRABAJO DISTINTO',
+  'WORK TOGETHER - A FAILED ROUND COSTS A SHARED LIFE': 'TRABAJEN JUNTOS - SI FALLAN, PIERDEN UNA VIDA COMPARTIDA',
   'CATCH & THROW': 'ATRAPA Y LANZA',
   'CATCHER': 'ATRAPADOR',
   'THROWER': 'LANZADOR',

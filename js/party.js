@@ -770,7 +770,7 @@ function drawEnd(R) {
 
 /* DUO: who is who. The intro card (before the game starts) shows both players side by side with their role and one short line;
    during play a coloured badge + a frame in YOUR colour keep reminding you which one you are. */
-const DUO_A = 1.9, DUO_B = 1.7, DUO_C = .9, DUO_PRE = DUO_A + DUO_B + DUO_C, DUO_WAIT = 1.5;   // YOU (1.9 s) -> YOUR FRIEND (1.7 s) -> GO (.9 s); keep PRE_MS_DUO in pocketbase/pb_hooks/party.js in sync
+const DUO_T = 1.9, DUO_A = 2.4, DUO_B = 2.1, DUO_C = .9, DUO_PRE = DUO_T + DUO_A + DUO_B + DUO_C, DUO_WAIT = 1.5;   // THE TEAM (1.9 s) -> YOU (2.4 s) -> YOUR FRIEND (2.1 s) -> GO (.9 s); keep PRE_MS_DUO in pocketbase/pb_hooks/party.js in sync
 function duoMeColor() { const m = me(); return m ? m.color : '#FFE14D'; }
 function duoBadge(pn) {
   const c = duoMeColor(), K = pui(), U = K.U;
@@ -785,18 +785,18 @@ function duoBadge(pn) {
   const R = party.room, act = R.players.filter(p => !p.left), n = act.length;
   if (cur.roles) act.filter(p => p.id !== party.you.id).forEach((p, k) => { const role = cur.roles[(act.findIndex(q => q.id === p.id) + R.round) % n]; if (role) txt(t('{name}: {role}', { name: p.name.toUpperCase(), role: t(role.label) }), 14 - OX, 140 + k * 17, 15, p.color, 'left', 290); });
 }
-/* intro card, three beats: 1 what YOU do (animated demo + the control), 2 what your friend does, 3 get ready / GO */
+/* intro card, four beats: 1 the game and who does what (the whole team at a glance), 2 what YOU do (animated demo + the control), 3 what your friend does, 4 get ready / GO */
 function drawDuoIntro(left) {
   const R = party.room, m = me(), act = R.players.filter(p => !p.left), others = act.filter(p => p.id !== party.you.id); if (!m || !others.length || !cur.roles) return;
   const K = pui(), U = K.U;
   const n = act.length, roleOf = p => cur.roles[(act.findIndex(q => q.id === p.id) + R.round) % n], mine = cur.roles[cur.role];
-  const el = DUO_PRE - left, beat = el < DUO_A ? 0 : el < DUO_A + DUO_B ? 1 : 2, bt = beat === 0 ? el : beat === 1 ? el - DUO_A : el - DUO_A - DUO_B;
+  const el = DUO_PRE - left, beat = el < DUO_T ? 0 : el < DUO_T + DUO_A ? 1 : el < DUO_T + DUO_A + DUO_B ? 2 : 3, bt = el - [0, DUO_T, DUO_T + DUO_A, DUO_T + DUO_A + DUO_B][beat];
   const k = Math.min(1, bt / .22), pop = 1 + (1 - k) * .25, pulse = .5 + .5 * Math.sin(now * 9);
-  const steps = ['YOU', n > 2 ? 'YOUR TEAM' : 'YOUR FRIEND', 'GO!'], stepCol = [m.color, others[0].color, '#5CFF7A'];
+  const steps = ['THE TEAM', 'YOU', n > 2 ? 'YOUR TEAM' : 'YOUR FRIEND', 'GO!'], stepCol = ['#FFE14D', m.color, others[0].color, '#5CFF7A'];
   steps.forEach((sl, i) => {   // the three beats as plates: the current one is lit and bobs, the others sit dim
-    const x = 150 + i * 250, on = i === beat, lbl = String(i + 1) + ' · ' + t(sl);
+    const x = 106 + i * 196, on = i === beat, lbl = String(i + 1) + ' · ' + t(sl);
     ctx.save(); ctx.globalAlpha = on ? 1 : .45;
-    K.btn(x - 100, 14 - (on ? Math.abs(Math.sin(now * 5)) * 2 : 0), 200, 34, lbl, null, { fill: on ? stepCol[i] : '#3a3550', size: 20, depth: 4, lw: 188, col: on ? (K.lum(stepCol[i]) > .6 ? INK : '#fff') : '#fff' });
+    K.btn(x - 90, 14 - (on ? Math.abs(Math.sin(now * 5)) * 2 : 0), 180, 34, lbl, null, { fill: on ? stepCol[i] : '#3a3550', size: 18, depth: 4, lw: 168, col: on ? (K.lum(stepCol[i]) > .6 ? INK : '#fff') : '#fff' });
     ctx.restore();
   });
   const card = (p, r, x, y, w, h, tag) => {   // one player's role card: avatar, name, role, one line
@@ -806,8 +806,19 @@ function drawDuoIntro(left) {
     txt(tag ? t('YOU') : p.name.toUpperCase(), x + w / 2 + 38, y + 34, 22, p.color, 'center', w - 110);
     txt(r.label, x + w / 2 + 38, y + h / 2 + 4, w > 300 ? 34 : 26, '#FFE14D', 'center', w - 110); txt(r.short, x + w / 2 + 38, y + h - 26, 15, '#fff', 'center', w - 110);
   };
-  if (beat < 2 && (beat === 0 || n === 2)) {
-    const you = beat === 0, p = you ? m : others[0], r = you ? mine : roleOf(others[0]);
+  if (beat === 0) {   // the whole team at a glance: which game, and that every player has a different job
+    ctx.save(); ctx.translate(W / 2, 330); ctx.scale(pop, pop); ctx.translate(-W / 2, -330); ctx.globalAlpha = k;
+    const gm = REGMAP[R.game]; I18N.scope = I18N.scopeOf(R.game);
+    K.btn(40, 64, 720, 62, '', null, { fill: '#FFE14D', depth: 7 });
+    txt(gm ? t(gm.name) : '', W / 2, 100, 40, INK, 'center', 680); I18N.scope = '';
+    txt('EVERYONE HAS A DIFFERENT JOB', W / 2, 160, 30, '#fff', 'center', 740);
+    if (n === 2) [[m, mine, true, 40], [others[0], roleOf(others[0]), false, 420]].forEach(([p, r, tag, x]) => card(p, r, x, 196, 340, 190, tag));
+    else act.forEach((p, j) => card(p, p === m ? mine : roleOf(p), 60 + (j % 2) * 340, 190 + Math.floor(j / 2) * 140, 320, 130, p === m));
+    K.btn(80, 506, 640, 52, '', null, { fill: '#fff', depth: 6 });
+    txt('WORK TOGETHER - A FAILED ROUND COSTS A SHARED LIFE', W / 2, 533, 22, INK, 'center', 610);
+    ctx.restore();
+  } else if (beat < 3 && (beat === 1 || n === 2)) {
+    const you = beat === 1, p = you ? m : others[0], r = you ? mine : roleOf(others[0]);
     ctx.save(); ctx.translate(W / 2, 330); ctx.scale(pop, pop); ctx.translate(-W / 2, -330); ctx.globalAlpha = k;
     K.btn(40, 64, 650, 62, '', null, { fill: p.color, depth: 7 });
     txt(you ? 'YOU DO THIS' : t('{name} DOES THIS', { name: p.name.toUpperCase() }), 365, 100, 44, INK, 'center', 620);
@@ -820,7 +831,7 @@ function drawDuoIntro(left) {
     txt(r.how, W / 2, 522, 30, INK, 'center', 460);
     txt(you ? (n > 2 ? 'YOUR TEAM DOES THE OTHER PARTS ON THEIR OWN SCREENS' : 'YOUR FRIEND DOES THE OTHER PART ON THEIR OWN SCREEN') : 'YOU WATCH - THEY DO THIS ON THEIR SCREEN', W / 2, 584, 17, '#c9c6e0', 'center', 740);
     ctx.restore();
-  } else if (beat === 1) {   // SQUAD: the whole team at once, one card per teammate
+  } else if (beat === 2) {   // SQUAD: the whole team at once, one card per teammate
     ctx.save(); ctx.translate(W / 2, 330); ctx.scale(pop, pop); ctx.translate(-W / 2, -330); ctx.globalAlpha = k;
     txt('THE TEAM', W / 2, 108, 52, '#fff'); others.forEach((p, j) => card(p, roleOf(p), 60 + (j % 2) * 340, 140 + Math.floor(j / 2) * 200, 320, 180, false));
     txt('EACH DOES THEIR PART ON THEIR OWN SCREEN', W / 2, 584, 17, '#c9c6e0', 'center', 740); ctx.restore();

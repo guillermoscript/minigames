@@ -27,7 +27,7 @@ I18N.add('es', {
   'PUMPING!': '¡INFLANDO!',
   'IDLE': 'EN PAUSA',
   '{name} (YOU)': '{name} (TÚ)',
-  'PUMP!': '¡INFLA!',
+  'PUMP!': '¡BOMBEA!',
   'SPACE / TAP': 'ESPACIO / TOCA',
   'STUCK!': '¡ATASCADA!',
   'VALVE JAMMED!': '¡VÁLVULA ATASCADA!',

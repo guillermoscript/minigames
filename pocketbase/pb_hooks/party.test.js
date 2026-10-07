@@ -16,7 +16,7 @@ P.addPlayer(r, { name: "C" }, rand); P.addPlayer(r, { name: "D" }, rand); throws
 
 // --- versus: ranking by time, then by points ---
 P.start(r, "a", 1000, rand);
-assert.equal(r.state, "round"); assert.equal(r.total, 6); assert.ok(P.GAME_IDS.includes(r.game)); throwsStatus(() => P.addPlayer(r, { name: "late" }, rand), 409);
+assert.equal(r.state, "round"); assert.equal(r.total, 6); assert.ok(P.SOLO_IDS.includes(r.game)); throwsStatus(() => P.addPlayer(r, { name: "late" }, rand), 409);
 const g1 = r.game; const dur = P.GAMES[g1].dur;
 P.report(r, "a", 0, "win", 2.0, 5, 2000); P.report(r, "b", 0, "lose", 1.0, 0, 2000); P.report(r, "c", 0, "win", 1.5, 9, 2000);
 P.report(r, "a", 0, "lose", 1, 0, 2000);                       // duplicate ignored

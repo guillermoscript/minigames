@@ -87,7 +87,7 @@ function challengeLine() {
 /* ───────────── state ───────────── */
 let state = 'title', st = 0, mode = 'stage';
 const PRE = 1.4; let pre = 0, preMax = PRE;   // read-time: game frozen while the instruction is shown
-let stageIdx = 0, stage = STAGES[0], lives = 4, played = 0, score = 0, lastOut = null, stars = 0;
+let retryId = null, stageIdx = 0, stage = STAGES[0], lives = 4, played = 0, score = 0, lastOut = null, stars = 0;
 let cur = null, curId = '', tt = 0, dur = 5, outcome = null, outT = 0, tickN = 0, recent = [], isBoss = false;
 let practiceId = 'swat', practiceSp = 1, menuPage = 0, practicePage = 0;
 const PER_MENU = 6, PER_PRACTICE = 30;
@@ -272,7 +272,7 @@ function startStage(i) {
   runRank = null; attempts[i] = (attempts[i] || 0) + 1;
   track('stage_start', { stage: i + 1, stage_name: STAGES[i].name, attempt: attempts[i], unlocked: save.unlocked });
   if (poolOf(STAGES[i]).some(is3D)) loadThree();
-  mode = 'stage'; stageIdx = i; stage = STAGES[i]; lives = 4; played = 0; score = 0; lastOut = null; recent = [];
+  mode = 'stage'; stageIdx = i; stage = STAGES[i]; lives = 4; played = 0; score = 0; lastOut = null; recent = []; retryId = null;
   state = 'stagein'; st = 0; shownScore = 0; lifeT = 99; jingleGo();
 }
 function startPractice(id) { if (is3D(id)) loadThree(); track('practice_start', { game: id }); mode = 'practice'; practiceId = id; lastOut = null; stage = STAGES[0]; state = 'inter'; st = 0; }
@@ -289,9 +289,9 @@ function beginGame() {
     s = stage.sp0 + Math.floor(stage.n / 2) * .1; cur = BOSSES[stage.boss](s, stage); curId = 'boss:' + stage.boss; isBoss = true; dur = cur.dur;
   } else {
     const pool = poolOf(stage), available = pool.filter(id => !recent.includes(id));
-    const id = available[Math.random() * available.length | 0];
+    const id = retryId && pool.includes(retryId) ? retryId : available[Math.random() * available.length | 0];
     if (is3D(id) && typeof THREE === 'undefined') { loadThree().then(() => { if (state === 'inter') beginGame(); }); st = -99; return; }
-    recent.push(id); if (recent.length > Math.min(6, pool.length - 2)) recent.shift();
+    if (!recent.includes(id)) recent.push(id); if (recent.length > Math.min(6, pool.length - 2)) recent.shift();
     s = speed(); cur = REGMAP[id].fn(s); curId = id; isBoss = false; dur = cur.dur / Math.sqrt(s); I18N.scope = I18N.scopeOf(curId);
   }
   tt = 0; outcome = null; outT = 0; tickN = 0; preMax = mode === 'party' ? party.room.mode === 'duo' ? DUO_PRE : partyTurnMode(party.room) ? balloonPre(party.room) : PRE : PRE; pre = preMax; state = 'play';
@@ -352,7 +352,7 @@ function update(dt) {
       if (mode === 'party') partyLocalDone(outcome);
       else if (mode === 'practice') { state = 'inter'; st = 0; }
       else if (isBoss) { if (outcome === 'win') clearStage(); else if (lives <= 0) toOver(); else toInter(); }
-      else { played++; if (lives <= 0) toOver(); else toInter(); }
+      else { if (outcome === 'win') { played++; retryId = null; } else retryId = curId; if (lives <= 0) toOver(); else toInter(); }   // lose = same microgame again, only a win advances
     }
   } else if (state === 'clear' && Math.random() < dt * 6) confetti(Math.random() * W, 100, 12);
 }

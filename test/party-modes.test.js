@@ -46,7 +46,7 @@ P.pump(balloon, 'b', 0, 999, balloon.roundAt + P.PRE_MS_TURN + 1000); assert.equ
 P.pump(balloon, 'b', 0, 999, balloon.roundAt + P.PRE_MS_TURN + 1000); assert.equal(balloon.extra.balloon, 4);
 verdict(balloon, true); next(balloon); assert.equal(balloon.extra.actor, 'b');
 verdict(balloon, false); next(balloon); assert.equal(balloon.extra.actor, 'b');
-balloon.keys._balloonLimit = balloon.extra.balloon + 1;
+balloon.keys._balloonLimit = .5; // the leak drains the balloon before the pump lands; a tiny limit still pops on that pump
 P.pump(balloon, 'a', balloon.round, 2, balloon.roundAt + P.PRE_MS_TURN + 1000);
 assert.equal(balloon.extra.loser, 'b'); assert.equal(balloon.last.final, true);
 rejects(() => P.pump(balloon, 'c', balloon.round, 1, balloon.roundAt + P.PRE_MS_TURN + 1100), 409);

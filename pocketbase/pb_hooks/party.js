@@ -10,6 +10,9 @@ const LIVES = 4;
 const PRE_MS = 1400, PRE_MS_DUO = 4500;            // instruction card shown before each microgame (keep in sync with PRE in js/main.js)
 const PRE_MS_TURN = 4000; // role instructions for Lanterns, Cards and Balloon (TURN_PRE in js/party.js)
 const GRACE_MS = 8000;          // a silent player is counted as a loss this long after the round should have ended
+const PRE_MS_BALLOON = 1400, BETWEEN_MS_BALLOON = 700, BETWEEN_MS_BALLOON_FINAL = 2500;   // BALLOON is meant to be frantic: almost no waiting (keep in sync with balloonPre/balloonBetween in js/party.js)
+const preTurn = (room) => room.mode === "balloon" ? PRE_MS_BALLOON : PRE_MS_TURN;
+const betweenMs = (room) => room.mode === "balloon" ? (room.last && room.last.final ? BETWEEN_MS_BALLOON_FINAL : BETWEEN_MS_BALLOON) : BETWEEN_MS;
 const BETWEEN_MS = 4000;        // results screen minimum time before the next round may start
 const AWARD = [100, 70, 50, 30];
 const COLORS = ["#D97757", "#6EA8FE", "#7BD88F", "#F28CB1", "#B49CFF", "#FFD23F", "#FF6B4D", "#4DD0E1"];
@@ -163,7 +166,7 @@ function start(room, id, now, rand) {
   if (turnMode(room)) {
     room.extra.actor = active(room)[0].id;
     if (room.mode === "lantern") room.lives = 3;
-    if (room.mode === "balloon") { room.extra.balloon = 0; room.extra.pumps = {}; room.keys._balloonLimit = 100 + Math.floor(rand() * 81); }
+    if (room.mode === "balloon") { room.extra.balloon = 0; room.extra.pumps = {}; room.extra.contrib = {}; room.extra.at = 0; room.keys._balloonLimit = 100 + Math.floor(rand() * 81); balloonShow(room); }
     if (room.mode === "cards") {
       // Four packs, each with four challenges and two PLAY cards; shuffle all but the last PLAY.
       const deck = [];
@@ -208,9 +211,10 @@ function beginRound(room, now, rand) {
   room.state = "round"; room.roundAt = now; room.cur = {};
   if (room.mode === "duo") room.extra.seats = active(room).length;
   if (room.mode === "cards") room.extra.stealing = {};
+  if (room.mode === "balloon") { room.extra.turn = {}; room.extra.start = room.extra.danger || 0; room.extra.penalty = 0; }
 }
 
-const roundMs = (room) => Math.round(GAMES[room.game].dur / Math.sqrt(room.sp) * 1000) + (room.mode === "duo" ? PRE_MS_DUO : turnMode(room) ? PRE_MS_TURN : PRE_MS);
+const roundMs = (room) => Math.round(GAMES[room.game].dur / Math.sqrt(room.sp) * 1000) + (room.mode === "duo" ? PRE_MS_DUO : turnMode(room) ? preTurn(room) : PRE_MS);
 
 function report(room, id, round, r, t, pts, now) {
   if (room.state !== "round" || round !== room.round) fail("Round is over", 409);
@@ -276,7 +280,9 @@ function finishTurn(room, now) {
     e.next = nextActor(room, id);
   } else if (room.mode === "balloon") {
     if (win && !e.loser) res.award = 100;
-    if (!win && !e.loser) e.balloon += 8;
+    balloonSettle(room, now);
+    if (!win && !e.loser) { e.balloon += 8; e.penalty = 8; }
+    balloonShow(room);
     if (e.balloon >= room.keys._balloonLimit) e.loser = id;
     final = final || !!e.loser || room.round + 1 >= room.total;
     e.next = win ? nextActor(room, id) : id;
@@ -321,7 +327,7 @@ function stealCard(room, id, round, target, now) {
   if (!victim || victim.left || victim.score <= 0) fail("No cards to steal", 409);
   if (e.stolen[id] === round) return;
   if (!Number.isFinite(now)) fail("Invalid action time", 400);
-  if (now < room.roundAt + PRE_MS_TURN) return;
+  if (now < room.roundAt + preTurn(room)) return;
   const attempts = e.stealing || (e.stealing = {}), attempt = attempts[id];
   if (!attempt || attempt.round !== round || attempt.target !== target) {
     attempts[id] = { round, target, readyAt: now + 1200 }; return;
@@ -329,16 +335,33 @@ function stealCard(room, id, round, target, now) {
   if (now < attempt.readyAt) return;
   e.stolen[id] = round; delete attempts[id]; victim.score--; player(room, id).score++;
 }
+/* The balloon slowly leaks while nobody pumps: a tiny loss per second, only counted while a round is live.
+   `at` is the server time the balloon was last settled; clients extrapolate with `leak` (danger per second). */
+const LEAK_PER_S = 0.9;
+function balloonSettle(room, now) {
+  const e = room.extra, from = Math.max(e.at || 0, room.roundAt + preTurn(room));
+  if (now > from) { e.balloon = Math.max(0, e.balloon - LEAK_PER_S * (now - from) / 1000); e.at = now; }
+  else e.at = from;
+  balloonShow(room);
+}
+function balloonShow(room) {
+  const e = room.extra, limit = room.keys._balloonLimit || 140;
+  e.danger = Math.round(Math.min(1, e.balloon / limit) * 1000) / 1000;
+  e.leak = Math.round(LEAK_PER_S / limit * 10000) / 10000;
+}
 function pump(room, id, round, count, now) {
   checkTurnAction(room, id, round, "balloon");
   const e = room.extra;
   if (id === e.actor) fail("Only the other players can pump", 403);
-  if (now < room.roundAt + PRE_MS_TURN) return;
-  const prev = e.pumps[id] === undefined ? room.roundAt + PRE_MS_TURN : e.pumps[id];
-  const allowance = Math.min(8, Math.floor((now - prev) / 100));
+  if (now < room.roundAt + preTurn(room)) return;
+  const prev = e.pumps[id] === undefined ? room.roundAt + preTurn(room) : e.pumps[id];
+  const allowance = Math.min(8, Math.floor((now - prev) / 45));
   const accepted = Math.min(allowance, Math.max(0, Math.min(8, Math.floor(Number(count) || 0))));
   if (accepted <= 0) return;
-  e.pumps[id] = now; e.balloon += accepted / Math.max(1, active(room).length - 1);
+  e.pumps[id] = now; balloonSettle(room, now);
+  e.balloon += accepted / Math.max(1, active(room).length - 1);
+  e.contrib = e.contrib || {}; e.contrib[id] = (e.contrib[id] || 0) + accepted; e.turn = e.turn || {}; e.turn[id] = (e.turn[id] || 0) + accepted; e.lastPump = { id, n: accepted, at: now };
+  balloonShow(room);
   if (e.balloon >= room.keys._balloonLimit) {
     e.loser = e.actor; room.cur[e.actor] = { r: "lose", t: 0, pts: 0 }; finishTurn(room, now);
   }
@@ -349,7 +372,7 @@ function endGame(room) { room.state = "done"; }
 /* any player may call this once the results have been up for a moment; it is idempotent per round */
 function advance(room, round, now, rand) {
   if (room.state !== "between" || round !== room.round) return false;
-  if (now - room.betweenAt < BETWEEN_MS - 300) fail("Too soon", 409);
+  if (now - room.betweenAt < betweenMs(room) - 300) fail("Too soon", 409);
   if (room.last && room.last.final) { endGame(room); return true; }
   room.round++;
   if (turnMode(room) && room.extra.next) { room.extra.actor = room.extra.next; delete room.extra.next; }
@@ -388,6 +411,11 @@ function sigPayload(room, id, round, m) {
       if (turnMode(room) && id !== room.extra.actor) fail("Not your turn", 403);
       if (!x.d || typeof x.d.image !== "string" || x.d.image.length > 60000 || !/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(x.d.image)) fail("Bad frame", 400);
       hasFrame = true;
+      continue;
+    }
+    /* sabotage: any player of a competitive turn mode may cover someone's screen with a harmless overlay */
+    if (x.t === "sab" && (room.mode === "balloon" || room.mode === "cards")) {
+      if (!x.d || ["ink", "fog", "dark", "bugs"].indexOf(x.d.k) < 0 || typeof x.d.to !== "string" || x.d.to.length > 24 || !player(room, x.d.to)) fail("Bad sabotage", 400);
       continue;
     }
     if (room.mode === "duo") continue; // Preserve the DUO games' existing custom relay inputs.

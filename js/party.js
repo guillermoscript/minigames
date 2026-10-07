@@ -9,6 +9,8 @@ const PSESSION = 'claudeware-party-v1', GUEST_KEY = 'claudeware-guest';
 const PINVITE = (() => {                                   // ?r=ABCD (from /r/ABCD): offer to join on the title screen
   try { const c = (new URLSearchParams(location.search).get('r') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4); return c.length === 4 ? c : null; } catch (e) { return null; }
 })();
+const balloonBetween = R => R && R.mode === 'balloon' ? (R.last && R.last.final ? 2.8 : .9) : 4.2;   // keep in sync with BETWEEN_MS_BALLOON in the server
+const balloonPre = R => R && R.mode === 'balloon' ? 1.4 : 4;
 const NEXT_ROUND_S = 4.2;                                  // results stay up this long before anyone asks for the next round
 
 const party = {
@@ -330,7 +332,7 @@ function partyUpdate(dt) {
   if (!partyTurnMode(R) && R.state === 'round' && !party.pending && now - party.lastTick > 2.5) {          // lets the server close a round a silent player never finished
     party.lastTick = now; pcall('tick', { code: R.code }).then(r => { if (r.ok) applyRoom(r.data.room); });
   }
-  if (R.state === 'between' && now - party.seenAt > NEXT_ROUND_S && now - party.lastAdv > 1.5) {
+  if (R.state === 'between' && now - party.seenAt > balloonBetween(R) && now - party.lastAdv > 1.5) {
     party.lastAdv = now; pcall('advance', Object.assign(auth(), { round: R.round })).then(r => { if (r.ok) applyRoom(r.data.room); });
   }
   if (party.view === 'end' && Math.random() < dt * 3 && st < 6) confetti(Math.random() * W, 80, 10);
@@ -372,9 +374,9 @@ const PARTY_HELP = {
   knockout: ['ONE MISTAKE AND OUT', 'EVERYONE: PLAY THE SAME MICROGAME', 'FAIL: YOUR ONLY LIFE IS GONE', 'WIN: BE THE LAST PLAYER STANDING', 'ELIMINATED PLAYERS WATCH UNTIL THE END'],
   lantern: ['LIGHT THE WAY TOGETHER', 'PLAYER: BEAT THE MICROGAME IN THE DARK', 'FRIENDS: MOVE THEIR LIGHTS TO HELP THEM SEE', 'GOAL: CLEAR 12 ROUNDS WITH 3 SHARED LIVES', 'LIGHT: MOUSE / DRAG / ARROW KEYS'],
   cards: ['BUILD A PILE, TAKE THE RISK', 'TURN: DRAW A CARD; PLAY MEANS BEAT THE PILE', 'FRIENDS: WATCH AND TAP A RIVAL TO STEAL', 'WIN: MOST CARDS WHEN THE DECK RUNS OUT', 'FAIL THE PILE: YOUR CARDS GO TO THE POT'],
-  balloon: ['PASS THE TURN BEFORE IT POPS', 'PLAYER: WIN THE MICROGAME TO PASS THE TURN', 'FRIENDS: TAP / SPACE TO INFLATE THE BALLOON', 'LOSE: THE BALLOON POPS ON YOUR TURN', 'EVERYONE WATCHES THE PLAYER AND BALLOON']
+  balloon: ['PASS THE TURN BEFORE IT POPS', 'PLAYER: WIN THE MICROGAME TO PASS THE TURN', 'FRIENDS: PUMP · FIX JAMS · GRAB GOLD BUBBLES', 'LOSE: THE BALLOON POPS ON YOUR TURN', 'EVERYONE WATCHES THE PLAYER AND BALLOON']
 };
-const TURN_PRE = 4;
+const TURN_PRE = 4;   // see balloonPre()
 function drawPartyModeIntro(left) {
   const R = party.room, actor = partyActor(R); if (!actor) return;
   const mine = actor.id === party.you.id, help = PARTY_HELP[R.mode], color = mine ? actor.color : '#FFE14D';
@@ -382,6 +384,9 @@ function drawPartyModeIntro(left) {
   box3(40, 74, 720, 68, color, 4, 5);
   txt(mine ? 'YOUR TURN TO PLAY!' : t('{name} IS PLAYING', { name: actor.name.toUpperCase() }), W / 2, 112, 36, INK, 'center', 680);
   claude(W / 2, 235, 5, { col: actor.color, mood: 'happy' });
+  if (R.mode === 'balloon') {
+    partyBalloonDraw(690, 190, 30, partyBalloonShown(R), {});
+  }
   txt(mine ? cur.cmd : R.mode === 'lantern' ? 'YOU MOVE THE LIGHT!' : R.mode === 'balloon' ? 'YOU PUMP THE BALLOON!' : R.extra.phase === 'draw' ? 'WATCH THE NEXT CARD!' : 'YOU CAN STEAL CARDS!', W / 2, 294, 42, '#fff', 'center', 730);
   box3(40, 328, 720, 136, '#35406a', 4, 5);
   txt(mine ? cur.hint : R.mode === 'lantern' ? help[4] : R.mode === 'balloon' ? help[2] : R.extra.phase === 'draw' ? 'THE PLAYER CHOOSES ONE OF THE FACE-DOWN CARDS' : 'TAP A RIVAL TO STEAL ONE CARD PER MICROGAME', W / 2, 362, 24, '#FFE14D', 'center', 680);
@@ -503,6 +508,12 @@ function drawBetween(R) {
   txt(partyTurnMode(R) ? partyTurnLabel(R) : t('ROUND {n} / {total}', { n: L.round + 1, total: R.total }), W / 2, 36, 30, '#FFE14D');
   const g = REGMAP[L.game]; I18N.scope = I18N.scopeOf(L.game); txt(g ? g.name : '', W / 2, 78, 22, '#fff'); I18N.scope = '';
   let y0 = 118;
+  if (R.mode === 'balloon') {
+    drawBalloonBetween(R, L);
+    if (L.final) txt(t('FINAL RESULTS IN {n}', { n: Math.max(0, Math.ceil(balloonBetween(R) - (now - party.seenAt))) }), W / 2, 566, 24, '#fff');
+    button(14, 10, 130, 44, 'LEAVE', () => partyLeave(), { size: 18, fill: 'rgba(255,255,255,.85)' });
+    return;
+  }
   if (partyTeam(R)) {
     txt(L.teamWin ? 'TEAM WIN!' : 'TEAM FAILED!', W / 2, 118, 54, L.teamWin ? '#5CFF7A' : '#FF4D4D');
     for (let i = 0; i < 4; i++) claude(W / 2 - 108 + i * 72, 190, 2.6, i < R.lives ? { col: OR } : { col: '#4a4558', mood: 'sad' });
@@ -526,7 +537,7 @@ function drawBetween(R) {
     if (R.mode === 'versus') { txt(x.award ? '+' + x.award : '', 618, y + (rh - 10) / 2, 26, '#FFE14D', 'center', 70); txt(String(p.score), 706, y + (rh - 10) / 2, 26, '#fff', 'right', 60); }
     ctx.restore();
   });
-  const left = Math.max(0, Math.ceil(NEXT_ROUND_S - (now - party.seenAt)));
+  const left = Math.max(0, Math.ceil(balloonBetween(R) - (now - party.seenAt)));
   txt(L.final ? t('FINAL RESULTS IN {n}', { n: left }) : t('NEXT ROUND IN {n}', { n: left }), W / 2, 566, 24, '#fff');
   button(14, 10, 130, 44, 'LEAVE', () => partyLeave(), { size: 18, fill: 'rgba(255,255,255,.85)' });
 }

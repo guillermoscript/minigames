@@ -35,7 +35,7 @@ I18N.add('es', {
   'FAIL THE PILE: YOUR CARDS GO TO THE POT': 'SI FALLAS: TUS CARTAS SE SUMAN AL PREMIO',
   'PASS THE TURN BEFORE IT POPS': 'PASA EL TURNO ANTES DE QUE EXPLOTE',
   'PLAYER: WIN THE MICROGAME TO PASS THE TURN': 'JUGADOR: GANA EL MINIJUEGO PARA PASAR EL TURNO',
-  'FRIENDS: TAP / SPACE TO INFLATE THE BALLOON': 'AMIGOS: TOQUEN / ESPACIO PARA INFLAR EL GLOBO',
+  'FRIENDS: PUMP · FIX JAMS · GRAB GOLD BUBBLES': 'AMIGOS: INFLEN · DESATASQUEN · ATRAPEN BURBUJAS DORADAS',
   'LOSE: THE BALLOON POPS ON YOUR TURN': 'PIERDES: EL GLOBO EXPLOTA EN TU TURNO',
   'EVERYONE WATCHES THE PLAYER AND BALLOON': 'TODOS VEN AL JUGADOR Y EL GLOBO',
   'YOUR TURN TO PLAY!': '¡TE TOCA JUGAR!',
@@ -159,9 +159,9 @@ I18N.add('es', {
   "Make it pop on another player’s turn.": "Que explote en el turno de otro.",
   "The balloon pops during your turn.": "El globo explota durante tu turno.",
   "When playing, beat the minigame to pass the turn before the balloon pops.": "Cuando juegues, gana el minijuego para pasar el turno antes de la explosión.",
-  "Tap the pump or press Space repeatedly. You can watch the game as you inflate.": "Toca la bomba o pulsa Espacio varias veces. Puedes ver el juego mientras inflas.",
+  "Tap the pump or press Space repeatedly. Free a jammed valve with A / D and grab gold bubbles for TURBO.": "Toca la bomba o pulsa Espacio varias veces. Destraba la válvula con A / D y atrapa burbujas doradas para el TURBO.",
   "A simple party mode: one plays, everyone else pumps.": "Un modo sencillo: uno juega y los demás inflan.",
-  "The balloon keeps growing between turns.": "El globo sigue creciendo entre turnos.",
+  "The balloon keeps its air between turns and leaks only a tiny bit when nobody pumps.": "El globo conserva su aire entre turnos y solo pierde un poquito cuando nadie infla.",
   "A failure adds air too, so winning quickly matters.": "Fallar también añade aire: conviene ganar rápido."
 });
 

@@ -11,7 +11,8 @@ const PRE_MS = 1400, PRE_MS_DUO = 4500;            // instruction card shown bef
 const PRE_MS_TURN = 4000; // role instructions for Lanterns, Cards and Balloon (TURN_PRE in js/party.js)
 const GRACE_MS = 8000;          // a silent player is counted as a loss this long after the round should have ended
 const PRE_MS_BALLOON = 1400, BETWEEN_MS_BALLOON = 700, BETWEEN_MS_BALLOON_FINAL = 2500;   // BALLOON is meant to be frantic: almost no waiting (keep in sync with balloonPre/balloonBetween in js/party.js)
-const preTurn = (room) => room.mode === "balloon" ? PRE_MS_BALLOON : PRE_MS_TURN;
+const PRE_MS_CARDS = 2200;   // CARDS is meant to flow: the pile card is read in 2.2 s and a deck pick has no instruction card at all (keep in sync with balloonPre in js/party.js)
+const preTurn = (room) => room.mode === "balloon" ? PRE_MS_BALLOON : room.mode === "cards" ? (room.extra.phase === "draw" ? 0 : PRE_MS_CARDS) : PRE_MS_TURN;
 const betweenMs = (room) => room.mode === "balloon" ? (room.last && room.last.final ? BETWEEN_MS_BALLOON_FINAL : BETWEEN_MS_BALLOON) : BETWEEN_MS;
 const BETWEEN_MS = 4000;        // results screen minimum time before the next round may start
 const AWARD = [100, 70, 50, 30];
@@ -311,7 +312,7 @@ function drawCard(room, id, round, side, now, rand) {
   if (side !== "left" && side !== "right") fail("Choose a deck", 400);
   const deck = room.keys._deck, card = side === "left" ? deck.shift() : deck.pop();
   // The final card always resolves the stock, even when PLAY was drawn from the other end earlier.
-  e.deck = deck.length; e.card = card;
+  e.deck = deck.length; e.card = card; e.side = side;   // `side` lets the watchers' guesses be settled when the next round starts
   if (card !== "play") e.pile.push(card);
   if ((card === "play" || !e.deck) && e.pile.length) { e.phase = "challenge"; e.remaining = e.pile.slice(); }
   else {
@@ -392,12 +393,105 @@ function again(room, id) {
 }
 
 const SIG_MAX = 512, SIG_FRAME_MAX = 65536, SIG_COUNT = 10;
+/* Sabotage relay ('sab' messages: someone covers a rival's screen with a harmless overlay). Only competitive modes opt in: co-op modes (team, lantern, duo, squad)
+   never do, so nobody can be sabotaged by a teammate. To give another mode sabotage add it to SAB_MODES and teach the client to build a channel for it.
+   SURVIVAL and KNOCKOUT (GHOST_MODES) are different: the living never sabotage each other, but an ELIMINATED player (a ghost) may haunt the living, with softer
+   kinds (GHOST_KINDS), only while a round is live and under the rate limits below.
+   VERSUS (RACE_MODES) is the third case: a player who has FINISHED (won or failed) their microgame waits for the others and may throw the same soft kinds at the players
+   who are still playing (never at one who already finished, so nobody can be sabotaged after their result is in).
+   TEAM (CHEER_MODES) is co-op and never has sabotage: the waiting finisher may only send a 'cheer' (below), a harmless sparkle for the teammates still playing.
+   SAB_KINDS, GHOST_KINDS, SAB_MODES, GHOST_MODES and RACE_MODES are mirrored by SAB_IDS, the `ghost` flags, SAB_MODES, SAB_GHOST_MODES and SAB_RACE_MODES in js/party-sab.js; test/party-sab.test.js fails if they drift apart. */
+const SAB_KINDS = ["ink", "fog", "dark", "bugs", "shake", "flip", "pixel", "spam"];
+const GHOST_KINDS = ["ink", "bugs", "shake", "pixel", "spam"];
+const SAB_MODES = ["balloon", "cards"];
+const GHOST_MODES = ["survival", "knockout"];
+const RACE_MODES = ["versus"];
+const GHOST_GAP_MS = 3000, GHOST_HIT_GAP_MS = 2000, GHOST_ROUND_MAX = 2;   // per ghost, per victim and per ghost per round (the client's cooldown is a little longer, so honest play never trips these)
+const RACE_GAP_MS = 2000, RACE_HIT_GAP_MS = 1500, RACE_ROUND_MAX = 2;      // the same for a finished VERSUS player: rounds last 5 to 8 s, so the limits are tighter in time and equal in count
+const CHEER_KINDS = ["sparkle", "rainbow", "hearts", "party"], CHEER_MODES = ["team"];   // mirrored by CHEER_IDS / WAIT_CHEER_MODES in js/party-wait.js (test/party-wait.test.js checks both)
+const CHEER_GAP_MS = 1200, CHEER_ROUND_MAX = 4;
+const isGhost = (room, p) => GHOST_MODES.indexOf(room.mode) >= 0 && !!p && !p.left && p.lives <= 0;
+/* may `from` throw a sabotage at `to` right now? both must be present in this room and it cannot be yourself; in GHOST_MODES only a ghost may, and only at a living player who is still playing this round;
+   in RACE_MODES only a player who already finished, and only at one who has not */
+function sabAllowed(room, from, to) {
+  if (typeof to !== "string" || to.length > 24 || from === to) return false;
+  const a = player(room, from), b = player(room, to);
+  if (!a || a.left || !b) return false;
+  if (SAB_MODES.indexOf(room.mode) >= 0) return true;
+  if (RACE_MODES.indexOf(room.mode) >= 0) return !!room.cur && !!room.cur[from] && !b.left && !room.cur[to];   // I have my result in, they do not
+  return isGhost(room, a) && !b.left && b.lives > 0 && !(room.cur && room.cur[to]);
+}
+/* The soft relay limits (sabotage from ghosts, finished VERSUS players and BALLOON / CARDS watchers, TEAM cheers, CARDS emotes) all live in ONE app-store string per room,
+   "sl:<code>", changed through limiter.update(key, fn): fn(old) gets the current string and returns the next one, and the store runs it under its own lock (PocketBase's
+   store.setFunc), so requests that arrive in the same millisecond cannot all read the same old allowance before any of them writes. `limiter` = { update(key, fn) } or,
+   for a plain { get, set } (tests), the same steps without the lock; with no limiter only the timing rule applies.
+   Per round counts reset when the round token (round + seed, new for every round of every game, so a rematch with the same room code never inherits an allowance) changes;
+   gaps are timestamps and carry over. fn(state) returns false to refuse: nothing is written then. */
+function limitRoom(room, limiter, fn) {
+  const key = "sl:" + room.code, token = room.round + ":" + room.seed;
+  let ok = true;
+  const step = (raw) => {
+    let s = null;
+    try { s = JSON.parse(raw); } catch (_) { /* first use of this room */ }
+    s = s && typeof s === "object" ? s : {};
+    const next = { g: token, n: s.g === token && s.n || {}, t: s.t || {}, v: s.v || {}, b: s.b || {} };
+    ok = fn(next) !== false;
+    return ok ? JSON.stringify(next) : raw;
+  };
+  if (typeof limiter.update === "function") limiter.update(key, step);
+  else limiter.set(key, step(limiter.get(key)));
+  return ok;
+}
+/* soft sabotage fairness: not before the instruction card is over, and rate limited per thrower, per victim and per round.
+   `lim` = { gap, hit, max, pre } in ms / ms / count / ms after the round starts. */
+const GHOST_LIMITS = { gap: GHOST_GAP_MS, hit: GHOST_HIT_GAP_MS, max: GHOST_ROUND_MAX }, RACE_LIMITS = { gap: RACE_GAP_MS, hit: RACE_HIT_GAP_MS, max: RACE_ROUND_MAX };
+/* BALLOON and CARDS: the client earns 1 charge per 6 s plus one per trap won and waits 3 s between sends, so the server (which cannot see the traps) only enforces a looser
+   gap between a thrower's sends and, mainly, a long gap per victim: the hardest kinds last about 4 s, so nobody is hit again before they got a breather (3 watchers cannot keep one actor blind) */
+const SAB_GAP_MS = 2500, SAB_HIT_GAP_MS = 5000, SAB_LIMITS = { gap: SAB_GAP_MS, hit: SAB_HIT_GAP_MS, max: Infinity };
+function ghostLimit(room, id, to, now, limiter, lim = GHOST_LIMITS) {
+  if (now < room.roundAt + (lim.pre === undefined ? PRE_MS : lim.pre)) fail("Too early", 409);
+  if (!limiter) return;
+  const mine = "s:" + id;
+  if (!limitRoom(room, limiter, (s) => {
+    const rounds = s.n[mine] || 0;
+    if (now - (s.t[mine] || 0) < lim.gap || now - (s.v[to] || 0) < lim.hit || rounds >= lim.max) return false;
+    s.n[mine] = rounds + 1; s.t[mine] = now; s.v[to] = now;
+  })) fail("Slow down", 429);
+}
+/* a TEAM cheer: same idea with no victim (it goes to the whole team), so only the sender's gap and the round allowance */
+function cheerLimit(room, id, now, limiter) {
+  if (now < room.roundAt + PRE_MS) fail("Too early", 409);
+  if (!limiter) return;
+  const mine = "c:" + id;
+  if (!limitRoom(room, limiter, (s) => {
+    const rounds = s.n[mine] || 0;
+    if (now - (s.t[mine] || 0) < CHEER_GAP_MS || rounds >= CHEER_ROUND_MAX) return false;
+    s.n[mine] = rounds + 1; s.t[mine] = now;
+  })) fail("Slow down", 429);
+}
+/* emotes and deck bets: a token bucket per sender (a burst of REACT_BURST, then one per REACT_REFILL_MS: faster than a thumb, slower than a script) */
+const REACT_BURST = 8, REACT_REFILL_MS = 70;
+function reactLimit(room, id, now, limiter) {
+  if (!limiter) return;
+  const mine = "r:" + id;
+  if (!limitRoom(room, limiter, (s) => {
+    const b = s.b[mine] || [REACT_BURST, now], have = Math.min(REACT_BURST, (+b[0] || 0) + Math.max(0, now - (+b[1] || 0)) / REACT_REFILL_MS);
+    if (have < 1) return false;
+    s.b[mine] = [have - 1, now];
+  })) fail("Slow down", 429);
+}
+/* Table reactions and deck guesses (js/party-react.js): emotes everybody sees on the table, and a watcher's bet on which deck the player will pick. Harmless relay
+   messages like 'sab': nothing is stored. Only modes in REACT_MODES opt in (add a mode here and build createReactions on the client); REACT_KINDS and GUESS_SIDES are
+   mirrored by REACT_IDS and GUESS_SIDES in js/party-react.js (test/party-react.test.js checks both). */
+const REACT_KINDS = ["heart", "star", "laugh", "wow", "fire"];
+const REACT_MODES = ["cards"];
+const GUESS_SIDES = ["left", "right"];
 /* Live relay for DUO inputs, spectator snapshots in every mode and lantern light positions.
    Payloads are authenticated and forwarded, never stored in the room record. */
-function sigPayload(room, id, round, m) {
+function sigPayload(room, id, round, m, now, limiter) {
   if (!MODES.includes(room.mode) || room.state !== "round" || round !== room.round) fail("Round is over", 409);
-  const p = player(room, id);
-  if (!p || p.left || (elimination(room) && p.lives <= 0)) fail("Not in this round", 403);
+  const p = player(room, id), ghost = elimination(room) && !!p && p.lives <= 0;
+  if (!p || p.left || (ghost && !(Array.isArray(m) && m.length === 1 && m[0] && m[0].t === "sab"))) fail("Not in this round", 403);   // an eliminated player may send nothing but one sabotage
   if (!Array.isArray(m) || !m.length || m.length > SIG_COUNT) fail("Bad message", 400);
   const out = m.map((x) => {
     const o = { t: String((x && x.t) || "").slice(0, 12), d: x && x.d !== undefined ? x.d : null };
@@ -413,9 +507,35 @@ function sigPayload(room, id, round, m) {
       hasFrame = true;
       continue;
     }
-    /* sabotage: any player of a competitive turn mode may cover someone's screen with a harmless overlay */
-    if (x.t === "sab" && (room.mode === "balloon" || room.mode === "cards")) {
-      if (!x.d || ["ink", "fog", "dark", "bugs"].indexOf(x.d.k) < 0 || typeof x.d.to !== "string" || x.d.to.length > 24 || !player(room, x.d.to)) fail("Bad sabotage", 400);
+    /* sabotage: any player of a mode that opted in (SAB_MODES) may cover someone's screen with a harmless overlay; DUO keeps relaying its own custom inputs */
+    if (x.t === "sab" && room.mode !== "duo") {
+      if (SAB_MODES.indexOf(room.mode) < 0 && GHOST_MODES.indexOf(room.mode) < 0 && RACE_MODES.indexOf(room.mode) < 0) fail("Sabotage unavailable in this mode", 409);
+      if (GHOST_MODES.indexOf(room.mode) >= 0) {
+        if (!ghost) fail("Only ghosts can sabotage", 403);
+        if (!x.d || GHOST_KINDS.indexOf(x.d.k) < 0 || !sabAllowed(room, id, x.d.to)) fail("Bad sabotage", 400);
+        ghostLimit(room, id, x.d.to, Number.isFinite(now) ? now : Date.now(), limiter);
+      } else if (RACE_MODES.indexOf(room.mode) >= 0) {
+        if (!room.cur[id]) fail("Finish your game first", 409);   // waiting is the only time a VERSUS player may sabotage
+        if (!x.d || GHOST_KINDS.indexOf(x.d.k) < 0 || !sabAllowed(room, id, x.d.to)) fail("Bad sabotage", 400);
+        ghostLimit(room, id, x.d.to, Number.isFinite(now) ? now : Date.now(), limiter, RACE_LIMITS);
+      } else {
+        if (!x.d || SAB_KINDS.indexOf(x.d.k) < 0 || !sabAllowed(room, id, x.d.to)) fail("Bad sabotage", 400);
+        ghostLimit(room, id, x.d.to, Number.isFinite(now) ? now : Date.now(), limiter, Object.assign({ pre: preTurn(room) }, SAB_LIMITS));
+      }
+      continue;
+    }
+    /* cheer: a finished TEAM player sends a harmless sparkle to the teammates still playing; nothing is stored and it never changes a score */
+    if (x.t === "cheer" && room.mode !== "duo") {
+      if (CHEER_MODES.indexOf(room.mode) < 0) fail("Cheers unavailable in this mode", 409);
+      if (!x.d || CHEER_KINDS.indexOf(x.d.k) < 0) fail("Bad cheer", 400);
+      if (!room.cur[id]) fail("Finish your game first", 409);
+      cheerLimit(room, id, Number.isFinite(now) ? now : Date.now(), limiter);
+      continue;
+    }
+    if ((x.t === "react" || x.t === "guess") && room.mode !== "duo") {
+      if (REACT_MODES.indexOf(room.mode) < 0) fail("Reactions unavailable in this mode", 409);
+      if (x.t === "react" ? !x.d || REACT_KINDS.indexOf(x.d.k) < 0 : !x.d || GUESS_SIDES.indexOf(x.d.s) < 0 || room.extra.phase !== "draw" || id === room.extra.actor) fail("Bad " + x.t, 400);   // a guess is only for watchers of a deck pick
+      reactLimit(room, id, Number.isFinite(now) ? now : Date.now(), limiter);
       continue;
     }
     if (room.mode === "duo") continue; // Preserve the DUO games' existing custom relay inputs.
@@ -448,4 +568,4 @@ function vsigPayload(room, id, to, k, d) {
 /* what clients may see (the record itself hides `keys`; this is for tests and logs) */
 const publicRoom = (room) => { const o = Object.assign({}, room); delete o.keys; return o; };
 
-module.exports = { fail, MAX_PLAYERS, ROUNDS, LIVES, AWARD, GAMES, GAME_IDS, DUO_IDS, duoIdsFor, seatsOf, takeRoomGame, TURN_IDS, takeTurnGame, MODES, roleOf, cleanMode, drawCard, stealCard, pump, turnMode, sigPayload, SIG_MAX, SIG_FRAME_MAX, PRE_MS_TURN, vsigPayload, VSIG_MAX, PartyError, cleanName, cleanCode, makeCode, active, newRoom, addPlayer, auth, leave, setMode, start, again, report, tick, advance, roundMs, publicRoom };
+module.exports = { fail, MAX_PLAYERS, ROUNDS, LIVES, AWARD, GAMES, GAME_IDS, DUO_IDS, duoIdsFor, seatsOf, takeRoomGame, TURN_IDS, takeTurnGame, MODES, roleOf, cleanMode, drawCard, stealCard, pump, turnMode, sigPayload, SAB_KINDS, GHOST_KINDS, SAB_MODES, GHOST_MODES, RACE_MODES, RACE_GAP_MS, RACE_HIT_GAP_MS, RACE_ROUND_MAX, CHEER_KINDS, CHEER_MODES, CHEER_GAP_MS, CHEER_ROUND_MAX, REACT_KINDS, REACT_MODES, GUESS_SIDES, PRE_MS_CARDS, GHOST_GAP_MS, GHOST_HIT_GAP_MS, GHOST_ROUND_MAX, SAB_GAP_MS, SAB_HIT_GAP_MS, REACT_BURST, REACT_REFILL_MS, PRE_MS, sabAllowed, SIG_MAX, SIG_FRAME_MAX, PRE_MS_TURN, vsigPayload, VSIG_MAX, PartyError, cleanName, cleanCode, makeCode, active, newRoom, addPlayer, auth, leave, setMode, start, again, report, tick, advance, roundMs, publicRoom };

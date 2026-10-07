@@ -10,7 +10,7 @@ const PINVITE = (() => {                                   // ?r=ABCD (from /r/A
   try { const c = (new URLSearchParams(location.search).get('r') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4); return c.length === 4 ? c : null; } catch (e) { return null; }
 })();
 const balloonBetween = R => R && R.mode === 'balloon' ? (R.last && R.last.final ? 2.8 : .9) : 4.2;   // keep in sync with BETWEEN_MS_BALLOON in the server
-const balloonPre = R => R && R.mode === 'balloon' ? 1.4 : 4;
+const balloonPre = R => R && R.mode === 'balloon' ? 1.4 : R && R.mode === 'cards' ? R.extra.phase === 'draw' ? 0 : 2.2 : 4;   // CARDS flows: a deck pick has no instruction card (keep in sync with preTurn in the server)
 const NEXT_ROUND_S = 4.2;                                  // results stay up this long before anyone asks for the next round
 
 const party = {
@@ -121,7 +121,7 @@ const inviteOpen = () => !!PINVITE && !PINVITE_USED;
 
 function partyCleanup() {
   sigSeen.clear();
-  voiceStop(false); linkClose(); link.tries = 0; link.tryFor = ''; partyDisconnect(); party.sig = { q: [], buf: [], busy: false, last: 0, hbAt: 0, round: -1, handler: null, rx: 0, since: 0 }; party.watch = { round: -1, frames: {}, target: null }; party.room = null; party.you = null; party.pending = null; party.played = -1; saveSession();
+  voiceStop(false); linkClose(); link.tries = 0; link.tryFor = ''; partyDisconnect(); party.ghost = null; party.cards = null; party.wait = null; party.sig = { q: [], buf: [], busy: false, last: 0, hbAt: 0, round: -1, handler: null, rx: 0, since: 0 }; party.watch = { round: -1, frames: {}, target: null }; party.room = null; party.you = null; party.pending = null; party.played = -1; saveSession();
 }
 function partyLeave(to) {
   voiceStop(true); if (party.room && party.you) pcall('leave', auth());
@@ -203,7 +203,7 @@ function onSig(d) {
   for (const m of d.m) S.buf.push({ round: d.round, t: m.t, d: m.d, from: d.from });   // partner started first: keep it for my own constructor
   if (S.buf.length > 80) S.buf.splice(0, S.buf.length - 80);
 }
-/* context handed to a DUO microgame: { role: 0|1, partner, send(type, data, latest), onMsg(fn(type, data)), away() } */
+/* context handed to a DUO microgame: { role: 0|1, partner, send(type, data, latest), onMsg(fn(type, data, senderRole, senderId)), away() } */
 function duoCtx(R) {
   const S = party.sig, act = R.players.filter(p => !p.left), n = act.length, i = act.findIndex(p => p.id === party.you.id), pn = act.find(p => p.id !== party.you.id);
   Object.assign(S, { q: [], busy: false, frameBusy: false, retryAt: 0, frameRetry: 0, last: 0, hbAt: now, round: R.round, handler: null, rx: now, since: now });
@@ -217,7 +217,7 @@ function duoCtx(R) {
       if (latest) { const k = S.q.findIndex(m => m.t === type && m.l); if (k >= 0) { S.q[k].d = data; delete S.q[k].n; return; } }
       S.q.push({ t: type, d: data === undefined ? null : data, l: !!latest });
     },
-    onMsg(fn) { S.handler = (t, d, from) => fn(t, d, fromRole(from)); S.buf.splice(0).forEach(x => x.round === S.round && S.handler(x.t, x.d, x.from)); },   // fn(type, data, senderRole)
+    onMsg(fn) { S.handler = (t, d, from) => fn(t, d, fromRole(from), from); S.buf.splice(0).forEach(x => x.round === S.round && S.handler(x.t, x.d, x.from)); },   // fn(type, data, senderRole, senderId): the turn modes (CARDS, BALLOON, LANTERN) key everything by id
   };
 }
 const duoAway = () => !!party.room && party.room.mode === 'duo' && party.sig.round === party.room.round && now - party.sig.since > SIG_AWAY && now - party.sig.rx > SIG_AWAY;
@@ -277,7 +277,7 @@ function onRoom(R, old) {
   if (R.state === 'lobby') {
     if (!old || old.mode !== R.mode) { party.previewMode = null; party.guideTab = 0; }
     if (partyTurnMode(R)) loadThree();
-    party.played = -1; party.pending = null;
+    party.played = -1; party.pending = null; party.ghost = null; party.cards = null; party.wait = null;
     if (state === 'play' && mode === 'party') mode = 'stage';
     party.view = 'lobby'; if (state !== 'party') { state = 'party'; st = 0; }
   } else if (R.state === 'round') {
@@ -324,6 +324,7 @@ async function sendReport() {
 /* runs every frame from main.js update(): timers for polling, ticking, auto-advance and report retries */
 function partyUpdate(dt) {
   const R = party.room; if (!R) return;
+  partyGhostUpdate(R, dt); partyWaitUpdate(R, dt);
   if (now - party.lastPoll > (party.sseOK ? 12 : 3)) partyPoll();
   if (state === 'play') sigFlush();
   if (partyTurnMode(R) && R.state === 'round' && now - party.lastTick > 2.5) { party.lastTick = now; pcall('tick', { code: R.code }).then(r => { if (r.ok) applyRoom(r.data.room); }); }
@@ -370,10 +371,10 @@ const PARTY_HELP = {
   versus: ['EVERYONE PLAYS', 'EVERYONE: PLAY THE SAME MICROGAME', 'RACE: FINISH FAST TO EARN MORE POINTS', 'WIN: THE HIGHEST SCORE AFTER 6 ROUNDS', 'FOLLOW THE MICROGAME CONTROLS'],
   team: ['WIN TOGETHER', 'EVERYONE: PLAY THEIR MICROGAME', 'HELP: EVERY SUCCESS HELPS THE WHOLE TEAM', 'GOAL: CLEAR 8 ROUNDS WITH SHARED LIVES', 'FOLLOW THE MICROGAME CONTROLS'],
   duo: ['ONE ROLE EACH, ONE TEAM', 'YOU: DO THE ROLE SHOWN BEFORE EACH GAME', 'TEAMMATES: DO THE OTHER PARTS OF THE PUZZLE', 'GOAL: CLEAR 8 ROUNDS TOGETHER', '2 PLAYERS: DUO GAMES · 3-4 PLAYERS: SQUAD GAMES'],
-  survival: ['LAST ONE STANDING', 'EVERYONE: PLAY THE SAME MICROGAME', 'FAIL: LOSE ONE OF YOUR 3 LIVES', 'WIN: BE THE LAST PLAYER WITH LIVES', 'ELIMINATED PLAYERS WATCH UNTIL THE END'],
-  knockout: ['ONE MISTAKE AND OUT', 'EVERYONE: PLAY THE SAME MICROGAME', 'FAIL: YOUR ONLY LIFE IS GONE', 'WIN: BE THE LAST PLAYER STANDING', 'ELIMINATED PLAYERS WATCH UNTIL THE END'],
+  survival: ['LAST ONE STANDING', 'EVERYONE: PLAY THE SAME MICROGAME', 'FAIL: LOSE ONE OF YOUR 3 LIVES', 'WIN: BE THE LAST PLAYER WITH LIVES', 'OUT? BECOME A GHOST: WIN TRAPS, THEN BOO THE LIVING'],
+  knockout: ['ONE MISTAKE AND OUT', 'EVERYONE: PLAY THE SAME MICROGAME', 'FAIL: YOUR ONLY LIFE IS GONE', 'WIN: BE THE LAST PLAYER STANDING', 'OUT? BECOME A GHOST: WIN TRAPS, THEN BOO THE LIVING'],
   lantern: ['LIGHT THE WAY TOGETHER', 'PLAYER: BEAT THE MICROGAME IN THE DARK', 'FRIENDS: MOVE THEIR LIGHTS TO HELP THEM SEE', 'GOAL: CLEAR 12 ROUNDS WITH 3 SHARED LIVES', 'LIGHT: MOUSE / DRAG / ARROW KEYS'],
-  cards: ['BUILD A PILE, TAKE THE RISK', 'TURN: DRAW A CARD; PLAY MEANS BEAT THE PILE', 'FRIENDS: WATCH AND TAP A RIVAL TO STEAL', 'WIN: MOST CARDS WHEN THE DECK RUNS OUT', 'FAIL THE PILE: YOUR CARDS GO TO THE POT'],
+  cards: ['BUILD A PILE, TAKE THE RISK', 'TURN: DRAW A CARD; PLAY MEANS BEAT THE PILE', 'FRIENDS: STEAL, WIN TRAPS, THEN SABOTAGE', 'WIN: MOST CARDS WHEN THE DECK RUNS OUT', 'FAIL THE PILE: YOUR CARDS GO TO THE POT'],
   balloon: ['PASS THE TURN BEFORE IT POPS', 'PLAYER: WIN THE MICROGAME TO PASS THE TURN', 'FRIENDS: PUMP · FIX JAMS · GRAB GOLD BUBBLES', 'LOSE: THE BALLOON POPS ON YOUR TURN', 'EVERYONE WATCHES THE PLAYER AND BALLOON']
 };
 const TURN_PRE = 4;   // see balloonPre()
@@ -390,7 +391,7 @@ function drawPartyModeIntro(left) {
   txt(mine ? cur.cmd : R.mode === 'lantern' ? 'YOU MOVE THE LIGHT!' : R.mode === 'balloon' ? 'YOU PUMP THE BALLOON!' : R.extra.phase === 'draw' ? 'WATCH THE NEXT CARD!' : 'YOU CAN STEAL CARDS!', W / 2, 294, 42, '#fff', 'center', 730);
   box3(40, 328, 720, 136, '#35406a', 4, 5);
   txt(mine ? cur.hint : R.mode === 'lantern' ? help[4] : R.mode === 'balloon' ? help[2] : R.extra.phase === 'draw' ? 'THE PLAYER CHOOSES ONE OF THE FACE-DOWN CARDS' : 'TAP A RIVAL TO STEAL ONE CARD PER MICROGAME', W / 2, 362, 24, '#FFE14D', 'center', 680);
-  txt(mine ? help[2] : help[1], W / 2, 407, 22, '#fff', 'center', 680);
+  txt(mine ? help[2] : R.mode === 'cards' ? 'WIN TRAPS TO CHARGE SABOTAGE' : help[1], W / 2, 407, 22, '#fff', 'center', 680);
   txt(help[3], W / 2, 443, 18, '#ddd', 'center', 680);
   txt(left < 1 ? 'GO!' : 'GET READY!', W / 2, 510, 42, '#5CFF7A');
   if (R.mode === 'cards') txt(partyCardReveal(R), W / 2, 560, 20, '#F28CB1', 'center', 730);
@@ -472,10 +473,8 @@ function drawLobby(R) {
   } else { box3(400, 547, 376, 43, '#4a5065', 4, 4); txt(t('WAITING FOR {name} TO START', { name: pName(R, R.host).toUpperCase() }), 588, 569, 17, '#ddd', 'center', 352); }
 }
 
-function drawWait(R) {
-  const my = R.cur && party.you && R.cur[party.you.id] || party.pending;
-  txt(t('ROUND {n} / {total}', { n: R.round + 1, total: R.total }), W / 2, 36, 28, '#FFE14D');
-  txt(party.view === 'loading' ? 'LOADING 3D GAME...' : partyElimination(R) && me().lives <= 0 ? 'YOU ARE OUT · KEEP WATCHING' : my ? my.r === 'win' ? 'YOU DID IT! WATCH YOUR FRIENDS' : 'ROUND FINISHED · WATCH YOUR FRIENDS' : 'WATCH YOUR FRIENDS PLAY', W / 2, 78, 23, '#fff', 'center', 740);
+/* whom the spectator screens show: everybody else, the living ones among them, and the one being watched (the player's own pick, else whoever is still playing) */
+function partyWatchPick(R) {
   const friends = R.players.filter(p => !p.left && p.id !== party.you.id);
   const alive = friends.filter(p => !partyElimination(R) || p.lives > 0), playing = alive.filter(p => !R.cur[p.id]);
   const watch = party.watch;
@@ -483,7 +482,15 @@ function drawWait(R) {
     const candidates = playing.length ? playing : alive;
     watch.target = (candidates.find(p => watch.frames[p.id] && watch.frames[p.id].image) || candidates[0] || {}).id || null;
   }
-  const target = alive.find(p => p.id === watch.target), frame = watch.round === R.round && watch.frames[watch.target];
+  return { friends, alive, target: alive.find(p => p.id === watch.target), frame: watch.round === R.round && watch.frames[watch.target] };
+}
+function drawWait(R) {
+  if (partyGhostOn(R)) { partyGhostDraw(R, partyWatchPick(R)); return; }   // SURVIVAL / KNOCKOUT: the eliminated play traps and haunt the living (js/party-ghost.js)
+  if (partyWaitOn(R)) { partyWaitDraw(R, partyWatchPick(R)); return; }     // VERSUS / TEAM: a finished player plays traps to sabotage the racers / cheer the team (js/party-wait.js)
+  const my = R.cur && party.you && R.cur[party.you.id] || party.pending;
+  txt(t('ROUND {n} / {total}', { n: R.round + 1, total: R.total }), W / 2, 36, 28, '#FFE14D');
+  txt(party.view === 'loading' ? 'LOADING 3D GAME...' : partyElimination(R) && me().lives <= 0 ? 'YOU ARE OUT · KEEP WATCHING' : my ? my.r === 'win' ? 'YOU DID IT! WATCH YOUR FRIENDS' : 'ROUND FINISHED · WATCH YOUR FRIENDS' : 'WATCH YOUR FRIENDS PLAY', W / 2, 78, 23, '#fff', 'center', 740);
+  const { friends, target, frame } = partyWatchPick(R), watch = party.watch;
   txt(target ? t('WATCHING: {name}', { name: target.name }) : 'WAITING FOR THE NEXT ROUND', 296, 119, 22, target ? target.color : '#ddd', 'center', 550);
   box3(16, 140, 560, 424, target ? target.color : '#35406a', 4, 4);
   ctx.fillStyle = '#19172d'; ctx.fillRect(20, 144, 552, 414);

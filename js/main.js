@@ -860,6 +860,7 @@ addEventListener('keydown', e => {
   else if (state === 'over' && go && st > .4) startStage(stageIdx);
   else if (state === 'clear' && go && st > .5) afterClear();
   if (state === 'play' && !outcome && pre <= 0 && cur.key) cur.key(e);
+  else if (state === 'party' && party.view === 'wait') { partyGhostKey(e); partyWaitKey(e); }   // trap keys of an eliminated player (js/party-ghost.js) or of a finished one in VERSUS / TEAM (js/party-wait.js)
 });
 addEventListener('keyup', e => {
   keys[e.code] = false;

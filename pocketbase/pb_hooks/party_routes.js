@@ -90,6 +90,9 @@ function who(auth, body) {
   return { name: body.name, color: body.color };
 }
 
+/* the soft relay rate limits (sabotage, cheers, emotes) live in the app's in-memory store (shared by every request, nothing written to the room); update() runs under the
+   store's lock (store.setFunc), so parallel requests cannot all pass the limit before any of them records itself */
+const ghostLimiter = { get: (k) => $app.store().get(k), set: (k, v) => $app.store().set(k, v), update: (k, fn) => $app.store().setFunc(k, fn) };
 /* DUO live relay: auth + validate against the room record, then push straight to the other players' realtime connections
    (topic rooms/<id>/sig). No transaction and no write: this is the hot path (~8 requests/s per player). */
 function relay(e, body) {
@@ -100,7 +103,7 @@ function relay(e, body) {
     const o = load(rec);
     P.auth(o, String(body.id || ""), String(body.key || ""));
     const voice = body.voice === true;   // voice-chat signaling: its own topic, valid in every room state
-    const msg = voice ? P.vsigPayload(o, String(body.id), body.to, String(body.k || ""), body.d) : P.sigPayload(o, String(body.id), body.round | 0, body.m);
+    const msg = voice ? P.vsigPayload(o, String(body.id), body.to, String(body.k || ""), body.d) : P.sigPayload(o, String(body.id), body.round | 0, body.m, Date.now(), ghostLimiter);
     const name = "rooms/" + rec.id + (voice ? "/vsig" : "/sig"), data = JSON.stringify(msg);
     const clients = $app.subscriptionsBroker().clients();
     let n = 0;

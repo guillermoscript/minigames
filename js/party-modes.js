@@ -51,6 +51,7 @@ function partyCardTable(R, interactive) {
     if (can) button(x + 3, 518, w - 6, 68, t('STEAL: {name}', { name: p.name }), () => partyStartSteal(p.id, R.round), { size: 18, fill: p.color });
     else { box(x + 3, 518, w - 6, 68, '#302b50', 3); txt(p.name, x + w / 2, 539, 17, p.color, 'center', w - 12); }
     txt(t('{n} CARDS', { n: p.score }), x + w / 2, 572, 19, can ? INK : '#FFE14D', 'center', w - 12);
+    if (p.id === R.extra.actor && !interactive) { ctx.strokeStyle = '#FFE14D'; ctx.lineWidth = 3; ctx.strokeRect(x, 515, w, 74); }   // whose turn it is at the table
   });
 }
 /* ───────────── BALLOON: one balloon, everybody watches the pressure ─────────────
@@ -59,7 +60,7 @@ function partyCardTable(R, interactive) {
 const BAL_LEAK = .9, BAL_PRE = 1.4;     // keep in sync with LEAK_PER_S / PRE_MS_BALLOON in pocketbase/pb_hooks/party.js
 const balloonView = { room: '', stamp: '', roundKey: '', roundAt: 0, recv: 0, base: 0, leak: 0, shown: 0, opt: 0, at: 0, frame: -1, init: false, contrib: {}, pumping: {}, pops: [], tick: 0, hiss: 0, lastPump: -9, lastSfx: 0, poppedRound: -1 };
 const balMix = (a, b, k) => { const f = c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16)); const x = f(a), y = f(b); k = Math.max(0, Math.min(1, k)); return '#' + x.map((v, i) => Math.round(v + (y[i] - v) * k).toString(16).padStart(2, '0')).join(''); };
-const balTry = fn => { try { fn(); } catch (_) { /* sound must never stop a round */ } };
+const balTry = fn => sabTry(fn);   // sabTry lives in js/party-sab.js
 const balUnit = R => { const b = balloonView, others = Math.max(1, R.players.filter(p => !p.left).length - 1); return 1 / others / (b.leak ? BAL_LEAK / b.leak : 140); };
 function partyBalloonShown(R) {
   const e = R.extra || {}, b = balloonView;
@@ -219,33 +220,113 @@ function partyCardReveal(R) {
   if (R.extra.card !== 'play') return 'MICROGAME CARD ADDED · NEXT PLAYER DRAWS';
   return R.extra.phase === 'challenge' ? 'PLAY CARD · BEAT THE PILE TO KEEP IT' : 'PLAY CARD · EMPTY PILE: NEXT PLAYER';
 }
+/* ───────────── CARDS: what the watchers do ─────────────
+   Everybody but the player at the table watches. They STEAL (the big buttons at the right) and keep busy with the shared kits: trap minigames, deck guesses and table
+   emotes (js/party-react.js) charge SABOTAGE (js/party-sab.js), which covers a rival's screen. The kit is per room, so what is earned while a deck is picked is still there in the challenge. */
+const CARDS_TRAPS = { fly: 0, jam: 0, bubble: .34, dial: .33, seq: .33 }, CARDS_WORDS = { bubble: 'NICE!', dial: 'PERFECT!', seq: 'COMBO!', over: 'TOO LATE!' };   // no pump to jam and no fly: only the three that pay a charge
+function partyCardsKit(R) {
+  let k = party.cards;
+  if (!k || k.room !== R.id) k = party.cards = { room: R.id, charges: createSabCharges(), pulse: -9, bet: null };
+  const bet = k.bet;
+  if (bet && bet.round < R.round) {                      // the deck pick I bet on has been made (the hook records it as extra.side): settle it
+    k.bet = null;
+    if (bet.round === R.round - 1 && R.extra && R.extra.side === bet.side) { k.charges.earn('trap'); partyCardsPulse(k, 'CALLED IT!', '#5CFF7A'); }
+  }
+  return k;
+}
+const partyCardsPulse = (k, word, col) => { k.pulse = now; sabTry(() => { sfx.hit(); ring(400, 300, '#FF9A3D', 130, .5); burst(400, 300, '#FF9A3D', 20, 360); floatText(word, 400, 280, col, 44); }); };
+const partyCardsTraps = k => createIdleTraps({ at: { x: 304, y: 534 }, first: [.8, .8], gap: [1.5, 1.7], weights: CARDS_TRAPS, words: CARDS_WORDS, onReward: () => { k.charges.earn('trap'); k.pulse = now; } });
+/* where a player's emotes start: the middle of their box on the table */
+const partyCardsSlot = (R, id) => { const all = R.players.filter(p => !p.left), i = Math.max(0, all.findIndex(p => p.id === id)); return { x: 40 + (i + .5) * 720 / all.length, y: 516 }; };
 function partyDrawGame(R) {
-  const actor = partyActor(R), mine = R.extra.actor === party.you.id, round = R.round;
+  const actor = partyActor(R), mine = R.extra.actor === party.you.id, round = R.round, kit = partyCardsKit(R), relay = duoCtx(R);
+  const rx = createReactions(R, relay, { origin: id => partyCardsSlot(R, id), onTap: streak => {
+    const before = kit.charges.n;
+    if (kit.charges.earn('combo', streak) && kit.charges.n > before) partyCardsPulse(kit, 'SABOTAGE!', '#FF9A3D');
+  } });
+  const gs = createGuess(R, relay, { onPick: side => { kit.bet = { round, side }; } });   // the player at the table only watches the bets pile up
+  relay.onMsg((type, data, role, from) => { rx.receive(type, data, from); gs.receive(type, data, from); });
   let busy = false;
   const choose = side => {
-    if (!mine || busy) return; busy = true;
+    if (!mine) { gs.pick(side); return; }
+    if (busy) return; busy = true;
     partyMoveAction('draw', { side }, round).finally(() => { busy = false; });
   };
   return {
     dur: 30, partyDraw: true, cmd: mine ? 'DRAW A CARD!' : 'CARD TABLE',
     hint: mine ? 'CHOOSE A DECK · ARROWS OR TAP' : t('{name} IS DRAWING', { name: actor.name }),
-    update() {},
+    update(dt) { kit.charges.tick(dt); },
     draw() {
       bg('#26304b', '#392d59', now);
       txt(partyCardReveal(R), 400, 76, 19, '#F28CB1', 'center', 720);
       txt('CARD TABLE', 400, 122, 42, '#FFE14D');
-      txt(t('{n} MICROGAMES IN THE PILE', { n: R.extra.pile.length }), 400, 184, 25, '#fff');
-      txt(t('{n} CARDS IN THE POT', { n: R.extra.pot }), 400, 223, 21, '#F28CB1');
+      txt(t('{n} MICROGAMES IN THE PILE', { n: R.extra.pile.length }), 400, 176, 25, '#fff');
+      txt(t('{n} CARDS IN THE POT', { n: R.extra.pot }), 400, 208, 21, '#F28CB1');
+      const bets = gs.sides();
       for (const [x, side, label] of [[180, 'left', 'LEFT DECK'], [430, 'right', 'RIGHT DECK']]) {
         for (let i = 2; i >= 0; i--) box(x + i * 5, 268 - i * 5, 190, 150, '#493e7c', 4);
         star(x + 95, 324, 34, 17, 5, -.2, '#FFE14D', 3);
+        bets[side].forEach((id, i) => { const pl = R.players.find(p => p.id === id); claude(x + 34 + i * 44, 262 - Math.abs(Math.sin(now * 5 + i * 1.7)) * 9, 2.4, { col: pl.color, mood: 'happy' }); });   // the watchers' bets: their little players hop on the deck they chose
         if (mine) button(x, 369, 190, 54, busy ? 'ONE MOMENT...' : label, () => choose(side), { size: 21, fill: '#B49CFF' });
+        else {
+          const on = gs.mine === side;
+          button(x, 369, 190, 54, on ? 'YOUR GUESS!' : side === 'left' ? 'GUESS LEFT' : 'GUESS RIGHT', () => choose(side), { size: 21, fill: on ? '#FFE14D' : '#B49CFF' });
+        }
       }
-      txt(mine ? 'MICROGAME CARDS STACK UP · PLAY CARD STARTS THE CHALLENGE' : t('{name} IS DRAWING', { name: actor.name }), 400, 470, 18, '#fff', 'center', 740);
+      if (!mine) {
+        sabOrbs(kit.charges, 112, 450, { r: 12, gap: 31, pulse: kit.pulse });
+        rx.bar(244, 432, 312, 36);
+        const run = rx.streakNow(), per = kit.charges.cfg.comboEvery;
+        if (run) { box(244, 473, 312, 6, '#14101c', 0); ctx.fillStyle = '#FF9A3D'; ctx.fillRect(244, 473, 312 * (run % per) / per, 6); }
+      }
+      txt(mine ? 'MICROGAME CARDS STACK UP · PLAY CARD STARTS THE CHALLENGE' : t('{name} IS DRAWING', { name: actor.name }), 400, 497, 18, '#fff', 'center', 740);
       partyCardTable(party.room, false);
+      rx.draw();
     },
-    key(e) { if (e.repeat) return; if (e.code === 'ArrowLeft' || e.code === 'KeyA') choose('left'); if (e.code === 'ArrowRight' || e.code === 'KeyD' || e.code === 'Space') choose('right'); },
+    key(e) {
+      if (e.repeat) return;
+      if (e.code === 'ArrowLeft' || e.code === 'KeyA') choose('left');
+      if (e.code === 'ArrowRight' || e.code === 'KeyD' || e.code === 'Space') choose('right');
+      const n = /^Digit([1-5])$/.exec(e.code); if (n && !mine) rx.send(REACT_IDS[n[1] - 1]);
+    },
   };
+}
+/* the watchers' right-hand column: the pile at stake and one big STEAL button per rival (the progress of a steal in progress fills the button) */
+function partyCardsSteal(R, round) {
+  const e = R.extra, id = party.you.id, attempt = e.stealing && e.stealing[id], busy = !!attempt && attempt.round === round, done = e.stolen[id] === round;
+  txt('YOU STEAL', 692, 142, 22, '#FFE14D', 'center', 166);
+  for (let i = 2; i >= 0; i--) box(650 + i * 4, 178 - i * 3, 76, 28, '#B49CFF', 2);
+  txt(e.pile.length + e.pot, 688, 192, 20, INK);
+  txt(t('{n} CARDS AT STAKE', { n: e.pile.length + e.pot }), 692, 222, 16, '#FFE14D', 'center', 172);
+  txt(t('{n} MICROGAMES TO GO', { n: e.remaining.length }), 692, 243, 14, '#fff', 'center', 172);
+  const rivals = R.players.filter(p => !p.left && p.id !== id), h = rivals.length > 2 ? 86 : 100;
+  rivals.forEach((p, i) => {
+    const y = 262 + i * (h + 8), can = p.score > 0 && !done, aim = busy && attempt.target === p.id, cx = 696;
+    if (can) {
+      button(608, y, 176, h, '', () => partyStartSteal(p.id, round), { fill: p.color });
+      ctx.globalAlpha = .45 + .35 * Math.sin(now * 7 + i); ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.strokeRect(612, y + 4, 168, h - 8); ctx.globalAlpha = 1;
+      if (aim) { ctx.fillStyle = 'rgba(20,16,28,.55)'; ctx.fillRect(612, y + h - 16, 168, 10); ctx.fillStyle = '#fff'; ctx.fillRect(612, y + h - 16, 168 * Math.max(0, Math.min(1, 1 - (attempt.readyAt - Date.now()) / 1200)), 10); }
+      txt(t('STEAL: {name}', { name: p.name }), cx, y + 22, 17, INK, 'center', 160);
+      txt(t('{n} CARDS', { n: p.score }), cx, y + h / 2 + 10, 26, INK, 'center', 160);
+    } else {
+      box(608, y, 176, h, '#302b50', 3); txt(p.name, cx, y + 22, 17, p.color, 'center', 160);
+      txt(t('{n} CARDS', { n: p.score }), cx, y + h / 2 + 10, 24, '#9a98ad', 'center', 160);
+    }
+  });
+  txt(busy ? 'STEALING...' : done ? 'CARD STOLEN! WAIT FOR THE NEXT GAME' : '', 692, 570, 14, '#F28CB1', 'center', 172);
+}
+/* the watchers' middle column: sabotage orbs and one tap per rival (the player at the table included) */
+function partyCardsSab(ch, kit) {
+  const list = ch.targets(), ready = ch.charges.ready(), x = 488, n = Math.max(1, list.length), h = Math.min(84, (466 - 194 - 8 - 6 * (n - 1)) / n);
+  box3(x, 122, 104, 344, '#2b2845', 3, 3);
+  txt('SABOTAGE!', 540, 142, 15, '#FF9A3D', 'center', 96);
+  sabOrbs(ch.charges, 540, 170, { r: 12, gap: 31, pulse: kit.pulse });
+  list.forEach((p, i) => {
+    const y = 192 + i * (h + 6);
+    button(x + 4, y, 96, h, '', () => ch.send(p.id), { fill: ready ? '#FF9A3D' : '#d3cfe0' });
+    claude(x + 52, y + h - 26, Math.min(3.4, (h - 34) / 9.5), { col: p.color });
+    txt(p.name, x + 52, y + h - 10, 13, INK, 'center', 88);
+  });
 }
 // Normalize dimensions and pointer state for games that read global mouse/pressing or spawn in widescreen space.
 function partyGameScope(fn, pointer) {
@@ -256,8 +337,8 @@ function partyGameScope(fn, pointer) {
 }
 function partyWrapGame(base, R, sp) {
   const actor = partyActor(R), mine = actor.id === party.you.id, round = R.round;
-  const balloon = R.mode === 'balloon', canSab = balloon || R.mode === 'cards';
-  const view = balloon && !mine ? { x: 20, y: 126, w: 456, h: 342, scale: .57 } : { x: 16, y: 124, w: 576, h: 432, scale: .72 };
+  const balloon = R.mode === 'balloon', cards = R.mode === 'cards', canSab = SAB_MODES.includes(R.mode), watcher = !mine && (balloon || cards);   // watchers get the small television and the trap kit below it
+  const view = watcher ? { x: 20, y: 126, w: 456, h: 342, scale: .57 } : { x: 16, y: 124, w: 576, h: 432, scale: .72 };
   const g = { ...base, partyHelper: !mine, partyScene: true, wide: false, partyDark: R.mode === 'lantern' && mine };
   if (!mine) { g.dur = 3600; delete g.result; }
   let instruction = base.cmd || 'MICROGAME';
@@ -265,20 +346,21 @@ function partyWrapGame(base, R, sp) {
   g.hint = mine ? base.hint : R.mode === 'lantern' ? 'MOVE THE LIGHT · MOUSE / TOUCH / ARROWS' : R.mode === 'balloon' ? 'TAP / SPACE TO INFLATE · FIX JAMS WITH A / D · GRAB GOLD BUBBLES' : 'TAP A RIVAL TO STEAL ONE CARD PER MICROGAME';
   g.thint = mine ? base.thint : g.hint;
   let lx = 400, ly = 300, held = {}, elapsed = 0, lightAt = -1, taps = 0, lastTap = -1, sentAt = 0, pumping = false, frameAt = -1, frame = null, frameTime = -1, frameSeq = 0, sharedTime = 0, sharedDuration = 1, sharedClockAt = 0;
-  let combo = 0, comboAt = -9, turbo = 0, jam = null, bubble = null, nextTrap = 1.2 + Math.random() * 1.3, stall = 0, dial = null, seq = null, fly = null, charges = 0, sabAt = -9, sabotage = null, sabIdx = 0, chargeAt = 0, pumpKick = 0, jamShake = 0, trapFlash = 0;
+  let combo = 0, comboAt = -9, pumpKick = 0;
   const tapLog = [];
   const lights = {}, pointer = { pos: { x: 400, y: 300 }, held: false };
   const relay = duoCtx(R);
+  // Shared kit (js/party-sab.js): charges, sabotage channel and the pumpers' trap minigames. Built before onMsg, which replays buffered messages at once.
+  const kit = cards ? partyCardsKit(R) : null;   // CARDS keeps its charges from round to round (they are also earned while a deck is picked)
+  const charges = canSab ? kit ? kit.charges : createSabCharges() : null;
+  const ch = canSab ? createSabChannel(R, sabDirectRelay(R2 => R2.id === R.id && (cards || R2.round === round) ? charges : null), { charges, actorId: actor.id }) : null;   // straight to the server: it rate limits throws and a refused one gives the charge back
+  const traps = watcher ? balloon ? createIdleTraps({ onReward: () => charges.earn('trap') }) : partyCardsTraps(kit) : null;
   const capture = mine ? document.createElement('canvas') : null;
   if (capture) { capture.width = 400; capture.height = 300; }
   const dark = R.mode === 'lantern' && mine ? document.createElement('canvas') : null;
   if (dark) { dark.width = W; dark.height = H; }
-  relay.onMsg((type, data, from) => {
-    if (type === 'sab' && canSab && data && ['ink', 'fog', 'dark', 'bugs'].includes(data.k) && typeof data.to === 'string') {
-      const pl = R.players.find(p => p.id === from), tg = R.players.find(p => p.id === data.to);
-      if (data.to === party.you.id && from !== party.you.id) { sabotage = { k: data.k, at: now, name: pl ? pl.name : '', seed: Math.random() * 100 }; balTry(() => { sfx.whoosh(false); shake(5, .3); }); }
-      else if (from !== party.you.id) balTry(() => floatText(t('{a} SABOTAGES {b}!', { a: pl ? pl.name : '', b: tg ? tg.name : '' }), 300, 300, '#FF9A3D', 22));
-    }
+  relay.onMsg((type, data, role, from) => {   // `role` is the sender's seat in a DUO game; here only the id matters
+    if (ch) ch.receive(type, data, from);
     if (type === 'light' && from !== actor.id && data && Number.isFinite(data.x) && Number.isFinite(data.y)) {
       lights[from] = { x: Math.max(0, Math.min(W, data.x)), y: Math.max(0, Math.min(H, data.y)), at: now };
     }
@@ -292,59 +374,28 @@ function partyWrapGame(base, R, sp) {
   });
   const localPoint = data => ({ x: Math.max(0, Math.min(W, (data.x - view.x) / view.scale)), y: Math.max(0, Math.min(H, (data.y - view.y) / view.scale)) });
   const inside = data => data.x >= view.x && data.x <= view.x + view.w && data.y >= view.y && data.y <= view.y + view.h;
+  const keyMap = {};   // physical key -> key actually delivered, so a FLIP that starts or ends mid-press never leaves a key stuck
   const invoke = (type, data) => {
+    const flip = mine && sabMirrored(ch && ch.active());
     if (type === 'move' || type === 'down' || type === 'up') {
       if (type === 'down' && !inside(data)) return;
-      data = localPoint(data); pointer.pos = data;
+      data = localPoint(data); if (flip) data = { x: W - data.x, y: data.y }; pointer.pos = data;
       if (type === 'down') pointer.held = true;
       if (type === 'up') pointer.held = false;
     }
+    else if (type === 'key') { const phys = data.code; if (flip) data = sabMirrorKey(data); keyMap[phys] = data; }
+    else if (type === 'keyup') { const phys = data.code, sent = keyMap[phys]; delete keyMap[phys]; data = sent ? Object.assign({}, data, { code: sent.code, key: sent.key }) : flip ? sabMirrorKey(data) : data; }
     return partyGameScope(() => base[type] && base[type](data), pointer);
   };
-  // Pumper mini-game: tapping pumps; a stuck valve (wiggle left/right) and gold bubbles (TURBO, 2 air per tap) interrupt the mashing.
-  const nextTrapIn = () => { nextTrap = elapsed + 2.2 + Math.random() * 2.2; };
-  const reward = (sec, word, col) => { charges = Math.min(3, charges + 1); turbo = elapsed + sec; nextTrapIn(); trapFlash = 1; balTry(() => { sfx.hit(); burst(400, 534, col, 24, 400); ring(400, 534, col, 100, .4); floatText(word, 400, 500, col, 34); }); };
-  const failTrap = word => { stall = elapsed + .9; nextTrapIn(); jamShake = .4; balTry(() => { sfx.miss(); shake(6, .25); floatText(word, 400, 500, '#FF4D5E', 30); }); };
+  // Pumper mini-game: tapping pumps; the traps (stuck valve, gold bubbles, dial, arrows, fly) come from createIdleTraps and interrupt the mashing.
   const tap = () => {
     if (mine || !balloon || elapsed - lastTap < .085) return;
     lastTap = elapsed; pumpKick = 1;
-    if (jam || stall > elapsed) { jamShake = .3; balTry(() => sfx.miss()); return; }
-    const v = turbo > elapsed ? 2 : 1;
-    if (fly && Math.random() < .55) { balTry(() => noise(.06, .03, 1800, 2600, 'bandpass')); jamShake = .15; return; }
+    const v = traps.gate(); if (!v) return;
     taps = Math.min(8, taps + v); balloonView.opt += v * balUnit(R);
     combo = elapsed - comboAt < .45 ? combo + 1 : 1; comboAt = elapsed; tapLog.push(elapsed);
-    balTry(() => { sfx.blip(Math.min(16, combo / 2) + balloonView.shown * 8); if (combo % 10 === 0) { charges = Math.min(3, charges + 1); ring(150, 536, '#FFE14D', 70, .4); floatText(t('COMBO x{n}', { n: combo }), 116, 478, '#FFE14D', 22); } });
-  };
-  const sabTargets = () => R.players.filter(p => !p.left && p.id !== party.you.id);
-  const sab = id => {
-    if (!canSab || charges < 1 || elapsed - sabAt < 3) return;
-    const list = sabTargets(), to = typeof id === 'string' ? id : list.length ? list[sabIdx % list.length].id : '';
-    if (!to) return;
-    charges--; sabAt = elapsed; sabIdx++; const k = ['ink', 'fog', 'dark', 'bugs'][Math.floor(Math.random() * 4)];
-    relay.send('sab', { k, to }); balTry(() => { sfx.whoosh(true); floatText('SABOTAGE SENT!', 300, 300, '#FF9A3D', 30); });
-  };
-  const drawSabStrip = () => {
-    const list = sabTargets(), ready = charges > 0 && elapsed - sabAt >= 3, w = Math.min(190, 570 / Math.max(1, list.length));
-    list.forEach((p, i) => button(16 + i * w, 567, w - 6, 26, t('SABOTAGE {name}', { name: p.name }), () => sab(p.id), { size: 13, fill: ready ? p.color : '#d3cfe0' }));
-    txt(t('SAB: {n}/3', { n: charges }), 692, 581, 15, ready ? '#FF9A3D' : '#9a98ad', 'center', 150);
-  };
-  const swat = () => { if (!fly) return; fly = null; nextTrapIn(); trapFlash = 1; balTry(() => { sfx.hit(); burst(400, 536, '#9fe3ff', 14, 300); floatText('SPLAT!', 400, 500, '#9fe3ff', 30); }); };
-  const wiggle = side => {
-    if (!jam) return;
-    if (side === jam.side) { jamShake = .25; return; }
-    jam.side = side; jam.have++; balTry(() => sfx.blip(jam.have * 2));
-    if (jam.have >= jam.need) {
-      jam = null; turbo = elapsed + 1.6; nextTrapIn(); trapFlash = 1;
-      balTry(() => { sfx.whoosh(true); burst(400, 534, '#5CFF7A', 22, 380); floatText('UNJAMMED!', 400, 500, '#5CFF7A', 34); });
-    }
-  };
-  const hitBubble = () => { if (bubble) { bubble = null; reward(4, 'TURBO!', '#FFE14D'); } };
-  const dialPos = () => .5 + .5 * Math.sin(dial.seed + (elapsed - dial.at) * 4.6);
-  const dialStop = () => { if (!dial) return; const hit = Math.abs(dialPos() - dial.zone) < dial.w / 2; dial = null; if (hit) reward(3.5, 'PERFECT! TURBO', '#5CFF7A'); else failTrap('OVERPRESSURE!'); };
-  const seqPress = d => {
-    if (!seq) return;
-    if (d === seq.keys[seq.i]) { seq.i++; balTry(() => sfx.blip(seq.i * 3)); if (seq.i >= seq.keys.length) { seq = null; reward(3.5, 'COMBO! TURBO', '#4DB8FF'); } }
-    else { seq.i = 0; jamShake = .3; balTry(() => sfx.miss()); }
+    const bonus = charges.earn('combo', combo);
+    balTry(() => { sfx.blip(Math.min(16, combo / 2) + balloonView.shown * 8); if (bonus) { ring(150, 536, '#FFE14D', 70, .4); floatText(t('COMBO x{n}', { n: combo }), 116, 478, '#FFE14D', 22); } });
   };
   g.update = (dt, time) => {
     elapsed += dt;
@@ -362,23 +413,12 @@ function partyWrapGame(base, R, sp) {
       ly = Math.max(0, Math.min(H, ly + ((held.ArrowDown || held.KeyS ? 1 : 0) - (held.ArrowUp || held.KeyW ? 1 : 0)) * dt * 440));
       if (elapsed - lightAt > .08) { lightAt = elapsed; relay.send('light', { x: Math.round(lx), y: Math.round(ly) }, true); }
     }
-    if (canSab && elapsed - chargeAt > 6) { chargeAt = elapsed; charges = Math.min(3, charges + 1); }
-    if (!mine && balloon) {
-      pumpKick = Math.max(0, pumpKick - dt * 7); jamShake = Math.max(0, jamShake - dt); trapFlash = Math.max(0, trapFlash - dt * 2);
+    if (charges) charges.tick(dt);
+    if (traps) {
+      pumpKick = Math.max(0, pumpKick - dt * 7);
       if (elapsed - comboAt > .6) combo = 0;
       while (tapLog.length && elapsed - tapLog[0] > 1) tapLog.shift();
-      if (!jam && !bubble && !dial && !seq && !fly && elapsed >= nextTrap) {
-        const r = Math.random();
-        if (r < .18) { fly = { at: elapsed, life: 4.5, seed: Math.random() * 6 }; balTry(() => noise(.3, .04, 1500, 2500, 'bandpass')); }
-        else if (r < .38) { jam = { have: 0, need: 8, side: 0 }; balTry(() => { sfx.miss(); shake(7, .3); }); }
-        else if (r < .58) { bubble = { at: elapsed, life: 2.8, seed: Math.random() * 6, fakes: Math.random() < .5 ? [Math.random() * 6, Math.random() * 6] : [] }; balTry(() => sfx.blip(14)); }
-        else if (r < .8) { dial = { at: elapsed, life: 3.2, seed: Math.random() * 6, zone: .3 + Math.random() * .4, w: .2 }; balTry(() => sfx.blip(10)); }
-        else { seq = { at: elapsed, life: 4, i: 0, keys: [0, 1, 2].map(() => Math.floor(Math.random() * 3)) }; balTry(() => sfx.blip(12)); }
-      }
-      if (bubble && elapsed - bubble.at > bubble.life) { bubble = null; nextTrapIn(); }
-      if (dial && elapsed - dial.at > dial.life) { dial = null; nextTrapIn(); }
-      if (seq && elapsed - seq.at > seq.life) { seq = null; nextTrapIn(); }
-      if (fly && elapsed - fly.at > fly.life) { fly = null; nextTrapIn(); }
+      traps.update(dt);
     }
     if (!mine && R.mode === 'balloon' && taps && !pumping && elapsed - sentAt > .22) {
       const count = taps; taps = 0; pumping = true; sentAt = elapsed;
@@ -386,7 +426,7 @@ function partyWrapGame(base, R, sp) {
     }
   };
   const drawPumpUI = current => {
-    const e = current.extra, m = me(), turnN = (e.turn || {})[party.you.id] || 0, totalN = (e.contrib || {})[party.you.id] || 0, turboOn = turbo > elapsed, rate = tapLog.length;
+    const e = current.extra, m = me(), turnN = (e.turn || {})[party.you.id] || 0, totalN = (e.contrib || {})[party.you.id] || 0, turboOn = traps.turboOn(), rate = tapLog.length;
     box3(488, 122, 104, 344, '#2b2845', 3, 3);
     txt('YOUR AIR', 540, 142, 14, '#FFE14D', 'center', 96);
     claude(540, 232 - pumpKick * 6, 3.2, { col: m.color, mood: rate > 4 ? 'happy' : null });
@@ -395,12 +435,10 @@ function partyWrapGame(base, R, sp) {
     if (combo >= 10) { const fl = Math.sin(now * 20) * 3; ctx.fillStyle = '#FF9A3D'; ctx.beginPath(); ctx.moveTo(516, 400); ctx.quadraticCurveTo(522, 368 + fl, 540, 358 - fl); ctx.quadraticCurveTo(558, 368 - fl, 564, 400); ctx.closePath(); ctx.fill(); ctx.fillStyle = '#FFE14D'; ctx.beginPath(); ctx.moveTo(526, 400); ctx.quadraticCurveTo(540, 374 + fl, 554, 400); ctx.closePath(); ctx.fill(); }
     txt('COMBO', 540, 358, 11, '#fff', 'center', 96); txt('x' + combo, 540, 384, 26, combo >= 10 ? INK : '#fff', 'center', 96);
     txt(t('{n}/s', { n: rate }), 540, 410, 13, '#9fe3ff', 'center', 96);
-    const ready = charges > 0 && elapsed - sabAt >= 3, tgs = sabTargets(), tg = tgs[sabIdx % Math.max(1, tgs.length)];
-    if (tg) button(492, 414, 96, 20, tg.name, () => { sabIdx++; }, { size: 11, fill: tg.color });
-    button(492, 436, 96, 28, ready ? t('SABOTAGE x{n}', { n: charges }) : t('SAB: {n}/3', { n: charges }), () => sab(), { size: 12, fill: ready ? '#FF9A3D' : '#d3cfe0' });
+    sabPicker(ch, 492, 414, 96);
     box3(12, 484, 580, 104, '#2b2845', 4, 4);
-    const stuck = jam || stall > elapsed, kick = pumpKick * 6, face = stuck ? '#d3cfe0' : turboOn ? '#ffd23f' : '#4fd06a', base = stuck ? '#8f88a6' : turboOn ? '#c99512' : '#24803a';
-    ctx.save(); if (stuck && jamShake > 0) ctx.translate(Math.sin(now * 90) * 4, 0);
+    const stuck = traps.stuck(), kick = pumpKick * 6, face = stuck ? '#d3cfe0' : turboOn ? '#ffd23f' : '#4fd06a', base = stuck ? '#8f88a6' : turboOn ? '#c99512' : '#24803a';
+    ctx.save(); if (stuck && traps.shaking()) ctx.translate(Math.sin(now * 90) * 4, 0);
     box(22, 500, 188, 80, base, 4); box(22, 492 + kick, 188, 80, face, 4);
     ctx.fillStyle = 'rgba(255,255,255,.45)'; ctx.fillRect(26, 496 + kick, 180, 8);
     box(174, 540 + kick, 16, 24, '#c9ced6', 3); box(160, 520 + kick * 2.2, 44, 8, '#8f9cb3', 3); box(179, 526 + kick * 2.2, 6, 16, '#8f9cb3', 1);
@@ -408,38 +446,8 @@ function partyWrapGame(base, R, sp) {
     box(40, 538 + kick, 112, 24, '#fff', 3); txt('SPACE / TAP', 96, 551 + kick, 13, INK, 'center', 104);
     ctx.restore();
     btns.push({ x: 22, y: 492, w: 188, h: 88, fn: tap });
-    const mx = 222, mw = 362, cxm = mx + mw / 2;
-    if (jam) {
-      box(mx, 492, mw, 88, Math.sin(now * 12) > 0 ? '#7a1f2e' : '#5a1626', 3);
-      txt('VALVE JAMMED!', cxm, 510, 21, '#FFE14D', 'center', 340);
-      ctx.fillStyle = '#14101c'; ctx.fillRect(mx + 14, 522, mw - 28, 12); ctx.fillStyle = '#5CFF7A'; ctx.fillRect(mx + 14, 522, (mw - 28) * jam.have / jam.need, 12);
-      button(mx + 14, 542, mw / 2 - 18, 36, '< A / LEFT', () => wiggle(-1), { size: 18, fill: jam.side !== -1 ? '#FFE14D' : '#d3cfe0' });
-      button(mx + mw / 2 + 4, 542, mw / 2 - 18, 36, 'D / RIGHT >', () => wiggle(1), { size: 18, fill: jam.side !== 1 ? '#FFE14D' : '#d3cfe0' });
-    } else if (fly) {
-      const age = elapsed - fly.at, fx = cxm + Math.sin(age * 3.1 + fly.seed) * 140 + Math.sin(age * 9) * 12, fy = 536 + Math.sin(age * 4.7 + fly.seed) * 24;
-      box(mx, 492, mw, 88, '#322d52', 3); txt('A FLY! HALF YOUR PUMPS FAIL · SWAT IT! TAP / ENTER', cxm, 508, 13, '#FF9A3D', 'center', 345);
-      ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(mx + 14, 548); ctx.lineTo(mx + mw - 26, 548); ctx.strokeStyle = INK; ctx.lineWidth = 14; ctx.stroke(); ctx.strokeStyle = '#c9ced6'; ctx.lineWidth = 7; ctx.stroke();
-      ctx.fillStyle = INK; ctx.beginPath(); ctx.ellipse(fx, fy, 11, 7, 0, 0, 7); ctx.fill(); ctx.fillStyle = 'rgba(255,255,255,.8)'; const fl = Math.sin(now * 60) * 5; ctx.beginPath(); ctx.ellipse(fx - 5, fy - 8, 7, 4 + fl * .4, -.5, 0, 7); ctx.ellipse(fx + 5, fy - 8, 7, 4 - fl * .4, .5, 0, 7); ctx.fill();
-      btns.unshift({ x: fx - 34, y: fy - 34, w: 68, h: 68, fn: swat });
-    } else if (dial) {
-      const age = elapsed - dial.at, tx = mx + 30, tw = mw - 60, pos = dialPos();
-      box(mx, 492, mw, 88, '#3b3550', 3); txt('STOP IN THE GREEN! TAP / ENTER / W', cxm, 508, 14, '#FFE14D', 'center', 340);
-      box(tx, 522, tw, 22, '#14101c', 3); ctx.fillStyle = '#5CFF7A'; ctx.fillRect(tx + tw * (dial.zone - dial.w / 2), 524, tw * dial.w, 18);
-      ctx.fillStyle = age > dial.life * .75 ? '#FF4D5E' : '#fff'; ctx.beginPath(); ctx.moveTo(tx + tw * pos, 548); ctx.lineTo(tx + tw * pos - 9, 562); ctx.lineTo(tx + tw * pos + 9, 562); ctx.closePath(); ctx.fill(); ctx.fillRect(tx + tw * pos - 2, 520, 4, 26);
-      button(cxm - 70, 548, 140, 32, 'STOP!', dialStop, { size: 20, fill: '#5CFF7A' });
-    } else if (seq) {
-      box(mx, 492, mw, 88, '#3b3550', 3); txt('COPY THE ARROWS!', cxm, 508, 15, '#FFE14D', 'center', 340);
-      const tri = (x, y, d, col) => { ctx.fillStyle = col; ctx.strokeStyle = INK; ctx.lineWidth = 3; ctx.beginPath(); if (d === 0) { ctx.moveTo(x + 11, y - 11); ctx.lineTo(x - 11, y); ctx.lineTo(x + 11, y + 11); } else if (d === 1) { ctx.moveTo(x - 11, y + 10); ctx.lineTo(x, y - 12); ctx.lineTo(x + 11, y + 10); } else { ctx.moveTo(x - 11, y - 11); ctx.lineTo(x + 11, y); ctx.lineTo(x - 11, y + 11); } ctx.closePath(); ctx.stroke(); ctx.fill(); };
-      seq.keys.forEach((d, i) => { const x = cxm + (i - 1) * 56; box(x - 22, 518, 44, 34, i < seq.i ? '#5CFF7A' : i === seq.i ? '#FFE14D' : '#d3cfe0', 3); tri(x, 535, d, INK); });
-      [0, 1, 2].forEach(d => { const x = mx + 14 + d * ((mw - 28) / 3); button(x, 558, (mw - 28) / 3 - 8, 22, '', () => seqPress(d), { fill: '#fff' }); tri(x + ((mw - 28) / 3 - 8) / 2, 569, d, '#4fd06a'); });
-    } else if (bubble) {
-      const age = elapsed - bubble.at, u = Math.min(1, age / bubble.life), bx = mx + 60 + (mw - 120) * (.5 + .5 * Math.sin(bubble.seed + age * 2.2)), by = 548 + Math.sin(age * 5 + bubble.seed) * 8;
-      box(mx, 492, mw, 88, '#3b3550', 3); txt('GOLD BUBBLE! TAP IT / ENTER', cxm, 506, 14, '#FFE14D', 'center', 340);
-      ctx.strokeStyle = u > .7 ? '#FF4D5E' : '#FFE14D'; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(bx, by, 32, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (1 - u)); ctx.stroke();
-      (bubble.fakes || []).forEach((sd, i) => { const fx = mx + 60 + (mw - 120) * (.5 + .5 * Math.sin(sd + age * (1.6 + i * .7))), fy = 548 + Math.sin(age * 4 + sd) * 8; circ(fx, fy, 20, '#9a98ad', 3); txt('x0', fx, fy + 3, 15, INK, 'center', 30); btns.push({ x: fx - 30, y: fy - 30, w: 60, h: 60, fn: () => { bubble = null; failTrap('FAKE!'); } }); });
-      circ(bx, by, 22, '#FFD23F', 4); ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.beginPath(); ctx.ellipse(bx - 8, by - 9, 5, 8, -.5, 0, 7); ctx.fill(); txt('x2', bx + 2, by + 3, 18, INK, 'center', 30);
-      btns.unshift({ x: bx - 36, y: by - 36, w: 72, h: 72, fn: hitBubble });
-    } else {
+    traps.draw(222, 492, 362, (mx, y, mw) => {
+      const cxm = mx + mw / 2;
       box(mx, 492, mw, 88, '#322d52', 3);
       txt(t('{n}/s', { n: rate }), mx + 12, 510, 15, '#9fe3ff', 'left', 80);
       if (combo > 1) txt(t('COMBO x{n}', { n: combo }), mx + mw - 12, 510, 17, combo >= 10 ? '#FF9A3D' : '#fff', 'right', 160);
@@ -448,42 +456,24 @@ function partyWrapGame(base, R, sp) {
       for (let i = 0; i < 8; i++) { const x = mx + 18 + ((now * (70 + rate * 45) + i * 44) % (mw - 56)); ctx.globalAlpha = rate ? .95 : .3; circ(x, 540, turboOn ? 6 : 4, turboOn ? '#fff3a0' : '#9fe3ff', 1.5); } ctx.globalAlpha = 1;
       ctx.fillStyle = INK; ctx.beginPath(); ctx.moveTo(mx + mw - 30, 526); ctx.lineTo(mx + mw - 8, 540); ctx.lineTo(mx + mw - 30, 554); ctx.closePath(); ctx.fill();
       if (turboOn) {
-        ctx.fillStyle = 'hsl(' + Math.round(now * 300 % 360) + ',90%,60%)'; ctx.fillRect(mx + 14, 518, (mw - 28) * Math.max(0, (turbo - elapsed) / 4), 8);
-        txt(t('TURBO x2 · {n}s', { n: Math.ceil(turbo - elapsed) }), cxm, 573, 15, '#FFE14D', 'center', 340);
-      } else if (nextTrap - elapsed < 1.2) { ctx.globalAlpha = .5 + .5 * Math.sin(now * 16); txt('HEADS UP!', cxm, 573, 16, '#FF4D5E', 'center', 340); ctx.globalAlpha = 1; }
+        ctx.fillStyle = 'hsl(' + Math.round(now * 300 % 360) + ',90%,60%)'; ctx.fillRect(mx + 14, 518, (mw - 28) * Math.max(0, traps.turboLeft() / 4), 8);
+        txt(t('TURBO x2 · {n}s', { n: Math.ceil(traps.turboLeft()) }), cxm, 573, 15, '#FFE14D', 'center', 340);
+      } else if (traps.soon()) { ctx.globalAlpha = .5 + .5 * Math.sin(now * 16); txt('HEADS UP!', cxm, 573, 16, '#FF4D5E', 'center', 340); ctx.globalAlpha = 1; }
       else txt('KEEP TAPPING! TRAPS ARE COMING', cxm, 573, 14, '#c9c6e0', 'center', 340);
-    }
-    if (trapFlash > 0) { ctx.fillStyle = 'rgba(255,255,255,' + (trapFlash * .5).toFixed(2) + ')'; ctx.fillRect(mx, 492, mw, 88); }
-  };
-  const drawSab = () => {
-    if (!sabotage) return;
-    const age = now - sabotage.at, life = 3.4; if (age > life) { sabotage = null; return; }
-    const sd = sabotage.seed, k = sabotage.k; ctx.save(); ctx.globalAlpha = Math.max(0, Math.min(1, age / .25, (life - age) / .6));
-    if (k === 'ink') for (let i = 0; i < 6; i++) {
-      const x = 110 + (sd * 37 + i * 173) % 580, y = 90 + (sd * 91 + i * 131) % 420, r = 38 + (i * 13) % 30, g = Math.min(1, age / .3);
-      ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(x, y, r * g, 0, 7); for (let j = 0; j < 6; j++) { const a = j * 1.05 + i; ctx.moveTo(x + Math.cos(a) * r * 1.3 * g + 12, y + Math.sin(a) * r * 1.3 * g); ctx.arc(x + Math.cos(a) * r * 1.3 * g, y + Math.sin(a) * r * 1.3 * g, r * .28 * g, 0, 7); } ctx.fill();
-      ctx.fillRect(x - 6, y, 12, 30 + Math.min(80, age * 40 + i * 6));
-    }
-    else if (k === 'fog') { ctx.fillStyle = 'rgba(232,238,255,.8)'; ctx.fillRect(0, 0, W, H); ctx.fillStyle = 'rgba(255,255,255,.9)'; for (let i = 0; i < 9; i++) { ctx.beginPath(); ctx.arc((i * 120 + now * 40) % 900 - 50, 80 + (i * 67) % 460, 90, 0, 7); ctx.fill(); } }
-    else if (k === 'dark') { ctx.fillStyle = 'rgba(8,6,20,' + (.62 + Math.sin(now * 3) * .2).toFixed(2) + ')'; ctx.fillRect(0, 0, W, H); }
-    else for (let i = 0; i < 16; i++) {
-      const x = (sd * 50 + i * 57 + Math.sin(now * (1.5 + i % 3) + i) * 90 + 800) % 800, y = (i * 83 + Math.cos(now * (1.2 + i % 4) + i) * 70 + 600) % 600;
-      ctx.fillStyle = INK; ctx.beginPath(); ctx.ellipse(x, y, 16, 11, 0, 0, 7); ctx.fill(); ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.beginPath(); ctx.ellipse(x - 6, y - 12, 11, 6 + Math.sin(now * 50 + i) * 3, -.5, 0, 7); ctx.ellipse(x + 6, y - 12, 11, 6 - Math.sin(now * 50 + i) * 3, .5, 0, 7); ctx.fill();
-    }
-    ctx.restore();
+    });
   };
   g.draw = gameTime => {
-    const current = party.room;
+    const current = party.room, hit = ch && ch.active(), fxFull = !mine ? sabBegin(hit, ctx, 'full') : null;   // a helper's whole screen takes the hit (shake, ink, pixels...)
     bg('#26304b', '#392d59', now);
     const bez = balloon ? balMix(actor.color, '#ff3b3b', (partyBalloonShown(current) - .7) / .3) : actor.color;
-    if (balloon && !mine) { box(10, 118, 472, 358, '#14101c', 5); box(14, 122, 464, 350, bez, 4); }
+    if (watcher) { box(10, 118, 472, 358, '#14101c', 5); box(14, 122, 464, 350, bez, 4); }
     else { box(6, 115, 594, 448, '#14101c', 5); box(12, 120, 584, 440, bez, 4); }
     // Chunky television bezel keeps the microgame and the surrounding party props in one stage.
     circ(590, 110, 5, '#7BD88F', 0);
     ctx.save(); ctx.beginPath(); ctx.rect(view.x, view.y, view.w, view.h); ctx.clip();
     ctx.translate(view.x, view.y); ctx.scale(view.scale, view.scale);
     if (mine) {
-      partyGameScope(() => { base.draw(gameTime); if (typeof drawParts === 'function') drawParts(); drawSab(); }, pointer);
+      partyGameScope(() => { const fx = sabBegin(hit, ctx, 'view'); try { base.draw(gameTime); if (typeof drawParts === 'function') drawParts(); } finally { sabEnd(fx); } }, pointer);
       // Capture the actor's rendered game before darkness and controls. Helpers never simulate RNG or outcomes.
       if (elapsed - frameAt >= partyFrameGap() && !capture.partyEncoding && capture.getContext && capture.toDataURL) {
         frameAt = elapsed;
@@ -502,15 +492,17 @@ function partyWrapGame(base, R, sp) {
         mask.globalCompositeOperation = 'source-over'; ctx.drawImage(dark, 0, 0);
       }
     } else {
+      const fx = sabBegin(hit, ctx, 'tv');
       ctx.fillStyle = '#19172d'; ctx.fillRect(0, 0, W, H);
       if (frame) ctx.drawImage(frame, 0, 0, W, H);
       if (!frame || now - frameTime > 3) txt('CONNECTING TO THE PLAYER...', 400, 300, 28, '#FFE14D', 'center', 740);
       if (R.mode === 'lantern') { ctx.strokeStyle = me().color; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(lx, ly, 125, 0, Math.PI * 2); ctx.stroke(); }
+      sabEnd(fx);
     }
     ctx.restore();
     txt(instruction, 302, 28, 24, '#FFE14D', 'center', 550);
     txt(t('{name} IS PLAYING', { name: actor.name }), 302, 59, 23, actor.color, 'center', 560);
-    if (mine) { if (sabotage) { ctx.globalAlpha = .6 + .4 * Math.sin(now * 14); txt(t('{name} SABOTAGES YOU!', { name: sabotage.name.toUpperCase() }), 302, 89, 19, '#FF9A3D', 'center', 552); ctx.globalAlpha = 1; } else txt(base.hint || '', 302, 89, 17, '#fff', 'center', 552); }
+    if (mine) { if (hit) { ctx.globalAlpha = .6 + .4 * Math.sin(now * 14); txt(t('{name} SABOTAGES YOU!', { name: hit.name.toUpperCase() }), 302, 89, 19, '#FF9A3D', 'center', 552); ctx.globalAlpha = 1; } else txt(base.hint || '', 302, 89, 17, '#fff', 'center', 552); }
     const seconds = mine ? Math.max(0, base.dur / Math.sqrt(sp) - gameTime) : Math.max(0, sharedTime - (now - sharedClockAt));
     const clockDuration = mine ? base.dur / Math.sqrt(sp) : sharedDuration;
     txt(modeLabel(R.mode), 692, 28, 19, '#FFE14D', 'center', 168);
@@ -518,7 +510,8 @@ function partyWrapGame(base, R, sp) {
     if (R.mode === 'lantern') txt(t('{n} TEAM LIVES', { n: current.lives }), 692, 97, 16, '#7BD88F', 'center', 168);
     box(16, 107, 576, 6, '#14101c', 0);
     box(16, 107, 576 * Math.max(0, Math.min(1, seconds / clockDuration)), 6, seconds < 2 ? '#F28CB1' : '#7BD88F', 0);
-    if (!balloon) {
+    const cardWatch = cards && !mine;
+    if (!balloon && !cardWatch) {
       txt(mine ? 'YOU PLAY' : R.mode === 'lantern' ? 'YOU LIGHT' : 'YOU STEAL', 692, 142, 20, '#FFE14D', 'center', 166);
       const teammates = current.players.filter(p => !p.left && p.id !== actor.id);
       txt(mine ? 'YOUR TEAMMATES' : 'HELPER TEAM', 692, 176, 15, '#fff', 'center', 164);
@@ -527,24 +520,22 @@ function partyWrapGame(base, R, sp) {
     if (balloon) {
       partyBalloonSide(current, mine);
       if (!mine) drawPumpUI(current);
-    } else if (R.mode === 'cards') {
+    } else if (cardWatch) {
+      partyCardsSab(ch, kit); partyCardsSteal(current, round);
+      box3(12, 484, 580, 104, '#2b2845', 4, 4);
+      traps.draw(16, 492, 572, (mx, y, mw) => {
+        box(mx, y, mw, 88, '#322d52', 3);
+        if (traps.soon()) { ctx.globalAlpha = .5 + .5 * Math.sin(now * 16); txt('HEADS UP!', mx + mw / 2, y + 44, 26, '#FF4D5E', 'center', 540); ctx.globalAlpha = 1; }
+        else txt('WIN TRAPS TO CHARGE SABOTAGE', mx + mw / 2, y + 44, 20, '#c9c6e0', 'center', 540);
+      });
+    } else if (cards) {   // the player at the table: the pile, and who holds what (watchers have partyCardsSteal)
       txt(t('{n} CARDS AT STAKE', { n: current.extra.pile.length + current.extra.pot }), 692, 305, 19, '#FFE14D', 'center', 168);
       txt(t('{n} MICROGAMES TO GO', { n: current.extra.remaining.length }), 692, 345, 17, '#fff', 'center', 168);
       txt('WIN TO KEEP THE PILE', 692, 396, 15, '#fff', 'center', 168);
-      const attempt = current.extra.stealing && current.extra.stealing[party.you.id];
-      if (!mine && attempt && attempt.round === round) {
-        box(610, 405, 172, 10, '#14101c', 0);
-        ctx.fillStyle = '#B49CFF'; ctx.fillRect(610, 405, 172 * Math.max(0, Math.min(1, 1 - (attempt.readyAt - Date.now()) / 1200)), 10);
-      }
-      txt(!mine && attempt && attempt.round === round ? 'STEALING...' : !mine && current.extra.stolen[party.you.id] === round ? 'CARD STOLEN! WAIT FOR THE NEXT GAME' : 'OTHERS CAN STEAL', 692, 427, 15, '#F28CB1', 'center', 168);
+      txt('OTHERS CAN STEAL', 692, 427, 15, '#F28CB1', 'center', 168);
       for (let i = 2; i >= 0; i--) { box(650 + i * 4, 258 - i * 3, 76, 32, '#B49CFF', 2); }
       txt(current.extra.pile.length + current.extra.pot, 688, 275, 21, INK);
-      current.players.filter(p => !p.left).forEach((p, i) => {
-        const can = !mine && p.id !== party.you.id && p.score > 0 && current.extra.stolen[party.you.id] !== round;
-        const label = t('{name}: {n} CARDS', { name: p.name, n: p.score });
-        if (can) button(608, 444 + i * 32, 176, 31, label, () => partyStartSteal(p.id, round), { size: 15, fill: p.color });
-        else txt(label, 692, 460 + i * 32, 15, p.color, 'center', 168);
-      });
+      current.players.filter(p => !p.left).forEach((p, i) => txt(t('{name}: {n} CARDS', { name: p.name, n: p.score }), 692, 460 + i * 32, 15, p.color, 'center', 168));
     } else {
       txt(mine ? 'YOUR FRIENDS MOVE THE LIGHT' : 'MOVE THE LIGHT', 692, 310, 19, '#FFE14D', 'center', 166);
       txt(mine ? 'PLAY INSIDE THE LIGHT' : 'MOUSE / TOUCH', 692, 344, 16, '#fff', 'center', 166);
@@ -553,36 +544,39 @@ function partyWrapGame(base, R, sp) {
       txt('WIN TOGETHER', 692, 470, 18, '#7BD88F', 'center', 168);
     }
     if (!mine && !canSab) txt(g.hint, 400, 580, 17, '#fff', 'center', 770);
-    if (canSab && !(balloon && !mine)) drawSabStrip();
-    if (!mine) drawSab();
+    if (canSab && !watcher) sabStrip(ch);
+    sabEnd(fxFull);
   };
   for (const type of ['move', 'down', 'up', 'key', 'keyup']) g[type] = data => {
-    if (mine) { if (canSab && type === 'key' && data.code === 'KeyQ' && !data.repeat) sab(); else invoke(type, data); }
+    if (mine) { if (canSab && type === 'key' && data.code === 'KeyQ' && !data.repeat) ch.send(); else invoke(type, data); }
     else if (R.mode === 'lantern') {
       if ((type === 'move' || type === 'down') && inside(data)) { const p = localPoint(data); lx = p.x; ly = p.y; }
       if (type === 'key' || type === 'keyup') held[data.code] = type === 'key';
-    } else if (R.mode === 'cards' && type === 'key' && !data.repeat && data.code === 'KeyE') sab();
-    else if (balloon && type === 'key' && !data.repeat) {
-      const c = data.code, d = c === 'ArrowLeft' || c === 'KeyA' ? 0 : c === 'ArrowUp' || c === 'KeyW' ? 1 : c === 'ArrowRight' || c === 'KeyD' ? 2 : -1;
+    } else if (cards && type === 'key' && !data.repeat) {   // a watcher: a trap may take the key, then E throws a sabotage and R changes the target
+      if (traps.key(data.code)) { /* a trap took the key */ }
+      else if (data.code === 'KeyE') ch.send();
+      else if (data.code === 'KeyR') ch.next();
+    } else if (balloon && type === 'key' && !data.repeat) {
+      const c = data.code;
       if (c === 'Space' || c === 'ArrowDown') tap();
-      else if (jam && d !== 1 && d >= 0) wiggle(d - 1);
-      else if (seq && d >= 0) seqPress(d);
-      else if (dial && (c === 'Enter' || d === 1)) dialStop();
-      else if (c === 'KeyE') sab();
-      else if (c === 'KeyR') sabIdx++;
-      else if (fly && (c === 'Enter' || c === 'KeyF')) swat();
-      else if (c === 'Enter') hitBubble();
+      else if (traps.key(c)) { /* a trap took the key */ }
+      else if (c === 'KeyE') ch.send();
+      else if (c === 'KeyR') ch.next();
     }
   };
   return g;
 }
 // Passive spectators watch rendered pixels; the game keeps its original input, state and DUO channel.
+// In SURVIVAL and KNOCKOUT the living also take the ghosts' sabotage, in VERSUS the soft sabotage of players who already finished, in TEAM their cheers: it covers the game (and so the frames the spectators see)
+// and a pill says who did it (js/party-ghost.js, js/party-wait.js).
 function partySpectatorGame(base, R, sp) {
   if (base.partyScene || base.partyDraw || typeof base.draw !== 'function') return base;
-  const draw = base.draw;
+  const draw = base.draw, haunted = partyGhostReceiver(R) || partyWaitReceiver(R);
   let capture = null, frameAt = -Infinity;
   base.draw = function (...args) {
-    const value = draw.apply(this, args);
+    const fx = haunted ? sabBegin(haunted.active(), ctx, 'view') : null;
+    let value; try { value = draw.apply(this, args); } finally { sabEnd(fx); }
+    if (haunted) { partyGhostBanner(haunted.active()); if (haunted.after) haunted.after(); }   // after(): a teammate's cheer (TEAM)
     if (typeof partySendFrame !== 'function' || now - frameAt < partyFrameGap() || capture && capture.partyEncoding) return value;
     frameAt = now;
     try {

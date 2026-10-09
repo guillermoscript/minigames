@@ -16,3 +16,6 @@ research/
 *.log
 coverage/
 .claude/
+
+# Rendered marketing clips (scripts/marketing/clip.js)
+marketing-out/

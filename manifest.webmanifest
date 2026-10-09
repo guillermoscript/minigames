@@ -1,7 +1,7 @@
 {
   "id": "./",
-  "name": "Claude Ware",
-  "short_name": "Claude Ware",
+  "name": "MiniCaos",
+  "short_name": "MiniCaos",
   "description": "Fast five-second microgames. Play on your phone or desktop.",
   "start_url": "./",
   "scope": "./",

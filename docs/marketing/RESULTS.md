@@ -7,7 +7,7 @@ Codes, metrics and thresholds are defined in `CONTENT.md` §5. One row per post 
 |---|---|---|---|---|
 | 2026-10-09 (Oct 2-5 window) | ~19 unique players/day (20, 34, 14, 9) | ~2 (1, 6, 0, 1) | not recorded | not recorded |
 
-Notes: from the OpenPanel export API. The game has no `game_start` event; "player" here = unique profile or device with any of `stage_start`, `practice_start`, `challenge_accept`, `party_start`, `microgame_end` that day. Traffic was concentrated on Oct 2-5 (~20-50 visitors/day); the export shows no events on Oct 6-8 and only 3 visitors on Oct 9, which may be a quiet stretch or an API paging quirk, so check the dashboard before treating ~19/day as the steady baseline. Unique players over Oct 1-5: about 60 devices in total, so the +1,000 target is roughly 16x the whole pre-campaign audience.
+Notes: from the OpenPanel export API. The game has no `game_start` event; "player" here = unique profile or device with any of `stage_start`, `practice_start`, `challenge_accept`, `party_start`, `microgame_end` that day. Traffic was concentrated on Oct 2-5 (~20-50 visitors/day); the export shows no events on Oct 6-8 and only 3 visitors on Oct 9, which may be a quiet stretch or an API paging quirk, so check the dashboard before treating ~19/day as the steady baseline.
 
 ## Organic posts
 | Code | Date posted | Body / stage | Length (s) | Views 24 h | Views 72 h | 3-s hold % | Avg % watched | Profile visits | Link clicks (UTM) | Players (game_start) | Shares | Comments | Verdict (WIN/PASS/FAIL) | Next action |

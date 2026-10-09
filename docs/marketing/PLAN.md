@@ -52,3 +52,13 @@ Each format gets at least 2 re-cuts before it's dropped.
 
 ## Results log
 See `RESULTS.md` (created once baseline data exists).
+
+## Progress log
+- **2026-10-09**: branch `rebrand/minicaos`. Caos the bomb (2D + 3D), 5 friends hosting stages 1–5, MiniCaos texts in EN/ES, new icon, og card (`scripts/art/og.js`), Wordle-style grid in shared text, inert Meta Pixel. All unit tests pass. Storage keys `claudeware-*` and the player palette are unchanged on purpose.
+
+## Deploy checklist for minicaos.guille.tech (needs Guille's ok)
+1. DNS: `minicaos.guille.tech` → the same server as the current domain.
+2. Dokploy: add the domain to the app (HTTPS, port 8090). Keep `claudeware.guille.tech` with a **301 redirect, path preserved**, so old challenge and room links keep working.
+3. Google Cloud → OAuth client: add origin `https://minicaos.guille.tech` and redirect URI `https://minicaos.guille.tech/?oauth_callback=google`. Without this, Google sign-in breaks.
+4. OpenPanel: allow the new origin (it already rejects `localhost` with a 401). Without it, the campaign metric goes blind.
+5. Meta: create the Pixel and put its ID in `<meta name="meta-pixel-id">` in `index.html`. Create a custom conversion on `MicrogamePlayed`.

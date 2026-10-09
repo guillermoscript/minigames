@@ -593,7 +593,7 @@ function render() {
         ctx.save(); ctx.translate(W / 2, H / 2 - 20); const sc = 1 + (1 - k) * .8; ctx.scale(sc, sc);
         ctx.rotate(Math.sin(now * 12) * .03); 
         txt(cur.cmd, 0, 0, 130, isBoss ? '#FF4D4D' : '#FFE14D', 'center', 760); txt(hintOf(cur), 0, 95, 34, '#fff', 'center', 760); ctx.restore();
-      } else if (!cur.partyScene) txt(hintOf(cur), W / 2, 36, 24, '#fff', 'center', mode === 'party' ? 350 : 520);
+      } else if (!cur.partyScene) txt(hintOf(cur), W / 2, 36, 24, '#fff', 'center', mode === 'party' ? 350 : mode === 'stage' ? Math.min(520, 408 + 2 * OX) : 520);   // stage: stay between the lives plate and the score plate
     } else {
       const win = outcome === 'win', sc = outT < .14 ? 2.6 - 1.6 * easeOut(outT / .14) : 1 + Math.max(0, .12 - (outT - .14)) * 1.2, lab = t(win ? 'NICE!' : 'FAIL!'), cc = win ? '#5CFF7A' : '#FF4D4D';
       ctx.save(); ctx.translate(W / 2, H / 2); ctx.rotate(-.1); ctx.scale(sc, sc); ctx.globalAlpha = Math.min(1, outT / .06);

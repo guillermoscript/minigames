@@ -120,7 +120,7 @@ Deploying with empty provider keys is fine. When Guille hands over keys (via `.e
 
 Prerequisites: the brand accounts from PLAN.md exist (FB Page, IG **professional** account **linked to that Page**, TikTok, YouTube channel), and Postiz is up at `https://postiz.guille.tech` (Part A).
 
-**Legal pages needed by Meta (Live mode) and TikTok (app review):** a Privacy Policy URL and a Terms URL on HTTPS. The repo has none today. Proposal: the agent adds `https://minicaos.guille.tech/privacy` and `/terms` (a small static page, a separate task).
+**Legal pages needed by Meta (Live mode) and TikTok (app review):** a Privacy Policy URL and a Terms URL on HTTPS. Done: `https://minicaos.guille.tech/privacy/` and `/terms/` (static, EN + ES on one page, `privacy/index.html` and `terms/index.html`). Contact is the Instagram DM @minicaos; add an email there if a review asks for one.
 
 ### B1. Meta app (Facebook Page + Instagram), about 20 min
 1. https://developers.facebook.com/apps/creation/ → pick the business portfolio that owns the MiniCaos Page.

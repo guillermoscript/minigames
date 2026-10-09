@@ -279,7 +279,7 @@ function bakeTilt(FY, PX, HW) {
 }
 
 /* ───────────── 2 SPIN: keep the stack balanced by rotating against its lean ───────────── */
-/* a circus ring: plates on a drum, Claude on top with a parasol, a crowd that reacts */
+/* a circus ring: plates on a drum, Caos on top with a parasol, a crowd that reacts */
 function crowdHead(x, y, s, i, md, lx, T) {
   const skin = ['#f2c29b', '#c98558', '#8a5a3a', '#f7d3b2', '#b9714d', '#e0a47c'][i % 6], shirt = ['#4DB8FF', '#FF8FC8', '#5CFF7A', '#FFE14D', '#a48fdc', '#ff6b6b'][(i * 5 + 2) % 6];
   X.save(); X.translate(x, y); X.scale(s, s);
@@ -373,7 +373,7 @@ reg('tw_spin', sp => {
       X.fillStyle = '#ffd23f'; X.fillRect(-70, PY + 22, 140, 8); X.fillRect(-70, FLOOR - 30, 140, 8); X.strokeStyle = INK; X.lineWidth = 2; X.strokeRect(-70, PY + 22, 140, 8); X.strokeRect(-70, FLOOR - 30, 140, 8); X.restore();
       el(0, PY, 90, 16); ink('#ffd23f', 4); X.fillStyle = 'rgba(255,255,255,.5)'; el(-30, PY - 5, 30, 4, -.1); X.fill();
       for (let i = 0; i < 6; i++) { const a = spinT * 3 + i * Math.PI / 3; X.beginPath(); X.arc(Math.cos(a) * 65, PY + Math.sin(a) * 9, 4, 0, TAU); ink(i % 2 ? '#fff' : '#ff4d5e', 1.8); }
-      // stack of plates (+ Claude with a parasol)
+      // stack of plates (+ Caos with a parasol)
       const plateDraw = (w, col) => { const q = rrP(-w / 2, -11, w, 22, 11); cel(q, col, mix2(col), 3, 5, 4); glint(q, -w * .2, -6, w * .22, 2.5, 'rgba(255,255,255,.6)'); };
       if (!fallen) {
         X.save(); X.translate(0, PY); X.rotate(dr == null ? r : dr);
@@ -386,7 +386,7 @@ reg('tw_spin', sp => {
         X.beginPath(); X.moveTo(-34, -50); X.quadraticCurveTo(0, -92, 34, -50); X.quadraticCurveTo(17, -57, 0, -50); X.quadraticCurveTo(-17, -57, -34, -50); ink('#ff4d5e', 3.5);
         X.fillStyle = '#fff'; X.beginPath(); X.moveTo(-12, -52); X.quadraticCurveTo(0, -80, 12, -52); X.quadraticCurveTo(6, -57, 0, -52); X.quadraticCurveTo(-6, -57, -12, -52); X.fill(); X.restore();
         X.restore();
-        claude(top.x, top.y - 24 + hop, 4.4, { mood: md });
+        caos(top.x, top.y - 24 + hop, 4.4, { mood: md });
         if (win) for (const s of [-1, 1]) line(top.x + s * 22, top.y - 42 + hop, top.x + s * 34, top.y - 66 + hop - Math.sin(oT * 12 + s) * 4, OR, 5);
         else for (const s of [-1, 1]) line(top.x + s * 22, top.y - 38, top.x + s * 40, top.y - 38 - Math.abs(Math.sin(r * 2)) * 3 + (s * a0 > 0 ? 8 : -2), OR, 5);
         if (Math.abs(a0) > .3) sweat(top.x + 14, top.y - 66, c, 0);
@@ -394,7 +394,7 @@ reg('tw_spin', sp => {
       } else {
         for (const p of plates) { X.save(); X.translate(p.x, p.y); X.rotate(p.a); plateDraw(118 - p.i * 8, p.col); X.restore(); }
         if (cl) {
-          X.save(); X.translate(cl.x, cl.y); X.rotate(cl.a); claude(0, 0, 4.4, { mood: 'sad' }); X.restore();
+          X.save(); X.translate(cl.x, cl.y); X.rotate(cl.a); caos(0, 0, 4.4, { mood: 'sad' }); X.restore();
           if (cl.landed) for (let i = 0; i < 3; i++) { const a = c * 5 + i * TAU / 3; spark(cl.x + Math.cos(a) * 24, cl.y - 56 + Math.sin(a) * 6, 7, '#FFE14D', a, 2); }
         }
         if (oT < .8) { X.globalAlpha = clamp(1 - oT / .8, 0, 1); for (let i = 0; i < 5; i++) { const u = oT; X.fillStyle = '#f7d297'; X.beginPath(); X.arc((i - 2) * 46 * (1 + u * 1.4), FLOOR - 6 - u * 24 - (i % 2) * 8, 16 + u * 22, 0, TAU); X.fill(); } X.globalAlpha = 1; }
@@ -717,16 +717,16 @@ reg('tw_dial', sp => {
       const cpx = -176, cpy = 112;
       X.beginPath(); X.arc(cpx, cpy, 10, 0, TAU); ink('#c9ced6', 3.5); X.fillStyle = '#6b778f'; X.beginPath(); X.arc(cpx, cpy, 5, 0, TAU); X.fill();
       X.restore();
-      // Claude the burglar
+      // Caos the burglar
       const ccx = -300, jump = win ? -Math.abs(Math.sin(oT * 9)) * 16 : 0;
       X.fillStyle = 'rgba(20,16,28,.3)'; el(ccx, FLOOR + 6, 50, 11); X.fill();
       // swag sack
       const sk = elP(-352, FLOOR - 24, 26, 26); cel(sk, '#8a5a34', '#5e381d', 4, 6, 4); rr(-362, FLOOR - 56, 20, 10, 4); ink('#8a5a34', 3); X.fillStyle = '#ffd23f'; X.font = '900 22px "Arial Black",sans-serif'; X.textAlign = 'center'; X.textBaseline = 'middle'; X.strokeStyle = INK; X.lineWidth = 4; X.strokeText('$', -352, FLOOR - 24); X.fillText('$', -352, FLOOR - 24);
-      // stethoscope tube from Claude's chest to the door
+      // stethoscope tube from Caos's chest to the door
       const cpt = { x: -195 + (cpx + 195) * sx, y: cpy }, st = { x: ccx + 36, y: FLOOR + jump - 28 }, sag = 36 + (focus ? Math.sin(c * 16) * 2 : 0);
       X.lineCap = 'round'; X.strokeStyle = INK; X.lineWidth = 9; X.beginPath(); X.moveTo(st.x, st.y); X.quadraticCurveTo((st.x + cpt.x) / 2, Math.max(st.y, cpt.y) + sag, cpt.x, cpt.y); X.stroke(); X.strokeStyle = '#4a4458'; X.lineWidth = 4; X.stroke();
       const cm = win ? 'happy' : lose ? 'sad' : null;
-      claude(ccx, FLOOR + jump, 6, { mood: cm });
+      caos(ccx, FLOOR + jump, 6, { mood: cm });
       // beanie + arms
       X.save(); X.translate(0, jump);
       rr(ccx - 6.5 * 6, FLOOR - 9 * 6 - 14, 13 * 6, 20, 9); ink('#2a2230', 4); X.fillStyle = '#fff'; X.fillRect(ccx - 30, FLOOR - 9 * 6 - 2, 60, 5); X.beginPath(); X.arc(ccx, FLOOR - 9 * 6 - 18, 8, 0, TAU); ink('#ff4d5e', 3);

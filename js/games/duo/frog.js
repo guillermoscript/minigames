@@ -67,7 +67,7 @@ function badge(s, x, y, size, bgc, fg, sc, rot) {
   txt(s, 0, 2, size, fg || '#fff', 'center', 250);
   X.restore();
 }
-/* two thin blocky arms from claude()'s side stubs (drawn before claude()); an = angle (0 = up), k = 0..1 raised */
+/* two thin blocky arms from caos()'s side stubs (drawn before caos()); an = angle (0 = up), k = 0..1 raised */
 function arm(u, sx, an, k, col) {
   if (k <= .02) return; const ol = Math.max(3, u * .5), L = 3.3 * u * k, aw = 1.2 * u, hs = 2 * u, gap = .35 * u;
   X.save(); X.translate(sx * 6.6 * u, -5.2 * u); X.rotate(an);
@@ -538,7 +538,7 @@ function duFrog(sp, D) {
     { const bx = 104, by = 502 - jump, u = 4.4, an = .95 + Math.sin(padA * 3) * .12 * fast + (won ? .5 : 0), hand = handOf(bx, by, u, 1, an, .9), tipP = [236 + Math.sin(padA * 5) * 5, 368];
       shadow(bx, by + 2, 36, 8, .22);
       X.save(); X.translate(bx, by); arm(u, 1, an, .9, sCol); arm(u, -1, -.5 - fast * .4 + (won ? -.6 : 0), .7, sCol); X.restore();
-      claude(bx, by, u, { col: sCol, mood });
+      caos(bx, by, u, { col: sCol, mood });
       if (!won) { line([[hand[0] - (tipP[0] - hand[0]) * .12, hand[1] - (tipP[1] - hand[1]) * .12], tipP], 11, INK); line([[hand[0] - (tipP[0] - hand[0]) * .12, hand[1] - (tipP[1] - hand[1]) * .12], tipP], 5.5, '#d9a066'); el(tipP[0], tipP[1], 9, 5.4); ink('#4db8ff', 2.5); }
       if (fast > .6 && !won) sweat(bx + 28, by - 46, T, 0);
       pill(bx, by - 62 - jump * 0, spin ? 'YOU' : 'YOUR FRIEND', sCol); }
@@ -546,7 +546,7 @@ function duFrog(sp, D) {
     { const bx = 744, by = 502 - jump, u = 4.4, tilt = clamp((aim - AC) / AH, -1, 1), top = [700 - tilt * 15, 462], handP = handOf(bx, by, u, -1, -1.15, .85);
       shadow(bx, by + 2, 36, 8, .22);
       X.save(); X.translate(bx, by); arm(u, -1, -1.15 + (won ? -.7 : 0), .85, tCol); arm(u, 1, .5 + (won ? .6 : 0), .6, tCol); X.restore();
-      claude(bx, by, u, { col: tCol, mood });
+      caos(bx, by, u, { col: tCol, mood });
       rr(656, 486, 82, 26, 6); ink(WOOD2, 3.5); rr(656, 484, 82, 18, 6); ink(WOOD, 3.5); X.fillStyle = WOODL; X.fillRect(662, 487, 70, 3);
       const pr = tip0 || (fl && T - fl.t0 < T_END) ? 1 : 0;
       if (!won) { line([[700, 486], top], 9, INK); line([[700, 486], top], 4.5, '#cfd8e6'); X.beginPath(); X.arc(top[0], top[1], 11, 0, TAU); ink('#ff4d5e', 3); X.fillStyle = 'rgba(255,255,255,.55)'; el(top[0] - 3, top[1] - 4, 3.6, 2.4, -.5); X.fill(); }

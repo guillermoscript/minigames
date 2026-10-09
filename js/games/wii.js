@@ -36,7 +36,7 @@ const WIK = (() => {
     X.save(); X.globalAlpha = clamp(a, 0, 1); X.translate(x, y); X.scale(s, s); X.lineJoin = 'round'; X.lineCap = 'round';
     X.beginPath(); X.moveTo(-6, -7); X.lineTo(6, -7); X.lineTo(-6, 7); X.lineTo(6, 7); X.lineWidth = 9; X.strokeStyle = INK; X.stroke(); X.lineWidth = 4; X.strokeStyle = '#fff'; X.stroke(); X.restore();
   };
-  /* blocky Claude arms (hippo.js): call with the origin at Claude's feet, before claude() */
+  /* blocky Caos arms (hippo.js): call with the origin at Caos's feet, before caos() */
   K.arms = (u, la, ra, k = 1, col = OR) => {
     if (k <= .02) return; const ol = Math.max(3, u * .5), L = 3.3 * u * k, aw = 1.2 * u, hs = 2 * u, gap = .35 * u;
     const one = (sx, an) => {
@@ -119,7 +119,7 @@ const WIK = (() => {
     if (k > 0) { X.fillStyle = col; X.fillRect(x, y + h - k * h, w, k * h + 2); X.fillStyle = 'rgba(255,255,255,.4)'; X.fillRect(x + w * .14, y + h - k * h, w * .22, k * h); }
     X.restore(); X.fillStyle = 'rgba(255,255,255,.55)'; rr(x + w * .16, y + 8, w * .2, h - 16, w * .1); X.fill();
   };
-  /* a cowboy / helmet style dome hat sitting on Claude's head: x, y = top of the head */
+  /* a cowboy / helmet style dome hat sitting on Caos's head: x, y = top of the head */
   K.dome = (x, y, hw, h, col, shade, o = 4) => celF(() => { X.beginPath(); X.moveTo(x - hw, y + 2); X.quadraticCurveTo(x - hw, y - h * 1.25, x, y - h * 1.25); X.quadraticCurveTo(x + hw, y - h * 1.25, x + hw, y + 2); X.closePath(); }, col, shade, hw * .14, h * .12, o);
   K.pigeon = (x, y, s, dir, T, mood = 0) => {   // mood 0 walk, 1 scared (wings out)
     X.save(); X.translate(x, y); X.scale(s * dir, s);
@@ -243,7 +243,7 @@ function wiiSave(sp) {
         X.save(); X.translate(hx, 538 - hop);
         const lift = stretch * .25 - (falling && P.y > 330 ? .1 : 0);
         K.arms(5, -lift + (s < 0 ? .05 : -.2), lift + (s < 0 ? .2 : -.05), 1);
-        claude(0, 0, 5, { mood: wiiMood(g) });
+        caos(0, 0, 5, { mood: wiiMood(g) });
         K.dome(0, -45, 31, 16, '#ffd23f', '#d9a31a', 3);
         rr(-36, -47, 72, 8, 4); ink('#ffb21e', 3); X.fillStyle = '#ff4d5e'; rr(-5, -66, 10, 14, 3); X.fill(); K.glintE(-12, -57, 8, 3, .6, -.3);
         if (!won && !lost && falling) K.sweat(s * 38, -42, .9, tt + s);
@@ -263,15 +263,15 @@ function wiiSave(sp) {
         if (falling) { X.strokeStyle = 'rgba(255,255,255,.7)'; X.lineWidth = 4; X.lineCap = 'round'; X.beginPath(); for (let i = -1; i <= 1; i++) { X.moveTo(jx + i * 22, jy - 70 - Math.abs(i) * 10); X.lineTo(jx + i * 22, jy - 110 - Math.abs(i) * 14); } X.stroke(); }
         X.save(); X.translate(jx, jy); X.rotate(rot); const sq = Math.min(.22, Math.abs(P.vy) / 3200) - stretch * .12; X.scale(1 - sq * .6, 1 + sq);
         K.arms(4.4, -2.6 + Math.sin(tt * 22) * .2, 2.6 - Math.sin(tt * 22) * .2, falling ? 1 : .0);
-        X.translate(0, 22); claude(0, 0, 4.4, { mood: won ? 'happy' : null }); X.restore();
+        X.translate(0, 22); caos(0, 0, 4.4, { mood: won ? 'happy' : null }); X.restore();
         if (falling) K.sweat(jx + 30, jy - 8, 1, tt);
         if (won) for (let i = 0; i < 3; i++) { const q = (rk * 1.6 + i / 3) % 1; K.heart(jx + (i - 1) * 36, jy - 30 - q * 70, .8, 1 - q); }
       } else {
-        // the crater: a flat Claude in a hole, stars and dust
+        // the crater: a flat Caos in a hole, stars and dust
         const cxp = P.x, k = ease(rk * 6);
         X.fillStyle = INK; el(cxp, 541, 46 * k, 10 * k); X.fill();
         X.strokeStyle = INK; X.lineWidth = 4; X.lineCap = 'round'; X.beginPath(); for (let i = 0; i < 6; i++) { const a = -.2 - i * .55, l = (30 + (i % 2) * 18) * k; X.moveTo(cxp + Math.cos(a) * 46 * k, 541 + Math.sin(a) * 9 * k); X.lineTo(cxp + Math.cos(a) * (46 * k + l), 541 + Math.sin(a) * (9 * k + l * .35)); } X.stroke();
-        X.save(); X.translate(cxp, 543); X.scale(1.5, .3 + (1 - k) * .7); claude(0, 0, 4.4, { mood: 'sad' }); X.restore();
+        X.save(); X.translate(cxp, 543); X.scale(1.5, .3 + (1 - k) * .7); caos(0, 0, 4.4, { mood: 'sad' }); X.restore();
         for (let i = 0; i < 3; i++) { const a = rk * 5 + i * TAU / 3; K.star(cxp + Math.cos(a) * 34, 508 + Math.sin(a) * 7, 9, 4, 5, a, '#FFE14D', 2.5); }
         K.puff(cxp - 46 - rk * 40, 530, 14 * (1 - clamp(rk, 0, 1) * .5), 1 - rk * 1.2); K.puff(cxp + 46 + rk * 40, 530, 14 * (1 - clamp(rk, 0, 1) * .5), 1 - rk * 1.2);
         K.badge('SPLAT!', clamp(cxp, 120, W + OX - 120), 455, 34, '#ff4d5e', '#fff', outBack(rk / .25), -.05);
@@ -395,13 +395,13 @@ function wiiZap(sp) {
         K.celE(ex, ey - 6 * k, 34 + k * 110, 34 + k * 110, '#fff', '#dfe3f3', 8, 8, 5); X.fillStyle = INK; el(ex + (62 - ex) * .05, ey, 15 + k * 50, 15 + k * 50); X.fill(); X.fillStyle = '#fff'; el(ex - 6 - k * 12, ey - 8 - k * 14, 5 + k * 12, 4 + k * 10); X.fill();
         X.beginPath(); X.moveTo(ex - 40 - k * 60, ey + 40 + k * 70); X.quadraticCurveTo(ex, ey + 60 + k * 120, ex + 40 + k * 60, ey + 40 + k * 70); X.lineWidth = 6 + k * 6; X.strokeStyle = INK; X.stroke();
       }
-      // Claude with the zapper, left of the doors
+      // Caos with the zapper, left of the doors
       const cx = 62, cy = 535, aimA = clamp(Math.atan2(ly - (cy - 45), lx - (cx + 40)), -1.2, .6);
       const aim = laser > 0 || (!lost && mouse.x > cx) ? (laser > 0 ? aimA : clamp(Math.atan2(mouse.y - (cy - 45), mouse.x - (cx + 40)), -1.2, .6)) : .2;
       K.shade(cx, cy + 3, 40, 8);
       X.save(); X.translate(cx, cy - (won ? Math.abs(Math.sin(rk * 9)) * 18 : 0));
       K.arms(5, lost ? 2.7 : -.3, lost ? 2.4 : aim + Math.PI / 2, 1);
-      claude(0, 0, 5, { mood: wiiMood(g) }); if (!won && !lost) K.sweat(36, -42, .9, now);
+      caos(0, 0, 5, { mood: wiiMood(g) }); if (!won && !lost) K.sweat(36, -42, .9, now);
       const hx = 33 + Math.sin(aim + Math.PI / 2) * 28, hy = -26 - Math.cos(aim + Math.PI / 2) * 28;
       if (!lost) { X.save(); X.translate(hx + 4, hy); X.rotate(aim); K.celR(-6, -8, 34, 16, 6, '#8f9cb3', '#5d6a85', 0, 3, 3); K.celR(-6, 4, 10, 16, 3, '#ff4d5e', '#c22f45', 1, 0, 3); rr(26, -5, 10, 10, 3); ink('#ffe14d', 2.5); if (laser > 0) { K.star(40, 0, 16, 7, 6, now * 20, '#fff3a0', 2.5); } X.restore(); }
       X.restore();
@@ -491,7 +491,7 @@ function wiiDraw(sp) {
         let ra = 3.0 - ant * 1.4 + idle, la = -3.0 - idle;
         if (o.shoot) ra = Math.PI / 2 - .12 + Math.min(1, endT * 8) * .1; else if (o.fall) { ra = 2.2 + Math.sin(tt * 20) * .2; la = -2.2; }
         K.arms(u, la, ra, 1);
-        claude(0, 0, u, { col: o.col, mood: o.mood });
+        caos(0, 0, u, { col: o.col, mood: o.mood });
         // belt + holster, scarf
         rr(-6 * u, -3.6 * u, 12 * u, 1.3 * u, 4); ink('#7a4620', 3); rr(-1.2 * u, -3.7 * u, 2.4 * u, 1.5 * u, 3); ink('#ffd23f', 2.5);
         if (!o.shoot) K.celR(5.4 * u, -4.6 * u, 3 * u, 4.4 * u, 6, '#7a4620', '#5a3216', 2, 0, 3);
@@ -642,11 +642,11 @@ function wiiSneak(sp) {
       const boneK = won ? ease(rk / .2) : 0, bnx = K.lerp(BX, hxp + 26, boneK), bny = K.lerp(470, 494, boneK) - (won ? Math.sin(boneK * Math.PI) * 14 : 0);
       X.save(); X.translate(bnx, bny); X.rotate(-.3); K.line([[-30, 0], [30, 0]], 12, '#fff', 3); for (const [a, b] of [[-34, -8], [-34, 8], [34, -8], [34, 8]]) K.celE(a, b, 10, 10, '#fff', '#dfe3f3', 2, 2, 3); X.restore();
       K.shade(bnx, 486, 36, 7, .22);
-      // Claude and the long arm
+      // Caos and the long arm
       const back = lost ? Math.min(1, rk * 5) : 0, hx2 = K.lerp(hxp, 150, back);
       K.shade(70, 524, 44, 8);
       X.save(); X.translate(70, 520);
-      claude(0, 0, 5.5, { mood: wiiMood(g) });
+      caos(0, 0, 5.5, { mood: wiiMood(g) });
       if (hold && !g.result) K.sweat(40, -50, 1, tt); if (look && hold) K.sweat(-38, -52, 1, tt + .5);
       X.restore();
       K.tag(70, 520 - 5.5 * 9 - 28);
@@ -728,7 +728,7 @@ function wiiUmbrella(sp) {
       const shiver = lost ? Math.sin(now * 50) * 2 * (1 - clamp(rk, 0, 1) * .4) : 0;
       K.shade(400, 504, 70, 10, .3);
       X.save(); X.translate(shiver, 0);
-      claude(400, 500, 9, { col: '#8a8f9e', mood: wiiMood(g) });
+      caos(400, 500, 9, { col: '#8a8f9e', mood: wiiMood(g) });
       X.fillStyle = INK; for (const s of [-1, 1]) { X.beginPath(); X.moveTo(400 + s * 54, 436); X.lineTo(400 + s * 54, 412); X.lineTo(400 + s * 28, 436); X.closePath(); ink('#6e7488', 3.5); }
       rr(346, 466, 108, 10, 3); ink('#5b5f6e', 3); rr(392, 463, 16, 16, 4); ink('#ffd23f', 3);
       for (let i = 0; i < 2; i++) { X.fillStyle = INK; X.beginPath(); X.arc(400, 484 + i * 8, 2.4, 0, TAU); X.fill(); }
@@ -834,10 +834,10 @@ function wiiPop(sp) {
       K.celE(410, 512, 19, 19, '#fff', '#dfe3f3', 2, 2, 3.5); X.strokeStyle = '#ff4d5e'; X.lineWidth = 4; X.beginPath(); X.arc(410, 512, 14, 0.2, 1.1); X.stroke();
       const na = -2.6 + s * 2.8; X.strokeStyle = INK; X.lineWidth = 3.5; X.lineCap = 'round'; X.beginPath(); X.moveTo(410, 512); X.lineTo(410 + Math.cos(na) * 13, 512 + Math.sin(na) * 13); X.stroke();
       K.celR(406, 400 + hy * 70, 8, 94 - hy * 70, 3, '#e6e9f0', '#aab3c4', 2, 0, 3); const hyy = 388 + hy * 70; K.celR(370, hyy, 80, 18, 9, '#ff4d5e', '#c22f45', 0, 4, 4);
-      // Claude pumping, with a long inked arm to the handle
+      // Caos pumping, with a long inked arm to the handle
       const hdx = 372, hdy = hyy + 9;
       K.shade(325, 534, 40, 8);
-      X.save(); X.translate(325, 532); claude(0, 0, 7, { mood: wiiMood(g) }); if (!won && !lost) K.sweat(-36, -52, .9, tt + 1); X.restore();
+      X.save(); X.translate(325, 532); caos(0, 0, 7, { mood: wiiMood(g) }); if (!won && !lost) K.sweat(-36, -52, .9, tt + 1); X.restore();
       if (won) { for (let i = 0; i < 2; i++) { rr(300 + i * 20 - 22, 466 - i * 6, 8, 20, 4); } }
       K.reach(325 + 46, 532 - 36, hdx + 6, hdy, OR, 10, 17);
       K.tag(325, 532 - 7 * 9 - 26);
@@ -860,7 +860,7 @@ function wiiPop(sp) {
         for (let i = 0; i < 8; i++) { const a = i * TAU / 8 + .3, v = 220 + (i % 3) * 70, px = bx + Math.cos(a) * v * q, py = by + 40 + Math.sin(a) * v * q + 500 * q * q; X.save(); X.translate(px, py); X.rotate(q * 9 + i); X.beginPath(); X.moveTo(-10, -7); X.quadraticCurveTo(2, -12, 12, 0); X.quadraticCurveTo(0, 10, -10, -7); ink('#ff5c8a', 2.5); X.restore(); }
         K.badge('BANG!', bx, by + 40, 52, '#ff4d5e', '#fff', outBack(q / .2), -.1);
       }
-      // party hat on Claude's pal, streamers after the pop
+      // party hat on Caos's pal, streamers after the pop
       if (won) for (let i = 0; i < 9; i++) { const a = i * TAU / 9, v = 160 + (i % 3) * 80, q = rk; X.strokeStyle = ['#ff4d5e', '#4DB8FF', '#5CFF7A', '#FFE14D'][i % 4]; X.lineWidth = 5; X.lineCap = 'round'; X.beginPath(); X.moveTo(bx + Math.cos(a) * 30, by + 40 + Math.sin(a) * 30); X.quadraticCurveTo(bx + Math.cos(a) * v * q * .6, by + 40 + Math.sin(a) * v * q * .6 + 40 * q, bx + Math.cos(a) * v * q, by + 40 + Math.sin(a) * v * q + 120 * q * q); X.stroke(); }
       vignette(.16);
     }
@@ -927,12 +927,12 @@ function wiiStrike(sp) {
         const cm = lost ? 'sleep' : won ? 'happy' : 'idle'; K.eye(cx2 - 9, 448, 5, cm, [-.5, .5], now, 6); K.eye(cx2 + 9, 448, 5, cm, [-.5, .5], now, 7);
         X.fillStyle = '#ff8fab'; el(cx2, 456, 3, 2); X.fill(); rr(cx2 - 22, 462, 44, 8, 4); ink('#ff4d5e', 2.5); K.celE(cx2, 474, 7, 7, '#ffd23f', '#d9a31a', 1, 1, 2.5);
         X.save(); X.translate(cx2 + 20, 466); X.rotate(lost ? 0.2 : -1.7 + Math.sin(now * 5) * .35); K.celR(-6, -30, 12, 32, 6, '#fff', '#dfe3f3', 2, 0, 3.5); X.restore(); }
-      // Claude the swordsman
+      // Caos the swordsman
       const sx0 = 156, sy0 = 472, tgt = trail.length ? trail[trail.length - 1] : mouse, aim = clamp(Math.atan2(tgt.y - sy0, tgt.x - sx0), -1.25, -.1);
       K.shade(110, 512, 46, 8);
       X.save(); X.translate(110, 508); const jump = won ? Math.abs(Math.sin(rk * 9)) * 12 : 0; X.translate(0, -jump);
       K.arms(7, lost ? 2.4 : -.4, lost ? -2.4 : aim + Math.PI / 2, 1);
-      claude(0, 0, 7, { mood: wiiMood(g) });
+      caos(0, 0, 7, { mood: wiiMood(g) });
       rr(-6.4 * 7, -9 * 7 + 2, 12.8 * 7, 9, 3); ink('#ff4d5e', 3); X.fillStyle = '#ff4d5e'; X.beginPath(); X.moveTo(6.4 * 7, -9 * 7 + 6); X.quadraticCurveTo(6.4 * 7 + 18, -9 * 7 + 8 + Math.sin(now * 8) * 5, 6.4 * 7 + 30, -9 * 7 + 22 + Math.sin(now * 7) * 8); X.lineWidth = 8; X.strokeStyle = INK; X.stroke(); X.lineWidth = 4; X.strokeStyle = '#ff4d5e'; X.stroke();
       if (!lost) { const hx = 6.6 * 7 + 4.65 * 7 * Math.cos(aim), hy = -5.2 * 7 + 4.65 * 7 * Math.sin(aim); X.save(); X.translate(hx, hy - jump * 0); X.rotate(aim);
         K.line([[0, 0], [58, 0]], 6, '#e6e9f0', 2.5); K.glintE(30, -2, 18, 1.4, .8, 0); rr(-3, -8, 8, 16, 3); ink('#ffd23f', 2.5); K.line([[-4, 0], [-18, 0]], 7, '#3a2a40', 2.5);
@@ -1057,8 +1057,8 @@ function wiiShave(sp) {
       // cape + collar
       X.save(); X.beginPath(); X.moveTo(150, 545); X.quadraticCurveTo(160, 505, 280, 498); X.lineTo(520, 498); X.quadraticCurveTo(640, 505, 650, 545); X.lineTo(650, 560); X.lineTo(150, 560); X.closePath(); ink('#4D6BFF', 5); X.clip(); X.fillStyle = 'rgba(255,255,255,.85)'; for (let x = 140; x < 660; x += 56) X.fillRect(x, 490, 22, 80); X.fillStyle = 'rgba(20,16,28,.2)'; X.fillRect(150, 530, 500, 40); X.restore();
       rr(310, 490, 180, 24, 12); ink('#fff', 4);
-      // the barber (Claude) watching from the right
-      K.shade(700, 540, 40, 8); X.save(); X.translate(700, 538); claude(0, 0, 6, { mood: wiiMood(g) }); if (worried) K.sweat(34, -46, 1, tt); K.celF(() => { X.beginPath(); X.moveTo(-34, -54); X.quadraticCurveTo(-34, -78, 0, -78); X.quadraticCurveTo(34, -78, 34, -54); X.closePath(); }, '#fff', '#dfe3f3', 4, 3, 3.5); rr(-36, -58, 72, 8, 4); ink('#fff', 3); X.restore(); K.tag(700, 538 - 54 - 54);
+      // the barber (Caos) watching from the right
+      K.shade(700, 540, 40, 8); X.save(); X.translate(700, 538); caos(0, 0, 6, { mood: wiiMood(g) }); if (worried) K.sweat(34, -46, 1, tt); K.celF(() => { X.beginPath(); X.moveTo(-34, -54); X.quadraticCurveTo(-34, -78, 0, -78); X.quadraticCurveTo(34, -78, 34, -54); X.closePath(); }, '#fff', '#dfe3f3', 4, 3, 3.5); rr(-36, -58, 72, 8, 4); ink('#fff', 3); X.restore(); K.tag(700, 538 - 54 - 54);
       // razor + glove
       if (mouse.x !== W / 2 || mouse.y !== H / 2) aMoved = true;
       X.save(); X.globalAlpha = aMoved ? 1 : .35; K.shade(mx + 10, my + 8, 22, 6, .2); X.translate(mx, my); X.rotate(-.6);
@@ -1120,9 +1120,9 @@ function wiiFan(sp) {
       K.sun(W + OX - 64, 100, now, 30);
       K.cloud(((now * 8 + 300) % (VW + 260)) - OX - 130, 150, .8); K.cloud(((now * 5 + 40) % (VW + 260)) - OX - 130, 250, .6);
       { const bx = ((now * 45) % (VW + 200)) - OX - 100, by = 200 + Math.sin(now * 2) * 8, f = Math.sin(now * 10) * 5; X.strokeStyle = '#3c6fb4'; X.lineWidth = 3; X.lineCap = 'round'; X.beginPath(); X.moveTo(bx - 9, by - f); X.quadraticCurveTo(bx - 4, by - 6, bx, by); X.quadraticCurveTo(bx + 4, by - 6, bx + 9, by - f); X.stroke(); }
-      // Claude cheers from the left
+      // Caos cheers from the left
       { const cx = 70, cy = 532; K.shade(cx, cy + 3, 40, 8); X.save(); X.translate(cx, cy - (won ? Math.abs(Math.sin(rk * 9)) * 16 : 0));
-        K.arms(5, won ? -2.8 : -.5, won ? 2.8 : .5, 1); claude(0, 0, 5, { mood: wiiMood(g) }); if (low) K.sweat(34, -40, .9, tt); X.restore(); K.tag(cx, cy - 78); }
+        K.arms(5, won ? -2.8 : -.5, won ? 2.8 : .5, 1); caos(0, 0, 5, { mood: wiiMood(g) }); if (low) K.sweat(34, -40, .9, tt); X.restore(); K.tag(cx, cy - 78); }
       // the frog waits in the grass for a snack
       const fx = W + OX - 84, fy = 536, mouthX = fx - 30, mouthY = fy - 24;
       K.shade(fx, fy + 4, 52, 9, .25);
@@ -1249,7 +1249,7 @@ function wiiTwirl(sp) {
       K.shade(cx, cy + 3, 46, 8);
       X.save(); X.translate(cx, cy - up);
       K.arms(8, lost ? -2.6 : -.7 + spinA * .3, lost ? 2.6 : .7 + Math.cos(ang) * .3, 1);
-      claude(0, 0, 8, { mood: wiiMood(g) });
+      caos(0, 0, 8, { mood: wiiMood(g) });
       X.beginPath(); X.moveTo(-22, -29); X.quadraticCurveTo(-8, -20, 0, -27); X.quadraticCurveTo(8, -20, 22, -29); X.quadraticCurveTo(10, -36, 0, -31); X.quadraticCurveTo(-10, -36, -22, -29); X.closePath(); ink('#2b1a3f', 2.5);
       rr(-40, -80, 80, 12, 5); ink('#fff', 4); for (const [hx, hy, hr] of [[-24, -98, 22], [0, -108, 26], [24, -98, 22]]) K.celE(hx, hy, hr, hr, '#fff', '#dfe3f3', 3, 3, 4); rr(-40, -80, 80, 12, 5); ink('#fff', 4);
       if (crack > .3 && !g.result) K.sweat(54, -64, 1.2, tt);
@@ -1350,7 +1350,7 @@ function wiiRoll(sp) {
       K.shade(ax, 524, 38, 7, .22 - air * .002);
       X.save(); X.translate(ax, ay); X.rotate(rot);
       K.arms(7, lost ? -2.6 : -1.3 + rot * 1.1 + Math.sin(tt * 9) * .12 * (danger ? 3 : 1), lost ? 2.6 : 1.3 + rot * 1.1 - Math.sin(tt * 9) * .12 * (danger ? 3 : 1), 1);
-      claude(0, 0, 7, { mood: wiiMood(g) });
+      caos(0, 0, 7, { mood: wiiMood(g) });
       K.celF(() => { X.beginPath(); X.moveTo(-26, -63); X.quadraticCurveTo(-26, -90, 0, -90); X.quadraticCurveTo(26, -90, 26, -63); X.closePath(); }, '#ff4d5e', '#c22f45', 4, 3, 3.5); rr(-30, -68, 60, 8, 4); ink('#ffd23f', 3); K.celE(0, -92, 6, 6, '#ffd23f', '#d9a31a', 1, 1, 2.5);
       if (danger) K.sweat(40, -50, 1, tt); X.restore();
       K.tag(ax, ay - 63 - 54 + (lost ? 0 : 0));
@@ -1429,7 +1429,7 @@ function wiiClose(sp) {
       const x = lose ? DX + 20 + Math.min(1, bump * 3) * 110 : cx, bounce = closed ? Math.min(1, bump * 6) * -30 : 0, px = Math.min(x, closed ? DX : x) + bounce;
       K.shade(Math.min(x, closed ? DX : x) + bounce, 504, 34, 7);
       X.save(); X.translate(px, 500);
-      claude(0, 0, 6, { col: '#4DB8FF', run: lose || closed ? null : tt, mood: lose ? 'happy' : closed ? 'sad' : null });
+      caos(0, 0, 6, { col: '#4DB8FF', run: lose || closed ? null : tt, mood: lose ? 'happy' : closed ? 'sad' : null });
       if (!closed && !lose) { X.strokeStyle = INK; X.lineWidth = 3; X.lineCap = 'round'; X.beginPath(); for (let i = 0; i < 3; i++) { X.moveTo(-42 - i * 5, -20 - i * 9 + Math.sin(tt * 18 + i) * 2); X.lineTo(-52 - i * 5, -20 - i * 9 + Math.sin(tt * 18 + i) * 2); } X.stroke(); }
       if (closed) { for (let i = 0; i < 3; i++) { const a = rk * 6 + i * TAU / 3; K.star(Math.cos(a) * 30, -62 + Math.sin(a) * 8, 8, 3.5, 5, a, '#FFE14D', 2.5); } K.celE(18, -60, 7, 6, '#ff8fab', '#d9647f', 1, 1, 2.5); }
       if (lose) { K.celR(26, -34, 22, 14, 6, '#ff8fab', '#d9647f', 2, 2, 3); K.celR(26, -42, 22, 8, 4, '#fff3d6', '#e8c98c', 1, 1, 3); for (let i = 0; i < 4; i++) { const q = (rk * 2 + i * .25) % 1; K.celE(10 + i * 8 + q * 20, -30 + q * 40, 3, 3, '#fff3d6', '#e8c98c', 0, 0, 1.5); } }
@@ -1442,7 +1442,7 @@ function wiiClose(sp) {
       const kx = 700, ky = 504; K.shade(kx, ky + 3, 40, 8);
       const hand = { x: kx - 36, y: ky - 31 }, tip = { x: 598, y: sy + 4 };
       K.line([[tip.x, tip.y], [tip.x + (hand.x - tip.x) * 1.5, tip.y + (hand.y - tip.y) * 1.5]], 7, '#a5622c', 3); K.celE(tip.x - 2, tip.y + 2, 7, 7, '#aab3c4', '#7e88a3', 1, 1, 3);
-      X.save(); X.translate(kx, ky - (closed ? Math.abs(Math.sin(rk * 9)) * 12 : 0)); claude(0, 0, 6, { mood: wiiMood(g) }); if (!closed && !lose && cx > DX - 180) K.sweat(36, -46, 1, tt); K.celF(() => { X.beginPath(); X.moveTo(-26, -54); X.quadraticCurveTo(-26, -76, 0, -76); X.quadraticCurveTo(26, -76, 26, -54); X.closePath(); }, '#ffd23f', '#d9a31a', 3, 3, 3.5); X.restore();
+      X.save(); X.translate(kx, ky - (closed ? Math.abs(Math.sin(rk * 9)) * 12 : 0)); caos(0, 0, 6, { mood: wiiMood(g) }); if (!closed && !lose && cx > DX - 180) K.sweat(36, -46, 1, tt); K.celF(() => { X.beginPath(); X.moveTo(-26, -54); X.quadraticCurveTo(-26, -76, 0, -76); X.quadraticCurveTo(26, -76, 26, -54); X.closePath(); }, '#ffd23f', '#d9a31a', 3, 3, 3.5); X.restore();
       K.reach(kx - 36, ky - 31, hand.x - 8, hand.y - 6, OR, 10, 15); K.tag(kx, ky - 54 - 52);
       if (closed) { K.badge('PHEW!', kx - 10, 330, 34, '#4DB8FF', '#fff', outBack(rk / .22), -.04); K.sweat(kx + 30, ky - 70, 1.3, rk * 2); }
       vignette(.16);

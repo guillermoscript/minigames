@@ -1,5 +1,5 @@
 'use strict';
-/* ONE STEP AT A TIME (after WarioWare: Twisted!'s staircase boss): every full turn of the crank lifts Claude one step,
+/* ONE STEP AT A TIME (after WarioWare: Twisted!'s staircase boss): every full turn of the crank lifts Caos one step,
    while a hungry frog hops up the stairs behind. Reach the door on step 10 before it catches up.
    Pointer: circle the crank (hover or drag), one way only. Keys: ↑ → ↓ ← in order (or W D S A); a wrong key jams the crank.
    Art: the DUO look (docs/ART-STYLE.md): a sunny hillside garden stair up to a round hobbit door, a windmill, a frog with a napkin bib. */
@@ -67,7 +67,7 @@
   function bird(x, y, t, k) { X.strokeStyle = '#4a4468'; X.lineWidth = 2.5; X.lineCap = 'round'; const f = Math.sin(t * 9 + k) * 5; X.beginPath(); X.moveTo(x - 9, y - f); X.quadraticCurveTo(x - 4, y - 6, x, y); X.quadraticCurveTo(x + 4, y - 6, x + 9, y - f); X.stroke(); }
 
   // the chaser: a big hungry frog facing right with a napkin bib; air = 0..1 hop height, open = jaw, tongue = 0..1 lash
-  // look = -1..1 (pupils toward Claude), mood: null | 'dizzy' (flattened) | 'glee' (got him)
+  // look = -1..1 (pupils toward Caos), mood: null | 'dizzy' (flattened) | 'glee' (got him)
   function frog(x, y, s, air, open, tongue, look, mood) {
     ctx.save(); ctx.translate(x, y); ctx.scale(s * (1 - air * .12), s * (1 + air * .16)); X = ctx;
     const G = '#6cc04a', GS = '#4a9a38', GL = '#d8f0a8';
@@ -221,27 +221,27 @@
         ctx.strokeStyle = INK; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(dx0 - 28, dy0 - DH - 34); ctx.quadraticCurveTo(dx0 + DW / 2, dy0 - DH - 8 + Math.sin(now * 2) * 3, dx0 + DW + 28, dy0 - DH - 34); ctx.stroke();
         for (let q = 0; q < 6; q++) { const u = (q + .5) / 6, bx = lerp(dx0 - 28, dx0 + DW + 28, u), by = dy0 - DH - 34 + Math.sin(u * Math.PI) * 18 + Math.sin(now * 2) * 1.5;
           ctx.beginPath(); ctx.moveTo(bx - 7, by); ctx.lineTo(bx + 7, by); ctx.lineTo(bx, by + 14); ctx.closePath(); ink(['#ff4d5e', '#ffd23f', '#4dc0ff'][q % 3], 2); }
-        // Claude: hop from step to step (or walk into the doorway on a win)
+        // Caos: hop from step to step (or walk into the doorway on a win)
         const walk = won ? Math.min(1, doorT / .25) : 0, frc = cd - Math.floor(cd), cx = sx(won ? NEED + walk * .73 : cd);
         const cy = sy(hc(cd) + (cd < c ? Math.sin(frc * Math.PI) * 26 : 0)), U = 6 * (1 - walk * .18);
         if (fall) {
-          ctx.save(); ctx.translate(sx(fall.x), sy(fall.h) - 30); ctx.rotate(fall.r); claude(0, 30, 6, { mood: 'sad' }); ctx.restore();
+          ctx.save(); ctx.translate(sx(fall.x), sy(fall.h) - 30); ctx.rotate(fall.r); caos(0, 30, 6, { mood: 'sad' }); ctx.restore();
         } else if (!won || doorT < .3) {
           shadow(cx, cy + 2, 40 * (1 - walk * .3), 9, .3);
           const st = sq * .22; ctx.save(); ctx.translate(cx, cy); ctx.scale(1 + st, 1 - st); ctx.translate(-cx, -cy);
-          claude(cx, cy, U, { mood: won ? 'happy' : null, run: cd < c || won ? now * .8 : null }); ctx.restore();
+          caos(cx, cy, U, { mood: won ? 'happy' : null, run: cd < c || won ? now * .8 : null }); ctx.restore();
           if (!g.result && c - b < 1.4) {                                         // panic sweat + alarm
             ctx.fillStyle = '#9fe4ff'; for (const d of [-1, 1]) { ctx.beginPath(); ctx.ellipse(cx + d * 44, cy - 58 + Math.sin(now * 20 + d) * 4, 5, 8, 0, 0, 7); ctx.fill(); }
             txt('!', cx, cy - 90 + Math.sin(now * 25) * 3, 44, '#FF4D6D');
           }
         }
-        // door panel swings shut after Claude walks through; Claude waves from the little round window
+        // door panel swings shut after Caos walks through; Caos waves from the little round window
         if (won && doorT > .25) {
           const cl = Math.min(1, (doorT - .25) / .05), pw = DW * cl;
           X = ctx; rr(dx0 + DW - pw, dy0 - DH, pw, DH, [34, 34, 4, 4]); ink('#c0392b', 4);
           if (cl >= 1) {
             circ(dx0 + DW / 2, dy0 - DH + 40, 22, '#9fd8ff', 4); circ(dx0 + DW - 14, dy0 - 52, 6, '#FFE14D', 3);
-            ctx.save(); ctx.beginPath(); ctx.arc(dx0 + DW / 2, dy0 - DH + 40, 19, 0, 7); ctx.clip(); claude(dx0 + DW / 2, dy0 - DH + 62, 3.1, { mood: 'happy' }); ctx.restore();
+            ctx.save(); ctx.beginPath(); ctx.arc(dx0 + DW / 2, dy0 - DH + 40, 19, 0, 7); ctx.clip(); caos(dx0 + DW / 2, dy0 - DH + 62, 3.1, { mood: 'happy' }); ctx.restore();
             for (let q = 0; q < 3; q++) { const u = ((doorT * 1.1 + q / 3) % 1); ctx.globalAlpha = 1 - u; X = ctx; ctx.save(); ctx.translate(dx0 + DW + 6 + Math.sin(u * 6 + q) * 8, dy0 - DH - 26 - u * 46); ctx.scale(.8, .8);
               ctx.beginPath(); ctx.moveTo(0, 8); ctx.bezierCurveTo(-14, -2, -8, -14, 0, -6); ctx.bezierCurveTo(8, -14, 14, -2, 0, 8); ink('#ff5c8a', 3); ctx.restore(); ctx.globalAlpha = 1; }
           }

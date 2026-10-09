@@ -1,12 +1,12 @@
 'use strict';
-/* BATTER boss (SPORTS DAY): batting practice against a goofy pitching machine, seen from behind Claude.
+/* BATTER boss (SPORTS DAY): batting practice against a goofy pitching machine, seen from behind Caos.
    After Mega Microgame$' "Ultra Machine" / Gold's "One Hit Wonder". Pitches: normal, FASTBALL, CHANGE-UP (slow, wobbly)
    and a TRICK pitch that stops mid-air once. Swing as the ball reaches the ring: 5 hits win, 3 strikes lose. */
 (function () {
   let BATP = null;
   const VX = 400, HZ = 200, GK = 320, gy = z => HZ + GK / z, gx = (X, z) => VX + X * GK / z;   // ground projection
   const MX = 400, MY = gy(4), MS = .9, OX0 = MX, OY0 = MY - 56 * MS;                             // machine on the mound
-  const CX = 292, CY = 534, CU = 8, PX = CX + 7 * CU, PY = CY - 5.5 * CU, ZX = 410, ZY = 446;    // Claude, hands, zone
+  const CX = 292, CY = 534, CU = 8, PX = CX + 7 * CU, PY = CY - 5.5 * CU, ZX = 410, ZY = 446;    // Caos, hands, zone
   const NEED = 5, OUTS = 3, PITCHES = 7, HP = .75, A0 = -2.3, A1 = .5, LATE = .03, APR = .42;   // APR: approach-ring lead time
   const TYPES = { N: { fly: .82, wind: .4 }, F: { fly: .58, wind: .5, label: 'FASTBALL!', col: '#ff5a4d' },
     C: { fly: 1.3, wind: .5, label: 'CHANGE-UP!', col: '#7ad7ff' }, S: { fly: .8, wind: .5, label: 'TRICK PITCH!', col: '#c78bff' } };
@@ -14,7 +14,7 @@
   const ease = u => 1 - Math.pow(1 - Math.min(1, Math.max(0, u)), 3);
   const crack = () => { noise(.07, .3, 3500, 7000, 'highpass'); snd(1500, .05, 'square', .06, 0, 600); snd(180, .14, 'triangle', .1); };
   const pomp = () => { snd(150, .12, 'sine', .14, 0, 55); noise(.1, .12, 500); };
-  const SKY = ['#ff4d9e', '#FFE14D', '#4DB8FF', '#5CFF7A', '#fff', '#D97757', '#c78bff'];
+  const SKY = ['#ff4d9e', '#FFE14D', '#4DB8FF', '#5CFF7A', '#fff', '#FF6B3D', '#c78bff'];
 
   /* ───────────── art kit (the DUO look, docs/ART-STYLE.md): a local copy of the drawing helpers. Everything draws on X, which can be swapped for an
      offscreen context so the same code bakes the static ballpark once. Nothing here calls Math.random, so the boss's own randomness is untouched. ───────────── */
@@ -266,14 +266,14 @@
           X.globalAlpha = 1 - u * .6; X.lineWidth = 5; X.strokeStyle = '#FFE14D'; X.beginPath(); X.arc(ZX, ZY, 36 + u * 95, 0, 7); X.stroke(); X.globalAlpha = 1; }
         const fade = b => Math.min(1, Math.max(0, (545 - b.y) / 60));                 // missed balls fade before the fuse bar
         if (ball) { const b = bpos(ball); if (b.z > .6) shadow(b.x, Math.min(gy(Math.max(b.z, .6)), 540), b.r * .9, b.r * .25, .3 * fade(b)); }
-        // Claude at bat: helmet, waggle, swing with a smear
+        // Caos at bat: helmet, waggle, swing with a smear
         const lean = swingT >= 0 && swingT < .35 ? 8 : 0, bob = joy > 0 ? Math.abs(Math.sin(clk * 18)) * 10 : 0, cx = CX + lean;
         shadow(CX, CY + 2, 56, 10, .35);
         let a = A0 + Math.sin(clk * (ph === 'wind' ? 9 : 3)) * (ph === 'wind' ? .1 : .05);
         if (swingT >= 0) a = swingT < .35 ? A0 + (A1 - A0) * ease(swingT / .11) : A1 + (A0 - A1) * ease((swingT - .35) / .22);
         if (g.result === 'win') a = A0 - .3 + Math.sin(clk * 12) * .4;
         if (swingT >= 0 && swingT < .3) { X.globalAlpha = .55 * (1 - swingT / .3); X.strokeStyle = '#fff'; X.lineWidth = 34; X.beginPath(); X.arc(PX + lean, PY - bob, 96, A0, a); X.stroke(); X.globalAlpha = 1; }
-        claude(cx, CY - bob, CU, { mood: g.result === 'lose' || cflash > 0 ? 'sad' : g.result === 'win' || joy > 0 ? 'happy' : null, col: cflash > 0 && (clk * 20 | 0) % 2 ? '#fff' : OR });
+        caos(cx, CY - bob, CU, { mood: g.result === 'lose' || cflash > 0 ? 'sad' : g.result === 'win' || joy > 0 ? 'happy' : null, col: cflash > 0 && (clk * 20 | 0) % 2 ? '#fff' : OR });
         const hy = CY - bob - 9 * CU, dome = (dx, dy) => { X.beginPath(); X.ellipse(cx + dx, hy + 2 + dy, 6.8 * CU, 4.6 * CU, 0, Math.PI, 0); X.closePath(); };
         dome(0, 0); X.lineJoin = 'round'; X.lineWidth = 10; X.strokeStyle = INK; X.stroke(); X.fillStyle = '#1f3aa8'; X.fill();
         X.save(); dome(0, 0); X.clip(); dome(-5, -6); X.fillStyle = '#2f4fd6'; X.fill(); X.restore();
@@ -287,7 +287,7 @@
         K.rr(PX + lean - 8, PY - bob - 8, 16, 16, 4); K.ink(OR, 3);
         if (lost) for (let i = 0; i < 3; i++) star(cx - 24 + i * 24, hy - 34 + Math.sin(clk * 10 + i) * 5, 8, 3.5, 5, clk * 4 + i, '#FFE14D', 2);
         if (won) { K.heart(cx - 70, CY - 100 - bob - Math.abs(Math.sin(clk * 3)) * 14, 1.1); K.heart(cx + 60, CY - 120 - bob - Math.abs(Math.sin(clk * 3 + 1)) * 14, .9); }
-        if (clk < 1.8 && !g.result) K.tag(CX, CY - 150, 'CLAUDE', '#ffe14d');
+        if (clk < 1.8 && !g.result) K.tag(CX, CY - 150, 'CAOS', '#ffe14d');
         if (ball) { const b = bpos(ball); if (fade(b) > 0) { X.globalAlpha = fade(b);
           if (ball.type === 'F') { X.strokeStyle = 'rgba(255,90,77,.7)'; X.lineCap = 'round'; X.lineWidth = b.r * 1.2; X.beginPath(); X.moveTo(b.x, b.y); X.lineTo(b.x - (b.x - OX0) * .25, b.y - (b.y - OY0) * .25); X.stroke(); X.lineCap = 'butt'; }
           baseball(b.x, b.y, b.r, ball.tau * (ball.type === 'C' ? 4 : 25));

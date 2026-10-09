@@ -1,5 +1,5 @@
 'use strict';
-/* MOVE IT! shared weirdness: the stage is a cursed cosmic disco where Claude is forced to dance for an audience of
+/* MOVE IT! shared weirdness: the stage is a cursed cosmic disco where Caos is forced to dance for an audience of
    sentient snacks and one very judgmental disco ball. Everything here is plain canvas drawing built on core.js helpers.
    Loaded before mv1.js / mv2.js / main.js, so the globals below are visible to all three. */
 
@@ -145,11 +145,11 @@ function mvIntro(st, stage, stageIdx) {
   ctx.globalAlpha = clamp01((st - .7) / .3);
   ctx.save(); ctx.translate(W / 2, 352); ctx.rotate(-.03 + Math.sin(now * 4) * .02);
   txt('CURSED DISCO. NO REFUNDS.', 0, 0, 30, '#fff', 'center', 700); ctx.restore(); ctx.globalAlpha = 1;
-  /* hero: a tiny Claude, front and centre, losing his mind */
+  /* hero: a tiny Caos, front and centre, losing his mind */
   const jb = Math.abs(Math.sin(now * 7)) * 46, e3 = easeBackLike((st - .35) / .5);
   shadow(W / 2, 540, 100 - jb * .6, 14, .35);
   ctx.save(); ctx.translate(W / 2, 536 - jb); ctx.rotate(Math.sin(now * 7) * .12); ctx.scale(e3, e3 * (1 + Math.sin(now * 14) * .06));
-  claude(0, 0, 11, { col: stage.col, mood: 'happy' }); ctx.restore();
+  caos(0, 0, 11, { col: stage.col, mood: 'happy' }); ctx.restore();
   ctx.globalAlpha = clamp01((st - .9) / .3); txt(t('{n} GAMES + BOSS', { n: stage.n }), W / 2, 580, 24, '#fff'); ctx.globalAlpha = 1;
   ctx.restore();
   /* a hot dog flies across the screen. nobody explains. */

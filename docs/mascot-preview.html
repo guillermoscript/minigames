@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MiniCaos Cast</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&display=swap">
+<style>
+  :root { --bg: #2a1f45; --fg: #fff; --muted: #c9bfe6; --card: #3a2d5e; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font-family: Fredoka, system-ui, sans-serif; padding: 24px 16px 48px; }
+  h1 { margin: 0 0 4px; font-size: 32px; }
+  p { margin: 0 0 20px; color: var(--muted); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+  .card { background: var(--card); border-radius: 18px; padding: 16px; }
+  .card h2 { margin: 0; font-size: 24px; }
+  .card small { color: var(--muted); display: block; margin-bottom: 8px; }
+  canvas { width: 100%; height: auto; display: block; border-radius: 12px; }
+</style>
+</head>
+<body>
+<h1>MiniCaos: Caos and friends</h1>
+<p>Every character uses the same signature as <code>claude(x, y, u, o)</code> in <code>js/core.js</code>, so it drops straight in. Rows: neutral · happy · sad · running, then 4 player colors, then thumbnail size.</p>
+<div class="grid" id="grid"></div>
+<script>
+const INK = '#14101c';
+let ctx, now = 0;
+
+function blocks(shapes, col, ol) {
+  ctx.fillStyle = INK;
+  for (const s of shapes) ctx.fillRect(s[0] - ol, s[1] - ol, s[2] + ol * 2, s[3] + ol * 2);
+  ctx.fillStyle = col;
+  for (const s of shapes) ctx.fillRect(s[0], s[1], s[2], s[3]);
+}
+function legsFor(x, y, u, o, xs) {
+  return xs.map((lx, i) => {
+    const lift = o.run != null ? Math.max(0, Math.sin(o.run * 16 + i * Math.PI)) * 1.1 * u : 0;
+    return [x + lx * u, y - 2 * u, 1.6 * u, 2 * u - lift];
+  });
+}
+function eyes(ex, ey, u, mood, big) {
+  ctx.strokeStyle = INK; ctx.fillStyle = INK; ctx.lineWidth = Math.max(2, u * .55); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  for (const e of ex) {
+    if (mood === 'happy') {
+      ctx.beginPath(); ctx.moveTo(e - u * .9, ey + u); ctx.lineTo(e, ey - u * .3); ctx.lineTo(e + u * .9, ey + u); ctx.stroke();
+    } else if (mood === 'sad') {
+      ctx.beginPath(); ctx.moveTo(e - u * .8, ey - u * .9); ctx.lineTo(e + u * .8, ey + u * .9);
+      ctx.moveTo(e + u * .8, ey - u * .9); ctx.lineTo(e - u * .8, ey + u * .9); ctx.stroke();
+    } else if (big) {
+      const blink = Math.sin(now * 1.7) > .985 ? .2 : 1;
+      ctx.fillStyle = '#fff'; ctx.fillRect(e - 1.3 * u, ey - 1.7 * u * blink, 2.6 * u, 3.4 * u * blink);
+      ctx.fillStyle = INK; ctx.fillRect(e - .3 * u + Math.sin(now * .9) * .4 * u, ey - .6 * u * blink, 1.2 * u, 1.8 * u * blink);
+    } else {
+      const blink = Math.sin(now * 1.7) > .985 ? .25 : 1;
+      ctx.fillRect(e - .6 * u, ey - 1.2 * u * blink, 1.2 * u, 2.4 * u * blink);
+    }
+  }
+  ctx.lineCap = 'butt';
+}
+
+/* A — Little lit bomb. The fuse burns down with o.fuse (1 → 0), which can follow the microgame timer. */
+function caosBomb(x, y, u, o = {}) {
+  const c = o.col || '#FF6B3D', ol = Math.max(3, u * .5), mood = o.mood;
+  const hop = mood === 'happy' ? Math.abs(Math.sin(now * 10)) * 1.2 * u : 0;
+  y -= hop;
+  const body = [
+    [x - 6.5 * u, y - 9.5 * u, 13 * u, 6 * u],
+    [x - 5.5 * u, y - 10.5 * u, 11 * u, 8 * u],
+    [x - 4 * u, y - 11.5 * u, 8 * u, 10 * u],
+  ];
+  const cap = [x - 1.5 * u, y - 13 * u, 3 * u, 1.8 * u];
+  const legs = legsFor(x, y + hop, u, o, [-3.6, 2]);
+  blocks([...body, cap, ...legs.map(l => [l[0], l[1] - hop, l[2], l[3] + hop])], c, ol);
+  ctx.fillStyle = 'rgba(255,255,255,.45)'; ctx.fillRect(x - 4.5 * u, y - 9.5 * u, 1.6 * u, 2.4 * u);
+  ctx.fillStyle = '#9a8fb5'; ctx.fillRect(cap[0], cap[1], cap[2], cap[3]);
+  // fuse
+  const f = o.fuse == null ? .7 + .3 * Math.sin(now * .5) : o.fuse;
+  const pts = []; for (let i = 0; i <= 8; i++) { const k = i / 8; pts.push([x + Math.sin(k * 2.2) * 2.6 * u, y - 13 * u - k * 4 * u]); }
+  const end = Math.max(1, Math.round(8 * f));
+  ctx.strokeStyle = INK; ctx.lineWidth = u * 1.1; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i <= end; i++) ctx.lineTo(pts[i][0], pts[i][1]); ctx.stroke();
+  ctx.strokeStyle = '#e8d6a8'; ctx.lineWidth = u * .45;
+  ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i <= end; i++) ctx.lineTo(pts[i][0], pts[i][1]); ctx.stroke();
+  if (mood !== 'sad') {
+    const [sx, sy] = pts[end], fl = 1 + .35 * Math.sin(now * 30);
+    ctx.fillStyle = '#FFE14D'; ctx.fillRect(sx - 1.4 * u * fl, sy - .4 * u, 2.8 * u * fl, .8 * u); ctx.fillRect(sx - .4 * u, sy - 1.4 * u * fl, .8 * u, 2.8 * u * fl);
+    ctx.fillStyle = '#fff'; ctx.fillRect(sx - .4 * u, sy - .4 * u, .8 * u, .8 * u);
+  } else {
+    ctx.fillStyle = 'rgba(200,200,220,.5)'; ctx.fillRect(pts[end][0] - .5 * u, pts[end][1] - 2 * u - (now * 2 % 1) * u, u, u);
+  }
+  eyes([x - 2.4 * u, x + 2.4 * u], y - 6.6 * u, u, mood, false);
+  ctx.lineCap = 'butt';
+}
+
+/* B — Hyperactive critter: chubby blob, big eyes, waving arms, a tuft of hair. */
+function caosBlob(x, y, u, o = {}) {
+  const c = o.col || '#FF4D9E', ol = Math.max(3, u * .5), mood = o.mood;
+  const wave = mood === 'happy' ? Math.sin(now * 14) * 1.6 * u : Math.sin(now * 3) * .3 * u;
+  const squish = mood === 'happy' ? Math.sin(now * 10) * .4 * u : 0;
+  const shapes = [
+    [x - 6 * u - squish, y - 9 * u + squish, 12 * u + squish * 2, 7 * u - squish],
+    [x - 5 * u, y - 10.5 * u + squish, 10 * u, 8.5 * u - squish],
+    [x - 7 * u - squish, y - 7 * u, 14 * u + squish * 2, 4 * u],
+    [x - 9.4 * u, y - 7 * u - wave, 2.2 * u, 2.2 * u],
+    [x + 7.2 * u, y - 7 * u + wave, 2.2 * u, 2.2 * u],
+    [x - .6 * u, y - 12 * u + squish, 1.4 * u, 1.8 * u],
+    [x + .6 * u, y - 13 * u + squish, 1.4 * u, 1.4 * u],
+    ...legsFor(x, y, u, o, [-4, 2.4]),
+  ];
+  blocks(shapes, c, ol);
+  ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fillRect(x - 4.2 * u, y - 9.6 * u + squish, 1.6 * u, 1.4 * u);
+  eyes([x - 2.4 * u, x + 2.4 * u], y - 6.8 * u, u, mood, true);
+  if (mood !== 'sad') { ctx.fillStyle = INK; ctx.fillRect(x - .9 * u, y - 4.3 * u, 1.8 * u, mood === 'happy' ? 1.2 * u : .6 * u); }
+}
+
+/* C — Pixel controller with legs: the screen in the middle holds the eyes. */
+function caosPad(x, y, u, o = {}) {
+  const c = o.col || '#4DB8FF', ol = Math.max(3, u * .5), mood = o.mood;
+  const tilt = mood === 'happy' ? Math.sin(now * 12) * .8 * u : 0;
+  const shapes = [
+    [x - 7.5 * u, y - 9.5 * u + tilt, 15 * u, 5 * u],
+    [x - 8 * u, y - 6 * u + tilt, 4.6 * u, 3.4 * u],
+    [x + 3.4 * u, y - 6 * u - tilt, 4.6 * u, 3.4 * u],
+    ...legsFor(x, y, u, o, [-6.6, 4.8]),
+  ];
+  blocks(shapes, c, ol);
+  ctx.fillStyle = INK;
+  ctx.fillRect(x - 6.4 * u, y - 7.6 * u + tilt, 3 * u, 1 * u); ctx.fillRect(x - 5.4 * u, y - 8.6 * u + tilt, 1 * u, 3 * u);
+  ctx.fillStyle = '#FFE14D'; ctx.fillRect(x + 4 * u, y - 8.6 * u - tilt, 1.4 * u, 1.4 * u);
+  ctx.fillStyle = '#5CFF7A'; ctx.fillRect(x + 5.8 * u, y - 7.2 * u - tilt, 1.4 * u, 1.4 * u);
+  ctx.fillStyle = INK; ctx.fillRect(x - 2.6 * u, y - 9 * u, 5.2 * u, 4 * u);
+  ctx.fillStyle = '#d8f5ff'; ctx.fillRect(x - 2.2 * u, y - 8.6 * u, 4.4 * u, 3.2 * u);
+  eyes([x - 1.1 * u, x + 1.1 * u], y - 7 * u, u * .55, mood, false);
+}
+
+
+/* ── Caos's friends: Latin American animals, one per stage host ── */
+function bob(o, u, f = 10) { return o.mood === 'happy' ? Math.abs(Math.sin(now * f)) * 1.1 * u : 0; }
+
+/* Sapito (frog) — Bug Hunt. Eyes sit on top bumps; tongue flicks when happy. */
+function sapito(x, y, u, o = {}) {
+  const c = o.col || '#5CC24A', ol = Math.max(3, u * .5), mood = o.mood; y -= bob(o, u);
+  blocks([[x - 7 * u, y - 7 * u, 14 * u, 5 * u], [x - 6 * u, y - 8.5 * u, 12 * u, 2 * u],
+    [x - 6 * u, y - 11 * u, 4 * u, 3.4 * u], [x + 2 * u, y - 11 * u, 4 * u, 3.4 * u],
+    ...legsFor(x, y, u, o, [-6, -3.5, 2, 4.5]).map(l => [l[0], l[1], 1.6 * u, l[3]])], c, ol);
+  ctx.fillStyle = 'rgba(255,255,255,.3)'; ctx.fillRect(x - 5 * u, y - 6 * u, 10 * u, 2.4 * u);
+  eyes([x - 4 * u, x + 4 * u], y - 9.4 * u, u * .85, mood, true);
+  ctx.fillStyle = INK; ctx.fillRect(x - 4 * u, y - 5.2 * u, 8 * u, .6 * u);
+  if (mood === 'happy') { const t = Math.max(0, Math.sin(now * 6)) * 5 * u; ctx.fillStyle = '#FF4D9E'; ctx.fillRect(x - .5 * u, y - 5.2 * u, u, t + u); ctx.fillRect(x - u, y - 5 * u + t, 2 * u, 1.2 * u); }
+}
+
+/* Pulpi (octopus) — Keyboard Kingdom. Dome head, four wiggling tentacles. */
+function pulpi(x, y, u, o = {}) {
+  const c = o.col || '#B06CFF', ol = Math.max(3, u * .5), mood = o.mood; y -= bob(o, u);
+  const sp = o.run != null ? 18 : mood === 'happy' ? 12 : 3;
+  const tent = [-5.6, -2.4, .8, 4].map((tx, i) => [x + tx * u + Math.sin(now * sp + i) * .5 * u, y - 4 * u, 1.6 * u, 4 * u - Math.abs(Math.sin(now * sp + i * 1.3)) * u]);
+  blocks([[x - 6 * u, y - 10 * u, 12 * u, 6.5 * u], [x - 4.5 * u, y - 12 * u, 9 * u, 9 * u], ...tent], c, ol);
+  ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fillRect(x - 3 * u, y - 11 * u, 1.6 * u, 1.6 * u); ctx.fillRect(x + 2 * u, y - 10.4 * u, u, u);
+  eyes([x - 2.4 * u, x + 2.4 * u], y - 7 * u, u, mood, true);
+}
+
+/* Zumbi (hummingbird) — Reflex Rush. Wings blur, long beak, tail. */
+function zumbi(x, y, u, o = {}) {
+  const c = o.col || '#2EC4B6', ol = Math.max(3, u * .5), mood = o.mood;
+  const hover = Math.sin(now * 6) * .8 * u; y += hover - 2 * u;
+  const flap = mood === 'sad' ? 0 : Math.sin(now * 60) > 0 ? 1 : -1;
+  blocks([[x - 4 * u, y - 9 * u, 8 * u, 6 * u], [x - 3 * u, y - 10.5 * u, 6 * u, 2 * u],
+    [x - 6 * u, y - 4.5 * u, 3 * u, 2 * u], [x + 4 * u, y - 7.4 * u, 5 * u, 1 * u],
+    [x - 5 * u, y - 10 * u - flap * 2.5 * u, 4 * u, 2 * u]], c, ol);
+  ctx.fillStyle = '#FF4D6D'; ctx.fillRect(x - 3 * u, y - 5 * u, 6 * u, 1.6 * u);
+  ctx.fillStyle = 'rgba(255,255,255,.25)'; ctx.fillRect(x - 5 * u, y - 10 * u - flap * 2.5 * u, 4 * u, 2 * u);
+  ctx.fillStyle = INK; ctx.fillRect(x + 4 * u, y - 7.2 * u, 5 * u, .6 * u);
+  eyes([x + 1.8 * u], y - 7.8 * u, u * .8, mood, true);
+}
+
+/* Chigüi (capybara) — Mouse Mayhem. Long blocky body, sleepy eyes, the meme orange on its head. */
+function chigui(x, y, u, o = {}) {
+  const c = o.col || '#A0703C', ol = Math.max(3, u * .5), mood = o.mood; y -= bob(o, u, 6);
+  blocks([[x - 8 * u, y - 8 * u, 13 * u, 6 * u], [x + 3 * u, y - 9.5 * u, 6 * u, 6 * u], [x - 6 * u, y - 9 * u, 9 * u, 1.4 * u],
+    [x + 3.6 * u, y - 10.6 * u, 1.4 * u, 1.4 * u], ...legsFor(x, y, u, o, [-7, -4, 0, 3])], c, ol);
+  ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.fillRect(x + 7 * u, y - 7.4 * u, 2 * u, 2.4 * u);
+  ctx.fillStyle = INK; ctx.fillRect(x + 7.6 * u, y - 7.2 * u, .6 * u, .6 * u);
+  if (mood === 'happy' || mood === 'sad') eyes([x + 5 * u], y - 7.6 * u, u * .9, mood, false);
+  else { ctx.fillStyle = INK; ctx.fillRect(x + 4.2 * u, y - 7.6 * u, 1.8 * u, .55 * u); }   // eternally unbothered
+  if (mood !== 'sad') {
+    const ox = x + 5.2 * u, oy = y - 11.8 * u - (mood === 'happy' ? Math.abs(Math.sin(now * 6)) * 1.6 * u : 0);
+    blocks([[ox - 1.4 * u, oy - 1.2 * u, 2.8 * u, 2.4 * u]], '#FF9F1C', Math.max(2, u * .35));
+    ctx.fillStyle = '#5CC24A'; ctx.fillRect(ox, oy - 2 * u, 1.2 * u, .8 * u);
+  }
+}
+
+/* Profe Lechuza (owl) — Brain Break. Ear tufts, round glasses, beak. */
+function lechuza(x, y, u, o = {}) {
+  const c = o.col || '#8A6A4F', ol = Math.max(3, u * .5), mood = o.mood; y -= bob(o, u);
+  const wing = mood === 'happy' ? Math.sin(now * 14) * u : 0;
+  blocks([[x - 5.5 * u, y - 11 * u, 11 * u, 9.5 * u], [x - 6.5 * u, y - 9 * u, 13 * u, 6 * u],
+    [x - 5.5 * u, y - 12.6 * u, 2 * u, 2 * u], [x + 3.5 * u, y - 12.6 * u, 2 * u, 2 * u],
+    [x - 8 * u, y - 7 * u - wing, 1.8 * u, 4 * u], [x + 6.2 * u, y - 7 * u + wing, 1.8 * u, 4 * u],
+    ...legsFor(x, y, u, o, [-2.6, 1])], c, ol);
+  ctx.fillStyle = '#E8D6B0'; ctx.fillRect(x - 3.5 * u, y - 5.4 * u, 7 * u, 3.4 * u);
+  ctx.fillStyle = INK; ctx.fillRect(x - 5 * u, y - 10.2 * u, 4.4 * u, 4 * u); ctx.fillRect(x + .6 * u, y - 10.2 * u, 4.4 * u, 4 * u); ctx.fillRect(x - .8 * u, y - 8.6 * u, 1.6 * u, .6 * u);
+  ctx.fillStyle = '#fff'; ctx.fillRect(x - 4.5 * u, y - 9.7 * u, 3.4 * u, 3 * u); ctx.fillRect(x + 1.1 * u, y - 9.7 * u, 3.4 * u, 3 * u);
+  eyes([x - 2.8 * u, x + 2.8 * u], y - 8.2 * u, u * .8, mood, false);
+  ctx.fillStyle = '#FFB000'; ctx.fillRect(x - .6 * u, y - 6.4 * u, 1.2 * u, 1.4 * u);
+}
+
+const CANDIDATES = [
+  ['Caos', 'The bomb. Protagonist; the fuse follows the timer.', caosBomb],
+  ['Sapito', 'Frog · host of BUG HUNT', sapito],
+  ['Pulpi', 'Octopus · host of KEYBOARD KINGDOM', pulpi],
+  ['Zumbi', 'Hummingbird · host of REFLEX RUSH', zumbi],
+  ['Chigüi', 'Capybara · host of MOUSE MAYHEM (unbothered, orange included)', chigui],
+  ['Profe Lechuza', 'Owl · host of BRAIN BREAK', lechuza],
+];
+const COLORS = ['#FF6B3D', '#4DB8FF', '#FFE14D', '#5CFF7A'];
+const grid = document.getElementById('grid');
+const views = CANDIDATES.map(([name, note, fn]) => {
+  const card = document.createElement('div'); card.className = 'card';
+  card.innerHTML = `<h2>${name}</h2><small>${note}</small>`;
+  const cv = document.createElement('canvas'); cv.width = 640; cv.height = 620; card.appendChild(cv); grid.appendChild(card);
+  return { fn, c: cv.getContext('2d'), cv };
+});
+function frame(ts) {
+  now = ts / 1000;
+  for (const v of views) {
+    ctx = v.c; const W = v.cv.width;
+    const g = ctx.createLinearGradient(0, 0, 0, v.cv.height); g.addColorStop(0, '#7C4DFF'); g.addColorStop(1, '#3d2a7a');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, v.cv.height);
+    const moods = [{}, { mood: 'happy' }, { mood: 'sad', col: '#4a4558' }, { run: now }];
+    moods.forEach((o, i) => v.fn(W / 8 + i * W / 4, 220, 9, o));
+    ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.font = '600 20px Fredoka'; ctx.textAlign = 'center';
+    ['neutral', 'happy', 'sad', 'running'].forEach((l, i) => ctx.fillText(l, W / 8 + i * W / 4, 260));
+    COLORS.forEach((col, i) => v.fn(W / 8 + i * W / 4, 430, 8, { col, mood: i === 1 ? 'happy' : undefined, fuse: ((now * .2 + i * .25) % 1) }));
+    ctx.fillText('thumbnail', W / 2, 500);
+    [3, 4, 5].forEach((u, i) => v.fn(W / 2 - 110 + i * 110, 600, u, {}));
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

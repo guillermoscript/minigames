@@ -1,6 +1,6 @@
 'use strict';
 /* ═════════ DUO · EGG DELIVERY (du_seesaw) ═════════
-   Two Claudes carry a giant sleeping egg on a plank along a windy mountain path, to its mama goose's nest.
+   Two Caoses carry a giant sleeping egg on a plank along a windy mountain path, to its mama goose's nest.
    LEFT CARRIER (role 0, JUDGE) and RIGHT CARRIER (role 1) each hold one end and can only LIFT it (mouse up / drag a thumb up / ▲ ▼):
    the egg rolls away from a raised end. While the egg sleeps on the cushion in the middle of the plank, the two walk on; off the
    cushion they stop. A puffy wind cloud blows the egg toward one end or the other: it shows up on the side it will blow FROM about
@@ -21,7 +21,7 @@ const outBack = k => { k = clamp(k, 0, 1) - 1; return 1 + 2.70158 * k * k * k + 
 const lerp = (a, b, k) => a + (b - a) * k;
 
 /* ───────────── layout (800×600; HUD keeps y<58, the top-left box, the top-right LEAVE and y>552) ───────────── */
-const GY = 505, LX = 168, RX = 632, PU = 6.4;          // the carriers' feet, their x, claude() unit
+const GY = 505, LX = 168, RX = 632, PU = 6.4;          // the carriers' feet, their x, caos() unit
 const Y0 = 402, LIFT = 78, PT = 14;                    // plank end height at rest / fully lifted, plank thickness
 const TRK = 190, ERX = 36, ERY = 45, CUSH = 9;         // the egg rolls x = 400 ± TRK; egg radii; cushion thickness
 const YT = 170, YB = 400;                              // the lift gauge: pointer y YB = resting, YT = fully lifted (kept high: the nest arrives under it)
@@ -156,7 +156,7 @@ function shellTop(x, y, s, rot) {
   X.restore();
 }
 
-/* ───────────── a carrier: claude() with noodle arms up to its end of the plank and a face that reacts ───────────── */
+/* ───────────── a carrier: caos() with noodle arms up to its end of the plank and a face that reacts ───────────── */
 function face(x, y, u, col, mood, lk) {
   const ey = y - 6.2 * u;
   X.fillStyle = col; for (const sx of [-1, 1]) X.fillRect(x + sx * 2.8 * u - 1.05 * u, ey - 1.5 * u, 2.1 * u, 3.1 * u);
@@ -171,7 +171,7 @@ function face(x, y, u, col, mood, lk) {
   if (mood === 'strain') { X.fillStyle = 'rgba(255,80,80,.45)'; el(x - 4.6 * u, y - 4.3 * u, u * .9, u * .5); X.fill(); el(x + 4.6 * u, y - 4.3 * u, u * .9, u * .5); X.fill(); X.fillStyle = '#fff'; rr(x - 1.6 * u, y - 4.2 * u, 3.2 * u, 1.2 * u, u * .3); ink('#fff', Math.max(1.5, u * .25)); X.strokeStyle = INK; X.lineWidth = Math.max(1, u * .2); X.beginPath(); X.moveTo(x - 1.6 * u, y - 3.6 * u); X.lineTo(x + 1.6 * u, y - 3.6 * u); X.stroke(); }
   else if (mood === 'scared') { el(x, y - 3.6 * u, u * .7, u * .85); ink('#7a2236', Math.max(1.5, u * .3)); }
 }
-/* noodle arms from claude()'s side stubs up to the plank end (hx, hy), drawn before the body; hands are drawn after the plank */
+/* noodle arms from caos()'s side stubs up to the plank end (hx, hy), drawn before the body; hands are drawn after the plank */
 function noodleArms(x, y, u, hx, hy, col, wob) {
   const ol = Math.max(3, u * .5), aw = 1.25 * u;
   for (const sx of [-1, 1]) {
@@ -564,7 +564,7 @@ function duSeesaw(sp, D) {
       const bonked = T - bonkAt[b.i] < .7, thr = threat(b.sd);
       let mood = null;
       if (o.won && rk >= 0) mood = 'happy'; else if (o.lost && rk >= 0) mood = 'sad'; else if (bonked) mood = 'dizzy'; else if (thr && Math.abs(o.s) > .55) mood = 'scared'; else if (b.hh > .5) mood = 'strain';
-      claude(b.x, b.y, PU, { col: cols[b.i], mood: mood === 'happy' || mood === 'sad' ? mood : null, run: o.walk !== null ? o.walk + b.i : undefined });
+      caos(b.x, b.y, PU, { col: cols[b.i], mood: mood === 'happy' || mood === 'sad' ? mood : null, run: o.walk !== null ? o.walk + b.i : undefined });
       if (mood && mood !== 'happy' && mood !== 'sad') face(b.x, b.y, PU, cols[b.i], mood, [clamp((ex - b.x) / 200, -1, 1), -.6]);
       else if (!mood) face(b.x, b.y, PU, cols[b.i], 'look', [clamp((ex - b.x) / 200, -1, 1), -.6]);
       if (mood === 'strain') { X.globalAlpha = .9; const d = (T * 46 + b.i * 9) % 20; el(b.x + b.sd * 30, b.y - 50 + d, 4, 6); ink('#9fe3ff', 2); X.globalAlpha = 1; }
@@ -683,7 +683,7 @@ function demo(role, tm) {
   windCloud(sd > 0 ? 150 : 650, 118, sd, inK, blowK, tm, .9); windArrow(sd > 0 ? 260 : 540, 124, sd, inK * (u < 1.4 ? 1 : 0), tm);
   const hl = role === 0 ? lift : 0, hr = role === 0 ? 0 : lift, yL = endY(hl), yR = endY(hr), geoA = Math.atan2(yR - yL, RX - LX);
   const cols = role === 0 ? [me2, fr] : [fr, me2];
-  for (const [x, ey2, hh, i] of [[LX, yL, hl, 0], [RX, yR, hr, 1]]) { const y = GY - hh * 9; noodleArms(x, y, PU, x, ey2 + PT / 2 + 3, cols[i], 0); claude(x, y, PU, { col: cols[i] }); face(x, y, PU, cols[i], hh > .4 ? 'strain' : 'look', [sd * (i ? -1 : 1) * 0, -.6]); }
+  for (const [x, ey2, hh, i] of [[LX, yL, hl, 0], [RX, yR, hr, 1]]) { const y = GY - hh * 9; noodleArms(x, y, PU, x, ey2 + PT / 2 + 3, cols[i], 0); caos(x, y, PU, { col: cols[i] }); face(x, y, PU, cols[i], hh > .4 ? 'strain' : 'look', [sd * (i ? -1 : 1) * 0, -.6]); }
   X.save(); X.translate(LX, yL); X.rotate(geoA); const len = Math.hypot(RX - LX, yR - yL);
   rr(-34, -PT / 2, len + 68, PT, 6); ink('#e0a35e', 4);
   const cx0 = (400 - LX) / Math.cos(geoA) - (ZONE * TRK + 18); rr(cx0, -PT / 2 - CUSH - 4, (ZONE * TRK + 18) * 2, CUSH + 8, 9); ink('#ff9ccb', 3.5); X.restore();

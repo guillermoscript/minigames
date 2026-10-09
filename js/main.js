@@ -37,11 +37,17 @@ track('app_loaded', { touch: !!TOUCH, challenge: !!CH, challenger: CH ? CH.from 
 let chOpen = !!CH;                       // title screen still offers the incoming challenge
 const attempts = {};                     // stage index -> tries this session (retry funnel)
 let sh = { on: false, surface: '', text: '', url: '' };   // desktop share menu
+/* the spoiler-free result grid on top of shared text, e.g. "💣 MiniCaos 3/19\n🟩🟩🟥🟩🟩🟩🟩🟩🟩👑 ⭐⭐⭐" (last 20 tries) */
+function shareGrid(st) {
+  const g = runLog.length > 20 ? '…' + runLog.slice(-20).join('') : runLog.join('');
+  return '💣 MiniCaos ' + (stageIdx + 1) + '/' + STAGES.length + '\n' + g + (st ? ' ' + '⭐'.repeat(st) : '');
+}
 async function doShare(surface) {
   const run = surface === 'invite' ? null : { score: Math.round(score), stage: stageIdx };
   const name = net.user ? net.user.username : '';
   const url = run ? challengeUrl(run.score, run.stage, name) : gameUrl();
-  const text = run ? t('I scored {score} on {stage} in Claude Ware. Think you can beat me?', { score: run.score, stage: t(STAGES[run.stage].name) }) : t('Claude Ware: 100+ five-second microgames. Come play!');
+  const line = run ? t('I scored {score} on {stage} in MiniCaos. Think you can beat me?', { score: run.score, stage: t(STAGES[run.stage].name) }) : t('MiniCaos: 100+ five-second microgames. Come play!');
+  const text = run && runLog.length ? shareGrid(surface === 'stage_clear' ? stars : null) + '\n' + line : line;
   const props = { surface, native: !!navigator.share, score: run ? run.score : undefined, stage: run ? run.stage + 1 : undefined };
   track('share_click', props);
   if (!navigator.share) { sh = { on: true, surface, text, url }; return; }       // desktop: pick a network
@@ -88,6 +94,7 @@ function challengeLine() {
 let state = 'title', st = 0, mode = 'stage';
 const PRE = 1.4; let pre = 0, preMax = PRE;   // read-time: game frozen while the instruction is shown
 let retryId = null, stageIdx = 0, stage = STAGES[0], lives = 4, played = 0, score = 0, lastOut = null, stars = 0;
+let runLog = [];                          // this stage run, one emoji per microgame / boss try: the Wordle-style grid in shared text
 let cur = null, curId = '', tt = 0, dur = 5, outcome = null, outT = 0, tickN = 0, recent = [], isBoss = false;
 let practiceId = 'swat', practiceSp = 1, menuPage = 0, practicePage = 0;
 const PER_MENU = 6, PER_PRACTICE = 30;
@@ -272,7 +279,7 @@ function startStage(i) {
   runRank = null; attempts[i] = (attempts[i] || 0) + 1;
   track('stage_start', { stage: i + 1, stage_name: STAGES[i].name, attempt: attempts[i], unlocked: save.unlocked });
   if (poolOf(STAGES[i]).some(is3D)) loadThree();
-  mode = 'stage'; stageIdx = i; stage = STAGES[i]; lives = 4; played = 0; score = 0; lastOut = null; recent = []; retryId = null;
+  mode = 'stage'; stageIdx = i; stage = STAGES[i]; lives = 4; played = 0; score = 0; lastOut = null; recent = []; retryId = null; runLog = [];
   state = 'stagein'; st = 0; shownScore = 0; lifeT = 99; jingleGo();
 }
 function startPractice(id) { if (is3D(id)) loadThree(); track('practice_start', { game: id }); mode = 'practice'; practiceId = id; lastOut = null; stage = STAGES[0]; state = 'inter'; st = 0; }
@@ -349,6 +356,7 @@ function update(dt) {
         cur.result = cur.timeWin ? 'win' : 'lose'; setOutcome(cur.result); }
     } else if (outT > .95) {
       lastOut = outcome;
+      if (mode === 'stage') runLog.push(isBoss ? (outcome === 'win' ? '👑' : '💥') : outcome === 'win' ? '🟩' : '🟥');
       if (mode === 'party') partyLocalDone(outcome);
       else if (mode === 'practice') { state = 'inter'; st = 0; }
       else if (isBoss) { if (outcome === 'win') clearStage(); else if (lives <= 0) toOver(); else toInter(); }
@@ -372,11 +380,11 @@ function button(x, y, w, h, label, fn, o = {}) {
   ctx.restore();
   btns.push({ x, y, w, h, fn });
 }
-/* logged-in badge (avatar-coloured Claude + name) or a PROFILE button for guests */
+/* logged-in badge (avatar-coloured Caos + name) or a PROFILE button for guests */
 function profileBtn(x, y, w, h) {
   const u = net.user;
   hoverBox(x, y, w, h, '#fff', 5);
-  claude(x + 30, y + h - 9, Math.max(2, h / 22), { col: u ? u.color : '#9a98ad' });
+  caos(x + 30, y + h - 9, Math.max(2, h / 22), { col: u ? u.color : '#9a98ad' });
   txt(u ? u.username : 'PROFILE', x + 56 + (w - 62) / 2, y + h / 2 + 2, u ? 20 : 22, u ? u.color : INK, 'center', w - 68);
   ctx.restore();
   btns.push({ x, y, w, h, fn: goProfile });
@@ -421,12 +429,12 @@ function hintOf(g) {
 function livesRow(x, y, u, gap, col) {
   for (let i = 0; i < 4; i++) {
     const cx = x + i * gap;
-    if (i < lives) { claude(cx, y - (lives === 1 ? Math.abs(Math.sin(now * 8)) * u * .8 : 0), u, { col }); continue; }
+    if (i < lives) { caos(cx, y - (lives === 1 ? Math.abs(Math.sin(now * 8)) * u * .8 : 0), u, { col }); continue; }
     const k = i === lives ? lifeT / .9 : 9;
-    if (k >= 1) { claude(cx, y, u, { col: '#4a4558', mood: 'sad' }); continue; }   // just-lost mascot pops big, flashes red, then greys out
+    if (k >= 1) { caos(cx, y, u, { col: '#4a4558', mood: 'sad' }); continue; }   // just-lost mascot pops big, flashes red, then greys out
     const sc = k < .25 ? 1 + k * 2.4 : 1.6 - (k - .25) / .75 * .6;
     ctx.save(); ctx.translate(cx + (Math.random() - .5) * 4 * (1 - k), y); ctx.scale(sc, sc);
-    claude(0, 0, u, { col: k < .5 ? (Math.sin(k * 40) > 0 ? '#FF4D4D' : '#fff') : '#4a4558', mood: 'sad' }); ctx.restore();
+    caos(0, 0, u, { col: k < .5 ? (Math.sin(k * 40) > 0 ? '#FF4D4D' : '#fff') : '#4a4558', mood: 'sad' }); ctx.restore();
   }
 }
 function stars3(cx, cy, n, size, gap) { for (let i = 0; i < 3; i++) star(cx + (i - 1) * gap, cy, size, size * .45, 5, -Math.PI / 2, i < n ? '#FFE14D' : '#4a4558', 3); }
@@ -458,12 +466,12 @@ function render() {
     for (let i = 0; i < 8; i++) { const a = now * .5 + i * Math.PI / 4; star(W / 2 + Math.cos(a) * 340, 300 + Math.sin(a) * 215, 9 + (i % 3) * 4, 4, 5, now * 2 + i, SC[i % 4], 3); }
     const drop = easeBack(st / .6), bob = Math.sin(now * 2.2) * 8;
     ctx.save(); ctx.translate(W / 2, 130 + bob - (1 - drop) * 200); ctx.rotate(Math.sin(now * 2) * .03); ctx.scale(.6 + .4 * drop, .6 + .4 * drop);
-    txt('CLAUDE', 6, 8, 120, INK); txt('CLAUDE', 0, 0, 120, '#FFE14D'); ctx.restore();
+    txt('MINI', 6, 8, 120, INK); txt('MINI', 0, 0, 120, '#FFE14D'); ctx.restore();
     ctx.save(); ctx.translate(W / 2, 250 - bob * .8 - (1 - easeBack(st / .6 - .15)) * 200); ctx.rotate(-Math.sin(now * 2 + 1) * .03);
-    txt('WARE!', 6, 8, 120, INK); txt('WARE!', 0, 0, 120, '#fff'); ctx.restore();
-    const jump = Math.abs(Math.sin(now * 4)) * 30;
-    shadow(W / 2, 474, 90 - jump, 14 - jump * .2, .3);
-    claude(W / 2, 470 - jump, 14, { mood: 'happy' });
+    txt('CAOS!', 6, 8, 120, INK); txt('CAOS!', 0, 0, 120, '#fff'); ctx.restore();
+    const jump = Math.abs(Math.sin(now * 4)) * 20;
+    shadow(W / 2, 484, 80 - jump, 13 - jump * .2, .3);
+    caos(W / 2, 480 - jump, 10.5, { mood: 'happy' });
     if (inviteOpen()) txt(t('A FRIEND INVITES YOU TO ROOM {code}', { code: PINVITE }), W / 2, 505, 21, '#5CFF7A', 'center', 760);
     else if (chOpen) txt(t('{from} CHALLENGES YOU: BEAT {score} ON {stage}', { from: chFrom(), score: CH.score, stage: t(STAGES[CH.stage].name) }), W / 2, 505, 21, '#FFE14D', 'center', 760);
     else txt(t('{games} MICROGAMES · {stages} STAGES · MOUSE + KEYBOARD + TOUCH', { games: PREG.length, stages: STAGES.length }), W / 2, 505, 19, '#fff', 'center', 760);
@@ -486,7 +494,7 @@ function render() {
       hoverBox(x, y, 240, 155, locked ? '#5a5870' : s.bg[0], 5, 7);
       shadow(x + 62, y + 120, 36, 7, .25);
       if (s.intro === 'ap' && !locked) AP.person(AP.CAST.chamo, { la: [2.4 + Math.sin(now * 9) * .2, .3], ra: [.12, .1], mouth: 'yell', talk: .8, wide: 1, bob: Math.abs(Math.sin(now * 8)) * -8 }, x + 62, y + 140, .44);   // Luisito, shouting
-      else claude(x + 62, y + 118 - (locked ? 0 : Math.abs(Math.sin(now * 3 + i)) * 6), 5.2, { col: locked ? '#7a7890' : s.col, mood: locked ? null : undefined });
+      else CAST.host(s.host, x + 58, y + 118 - (locked ? 0 : Math.abs(Math.sin(now * 3 + i)) * 6), s.host === 'chigui' || s.host === 'zumbi' ? 4.3 : 5.2, { col: s.col, locked });
       txt(t('STAGE {n}', { n: i + 1 }), x + 14, y + 20, 17, '#fff', 'left');
       const words = t(s.name).split(' ');
       txt(words[0], x + 160, y + 58, 26, locked ? '#aaa' : '#fff', 'center', 150);
@@ -541,7 +549,7 @@ function render() {
     ctx.globalAlpha = clamp01((st - .5) / .3); txt(stage.tag, W / 2, 275, 28, '#fff', 'center', 700); ctx.globalAlpha = 1;
     const jb = Math.abs(Math.sin(now * 5)) * 40;
     shadow(W / 2, 484, 100 - jb * .6, 14, .3);
-    ctx.save(); ctx.translate(W / 2, 480 - jb); ctx.scale(e3, e3); claude(0, 0, 16, { col: stage.col, mood: 'happy' }); ctx.restore();
+    ctx.save(); ctx.translate(W / 2, 480 - jb); ctx.scale(e3, e3); CAST.host(stage.host, 0, 0, 16, { col: stage.col, mood: 'happy' }); ctx.restore();
     ctx.globalAlpha = clamp01((st - .7) / .3); txt(t('{n} GAMES + BOSS', { n: stage.n }), W / 2, 545, 28, '#fff'); ctx.globalAlpha = 1;
   } else if (state === 'inter') {
     const bossNext = mode === 'stage' && played >= stage.n;
@@ -560,7 +568,7 @@ function render() {
     const mood = !lastOut || msg === 'READY?' ? null : lastOut === 'win' ? 'happy' : 'sad';
     const hop = mood === 'happy' ? Math.abs(Math.sin(now * 9)) * 40 : 0, rise = (1 - easeOut(st / .35)) * 220;
     shadow(W / 2, 404, 100 - hop * .5, 14, .3);
-    claude(W / 2, 400 - hop + rise, 16, { col, mood });
+    caos(W / 2, 400 - hop + rise, 16, { col, mood });
     if (mode === 'stage') {
       livesRow(W / 2 - 108, 520, 3.2, 72, col);
       const sp = 1 + scorePop * .3; ctx.save(); ctx.translate(W / 2, 572); ctx.scale(sp, sp); txt(t('SCORE {n}', { n: Math.round(shownScore) }), 0, 0, 24); ctx.restore();
@@ -611,7 +619,7 @@ function render() {
     ctx.save(); ctx.translate(W / 2, 120); ctx.rotate(-.06); ctx.scale(gk, gk); ctx.globalAlpha = Math.min(1, st / .06);
     txt('GAME OVER', 6, 8, 110, INK, 'center', 760); txt('GAME OVER', 0, 0, 110, '#FF4D4D', 'center', 760); ctx.restore();
     shadow(W / 2, 394, 90, 13, .3);
-    claude(W / 2, 390 + (1 - easeOut(st / .5)) * 120, 16, { col, mood: 'sad' });
+    caos(W / 2, 390 + (1 - easeOut(st / .5)) * 120, 16, { col, mood: 'sad' });
     txt(t('{stage} · SCORE {n}', { stage: t(stage.name), n: Math.round(shownScore) }), W / 2, 455, 34, '#fff', 'center', 760);
     const cl = challengeLine(); if (cl) txt(cl.s, W / 2, 206, 28, cl.col, 'center', 760);
     if (st > .4) {
@@ -626,7 +634,7 @@ function render() {
     txt(stage.name, W / 2, 180, 40, '#FFE14D', 'center', 700);
     const jc = Math.abs(Math.sin(now * 6)) * 50;
     shadow(W / 2, 414, 95 - jc * .6, 13, .3);
-    claude(W / 2, 410 - jc, 15, { col: stage.col, mood: 'happy' });
+    caos(W / 2, 410 - jc, 15, { col: stage.col, mood: 'happy' });
     for (let i = 0; i < 3; i++) {                      // stars pop in one at a time (sfx + burst fired from update)
       const thr = .5 + i * .45, on = i < stars && st >= thr, k = on ? easeBack((st - thr) / .35) : 1, sz = on ? 40 * k : 34;
       star(W / 2 + (i - 1) * 100, 265, sz, sz * .45, 5, -Math.PI / 2 + (on ? (1 - k) * .9 : 0), on ? '#FFE14D' : '#4a4558', 3);
@@ -649,7 +657,7 @@ function render() {
     bg('#2b2757', '#322d66', now);
     txt('PROFILE', W / 2, 40, 54, '#FFE14D');
     button(14 - OX, 10, 130, 56, '◄ BACK', back, { size: 22 });
-    claude(W / 2, 205, 6, { mood: 'happy' });
+    caos(W / 2, 205, 6, { mood: 'happy' });
     txt('SAVE YOUR PROGRESS · JOIN THE LEADERBOARDS', W / 2, 262, 22, '#fff', 'center', 740);
     const ok = pf.avail === 'yes' || pf.avail === 'loading', bx = 190, by = 298, bw = 420, bh = 84;
     if (ok && !pf.busy) hoverBox(bx, by, bw, bh, '#fff', 5); else box3(bx, by, bw, bh, ok ? '#fff' : '#bdbbc9', 5, 5);
@@ -687,7 +695,7 @@ function render() {
         const col = i / 10 | 0, x = 20 + col * 392, y = 190 + (i % 10) * 33, mine = net.user && e.username === net.user.username;
         box(x, y, 368, 28, mine ? '#FFE14D' : i % 2 ? '#35406a' : '#2c3659', 2);
         txt('#' + e.rank, x + 8, y + 15, 16, mine ? INK : '#fff', 'left');
-        claude(x + 62, y + 24, 1.7, { col: e.color });
+        caos(x + 62, y + 24, 1.7, { col: e.color });
         ctx.save(); txt(e.username, x + 82, y + 15, 17, mine ? INK : e.color, 'left', 170); ctx.restore();
         txt(String(e.score), x + 360, y + 15, 17, mine ? INK : '#fff', 'right');
         btns.push({ x, y, w: 368, h: 28, fn: () => openProfile(e.username) });
@@ -708,7 +716,7 @@ function render() {
     txt('FRIENDS', W / 2, 38, 44, '#FFE14D');
     button(14 - OX, 10, 130, 56, '◄ BACK', back, { size: 22 });
     if (!net.user) {
-      claude(W / 2, 215, 6, { mood: 'happy' });
+      caos(W / 2, 215, 6, { mood: 'happy' });
       txt('SIGN IN WITH GOOGLE TO FOLLOW PLAYERS', W / 2, 290, 26, '#fff', 'center', 740);
       txt('FOLLOW EACH OTHER = FRIENDS', W / 2, 328, 20, '#ddd', 'center', 740);
       button(250, 380, 300, 64, 'PROFILE', goProfile, { fill: '#5CFF7A', size: 28 });
@@ -733,7 +741,7 @@ function render() {
         list.slice(fr.page * FR_PER, fr.page * FR_PER + FR_PER).forEach((f, i) => {
           const y = 258 + i * 48, act = fr.tab === 2 && !f.following, w = act ? 560 : 720, mut = f.following && f.followsMe;
           box(40, y, w, 44, i % 2 ? '#35406a' : '#2c3659', 3);
-          claude(80, y + 46, 2.2, { col: f.color });
+          caos(80, y + 46, 2.2, { col: f.color });
           ctx.save(); txt(f.username, 112, y + 22, 20, f.color, 'left', 250); ctx.restore();
           txt(mut ? '✓ FRIENDS' : f.following ? 'FOLLOWING' : 'FOLLOWS YOU', 395, y + 22, 15, mut ? '#5CFF7A' : f.following ? '#FFE14D' : '#ddd', 'left', 140);
           txt(String(f.total), 40 + w - 12, y + 22, 18, '#fff', 'right');
@@ -767,7 +775,7 @@ function render() {
       txt(pv.loading ? 'LOADING...' : pv.err, W / 2, 300, 36, pv.loading ? '#fff' : '#FF4D4D', 'center', 740);
       if (!pv.loading) button(300, 340, 200, 56, 'RETRY', () => openProfile(pv.name), { size: 24, fill: '#FFE14D' });
     } else {
-      claude(110, 215, 8, { col: d.color, mood: 'happy' });
+      caos(110, 215, 8, { col: d.color, mood: 'happy' });
       txt(d.username, 210, 110, 52, d.color, 'left', 560);
       txt(d.rank ? t('RANK #{rank} · TOTAL {total}', { rank: d.rank, total: d.total }) : 'NOT RANKED YET', 210, 165, 28, '#fff', 'left', 370);
       if (me) button(590, 150, 190, 50, 'FRIENDS', goFriends, { size: 22, fill: '#5CFF7A' });

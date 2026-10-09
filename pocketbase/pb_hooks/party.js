@@ -1,4 +1,4 @@
-/* Claude Ware PARTY mode (play with friends in a room): pure room logic + a thin PocketBase layer.
+/* MiniCaos PARTY mode (play with friends in a room): pure room logic + a thin PocketBase layer.
    A room is ONE record in the `rooms` collection. Clients never write it: every action goes through /api/party/* routes (see
    claudeware.pb.js) which run the pure functions below inside a DB transaction and save the record; PocketBase realtime then
    pushes the new record to everyone subscribed to it. Pure functions take `now` (ms) and `rand` so party.test.js can drive them. */

@@ -89,7 +89,7 @@ function badge(s, x, y, size, bgc, fg, sc, rot) {
   txt(s, 0, 2, size, fg || '#fff', 'center', 236);
   X.restore();
 }
-/* a blocky arm from a shoulder to a hand point, with a square fist (Claude's arms are stubs: these stretch, cartoon style) */
+/* a blocky arm from a shoulder to a hand point, with a square fist (Caos's arms are stubs: these stretch, cartoon style) */
 function arm(x0, y0, x1, y1, u, col) {
   const ol = Math.max(3, u * .5), aw = 1.15 * u, hs = 1.9 * u;
   X.lineCap = 'square'; X.strokeStyle = INK; X.lineWidth = aw + ol * 2; X.beginPath(); X.moveTo(x0, y0); X.lineTo(x1, y1); X.stroke();
@@ -285,7 +285,7 @@ function alarm(x, y, k, t) {
   X.restore();
 }
 
-/* ───────────── Claudes ───────────── */
+/* ───────────── Caoses ───────────── */
 function soot(x, y, u, k) {                               // toasted: a black face mask + smoke tufts on top
   if (k <= 0) return; X.globalAlpha = k; X.fillStyle = '#2a2228'; X.fillRect(x - 6 * u, y - 9 * u, 12 * u, 7 * u); X.fillStyle = '#fff'; X.fillRect(x - 3.4 * u, y - 7 * u, 1.3 * u, 1.3 * u); X.fillRect(x + 2.2 * u, y - 7 * u, 1.3 * u, 1.3 * u);
   X.globalAlpha = 1;
@@ -576,7 +576,7 @@ function duGate(sp, D) {
       const effort = !done() && T - turnAt < .2 ? Math.sin(T * 30) * 1.5 : 0;
       X.save(); X.translate(CKX, GY - hop); X.rotate(stun ? Math.sin(T * 25) * .05 : -sag * .1);
       shadow(0, hop + 2, 34, 6, .25);
-      claude(0, 0, cu, { col: soo > .5 ? mix(ccol, '#2a2228', .7) : ccol, mood: won ? 'happy' : stun || lost ? 'sad' : null });
+      caos(0, 0, cu, { col: soo > .5 ? mix(ccol, '#2a2228', .7) : ccol, mood: won ? 'happy' : stun || lost ? 'sad' : null });
       soot(0, 0, cu, soo * .9);
       X.restore();
       const hpos = winch(ang, coil, won ? .5 + .5 * Math.sin(T * 12) : T - linkPop < .3 ? 1 - (T - linkPop) / .3 : 0);
@@ -602,7 +602,7 @@ function duGate(sp, D) {
       const kcol = keeper ? myCol() : pCol(), ku = 5.2, la = lerp(LA_UP, LA_HELD, ease(gp)), [kx, ky] = leverAt(la);
       const kHop = won && rk > .1 ? Math.abs(Math.sin(T * 9 + 1)) * 14 : 0, warnLit = !!thr && !done() && gT === 1;
       X.save(); X.translate(KX, TTOP - kHop - gp * 3); X.scale(1 + gp * .04, 1 - gp * .06);
-      claude(0, 0, ku, { col: kcol, mood: won ? 'happy' : lost ? 'sad' : null });
+      caos(0, 0, ku, { col: kcol, mood: won ? 'happy' : lost ? 'sad' : null });
       X.restore();
       lever(la, warnLit, T);
       keeperArms(ku, kHop, gp, kx, ky, kcol, won, T);
@@ -762,13 +762,13 @@ function demo(role, t) {
   if (inhK > 0) alarm(604, 196, inhK, t);
   drawString(p, t, null, reel, gp < .25);
   const ang = t * (reel ? 7 : 0) + (keeperRole ? 0 : t * 2);
-  X.save(); X.translate(CKX, GY); claude(0, 0, 5.4, { col: keeperRole ? '#6EA8FE' : '#FFC93C' }); X.restore();
+  X.save(); X.translate(CKX, GY); caos(0, 0, 5.4, { col: keeperRole ? '#6EA8FE' : '#FFC93C' }); X.restore();
   const hp = winch(keeperRole ? (u < relT ? u * 7 : u > reT ? (u - reT + relT) * 7 : relT * 7) : t * 6, 0, 0);
   arm(CKX + 6.6 * 5.4, GY - 5.2 * 5.4, hp[0], hp[1], 5.4, keeperRole ? '#6EA8FE' : '#FFC93C');
   portcullis(gp, u > hitT && u < hitT + .8 ? 1 - (u - hitT) / .8 : 0, t, 0);
   if (u >= spitT && u < hitT) { const k = (u - spitT) / (hitT - spitT), [x, y] = fbPos(k), [x2, y2] = fbPos(Math.min(1, k + .03)); fireball(x, y, Math.atan2(y2 - y, x2 - x), .9, t); }
   const la = lerp(LA_UP, LA_HELD, ease(gp)), [kx, ky] = leverAt(la), kc = keeperRole ? '#FFC93C' : '#6EA8FE';
-  X.save(); X.translate(KX, TTOP - gp * 3); claude(0, 0, 5.2, { col: kc }); X.restore(); lever(la, inhK > 0 && held, t);
+  X.save(); X.translate(KX, TTOP - gp * 3); caos(0, 0, 5.2, { col: kc }); X.restore(); lever(la, inhK > 0 && held, t);
   keeperArms(5.2, 0, gp, kx, ky, kc, false, t);
   X.restore();
   if (u > hitT && u < hitT + .7) badge('CLANG!', 240, 44, 22, '#6c6a8a', '#fff', outBack((u - hitT) / .2), -.05);

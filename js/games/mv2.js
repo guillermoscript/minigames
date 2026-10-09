@@ -43,7 +43,7 @@ const MV2A = (() => {
     X.save(); X.globalAlpha = a; X.translate(x, y); X.scale(s, s); X.beginPath(); X.moveTo(0, -9); X.quadraticCurveTo(7, 1, 0, 6); X.quadraticCurveTo(-7, 1, 0, -9); X.closePath();
     ink('#9fe3ff', 2.5); X.fillStyle = '#fff'; el(-1.8, 0, 1.6, 2.4); X.fill(); X.restore();
   }
-  /* blocky arms off claude()'s side stubs (origin = Claude's feet, draw BEFORE claude()). an: 0 = straight up, + = clockwise */
+  /* blocky arms off caos()'s side stubs (origin = Caos's feet, draw BEFORE caos()). an: 0 = straight up, + = clockwise */
   function arms(u, la, ra, k, col) {
     if (k <= .02) return; const ol = Math.max(3, u * .5), L = 3.3 * u * k, aw = 1.2 * u, hs = 2 * u, gap = .35 * u;
     const one = (sx, an) => {
@@ -339,7 +339,7 @@ function mvPunch(sp) {
         msnack(sx, 528, .6, 3, now, { mood: 'scared', w: 1.6, look: [-1, 0], armsUp: true });
         ctx.restore();
       }
-      // Claude + glove
+      // Caos + glove
       const f = fist ? Math.sin(clamp(fist.t / .25, 0, 1) * Math.PI) : 0;
       shadow(CX, 528, 70, 14, .3);
       ctx.save(); ctx.translate(CX, 524); if (hurt > 0) ctx.translate(Math.sin(now * 80) * 6, 0);
@@ -347,7 +347,7 @@ function mvPunch(sp) {
       const gl = win ? Math.sin(now * 9) * .12 : 0;
       marms(8, win ? -.5 + gl : -.45, win ? .5 - gl : .45, win ? 1.1 : .65, OR);
       ctx.translate(-CX, -524);
-      claude(CX, 524, 8, { mood: mvMood(g) });
+      caos(CX, 524, 8, { mood: mvMood(g) });
       // headband + goggles-free bruise
       X.fillStyle = '#e8434f'; X.fillRect(CX - 49, 524 - 62, 98, 10); X.fillStyle = INK; X.fillRect(CX - 52, 524 - 62, 3, 10); X.fillRect(CX + 49, 524 - 62, 3, 10);
       X.fillStyle = 'rgba(255,255,255,.4)'; X.fillRect(CX - 44, 524 - 61, 36, 3);
@@ -454,12 +454,12 @@ function mvWave(sp) {
         const tx = -OX - 40 + (loseT / .9) * (VW + 80), ty = 296; ctx.save(); ctx.translate(tx, ty); ctx.rotate(loseT * 9);
         X.beginPath(); X.arc(0, 0, 22, 0, TAU); mink('#d9944f', 3); X.strokeStyle = INK; X.lineWidth = 3; for (let i = 0; i < 4; i++) { X.beginPath(); X.arc(0, 0, 9 + i * 4, i, i + 3.5); X.stroke(); } ctx.restore();
       }
-      // Claude on stage
+      // Caos on stage
       shadow(400, 316, 80, 14, .3);
       const sx = 448, sy = 262, Ln = 120, hx = sx + Math.sin(ha) * Ln, hy = sy - Math.cos(ha) * Ln;
       ctx.save(); ctx.translate(400, 312); const bounce = win ? -Math.abs(Math.sin(t * 9)) * 18 : 0; ctx.translate(0, bounce);
       marms(9, win ? -.5 : lost ? 2.4 : -.5, win ? .5 : lost ? -2.4 : 0, win ? 1.1 : .5, OR); ctx.translate(-400, -312);
-      claude(400, 312, 9, { mood: mvMood(g) || (meter > .5 ? 'happy' : null) });
+      caos(400, 312, 9, { mood: mvMood(g) || (meter > .5 ? 'happy' : null) });
       ctx.restore();
       const by = bounce;
       mline([[sx, sy + by], [hx, hy + by]], 18, OR);
@@ -562,10 +562,10 @@ function mvClap(sp) {
           X.beginPath(); X.arc(BX[j], 150, r, 0, 7); X.lineWidth = 11; X.strokeStyle = INK; X.stroke(); X.lineWidth = 6; X.strokeStyle = k < .15 ? YEL : '#fff'; X.stroke();
         }
       }
-      // Claude clapping, on the dance floor
+      // Caos clapping, on the dance floor
       const cy = 536, hy = cy - 46;
       shadow(400, cy + 3, 80, 14, .3);
-      claude(400, cy, 9, { mood: mvMood(g) });
+      caos(400, cy, 9, { mood: mvMood(g) });
       const sp2 = mine > 0 ? 0 : 20, hxs = 12 + sp2 + 4;
       for (const d of [-1, 1]) { mline([[400 + d * 54, hy], [400 + d * hxs, hy]], 14, OR); MV2A.mitt(400 + d * hxs, hy, 15, d * 1.57 - 1.57); }
       if (mine > 0) star(400, hy, 36, 16, 8, now * 5, YEL, 3);
@@ -650,7 +650,7 @@ function mvBalance(sp) {
       }
       // crowd, then the floor
       mcrowd(470, t, win ? 2 : .8, .75, 0, 1, lost ? 'scared' : win ? 'happy' : Math.abs(a) > .6 ? 'scared' : 'idle', [a, -.6], win);
-      // giant rolling eyeball donut (Claude's unicycle)
+      // giant rolling eyeball donut (Caos's unicycle)
       const OY = -44, dx = lost ? fall * 380 * Math.sign(a || 1) : 0, rr = a * 3 + c * .6 + dx * .02;
       shadow(400 + dx, 556 + OY, 110, 14, .3);
       ctx.save(); ctx.translate(400 + dx, 560 + OY); ctx.rotate(rr);
@@ -667,7 +667,7 @@ function mvBalance(sp) {
       const fl = Math.sin(now * 12) * .3 * Math.min(1, Math.abs(a) * 2);
       marms(8, lost ? 2.6 : win ? -.5 + Math.sin(now * 9) * .1 : -1.9 - fl * 2.6, lost ? -2.6 : win ? .5 - Math.sin(now * 9) * .1 : 1.9 + fl * 2.6, .75, OR);
       ctx.translate(-400 * 0, 0);
-      claude(0, 0, 8, { mood: mvMood(g) });
+      caos(0, 0, 8, { mood: mvMood(g) });
       // sneakers: one raised foot gag
       for (const [fx, fy] of [[46, -26 + fl * 20], [-74, -26 - fl * 20]]) { const p = new Path2D(); p.roundRect(fx, fy, 28, 14, 6); mcel(p, '#ff4d5e', '#b8283a', 3, 3, 3); X.fillStyle = '#fff'; X.fillRect(fx + 4, fy + 11, 20, 3); }
       if (lost) for (let i = 0; i < 3; i++) { const aa = now * 7 + i * 2.1; star(Math.cos(aa) * 46, -86 + Math.sin(aa) * 9, 10, 4.5, 5, aa, YEL, 3); }

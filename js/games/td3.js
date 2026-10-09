@@ -62,7 +62,7 @@ const keyCap = (x, y, label) => { X.save(); X.font = '700 15px Fredoka, Arial, s
 /* chunky plate (control / hint): base 9 px below, face on top, optionally pressed */
 const plate = (x, y, w, h, face, base, down) => { const d = down ? 3 : 9; rr(x, y + 9, w, h, 18); ink(base, 4); rr(x, y + 9 - d, w, h, 18); ink(face, 4); glint(x + w * .28, y + 9 - d + h * .24, w * .2, h * .1, 0, .4); };
 
-/* faces: one routine for the 2D heroes AND the face texture on the 3D Claude. (cx,cy) = centre of the body front, units = 256x150 face texture */
+/* faces: one routine for the 2D heroes AND the face texture on the 3D Caos. (cx,cy) = centre of the body front, units = 256x150 face texture */
 function eyeP(x, y, r, mood, lx, ly, bl, T, lw) {
   X.lineCap = 'round'; X.lineJoin = 'round';
   if (mood === 'happy') { X.beginPath(); X.arc(x, y + r * .4, r * .78, Math.PI * 1.1, Math.PI * 1.9); X.strokeStyle = INK; X.lineWidth = 6 * lw; X.stroke(); return; }
@@ -100,7 +100,7 @@ function drawFace(cx, cy, mood, lx, ly, bl, T, lw = 1) {
   else if (mood === 'dizzy' || mood === 'bonk') { X.moveTo(cx - 18, my + 2); for (let i = 1; i <= 4; i++) X.lineTo(cx - 18 + i * 9, my + (i % 2 ? 9 : 0)); X.stroke(); }
   else { X.moveTo(cx - 10, my); X.lineTo(cx + 10, my); X.stroke(); }
 }
-/* the 2D Claude hero: blocky arms with square hands behind the core body, my eyes over the core ones. al/ar = hand offset (in u) from the shoulder */
+/* the 2D Caos hero: blocky arms with square hands behind the core body, my eyes over the core ones. al/ar = hand offset (in u) from the shoulder */
 function hero2d(x, y, u, mood, lx, ly, o = {}) {
   const k = u * .0469, al = o.al || [-1.2, 3.2], ar = o.ar || [1.2, 3.2], lift = o.lift || 0;
   shadow(x, y + 1, 7.5 * u, 1.6 * u, .28);
@@ -110,7 +110,7 @@ function hero2d(x, y, u, mood, lx, ly, o = {}) {
     tube(sx, sy, hx, hy, 1.9 * u, OR);
     rr(hx - 1.3 * u, hy - 1.3 * u, 2.6 * u, 2.6 * u, u * .5); ink(OR, Math.max(2.5, u * .5)); glint(hx - .4 * u, hy - .5 * u, .5 * u, .3 * u, -.5, .55);
   }
-  claude(x, y, u, { col: OR, mood: 'none', run: o.run });
+  caos(x, y, u, { col: OR, mood: 'none', run: o.run });
   X.fillStyle = OR; X.fillRect(x - 4.4 * u, y - 8.6 * u, 8.8 * u, 4.4 * u);
   X.save(); X.translate(x, y - 5.5 * u); X.scale(k, k); drawFace(0, 0, mood, lx, ly, Math.sin(now * 1.9 + (o.k || 0)) > .985 ? 1 : 0, now, 3); X.restore();
   glint(x - 4 * u, y - 8 * u, 1.6 * u, .5 * u, -.3, .25);
@@ -158,9 +158,9 @@ function sprite(S, tex, w, h, pos, add) {
   });
 }
 const _faces = [];
-/* Claude in 3D with a real face: the T3 mascot plus a transparent face-texture plane on its front; repainted only when mood/look changes */
+/* Caos in 3D with a real face: the T3 mascot plus a transparent face-texture plane on its front; repainted only when mood/look changes */
 function hero3(S, s, pos, idx) {
-  const cl = T3.claude(S, s, OR, pos);
+  const cl = T3.caos(S, s, OR, pos);
   cl.eyes.forEach(e => e.visible = false);
   quiet(() => {
     if (!_faces[idx]) { const cv = mkC(256, 150), tx = new THREE.CanvasTexture(cv); tx.minFilter = THREE.LinearFilter; tx.generateMipmaps = false; _faces[idx] = { cv, tx, key: '' }; }
@@ -482,7 +482,7 @@ reg3('td_lanes', sp => {
     const flag = new THREE.Mesh(new THREE.PlaneGeometry(12.2, 1.1), new THREE.MeshBasicMaterial({ map: checkerTex(), transparent: false })); flag.position.set(0, 5.6, .27); a.add(flag);
     T3.add(S, a, [0, 0, 1 - v0 * TEND]); return a;
   });
-  /* sky layer: drifting clouds + a blimp with a Claude in the basket */
+  /* sky layer: drifting clouds + a blimp with a Caos in the basket */
   const skyCl = [[-60, 15, 30], [-5, 19, 24], [48, 13, 34], [20, 23, 22]].map(([x, yy, w]) => sprite(S, cloudTex(), w, w / 2, [x, yy, -96]));
   const blimp = sprite(S, blimpTex(), 14, 8.75, [-30, 9, -88]);
   const spawnRow = z => {
@@ -573,7 +573,7 @@ reg3('td_lanes', sp => {
       rr(px0 + 5, 67, Math.max(12, (pw - 10) * k), 12, 6); X.fillStyle = '#5CFF7A'; X.fill();
       for (let i = 1; i < 5; i++) { X.beginPath(); X.arc(px0 + pw * i / 5, 73, 2.2, 0, 7); X.fillStyle = 'rgba(255,255,255,.55)'; X.fill(); }
       rr(px0 + pw - 6, 56, 6, 34, 2); ink('#fff', 2); rr(px0 + pw - 2, 54, 22, 14, 2); ink('#14101c', 2); X.fillStyle = '#fff'; X.fillRect(px0 + pw + 4, 54, 8, 7);
-      claude(px0 + 5 + (pw - 10) * k, 71, 1.5, { col: OR, mood: win ? 'happy' : lose ? 'sad' : 'none' });
+      caos(px0 + 5 + (pw - 10) * k, 71, 1.5, { col: OR, mood: win ? 'happy' : lose ? 'sad' : 'none' });
       const cp = _td3.scr(S, cl.position.x, 1.2 + y, cl.position.z);
       if (lose) for (let i = 0; i < 3; i++) { const a = rt * 6 + i * 2.1; spark(cp.x + Math.cos(a) * 80, cp.y - 70 + Math.sin(a) * 14, 11, a, '#FFE14D'); }
       if (win) for (let i = 0; i < 4; i++) { const f = (ot * 1.4 + i / 4) % 1; heart(cp.x - 60 + i * 40 + Math.sin(f * 7 + i) * 8, cp.y - 40 - f * 90, 9 + (1 - f) * 3, '#ff5c8a'); }
@@ -961,7 +961,7 @@ reg3('td_hop', sp => {
       // faces: calm, eager in the air, scared when falling, happy on the star, scalded in the soup
       const nearStar = !air && on === n - 1, lose = g.result === 'lose';
       setFace(cl, g.result === 'win' ? 'happy' : lose ? 'dizzy' : air && vy < -3 && cy < TOPY - .2 ? 'panic' : air ? 'eager' : nearStar ? 'panic' : 'idle', .8, air && vy < 0 ? .5 : -.1);
-      if (lose) tint(cl, mixHex(0xD97757, 0xc8301f, clp(lt / .5, 0, 1)));
+      if (lose) tint(cl, mixHex(0xFF6B3D, 0xc8301f, clp(lt / .5, 0, 1)));
       // splash + ripple + the duck's reactions
       if (lose) {
         for (const q2 of splash) { q2.vy -= 24 * dt; q2.m.position.x += q2.vx * dt; q2.m.position.y += q2.vy * dt; q2.m.position.z += q2.vz * dt; if (q2.m.position.y < -3.05) q2.m.visible = false; }
@@ -981,11 +981,11 @@ reg3('td_hop', sp => {
     draw(t) {
       X = ctx; _td3.render(S);
       const win = g.result === 'win', lose = g.result === 'lose';
-      // progress: a row of croutons with Claude riding the current one
+      // progress: a row of croutons with Caos riding the current one
       const pw = 34 * (n + 1) + 20, px0 = W / 2 - pw / 2;
       rr(px0, 60, pw, 30, 15); ink('#2b2440', 3.5);
       for (let i = 0; i <= n; i++) { const bx = px0 + 28 + i * 34; rr(bx - 11, 69, 22, 14, 4); ink(i === n ? '#ffd23f' : i <= on && !lose ? '#5CFF7A' : '#f0c070', 2.5); }
-      claude(px0 + 28 + on * 34, 70, 1.4, { col: OR, mood: win ? 'happy' : lose ? 'sad' : 'none' });
+      caos(px0 + 28 + on * 34, 70, 1.4, { col: OR, mood: win ? 'happy' : lose ? 'sad' : 'none' });
       const cp = _td3.scr(S, cx, .3 + 1.6, cz);
       if (win) for (let i = 0; i < 4; i++) { const f = (ot * 1.3 + i / 4) % 1; heart(cp.x - 55 + i * 36 + Math.sin(f * 6 + i) * 6, cp.y - 30 - f * 80, 9 + (1 - f) * 3, '#ff5c8a'); }
       if (lose) { const s = _td3.scr(S, sx0, -2.4, cz); for (let i = 0; i < 3; i++) { const f = (lt * 1.2 + i / 3) % 1; X.beginPath(); X.moveTo(s.x - 26 + i * 26, s.y - 20 - f * 60); X.quadraticCurveTo(s.x - 14 + i * 26, s.y - 40 - f * 60, s.x - 26 + i * 26, s.y - 62 - f * 60); X.strokeStyle = 'rgba(255,255,255,' + (.8 - f * .6) + ')'; X.lineWidth = 6; X.lineCap = 'round'; X.stroke(); } }

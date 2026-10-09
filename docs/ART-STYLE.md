@@ -20,7 +20,7 @@ All numbers below come from the code. Canvas is 800×600. `INK = '#14101c'` and 
    Don't use gradients on characters or props. Use gradients only for sky, ground, water and wallpaper.
 5. **Rounded everything.** Use `rr()` rounded rects, never `fillRect` boxes, for anything that is an object or UI. See the radii in section 4.
 6. **Faces carry the joke.** The main characters have big eyes with pupils, a white highlight dot and moods (idle, eager, happy, sad, bonk, dizzy, sick, sleepy, panic).
-   They blink and look at the action. Cheeks blush. Claude gets arms, goggles, a crate to stand on and a name tag.
+   They blink and look at the action. Cheeks blush. Caos gets arms, goggles, a crate to stand on and a name tag.
 7. **Nothing stands still.** Clouds drift, the sun's rays turn, water waves, signs sway, characters breathe and blink. A background gag always moves (birds, a cat, a duck, a telenovela on the TV).
 8. **The UI lives in the world.** A score is a wooden sign on strings, a bulb marquee or a row of plates. Controls are chunky plates with a key cap under the label. Tags point at who is who.
 9. **Win and lose are drawn, not stamped.** The scene itself plays the ending: the hippo gets hearts, the vomit flows into the pond, the hippo sinks asleep with Zs, the marquee goes rainbow `WINNER!`, `MADE IT!` comes up with light rays.
@@ -32,7 +32,7 @@ All numbers below come from the code. Canvas is 800×600. `INK = '#14101c'` and 
 | What | Values |
 |---|---|
 | Ink / outline | `#14101c` (`INK`). Shadows `rgba(20,16,28,.25–.35)`, vignette at the end of `draw` with `vignette(.14–.22)` |
-| Claude | `#D97757` (`OR`), shade `#b4553a`, light `#f3a283` (legs.js) |
+| Caos | `#D97757` (`OR`), shade `#b4553a`, light `#f3a283` (legs.js) |
 | Day sky (gradient 0→~340/480) | hippo `#36b0ea → #86d8fb (.55) → #d6f7ff`; legs `#3fb0ff → #8fdcff → #e6fbff` |
 | Sun | disc `#ffe14d` (ink 4, r 32) + highlight `#fff3a0`, rays `rgba(255,240,150,.45)` turning 0.25 rad/s (hippo `sky()`); legs: `#ffd84a`/`#ffe98a`/`#fffbe0` + halo rings `rgba(255,248,200,.1/.14/.2)` |
 | Clouds | 4-circle puff: outline pass `ink(null,3)`, body `#e4f5ff`, top-left white copy (r×0.8, offset −3,−5) `#fff` |
@@ -95,9 +95,9 @@ In solo stage mode, `main.js` draws the hint at (400, 36), the lives box at (10�
 
 ## 5. Characters and faces
 
-- **Claude** is `claude(x, y, u, {col, mood, run})` from core.js (y = feet). A hero in a scene is drawn at `u = 5.4`, small helpers at 2.3–3.4.
+- **Caos** is `caos(x, y, u, {col, mood, run})` from core.js (y = feet). A hero in a scene is drawn at `u = 5.4`, small helpers at 2.3–3.4.
   Dress it up with the local helpers:
-  - `arms(u, la, ra, k, col)`: blocky arms with square hands and a white gloss, drawn *before* `claude()`
+  - `arms(u, la, ra, k, col)`: blocky arms with square hands and a white gloss, drawn *before* `caos()`
   - goggles (hippo `goggles()`)
   - a crate to stand on
   - a `shadow()` under it
@@ -136,7 +136,7 @@ In solo stage mode, `main.js` draws the hint at (400, 36), the lives box at (10�
 - **Feedback word** `badge(s, x, y, size, bg, fg, sc, rot)`: Arial Black 900 on a coloured rounded slab with a gloss and a drop shadow.
   It pops in with `outBack` over 0.25 s at a random tilt of ±0.07 rad, holds, and fades after 0.8 s. Only one is on screen at a time (`pops.length = 0`).
 - **Progress**:
-  - a themed object at the top centre: wooden sign with plates (hippo `scoreboard()`), bulb marquee (crane `marquee()`), river map bar with stone dots, a mini Claude and an end star (legs `progress()`), or typewriter paper
+  - a themed object at the top centre: wooden sign with plates (hippo `scoreboard()`), bulb marquee (crane `marquee()`), river map bar with stone dots, a mini Caos and an end star (legs `progress()`), or typewriter paper
   - slots fill with an `outBack` pop
   - don't use the old flat `duBar()`
 - **Text**: core `txt()` has two faces.
@@ -192,7 +192,7 @@ In solo stage mode, `main.js` draws the hint at (400, 36), the lives box at (10�
 **Shared (`js/core.js`, global):**
 - colours: `INK`, `OR`
 - shapes and text: `box`, `circ`, `txt`, `star`
-- `claude`
+- `caos`
 - effects: `shadow`, `vignette`, `shake`/`applyShake`, `burst`, `ring`, `floatText`, `confetti`
 - other: `box3`, `drawBug`, `token`, `withSeed`, `mulberry32`, `TOUCH`
 
@@ -234,7 +234,7 @@ After that, new games and restyled old ones use the kit instead of a ninth copy.
 - [ ] Foreground shapes are inked with `ink()` (o 3–5) and rounded with `rr()`. There are no bare `fillRect` objects.
 - [ ] Each material has base / shade / light; shading is `cel()` plus one glint, with no gradients on objects.
 - [ ] The hero has eyes with a pupil and highlight, blinks, looks at the action and has ≥ 3 moods. Blush where it fits.
-- [ ] Claude is ≥ `u = 5` if it is the hero, with arms, a shadow and a name tag.
+- [ ] Caos is ≥ `u = 5` if it is the hero, with arms, a shadow and a name tag.
 - [ ] At least one idle animation besides the task (clouds, sway, breathing) and one background gag.
 - [ ] Progress is a themed object at the top centre. Feedback words are `badge()` pops.
 - [ ] Controls are plates with an icon and a label, with a `keyCap()` under the label on desktop. They press down and go grey after the verdict.
@@ -302,7 +302,7 @@ Put them next to the DUO reference sheets and the `--rev=HEAD` before frames. Th
 **Stage 5 lessons (BRAIN BREAK).**
 - Art-only state kept at module level (card flip angles, bounce flashes) must be keyed to the game's own objects (`cards`, `ball`), not to the clock, or it leaks between rounds and between `shoot.js` shots.
 - Some `timeWin` games (PONG) can't be lost before the timer at low `sp`. To render a lose frame, wrap the art function inside `--inputs` (`const o = W4A.pong; W4A.pong = s => { window.__s = s; return o(s); }`). That also exposes hidden state such as the card kinds or the boss sequence, so a script can win or lose on purpose.
-- When a game has no character, add one at the controls (Claude at the table, with a name tag) and keep it off the clickable area.
+- When a game has no character, add one at the controls (Caos at the table, with a name tag) and keep it off the clickable area.
 
 ## References (best example of each rule)
 
@@ -313,10 +313,10 @@ Put them next to the DUO reference sheets and the `--rev=HEAD` before frames. Th
 - Interior scene: `js/games/duo/granny.js` `buildBg()` (wallpaper, planks, rug, night window).
 - Ink + cel kit: `hippo.js` lines ~41–60 (`rr`, `el`, `ink`, `inkP`, `cel`, `glint`, `pill`). `crane.js` adds `celE`, `tube`.
 - Cel-shaded character with moods: `hippo.js` `hippo()`. Faces and eyes: `crane.js` `eye()`, `sweat()`, `crown()`; `granny.js` `grannyHead()` (glasses, blush, ear twitch).
-- Claude as a hero: `hippo.js` `draw()` feeder block (squash, `arms()`, `goggles()`, `shadow()`, `pill()`).
+- Caos as a hero: `hippo.js` `draw()` feeder block (squash, `arms()`, `goggles()`, `shadow()`, `pill()`).
 - Control plates + key caps: `hippo.js` `plate()`, `keyCap()`, `tossIcon()`, `mouthIcon()`. Round hold buttons: `legs.js` `buttons()`.
 - Themed progress: `hippo.js` `scoreboard()`, `crane.js` `marquee()`, `legs.js` `progress()`.
 - Feedback words: `hippo.js` `badge()` + `pop()`. Win headline: `legs.js` `headline()`.
 - Win/lose gags: `hippo.js` `vomitStream()`/`vomitSlick()`, the sleepy sinking, hearts on a win. `du1.js` `duWin`/`duLose`.
 - Dark/space variant + glow cache: `js/games/duo/shield.js` `bakeBg()`, `glowSprite()`/`glow()`. Sprite caching: `js/games/duo/panic.js` `sprite()`, `part()`, `blit()`, `mkLayer()`.
-- Core primitives: `js/core.js` `claude()`, `txt()`, `shadow()`, `vignette()`, `burst()`, `ring()`, `shake()`.
+- Core primitives: `js/core.js` `caos()`, `txt()`, `shadow()`, `vignette()`, `burst()`, `ring()`, `shake()`.

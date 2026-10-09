@@ -79,7 +79,7 @@ I18N.add('es', {
   'CLICK TO JOIN': 'CLIC PARA ENTRAR',
   'TAP TO JOIN': 'TOCA PARA ENTRAR',
   'LINK COPIED! SEND IT TO YOUR FRIENDS': '¡ENLACE COPIADO! MÁNDALO A TUS AMIGOS',
-  'Join my Claude Ware room! Code: {code}': '¡Únete a mi sala de Claude Ware! Código: {code}',
+  'Join my MiniCaos room! Code: {code}': '¡Únete a mi sala de MiniCaos! Código: {code}',
   'MY FRIENDS': 'MIS AMIGOS',
   'FRIENDS {n}': 'AMIGOS {n}', 'FOLLOWING {n}': 'SIGUIENDO {n}', 'FOLLOWERS {n}': 'SEGUIDORES {n}',
   'FOLLOW': 'SEGUIR', 'FOLLOWING': 'SIGUIENDO', 'FOLLOW BACK': 'SEGUIR DE VUELTA', 'FOLLOWS YOU': 'TE SIGUE', '✓ FRIENDS': '✓ AMIGOS',

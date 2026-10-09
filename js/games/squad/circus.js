@@ -1,6 +1,6 @@
 'use strict';
 /* ═════════ SQUAD · CIRCUS TOWER (sq_circus) ═════════
-   Inside the big top a human tower of tiny Claudes (one per seat) has to stay up until the curtain call.
+   Inside the big top a human tower of tiny Caoses (one per seat) has to stay up until the curtain call.
    Level 0 (role 0, JUDGE) rides a unicycle, the next levels stand on its head: STRONGMAN, ACROBAT and (4 seats) a JUGGLER on top.
    Every level is a little unstable pendulum that owns its own tilt `a` (rad, + = leaning right): a' = LAM*a + wobble(t) + force(t) + KCP*lowerTilt + CC*u.
    The player holds ◄ / ► (or A / D, or drags the left / right side) = u, which tilts the level back. Idle = it topples by itself in a few seconds.
@@ -21,14 +21,14 @@ const lerp = (a, b, k) => a + (b - a) * k;
 /* ───────────── layout (800×600; HUD keeps y<58, the top-left box, the top-right corner and y>552) ───────────── */
 const GY = 478;                                      // the ground under the unicycle
 const SEAT = 58, WR = 25;                            // saddle height / wheel radius
-const U = [4.8, 4.4, 4.0, 3.6];                      // size of each level's Claude (the tower narrows)
+const U = [4.8, 4.4, 4.0, 3.6];                      // size of each level's Caos (the tower narrows)
 const BHT = U.map(u => 9 * u);                     // feet-to-feet height of one level
 const FALL = .5, XMIN = 190, XMAX = 610, ONX = 80;   // topple angle, where the unicycle can roll, how close to the X counts
 const LAM = [.55, .75, .95, 1.15], CC = [1.05, 1.0, 1.0, 1.0], AMP = [.2, .22, .24, .26];   // each level's feel: heavy and slow at the bottom, twitchy at the top
 const KCP = .3, XK = 240, SCHG = 7.2, SEND = 15.2;   // coupling from the level below, roll speed per rad, when the X hops, length of the show (sim seconds)
 const TAU_EV = [.55, .3, .4];                        // how long each event pushes (gust, tomato, sneeze)
 const COLS = ['#FFC93C', '#6EA8FE', '#FF8FB1', '#7CE08A'];
-const CCOL = ['#D97757', '#8fb7ff', '#ffd166', '#b6e388', '#f49ac2', '#c9b6ff'];
+const CCOL = ['#FF6B3D', '#8fb7ff', '#ffd166', '#b6e388', '#f49ac2', '#c9b6ff'];
 const RED = '#d9435a', CREAM = '#f6e7c1', GOLD = '#ffcf33', GOLD2 = '#d99a12', WOOD = '#8a5a3c', WOOD2 = '#5b3a2a';
 
 /* ───────────── tiny drawing kit (X can be swapped for an offscreen context) ───────────── */
@@ -64,7 +64,7 @@ function flower(x, y, r, col, rot) {
 }
 
 /* ───────────── the big top, painted once ───────────── */
-const CROWD = [];                                    // 4 stepped rows of tiny Claudes (drawn live: they cheer / gasp)
+const CROWD = [];                                    // 4 stepped rows of tiny Caoses (drawn live: they cheer / gasp)
 for (let r = 0; r < 4; r++) for (let i = 0; i < 19; i++) { const h = (i * 37 + r * 101) % 97; CROWD.push({ x: 18 + i * 43 + (r % 2) * 21 + (h % 7 - 3), y: 146 + r * 36, ph: h * .37, col: CCOL[(i + r * 3) % CCOL.length], r }); }
 let BG = null;
 function buildBg() {
@@ -131,7 +131,7 @@ function level(i, kind, x, y, A, sy, col, mood, T, spin, danger, splat) {
   X.save(); X.translate(x, y); X.rotate(A); X.scale(1, sy);
   if (i === 0) { unicycle(spin, T); X.translate(0, -SEAT); }
   accessories(kind, i, u, A, T, false);
-  claude(0, 0, u, { col, mood });
+  caos(0, 0, u, { col, mood });
   accessories(kind, i, u, A, T, true);
   if (danger > .1) { const w = Math.sin(T * 30) * .6; for (const sx of [-1, 1]) drop(sx * (7.6 * u) + w, -8.4 * u + ((T * 5 + sx) % 1) * 1.8 * u, .45 * u * danger + .2 * u); }
   if (splat > 0) {
@@ -185,7 +185,7 @@ function lion(x, y, T, sniff, sn, card, hide) {      // sits at (x, y) = the cus
 }
 function ringmaster(x, y, col, mood, hatLift, hatFall, watchK, T) {
   shadow(x, y + 3, 28, 7, .22);
-  claude(x, y, 3.6, { col: '#e8434f', mood });
+  caos(x, y, 3.6, { col: '#e8434f', mood });
   const hy = y - 9 * 3.6 - 6 - hatLift + hatFall;
   X.save(); X.translate(x + hatFall * .8, hy); X.rotate(hatFall * .03 + hatLift * .02);
   rr(-17, -2, 34, 7, 3); ink('#2f2a4a', 3); rr(-11, -26, 22, 26, 3); ink('#2f2a4a', 3); X.fillStyle = GOLD; X.fillRect(-11, -7, 22, 5); X.restore();

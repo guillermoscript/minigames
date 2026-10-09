@@ -28,7 +28,7 @@ const CMAX = .8, KSPR = 110, DAMP = 13;             // counter-tilt range (rad),
 const SNA = .6;                                    // a sneeze throws the head this far (rad)
 const NOWW = .2;                                   // LEAN NOW! shows this long before the ACHOO (a human reaction lands right on it)
 const LVX = 400, LVY = 520;                        // the spirit level (bottom panel)
-const CLX = 702, CLY = 528;                        // the barber (Claude) on the right
+const CLX = 702, CLY = 528;                        // the barber (Caos) on the right
 
 /* palette */
 const SKIN = '#ffc69c', SKIN2 = '#ec9a70', SKINL = '#ffe2c9', SCALP = '#ffd8bb';
@@ -288,7 +288,7 @@ function cape(fill) {                                 // the striped cape (cut h
   X.restore();
   rr(PX - 54, PY - 26, 108, 22, 10); ink('#fff', 4); X.fillStyle = '#bcd8ff'; X.fillRect(PX - 46, PY - 14, 92, 3);
 }
-/* Claude the barber: a comb in the raised hand; hm = how far the hand mirror is raised (payoff) */
+/* Caos the barber: a comb in the raised hand; hm = how far the hand mirror is raised (payoff) */
 function arms(u, la, ra, k, col) {
   if (k <= .02) return; const ol = Math.max(3, u * .5), L = 3.3 * u * k, aw = 1.2 * u, hs = 2 * u, gap = .35 * u;
   const one = (sx, an) => { X.save(); X.translate(sx * 6.6 * u, -5.2 * u); X.rotate(an); X.fillStyle = INK; X.fillRect(-aw / 2 - ol, -L - ol, aw + ol * 2, L + ol * 2); X.fillRect(-hs / 2 - ol, -L - gap - hs - ol, hs + ol * 2, hs + ol * 2); X.fillStyle = col; X.fillRect(-aw / 2, -L, aw, L); X.fillRect(-hs / 2, -L - gap - hs, hs, hs); X.restore(); };
@@ -476,8 +476,8 @@ function duBarber(sp, D) {
       if (lost && rk < .45) poof(rk, a, '#fff');
       if (won && rk < .4) poof(rk, a, '#ffe14d');
       cape(Math.floor(cutFill));
-      // Claude the barber: holds up the hand mirror at the end
-      claudeBarber(T, won, lost, rk);
+      // Caos the barber: holds up the hand mirror at the end
+      caosBarber(T, won, lost, rk);
       // the sneeze warning (customer only): AH... AH... and where it will throw the head
       if (tw > 0) sneezeWarn(tw, SN[wi].dir, T, a);
       // scissors (mine = live, the friend's = interpolated, drawn on my own head)
@@ -550,7 +550,7 @@ function duBarber(sp, D) {
     X.save(); X.translate(Math.cos(a1) * R0, Math.sin(a1) * R0); X.rotate(a1 + (dir > 0 ? Math.PI / 2 : -Math.PI / 2)); X.beginPath(); X.moveTo(-6, -17); X.lineTo(20, 0); X.lineTo(-6, 17); X.closePath(); ink('#ff4d5e', 3.5); X.restore();
     X.restore(); X.globalAlpha = 1;
   }
-  function claudeBarber(T, won, lost, rk) {
+  function caosBarber(T, won, lost, rk) {
     const col = cust ? pCol() : myCol(), bob = won ? Math.abs(Math.sin(T * 9)) * 12 : 0, hm = rk >= 0 ? ease((rk - .3) / .2) : 0;
     X.save(); X.translate(CLX, CLY - bob);
     shadow(0, 2 + bob, 44, 7, .25);
@@ -560,7 +560,7 @@ function duBarber(sp, D) {
     }
     if (rk >= 0) arms(6.5, -.9 * hm, won ? .5 + Math.sin(T * 14) * .3 : .9, 1, col);
     else { const sw = fl & 2 ? Math.sin(T * 14) * .2 : 0; arms(6.5, -.5 + sw, .35, 1, col); }
-    claude(0, 0, 6.5, { col, mood: won ? 'happy' : lost ? 'sad' : T - slipAt < .8 ? 'sad' : null });
+    caos(0, 0, 6.5, { col, mood: won ? 'happy' : lost ? 'sad' : T - slipAt < .8 ? 'sad' : null });
     if (rk < 0) {                                     // a comb in the raised right hand
       X.save(); X.translate(6.6 * 6.5 + 2, -5.2 * 6.5 - 32); X.rotate(.35); rr(-6, -26, 12, 40, 3); ink('#2b2b3a', 2.5); X.fillStyle = '#2b2b3a'; for (let i = 0; i < 5; i++) X.fillRect(6, -22 + i * 7, 8, 3); X.restore();
     }

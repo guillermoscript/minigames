@@ -1,6 +1,6 @@
 'use strict';
 /* 3D wave 1: td_stack, td_bowl, td_dive, td_hoop. Everything lives in an IIFE so helper names never leak into the shared global scope.
-   DUO art look (docs/ART-STYLE.md): toon (3-step cel) materials + inked back-face hulls, a specific absurd place per game, Claude and
+   DUO art look (docs/ART-STYLE.md): toon (3-step cel) materials + inked back-face hulls, a specific absurd place per game, Caos and
    the props have canvas faces that react, drawn win / lose payoffs, HUD as a wooden plaque in the world. Decor randomness uses its own
    mulberry32 (never Math.random) so the game's seeded setup and RNG order are untouched. */
 (() => {
@@ -129,8 +129,8 @@
     }
     return FT[key] = new THREE.CanvasTexture(c);
   };
-  /* 3D Claude with a canvas face. Same layout and fields as T3.claude (legs[4], armL, armR) plus .face(mood, look, t, k) */
-  const claude3 = (S, s = 1, c = OR, pos, gog = 0) => {
+  /* 3D Caos with a canvas face. Same layout and fields as T3.caos (legs[4], armL, armR) plus .face(mood, look, t, k) */
+  const caos3 = (S, s = 1, c = OR, pos, gog = 0) => {
     const g = new THREE.Group();
     const body = mbox(3, 1.75, 1.8, c, .1); body.position.y = 1.65; g.add(body);
     const armL = mbox(.5, .6, .6, c, .08); armL.position.set(-1.75, 1.45, 0); g.add(armL);
@@ -138,6 +138,7 @@
     g.legs = [-1.25, -.65, .35, .95].map(x => { const l = mbox(.3, .8, .4, c, .07); l.position.set(x + .15, .4, 0); g.add(l); return l; });
     const fm = new THREE.MeshBasicMaterial({ map: faceTex('idle', 0, 0, gog), transparent: true, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
     const fp = new THREE.Mesh(new THREE.PlaneGeometry(2.7, 1.52), fm); fp.position.set(0, 1.62, .912); g.add(fp);
+    g.fuse = T3.fuse(g, 2.52);
     g.eyes = []; g.armL = armL; g.armR = armR; g.body = body; g.scale.setScalar(s);
     g.face = (mood, look = 0, t = 0, k = 0) => { const bl = (mood === 'idle' || mood === 'eager') && Math.sin(t * 1.9 + k) > .985 ? 1 : 0; const tx = faceTex(mood, look, bl, gog); if (fm.map !== tx) fm.map = tx; };
     if (S) { (S.scene || S).add(g); if (pos) g.position.set(pos[0], pos[1], pos[2]); }
@@ -147,8 +148,8 @@
   const blob = (S, x, y, z, r) => { const m = flat(new THREE.CircleGeometry(r, 20), 0x14101c, { transparent: true, opacity: .22, depthWrite: false }); m.rotation.x = -Math.PI / 2; m.position.set(x, y, z); (S.scene || S).add(m); return m; };
 
   /* ───────────── 1. STACK ───────────── */
-  /* Place: a floating cargo barge in a sunny harbour. Spectator Claude on a raft, a rubber duck that stares at you (and turns its back when you fail),
-     lighthouse, sun, buoys and sea foam. Win: Claude plants a flag on top. Lose: the slab drops in the sea, the tower wobbles. */
+  /* Place: a floating cargo barge in a sunny harbour. Spectator Caos on a raft, a rubber duck that stares at you (and turns its back when you fail),
+     lighthouse, sun, buoys and sea foam. Win: Caos plants a flag on top. Lose: the slab drops in the sea, the tower wobbles. */
   reg3('td_stack', sp => {
     const NEED = 4 + (sp > 1.35 ? 1 : 0) + (sp > 1.75 ? 1 : 0), CH = .6, AMP = 4.2;
     const PAL = [0xff7755, 0xffc93c, 0x5fd38d, 0x4fb3ff, 0xb98cff, 0xff8ac2];
@@ -187,10 +188,10 @@
     const dbeak = mbox(.55, .16, .4, 0xff8a2b, .04); dbeak.position.set(0, .98, 1.0); duck.add(dbeak);
     for (const sx of [-1, 1]) { const w = msph(.2, 0xffffff, .04); w.position.set(sx * .2, 1.2, .8); w.scale.set(1, 1.2, .5); duck.add(w); const pu = flat(new THREE.SphereGeometry(.09, 8, 6), 0x14101c); pu.position.set(sx * .2, 1.2, .93); duck.add(pu); const wg = msph(.4, 0xffd23f, .05); wg.scale.set(.35, .6, .9); wg.position.set(sx * .95, .4, -.05); duck.add(wg); }
     duck.position.set(4.6, -1.3, -2.2); S.scene.add(duck);
-    /* spectator Claude on a raft */
+    /* spectator Caos on a raft */
     const raft = mbox(2.6, .3, 2.6, 0xd9944f, .07); raft.position.set(-5.2, -1.2, 3); S.scene.add(raft);
     for (const dz of [-.7, .7]) at(S, mbox(2.64, .1, .5, 0xb06d33, 0), [-5.2, -1.2, 3 + dz]);
-    const SY = -1.05, spec = claude3(S, .5, OR, [-5.2, SY, 3]); spec.rotation.y = .7;
+    const SY = -1.05, spec = caos3(S, .5, OR, [-5.2, SY, 3]); spec.rotation.y = .7;
     const fall = [], top = { x: 0, z: 0, w: 3, d: 3 };
     at(TS, mbox(3, CH, 3, PAL[0], .07), [0, CH / 2, 0]);
     let placed = 0, ph = -Math.PI / 2, camY = 0, t0 = .35, cur = null, bounce = 0, popAt = -9, rT0 = -1, tt = 0, flag = null, wob = 0, loseAt = -1;
@@ -229,7 +230,7 @@
       else { sfx.thud(); sfx.hit(); burst(q.x, q.y, '#fff', 8, 160); shake(3, .12); }
       if (placed >= NEED) {
         g.result = 'win'; sfx.sparkle(); ring(q.x, q.y, '#fff', 140); burst(q.x, q.y - 20, '#FFE14D', 22);
-        const h = claude3(TS, .35, OR, [px, y + CH / 2, pz]); h.armL.position.y = 2; h.armR.position.y = 2; cur.userData.h = h;
+        const h = caos3(TS, .35, OR, [px, y + CH / 2, pz]); h.armL.position.y = 2; h.armR.position.y = 2; cur.userData.h = h;
         const fl = new THREE.Group(); const pole = mcyl(.04, .04, 1.5, 0xf4f4f4, .03, 8); pole.position.y = .75; fl.add(pole);
         const pen = mbox(.7, .42, .05, 0xff4d5e, .04); pen.position.set(.4, 1.3, 0); fl.add(pen); fl.position.set(px + (w / 2 - .25), y + CH / 2, pz + (d / 2 - .25)); TS.scene.add(fl); flag = { g: fl, pen };
       } else spawn();
@@ -293,7 +294,7 @@
 
   /* ───────────── 2. BOWL ───────────── */
   /* Place: a retro bowling alley, bunting on the back wall and a telenovela on the TV above the pin machine. The pins have scared faces that
-     dizzy-X when knocked (and smirk if they survive). Claude watches from the lane side. The TV shows fireworks on a win, a sad cloud on a loss. */
+     dizzy-X when knocked (and smirk if they survive). Caos watches from the lane side. The TV shows fireworks on a win, a sad cloud on a loss. */
   reg3('td_bowl', sp => {
     const S = T3.scene({ bg: 0xffd9a0, fog: [26, 60], cam: [0, 2.7, 8.8], look: [0, .8, -8], ground: 0x7be0d6, sun: [3, 10, 4], fov: 50 });
     tune(S, .95, .6);
@@ -347,9 +348,9 @@
     const BC = [0xff5c8a, 0xffe14d, 0x5fd38d, 0x4fb3ff, 0xb98cff];
     const bunt = []; for (let i = 0; i < 17; i++) { const f = mcone(.45, .8, BC[i % 5], .03, 3); f.rotation.x = Math.PI; f.position.set((i - 8) * 1.2, 9.3 + Math.sin(i * .8 + 1) * .05 - Math.abs(i - 8) * .02, -14.3); f.castShadow = false; S.scene.add(f); bunt.push(f); }
     const lamps = [[-5, -4], [5, -4], [0, -9]].map(q => { const l = new THREE.Group(); l.add(mcyl(.05, .05, 4, 0x3b3550, 0, 6)); const sh = mcone(.9, .8, 0xff6f91, .05, 12); sh.position.y = -2.2; l.add(sh); const bl = flat(new THREE.SphereGeometry(.3, 10, 8), 0xfff3a0, { fog: false }); bl.position.y = -2.4; l.add(bl); l.position.set(q[0], 11, q[1]); S.scene.add(l); return l; });
-    /* cheering Claude at the foul line */
+    /* cheering Caos at the foul line */
     at(S, mbox(1.7, 1.4, 1.7, 0xd9944f, .07), [-4.3, .38, .3]); at(S, mbox(1.74, .12, 1.74, 0xf2b878, 0), [-4.3, 1.14, .3]);
-    const fan = claude3(S, .5, OR, [-4.3, 1.1, .3]); fan.rotation.y = .55;
+    const fan = caos3(S, .5, OR, [-4.3, 1.1, .3]); fan.rotation.y = .55;
     const x0 = (Math.random() < .5 ? -1 : 1) * rnd(.7, 1.05);
     const ball = at(S, msph(BR, 0x3a7bff, .05), [x0, BR, BZ0]);
     for (const [hx, hy] of [[-.2, .15], [.2, .15]]) { const e = msph(.12, 0xffffff, .02); e.scale.set(1, 1.15, .45); e.position.set(hx, hy, BR - .02); e.castShadow = false; ball.add(e); const pu = flat(new THREE.SphereGeometry(.055, 8, 6), 0x14101c); pu.position.set(hx, hy - .01, BR + .035); ball.add(pu); }
@@ -496,7 +497,7 @@
   }, 'Bowl');
 
   /* ───────────── 3. DIVE ───────────── */
-  /* Place: skydiving over a cow farm. Goggled Claude with a face that reacts to the next ring, flying cows with propeller beanies for a background
+  /* Place: skydiving over a cow farm. Goggled Caos with a face that reacts to the next ring, flying cows with propeller beanies for a background
      gag. Win: spin, gold medal and 3D confetti flying at the camera. Lose: the pack pops a rubber chicken instead of a chute. */
   reg3('td_dive', sp => {
     const kw = VW / W, NEED = 3 + (sp > 1.6 ? 1 : 0), RR = 2.7 - (sp - 1) * .2, SPD = 20 + 6 * (sp - 1), GAP = 20;
@@ -514,7 +515,7 @@
       for (const q of [[170, 200], [196, 214], [150, 222], [90, 40], [60, 70]]) { x.fillStyle = '#fff'; x.beginPath(); x.ellipse(q[0], q[1], 7, 4.5, 0, 0, 7); x.fill(); x.fillStyle = '#2a2438'; x.beginPath(); x.arc(q[0] - 2, q[1], 2.3, 0, 7); x.fill(); }
       const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(6, 6); return t; })();
     const gnd = new THREE.Mesh(new THREE.PlaneGeometry(260, 260), tm(0xffffff, fields)); gnd.rotation.x = -Math.PI / 2; gnd.position.y = -70; S.scene.add(gnd);
-    const P = new THREE.Group(), cl3 = claude3(null, .5, OR, null, 1); cl3.position.set(0, -1.1, 0); P.add(cl3); P.rotation.x = -.42; at(S, P, [0, 0, 0]); P.traverse(m => { m.castShadow = false; });
+    const P = new THREE.Group(), cl3 = caos3(null, .5, OR, null, 1); cl3.position.set(0, -1.1, 0); P.add(cl3); P.rotation.x = -.42; at(S, P, [0, 0, 0]); P.traverse(m => { m.castShadow = false; });
     const chick = new THREE.Group(); { const cb = msph(.5, 0xffe14d, .05); cb.scale.set(1, .85, 1.15); chick.add(cb); const bk = mcone(.18, .4, 0xff8a2b, .03, 8); bk.rotation.x = Math.PI / 2; bk.position.set(0, .1, .62); chick.add(bk); for (const sx of [-1, 1]) { const w = mbox(.5, .08, .35, 0xffd23f, .03); w.position.set(sx * .55, .1, 0); w.rotation.z = sx * .4; w.userData.w = sx; chick.add(w); } const cm = mbox(.12, .3, .3, 0xff4d5e, .03); cm.position.set(0, .55, .1); chick.add(cm); }
     chick.position.set(1.8, -.1, -.4); chick.scale.setScalar(0); P.add(chick); chick.traverse(m => { m.castShadow = false; });
     const medal = new THREE.Group(); { const mr = mtor(.35, .08, 0xffe14d, .03); medal.add(mr); const md = mcyl(.28, .28, .08, 0xffd23f, .03); md.rotation.x = Math.PI / 2; medal.add(md); } medal.position.set(0, -.2, 1.3); medal.scale.setScalar(0); P.add(medal); medal.traverse(m => { m.castShadow = false; });
@@ -616,7 +617,7 @@
 
   /* ───────────── 4. HOOP ───────────── */
   /* Place: a boardwalk court on a beach with palms, an umbrella and a fence of seagulls that all turn their heads to follow the ball. The backboard
-     has a face (eyes above the rim, the rim is its mouth) that watches the ball, grins on a swish and smirks on a miss. Claude referees on a crate. */
+     has a face (eyes above the rim, the rim is its mouth) that watches the ball, grins on a swish and smirks on a miss. Caos referees on a crate. */
   reg3('td_hoop', sp => {
     const NEED = sp > 1.6 ? 2 : 1, HX = 0, HY = 3.3, HZ = -8.2, RIMR = .62, BRD = .3, BOARDZ = -8.95, GRAV = 18, T = 1.1;
     const SENS = .28 + .12 * (sp - 1), SWEET = .61;
@@ -695,9 +696,9 @@
     const sun = flat(new THREE.SphereGeometry(5, 20, 14), 0xffe14d, { fog: false }); sun.position.set(-34, 26, -75); S.scene.add(sun);
     const halo = flat(new THREE.SphereGeometry(8, 20, 14), 0xfff3a0, { fog: false, transparent: true, opacity: .45 }); halo.position.copy(sun.position); S.scene.add(halo);
     const clouds = [[-30, 24, -70, 1.7], [10, 30, -80, 2], [34, 22, -64, 1.5], [-5, 20, -55, 1.2]].map(q => { const c = puff(q[3], .1); c.position.set(q[0], q[1], q[2]); S.scene.add(c); return c; });
-    /* Claude the referee on a crate */
+    /* Caos the referee on a crate */
     at(S, mbox(1.4, .9, 1.4, 0xd9944f, .07), [3.7, .45, -3.2]); at(S, mbox(1.44, .12, 1.44, 0xf2b878, 0), [3.7, .93, -3.2]);
-    const ref = claude3(S, .6, OR, [3.7, .9, -3.2]); ref.rotation.y = -.5;
+    const ref = caos3(S, .6, OR, [3.7, .9, -3.2]); ref.rotation.y = -.5;
     const b = { x: 0, y: .95, z: 1.8, vx: 0, vy: 0, vz: 0 };
     let st = 'ready', flightT = 0, scored = 0, rimHit = 0, rimTouch = false, bounced = 0, readyT = 0, wob = 0, zoom = 0, camShake = 0, restT = 0;
     let pressed = false, hold = 0, drag = null, metering = false, mt = 0, aimX = W / 2, kHeld = false, spin = 0, tt = 0, popAt = -9, rT0 = -1, sadAt = -9, bmood = '';

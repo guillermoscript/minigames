@@ -85,15 +85,15 @@ function note(x, y, s, col, rot = 0) {
 }
 
 /* ═════════ 1 MASH: hit as often as you can; reach the goal to win, the most taps takes the round ═════════
-   Art: the fair at dusk. Claude runs in a hamster wheel that powers the Ferris wheel through a little dynamo: every tap lights
+   Art: the fair at dusk. Caos runs in a hamster wheel that powers the Ferris wheel through a little dynamo: every tap lights
    one more bulb on the Ferris wheel's rim (the rim is the progress bar) and spins both wheels. A mouse rides in one gondola.
-   Win: the wheel whirls with rainbow bulbs and fireworks go off. Lose: the bulbs die, the dynamo smokes and Claude gets
+   Win: the wheel whirls with rainbow bulbs and fireworks go off. Lose: the bulbs die, the dynamo smokes and Caos gets
    flung round the hamster wheel. */
 const MS_HX = 168, MS_HY = 432, MS_HR = 86, MS_FX = 532, MS_FY = 256, MS_FR = 146, MS_GY = 404, MS_DX = 322, MS_DY = 502;
 function ptMash(sp) {
   const R = mkR(), need = Math.round(13 + R() * 3 + (sp - 1) * 10);
   let taps = 0, squish = 0, last = 0;
-  // art only (never touches R): outro clock, how fast the wheels turn (fed by the taps), their angles, Claude's stride, the GO ON! pop
+  // art only (never touches R): outro clock, how fast the wheels turn (fed by the taps), their angles, Caos's stride, the GO ON! pop
   let rT0 = -1, spin = 0, rot = 0, hrot = 0, run = 0, pop = null;
   const g = {
     c: 0, cmd: 'MASH!', hint: 'CLICK / TAP / SPACE AS FAST AS YOU CAN!', thint: 'TAP AS FAST AS YOU CAN!', dur: 5, need, pts: 0, timeWin: false,
@@ -209,20 +209,20 @@ function mashSign(T, taps, need, res) {
   const col = res === 'lose' ? '#ff8a96' : taps >= need ? GRN : YEL;
   txt(`${taps} / ${need}`, x, y + 21, 24, col, 'center', 124);
 }
-/* the hamster wheel with Claude running in it */
+/* the hamster wheel with Caos running in it */
 function mashHamster(T, hrot, run, res, rT, tired) {
   const cx = MS_HX, cy = MS_HY, r = MS_HR, won = res === 'win', lost = res === 'lose', U = 5;
   X.beginPath(); X.arc(cx, cy, r - 6, 0, TAU); X.fillStyle = 'rgba(255,255,255,.08)'; X.fill();
   for (let i = 0; i < 8; i++) { const a = hrot + i * TAU / 8; tube(() => { X.beginPath(); X.moveTo(cx, cy); X.lineTo(cx + Math.cos(a) * (r - 6), cy + Math.sin(a) * (r - 6)); }, 2.5, '#9fc6e6'); }
   X.beginPath(); X.arc(cx, cy, r - 6, 0, TAU); X.strokeStyle = INK; X.lineWidth = 8; X.stroke(); X.strokeStyle = '#7aa7c9'; X.lineWidth = 3; X.stroke();
   X.beginPath(); X.arc(cx, cy, 11, 0, TAU); ink('#cfd8e6', 3);
-  // Claude: runs at the bottom; on a win it hops, on a lose the dying wheel carries it up the side and it tumbles back
+  // Caos: runs at the bottom; on a win it hops, on a lose the dying wheel carries it up the side and it tumbles back
   const fl = lost ? Math.sin(clamp(rT / .75, 0, 1) * Math.PI) * 1.35 : 0, hop = won ? Math.abs(Math.sin(rT * 9)) * 14 : 0;
   X.save(); X.translate(cx, cy); X.rotate(fl); X.translate(0, r - 14 - hop); X.rotate(run && !res ? .1 : 0);
   const sw = Math.sin(run * 16);
   const la = won ? -2.6 + Math.sin(rT * 14) * .2 : lost ? -.9 : -.75 + sw * .55, ra = won ? 2.6 - Math.sin(rT * 14) * .2 : lost ? .9 : .75 - sw * .55;
   arms(U, la, ra, 1.1, OR);
-  claude(0, 0, U, { mood: won ? 'happy' : lost ? 'sad' : null, run: run > 0 ? run : null });
+  caos(0, 0, U, { mood: won ? 'happy' : lost ? 'sad' : null, run: run > 0 ? run : null });
   X.restore();
   if (lost && rT > .3) { const k = rT * 4; for (let i = 0; i < 3; i++) star(cx + Math.cos(k + i * 2.1) * 30, cy + r - 72 + Math.sin(k + i * 2.1) * 8, 8, 3.5, 5, T * 3, '#FFE14D', 2.5); }
   if (tired || lost) sweat(cx - 34, cy + r - 62, 1, T);
@@ -273,8 +273,8 @@ function mashBg() {
 
 /* ═════════ 2 STOP: a needle swings back and forth; stop it inside the zone. Closer to the middle of the zone = more points ═════════
    Art: an ice-cream stand on the seaside boardwalk. The needle is a scoop dispenser that runs along an overhead rail; the zone
-   is the green stretch of rail right above Claude, who holds a cone up. Tap and the scoop drops; the score shows on a bulb
-   marquee on the rail. A dog sits by, hoping. Win: Claude steps under the scoop and catches it (the dog sulks).
+   is the green stretch of rail right above Caos, who holds a cone up. Tap and the scoop drops; the score shows on a bulb
+   marquee on the rail. A dog sits by, hoping. Win: Caos steps under the scoop and catches it (the dog sulks).
    Lose: the scoop splats on the boards and the dog runs over to lick it up. */
 const ST_RY = 112, ST_FEET = 530, ST_U = 5.4;
 function ptSync(sp) {
@@ -312,7 +312,7 @@ function ptSync(sp) {
       stopMarquee(T, stopAt >= 0 ? acc : -1, res);
       const p = stopAt >= 0 ? stopPos : res ? (dropX - X0) / (X1 - X0) : pos(g.c), nx = X0 + (X1 - X0) * p;
       const sway = res ? Math.cos(spd * (stopAt >= 0 ? stopAt : g.c) + ph) * .07 * Math.max(0, 1 - rT * 2.5) * Math.cos(rT * 20) : Math.cos(spd * g.c + ph) * .07;
-      // where the cone ends up: on a win Claude steps under the scoop; on a lose it lunges, too short
+      // where the cone ends up: on a win Caos steps under the scoop; on a lose it lunges, too short
       const reach = won ? nx - cx : lost && stopAt >= 0 ? clamp(nx - cx, -30, 30) : 0, coneX = cx + reach * ease(rT / .3);
       const fall = res ? clamp(rT, 0, 1) : -1, sy0 = 228, landY = won ? 404 : 522, fy = sy0 + 1300 * fall * fall, landed = res && fy >= landY;
       const landAt = res ? Math.sqrt((landY - sy0) / 1300) : 9;
@@ -322,7 +322,7 @@ function ptSync(sp) {
       const dogFace = dogRun > 0 ? splatSide : -side;
       if (lost && landed) stopSplat(nx, rT - landAt);
       stopDog(dogX, ST_FEET, dogFace, T, won && landed ? 'sad' : lost && landed ? 'happy' : null, clamp((nx - dogX) / 300, -1, 1) * dogFace, dogRun >= 1 ? Math.abs(Math.sin(T * 14)) * 5 : -1);
-      stopClaude(coneX, T, res, rT, won && landed, !res && g.c > g.dur / Math.sqrt(sp) - 1.6);
+      stopCaos(coneX, T, res, rT, won && landed, !res && g.c > g.dur / Math.sqrt(sp) - 1.6);
       stopDispenser(nx, T, sway, !res);
       if (res && !landed) stopScoop(nx, fy, 1, 0);
       if (won && landed) stopScoop(coneX, landY, 1, Math.sin(Math.max(0, rT - landAt) * 26) * .15 * Math.max(0, 1 - (rT - landAt) * 3));
@@ -388,14 +388,14 @@ function stopSplat(x, a) {
   for (const s of [-1, 1]) { el(x + s * (30 + 12 * k), ST_FEET - 4, 6 * k, 3 * k); ink('#9ff0c8', 2); }
   el(x, ST_FEET - 10 + sq * 6, 18 - 4 * k, 10 + sq * 6); ink('#9ff0c8', 3); glint(x - 6, ST_FEET - 14, 5, 2.5, -.3, .6);
 }
-/* Claude holding the cone up in its right hand; it hops on a catch, slumps on a miss */
-function stopClaude(coneX, T, res, rT, caught, late) {
+/* Caos holding the cone up in its right hand; it hops on a catch, slumps on a miss */
+function stopCaos(coneX, T, res, rT, caught, late) {
   const won = res === 'win', lost = res === 'lose', U = ST_U, x = coneX - 6.6 * U;
   const hop = caught ? Math.abs(Math.sin(rT * 9)) * 14 : 0;
   shadow(x, ST_FEET + 2, 46 - hop * .6, 10, .28);
   X.save(); X.translate(x, ST_FEET - hop); X.rotate(lost ? -.06 : 0);
   arms(U, won ? -.6 - Math.sin(rT * 14) * .25 : lost ? -2.5 : -.5 + Math.sin(T * 3) * .08, 0, 1.45, OR);
-  claude(0, 0, U, { mood: won ? 'happy' : lost ? 'sad' : null });
+  caos(0, 0, U, { mood: won ? 'happy' : lost ? 'sad' : null });
   X.restore();
   if (late || lost) sweat(x - U * 7.4, ST_FEET - hop - U * 8, 1, T);
   // the cone (in the raised fist)
@@ -509,7 +509,7 @@ function ptMemo(sp) {
       copyBoard(T, res === 'win' ? 'COPIED!' : wrong >= 0 ? 'WRONG!' : showing ? 'WATCH...' : 'YOUR TURN!', n, at, res, showing);
       const focus = L >= 0 ? L : wrong;
       copyCat(712, CP_FEET, T, focus >= 0 ? clamp((pads[focus].x - 712) / 300, -1, 1) : -.3, res, rT, L >= 0);
-      copyClaude(T, res, rT, glowT > 0 ? pads[glow] : null, showing);
+      copyCaos(T, res, rT, glowT > 0 ? pads[glow] : null, showing);
       pads.forEach((p, i) => {
         let out = 0, st = null;
         if (res === 'win') { out = outBack((rT - i * .08) / .25); st = 'win'; }
@@ -608,14 +608,14 @@ function cuckooBird(i, x, y, s, T, dizzy, open) {
   else { X.save(); X.translate(-4, -12); for (const sd of [-1, 1]) { X.beginPath(); X.moveTo(0, 0); X.lineTo(sd * 10, -6); X.lineTo(sd * 10, 6); X.closePath(); ink('#fff6e6', 2); } X.beginPath(); X.arc(0, 0, 3, 0, TAU); ink('#fff6e6', 2); X.restore(); }
   X.restore();
 }
-/* Claude by the bench (left): watches, points at the clock it just pressed, cheers or slumps */
-function copyClaude(T, res, rT, pressed, showing) {
+/* Caos by the bench (left): watches, points at the clock it just pressed, cheers or slumps */
+function copyCaos(T, res, rT, pressed, showing) {
   const x = 96, U = 5.4, won = res === 'win', lost = res === 'lose', hop = won ? Math.abs(Math.sin(rT * 9)) * 16 : 0;
   shadow(x, CP_FEET + 2, 46 - hop * .6, 10, .28);
   X.save(); X.translate(x, CP_FEET - hop);
   const ra = won ? 2.6 - Math.sin(rT * 14) * .2 : lost ? 2.5 : pressed ? Math.atan2(pressed.x - x - 36, -(pressed.y - CP_FEET + 28)) : .25 + Math.sin(T * 3) * .05;
   arms(U, won ? -2.6 + Math.sin(rT * 14) * .2 : lost ? -2.5 : -.25 - Math.sin(T * 3) * .05, ra, pressed ? 1.6 : 1.1, OR);
-  claude(0, 0, U, { mood: won ? 'happy' : lost ? 'sad' : null });
+  caos(0, 0, U, { mood: won ? 'happy' : lost ? 'sad' : null });
   X.restore();
   if (lost) sweat(x - U * 7.4, CP_FEET - U * 8, 1, T);
   tagC(x, CP_FEET - 74 - hop, 'YOU', YEL, 12);
@@ -675,7 +675,7 @@ function copyBg() {
   X = old; return cv;
 }
 
-/* 4 GRAB: coins (and a few bombs) rain on the town square; Claude carries a basket on its head and slides under them.
+/* 4 GRAB: coins (and a few bombs) rain on the town square; Caos carries a basket on its head and slides under them.
    The coins follow a walk the basket can always reach in time (even with the arrow keys), and each bomb falls just OUTSIDE
    the stretch between two coins, so going straight from coin to coin is always safe and overshooting is what gets you.
    Every coin lands before the real end of the round (main.js runs it for dur/√sp). A bomb in the basket costs one coin.
@@ -753,7 +753,7 @@ function ptGrab(sp) {
         const k = clamp((y - 40) / (GR_CATCH - 40), 0, 1); shadow(it.x, GR_LAND + 4, 10 + 14 * k, 4 + 4 * k, .1 + .2 * k);
       }
       grabPigeon(Tn, items, yOf, flapAt, res, rT, bx);
-      // Claude with the basket on its head
+      // Caos with the basket on its head
       const won = res === 'win', lost = res === 'lose', soot = clamp(1 - (now - hitAt) / .7, 0, 1);
       const danger = !res && items.some(it => it.bomb && !it.got && !it.land && Math.abs(it.x - bx) < 100 && yOf(it) > 220 && yOf(it) < GR_CATCH + 20);
       const hop = won ? Math.abs(Math.sin(rT * 9)) * 18 : (Tn - happyAt < .25 ? Math.sin((Tn - happyAt) / .25 * Math.PI) * 6 : 0);
@@ -762,7 +762,7 @@ function ptGrab(sp) {
       const col = soot > 0 ? mixC(OR, '#4a4452', soot) : OR, br = res ? 0 : Math.sin(Tn * 3.1) * .025;
       const la = won ? -.3 - Math.sin(rT * 14) * .1 : -.1, ra = won ? .3 + Math.sin(rT * 14) * .1 : .1;
       X.save(); X.scale(1 + br, 1 - br); arms(GR_U, la, ra, 1.45, col);
-      claude(0, 0, GR_U, { mood: won || Tn - happyAt < .35 ? 'happy' : lost || soot > .3 ? 'sad' : null, run: run > 0 && !res ? run : null, col });
+      caos(0, 0, GR_U, { mood: won || Tn - happyAt < .35 ? 'happy' : lost || soot > .3 ? 'sad' : null, run: run > 0 && !res ? run : null, col });
       X.restore();
       if (danger || lost) sweat(-GR_U * 7.4, -GR_U * 7.4, 1, Tn);
       grabBasket(0, GR_CATCH - GR_FEET, won ? 9 : Math.min(9, caught) - (lost && rT > .35 ? 1 : 0), Tn, soot, lostAt);
@@ -819,7 +819,7 @@ function grabBomb(x, y, T) {
   star(x + 12 + Math.cos(w) * 0, y - 41, 9 + Math.sin(T * 30) * 2.5, 4, 7, T * 8, '#FFB020', 2);
   X.fillStyle = '#fff'; el(x + 12, y - 41, 2.5, 2.5); X.fill();
 }
-/* the wicker basket on Claude's head; n coins piled in it, with a name label on the front */
+/* the wicker basket on Caos's head; n coins piled in it, with a name label on the front */
 function grabBasket(x, y, n, T, soot, lostAt) {
   X.save(); X.translate(x, y);
   el(0, 0, 64, 13); ink('#7a4a24', 4);                                          // inside

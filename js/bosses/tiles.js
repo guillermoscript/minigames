@@ -214,7 +214,7 @@
           ctx.lineWidth = 9; ctx.strokeStyle = INK; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke(); ctx.lineWidth = 4; ctx.strokeStyle = '#FFE14D'; ctx.stroke(); ctx.restore(); ctx.lineCap = 'butt';
         }
         ctx.restore();
-        // the GOAL card (right), taped to the board, with Claude in a lab coat under it
+        // the GOAL card (right), taped to the board, with Caos in a lab coat under it
         X.fillStyle = 'rgba(20,16,28,.3)'; rrp(GX - 62, 198, 132, 150, 8); X.fill();
         celRR(GX - 66, 190, 132, 150, 8, '#fff7e0', 4.5, false); celRR(GX - 20, 180, 40, 16, 3, '#ffe98a', 2, false); txt('GOAL', GX, 210, 22, '#FFE14D');
         for (let c = 0; c < 8; c++) { const x = GX - 51 + (c % 3) * 34, y = 228 + (c / 3 | 0) * 34, hit = grid[c] === c + 1;
@@ -228,11 +228,11 @@
             ctx.fillStyle = OR; ctx.fillRect(-aw / 2, -L, aw, L); ctx.fillRect(-hs / 2, -L - .35 * U - hs, hs, hs); ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fillRect(-hs / 2, -L - .35 * U - hs, hs * .45, hs * .4); ctx.restore(); };
           aa(-1, -up); aa(1, up);
         }
-        claude(GX, cy, U, { mood: winT >= 0 ? 'happy' : loseT >= 0 ? 'sad' : null });
+        caos(GX, cy, U, { mood: winT >= 0 ? 'happy' : loseT >= 0 ? 'sad' : null });
         const cl = (x, w) => { ctx.fillStyle = INK; ctx.fillRect(x - 3, cy - 4.2 * U - 3, w + 6, 2.2 * U + 6); ctx.fillStyle = '#f4f6fb'; ctx.fillRect(x, cy - 4.2 * U, w, 2.2 * U); ctx.fillStyle = 'rgba(20,16,28,.14)'; ctx.fillRect(x + w * .62, cy - 4.2 * U, w * .38, 2.2 * U); };
         cl(GX - 6 * U, 3.8 * U); cl(GX + 2.2 * U, 3.8 * U); celRR(GX + 4.2 * U, cy - 5 * U, 4, 1.2 * U, 2, '#4DB8FF', 2, false);   // lab coat + pen
         celRR(GX - 6 * U, cy - 9.4 * U, 12 * U, 4, 2, '#4a3a66', 2, false); for (const sd of [-1, 1]) celC(GX + sd * 2.8 * U, cy - 9 * U, 1.3 * U, '#9fe3ff', 3);   // goggles on the forehead
-        pill(GX, cy - 9.4 * U - 22, 'CLAUDE', '#FFE14D');
+        pill(GX, cy - 9.4 * U - 22, 'CAOS', '#FFE14D');
         if (winT >= 0) for (let i = 0; i < 2; i++) { const k = (winT * 1.4 + i * .5) % 1; ctx.save(); ctx.globalAlpha = 1 - k; ctx.translate(GX + (i ? 44 : -44), cy - 9.4 * U - 44 - k * 40); ctx.scale(.9, .9); X.beginPath(); X.moveTo(0, 8); X.bezierCurveTo(-18, -4, -12, -20, 0, -10); X.bezierCurveTo(12, -20, 18, -4, 0, 8); X.closePath(); ink('#ff5c8a', 3); ctx.restore(); }
         // the alien host (left) + speech
         shadow(AX, 518, 56, 10, .35); alien(AX, 518, loseT >= 0 ? 'laugh' : winT >= 0 ? 'shock' : aha > 0 ? 'aha' : 'think', clk, winT >= 0 ? 1 : 0);

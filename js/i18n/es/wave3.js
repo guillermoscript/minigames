@@ -21,7 +21,7 @@ I18N.add('es', {
   'CLICK 1, 2, 3... IN ORDER': 'CLIC EN 1, 2, 3... EN ORDEN',
   'TAP 1, 2, 3... IN ORDER': 'TOCA 1, 2, 3... EN ORDEN',
   'FIND IT!': '¡BÚSCALO!',
-  'FIND CLAUDE': 'ENCUENTRA A CLAUDE',
+  'FIND CAOS': 'ENCUENTRA A CAOS',
   'WATCH...': 'MIRA...',
   'PICK A CUP!': '¡ELIGE UN VASO!',
   'SCRUB!': '¡FROTA!',

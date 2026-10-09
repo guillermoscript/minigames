@@ -51,7 +51,7 @@ function badge(s, x, y, size, bgc, fg, sc, rot) {     // a word on a chunky colo
   txt(s, 0, 2, size, fg || '#fff', 'center', 260);
   X.restore();
 }
-function arm(u, sx, an, k, col) {                     // a thin blocky arm from claude()'s side stub (drawn before claude()); an = angle (0 = up), k = 0..1 raised
+function arm(u, sx, an, k, col) {                     // a thin blocky arm from caos()'s side stub (drawn before caos()); an = angle (0 = up), k = 0..1 raised
   if (k <= .02) return; const ol = Math.max(3, u * .5), L = 3.3 * u * k, aw = 1.2 * u, hs = 2 * u, gap = .35 * u;
   X.save(); X.translate(sx * 6.6 * u, -5.2 * u); X.rotate(an);
   X.fillStyle = INK; X.fillRect(-aw / 2 - ol, -L - ol, aw + ol * 2, L + ol * 2); X.fillRect(-hs / 2 - ol, -L - gap - hs - ol, hs + ol * 2, hs + ol * 2);
@@ -89,7 +89,7 @@ function rockLit(rk, x, y, T) {
   X.fillStyle = 'rgba(255,255,255,.7)'; el(x - s * .3, y - s * .36, s * .16, s * .09, -.5); X.fill();
   line([[x + s * .1, y - s * .2], [x + s * .22, y + s * .05], [x + s * .08, y + s * .3]], 2.6, '#454c68');
   X.restore();
-  if (rk.crab) { const u = 1.15, cy = y - s * .55 + Math.sin(T * 5 + rk.ph) * 1; claude(x + s * .2, cy, u, { col: OR }); }
+  if (rk.crab) { const u = 1.15, cy = y - s * .55 + Math.sin(T * 5 + rk.ph) * 1; caos(x + s * .2, cy, u, { col: OR }); }
 }
 function rockGhost(rk, x, y, a) {                     // what the captain remembers: a faint bluish blob
   if (rk.q) { X.globalAlpha = a; rr(x - 30, y - 26, 60, 52, 9); X.fillStyle = '#2b3d70'; X.fill(); X.lineWidth = 3; X.strokeStyle = '#4a69ad'; X.stroke(); X.globalAlpha = 1; return; }
@@ -101,7 +101,7 @@ function rockDark(rk, x, y) {                         // the keeper's chart: dar
 }
 
 /* ───────────── the boat ───────────── */
-/* a little red rowing boat seen from above, bow up; Claude the captain stands in it. tilt: lean; hits: cracks; flick: lantern pulse */
+/* a little red rowing boat seen from above, bow up; Caos the captain stands in it. tilt: lean; hits: cracks; flick: lantern pulse */
 function boat(x, y, tilt, hits, mood, T, col, sink) {
   X.save(); X.translate(x, y + Math.sin(T * 3.2) * 1.6); X.rotate(tilt + Math.sin(T * 2.3) * .025);
   if (sink) { const k = ease(sink); X.translate(0, k * 20); X.rotate(k * .55); X.scale(1 - k * .35, 1 - k * .35); X.globalAlpha = 1 - k * .35; }
@@ -114,7 +114,7 @@ function boat(x, y, tilt, hits, mood, T, col, sink) {
   // the bow lantern on a little post
   rr(-2, -48, 4, 10, 2); ink('#6b4a2c', 2); X.beginPath(); X.arc(0, -52, 6, 0, TAU); ink('#ffe58a', 2.5); X.fillStyle = '#fff'; el(-1.5, -53.5, 2, 2.4); X.fill();
   const u = 2.3; arm(u, -1, -.9, .8, col || OR); arm(u, 1, .9, .8, col || OR);
-  X.save(); X.translate(0, 0); claude(0, 24, u, { col: col || OR, mood }); X.restore();
+  X.save(); X.translate(0, 0); caos(0, 24, u, { col: col || OR, mood }); X.restore();
   // captain's cap
   X.fillStyle = INK; rr(-8.5 * 1, 24 - 9 * u - 5, 17, 9, 3); X.fill(); rr(-7, 24 - 9 * u - 7, 14, 8, 3); X.fillStyle = '#fff'; X.fill(); X.fillStyle = INK; X.fillRect(-7, 24 - 9 * u - 1, 14, 3); X.fillStyle = '#ffcf33'; X.fillRect(-2, 24 - 9 * u - 5, 4, 3);
   X.restore();
@@ -162,7 +162,7 @@ function buildTower() {
   X.beginPath(); X.arc(604, 54, 5, 0, TAU); ink('#ffcf33', 2.5);
   X = old; return cv;
 }
-/* the keeper: Claude in striped pyjamas, a nightcap and fluffy slippers, hands on a big crank wheel (it turns with the lamp) */
+/* the keeper: Caos in striped pyjamas, a nightcap and fluffy slippers, hands on a big crank wheel (it turns with the lamp) */
 function keeperFig(x, y, spin, dance, mood, T, col, startle) {
   const u = 3.6, hop = dance ? Math.abs(Math.sin(T * 10)) * 14 : 0, by = y - hop;
   shadow(x, y + 1, 26, 6, .25);
@@ -175,7 +175,7 @@ function keeperFig(x, y, spin, dance, mood, T, col, startle) {
   if (dance) { const w = Math.sin(T * 14) * .35; arm(u, -1, -.5 + w, 1, col); arm(u, 1, .5 - w, 1, col); }
   else { arm(u, -1, -1.35 + Math.sin(spin * 2) * .08, .95, col); arm(u, 1, .55, .55, col); }
   X.restore();
-  claude(x, by, u, { col, mood: dance ? 'happy' : mood });
+  caos(x, by, u, { col, mood: dance ? 'happy' : mood });
   // pyjama stripes over the body, a nightcap with a pom-pom, slippers
   X.save(); X.beginPath(); X.rect(x - 6 * u, by - 9 * u, 12 * u, 7 * u); X.clip(); X.fillStyle = 'rgba(176,205,255,.62)'; for (let i = 0; i < 6; i++) X.fillRect(x - 6 * u + i * 2.4 * u, by - 9 * u, 1.3 * u, 7 * u); X.restore();
   X.beginPath(); X.moveTo(x - 5.5 * u, by - 9 * u); X.quadraticCurveTo(x - 1 * u, by - 14 * u, x + 3 * u, by - 12.5 * u + Math.sin(T * 3) * 2); X.quadraticCurveTo(x + 6 * u, by - 12 * u, x + 7 * u, by - 9 * u); X.closePath(); ink('#e0453d', 3);

@@ -21,7 +21,7 @@ dumb little joke, and WINNING must pay off with a short, funny "good ending" (th
 ## 2. Reward rules (the "good ending")
 
 - Every game has a **WIN PAYOFF** of 0.8-1.4 s: the object of the joke resolves visually (not only the generic confetti).
-- Payoff has 3 beats: **hit** (freeze 2-3 frames + zoom/shake) -> **gag** (the funny animation) -> **pose** (Claude proud, sparkle, big text).
+- Payoff has 3 beats: **hit** (freeze 2-3 frames + zoom/shake) -> **gag** (the funny animation) -> **pose** (Caos proud, sparkle, big text).
 - Payoff must differ per game *family* so reused mechanics feel different:
   - same mechanic, different **victim / prop / setting / ending**.
 - Fail payoff: also a gag, but shorter (0.6-0.9 s) and never mean.
@@ -51,6 +51,6 @@ dumb little joke, and WINNING must pay off with a short, funny "good ending" (th
 
 1. Add an optional hook to each game: `g.payoff(t, win)` drawn during the outcome window (`outT`), and `g.payoffDur` (default 1.2 s).
 2. `main.js`: outcome window = `max(.95, g.payoffDur)`; keep the NICE!/FAIL! stamp but smaller and over the gag.
-3. Shared helpers in `core.js`: `freeze(frames)`, `zoomPunch(x, y, k)`, `sweat(x, y)`, `proudClaude(x, y)`, `crown/sparkle`, `perfect()`.
+3. Shared helpers in `core.js`: `freeze(frames)`, `zoomPunch(x, y, k)`, `sweat(x, y)`, `proudCaos(x, y)`, `crown/sparkle`, `perfect()`.
 4. Roll out by family (so duplicates become distinct): stop-in-zone, click-things, alternate L/R, scrub, catch, dodge.
 5. Add `PERFECT!` bonus ending + 3-win streak fever look.

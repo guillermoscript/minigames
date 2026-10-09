@@ -144,7 +144,7 @@ const K = (() => {
 const { rr, el, ink, ce, cr, gl } = K;
 
 /* ── shared critters (y = feet; live drawing on ctx) ── */
-function strawHat(u) {                                  // origin at claude()'s feet
+function strawHat(u) {                                  // origin at caos()'s feet
   const y0 = -9 * u;
   el(0, y0 - 1.2 * u, 7.6 * u, 1.5 * u); ink('#f2c94c', 3);
   K.cr(-4.1 * u, y0 - 5.4 * u, 8.2 * u, 4.4 * u, 1.6 * u, '#f6d35e', '#d9a82c', 3, u * .5, 0);
@@ -326,7 +326,7 @@ function ccHare(sp) {
         ctx.save(); ctx.translate(CX, CY + 40 - jump);
         const sw = up ? Math.sin(T * 34) * .35 : 0;
         K.arms(6, win ? -.35 : up ? -.7 + sw : -2.55 + Math.sin(T * 1.4) * .08, win ? .35 : up ? .7 - sw : 2.55 - Math.sin(T * 1.4) * .08, 1);
-        claude(0, 0, 6, { mood: ccMood(g) }); strawHat(6);
+        caos(0, 0, 6, { mood: ccMood(g) }); strawHat(6);
         if (lose) K.sweat(34, -56, 1, T);
         ctx.restore();
       } });
@@ -434,7 +434,7 @@ function ccPig(sp) {
         { y: my, f: () => {
           K.shade(mx, my + 2, 28, 8, .25); ctx.save(); ctx.translate(mx, my - jump);
           const ph = Math.hypot(tx - mx, ty - my) > 4 || kxy(); const sw = ph ? Math.sin(now * 18) * .5 : 0;
-          K.arms(4.5, win ? -.4 : -2.2 + sw, win ? .4 : 2.2 - sw, 1); claude(0, 0, 4.5, { mood: ccMood(g) }); strawHat(4.5);
+          K.arms(4.5, win ? -.4 : -2.2 + sw, win ? .4 : 2.2 - sw, 1); caos(0, 0, 4.5, { mood: ccMood(g) }); strawHat(4.5);
           if (lose) K.sweat(26, -42, .9, now); ctx.restore(); K.pill(mx, my - 76, 'YOU', YEL, true);
         } },
         { y: 412, f: () => penFrame(false) }];
@@ -580,9 +580,9 @@ function ccCat(sp) {
       for (let i = 0; i < 6; i++) { const a = -2.6 + i * .42; K.line([[0, 0], [Math.cos(a) * 36, Math.sin(a) * 36 + 10]], 4, fcol[i % 3]); }
       ce(0, 8, 15, 15, '#FF4D9E', '#c92a78', 4); K.gl(-5, 3, 5, 4, .8); ctx.restore();
       if (!caught) K.pill(x, Math.min(y + 44, 530), 'YOU', YEL, true);
-      // Claude watches from the corner (nervous, then relieved or flattened)
+      // Caos watches from the corner (nervous, then relieved or flattened)
       ctx.save(); ctx.translate(716, 508); K.shade(0, 2, 30, 7, .3);
-      K.arms(3.6, win ? -.4 : -2.4, win ? .4 : 2.4, 1); claude(0, 0, 3.6, { mood: ccMood(g) }); if (wind && !g.result) K.sweat(24, -34, .8, T); ctx.restore();
+      K.arms(3.6, win ? -.4 : -2.4, win ? .4 : 2.4, 1); caos(0, 0, 3.6, { mood: ccMood(g) }); if (wind && !g.result) K.sweat(24, -34, .8, T); ctx.restore();
       if (lose) K.badge('GOTCHA', 400, 94 + Math.sin(T * 14) * 2, 30, '#ff4d5e', '#fff', K.outBack(oT / .25), -.04);
       if (win) for (let i = 0; i < 3; i++) K.zee(488 + i * 22, 330 - i * 36 - ((oT * 40) % 18), .9 + i * .2, 1 - oT * .6);
       vignette(.2);
@@ -665,7 +665,7 @@ function ccDog(sp) {
         { y: my, f: () => {
           K.shade(mx, my + 2, 26, 7, .25); ctx.save(); ctx.translate(mx, my - (win ? Math.abs(Math.sin(oT * 9)) * 14 : 0)); if (run && !g.result) ctx.rotate(Math.sin(now * 20) * .06);
           if (lose) ctx.scale(1.12, .86);
-          const sw = run && !g.result ? Math.sin(now * 20) * .5 : 0; K.arms(4, win ? -.4 : lose ? -.9 : -2.3 + sw, win ? .4 : lose ? .9 : 2.3 - sw, 1); claude(0, 0, 4, { mood: ccMood(g) });
+          const sw = run && !g.result ? Math.sin(now * 20) * .5 : 0; K.arms(4, win ? -.4 : lose ? -.9 : -2.3 + sw, win ? .4 : lose ? .9 : 2.3 - sw, 1); caos(0, 0, 4, { mood: ccMood(g) });
           if (lose) for (let i = 0; i < 3; i++) { const a = now * 5 + i * 2.1; K.star(Math.cos(a) * 24, -46 + Math.sin(a) * 7, 7, 3, 5, a, '#FFE14D', 2); }
           if (win) K.sweat(26, -38, .8, now); ctx.restore();
         } }];
@@ -777,9 +777,9 @@ function ccWorm(sp) {
       if (hot && !g.result) K.sweat(hx + 15, hy - 14, .8, now);
       if (lose) for (let i = 0; i < 3; i++) K.puff(hx - 4 + i * 8, hy - 30 - ((oT * 40 + i * 14) % 40), 7 + i * 2, .7 - ((oT * 40 + i * 14) % 40) / 70, '#d8d2e0');
       if (win) K.heart(hx + 12, hy - 38 - Math.min(oT, .9) * 30, 1.3, 1 - oT / .95);
-      // Claude cheers the worm on
+      // Caos cheers the worm on
       ctx.save(); ctx.translate(60, 508); K.shade(0, 2, 26, 7, .28);
-      K.arms(3.4, win ? -.4 : -2.3 + Math.sin(T * 5) * .3, win ? .4 : 2.3 - Math.sin(T * 5) * .3, 1); claude(0, 0, 3.4, { mood: ccMood(g) }); ctx.restore();
+      K.arms(3.4, win ? -.4 : -2.3 + Math.sin(T * 5) * .3, win ? .4 : 2.3 - Math.sin(T * 5) * .3, 1); caos(0, 0, 3.4, { mood: ccMood(g) }); ctx.restore();
       K.pill(60, 462, 'YOU', YEL, true);
       vignette(.2);
     }
@@ -902,8 +902,8 @@ function ccClaw(sp) {
         else { const d = k === 'L' ? -1 : 1; K.poly([[cxp + d * 16, cyp], [cxp - d * 12, cyp - 17], [cxp - d * 12, cyp + 17]], dis ? '#f6f4fb' : INK, 3); }
         if (!TOUCH) K.keyCap(b[0] + b[2] / 2 + (k === 'D' ? 92 : 40), cyp, k === 'D' ? 'SPACE' : k === 'L' ? '←' : '→');
       }
-      // Claude, next to the cabinet
-      ctx.save(); ctx.translate(772, 470); K.shade(0, 2, 22, 6, .3); K.arms(3, win ? -.4 : -2.4, win ? .4 : 2.4, 1); claude(0, 0, 3, { mood: ccMood(g) }); ctx.restore();
+      // Caos, next to the cabinet
+      ctx.save(); ctx.translate(772, 470); K.shade(0, 2, 22, 6, .3); K.arms(3, win ? -.4 : -2.4, win ? .4 : 2.4, 1); caos(0, 0, 3, { mood: ccMood(g) }); ctx.restore();
       vignette(.2);
     }
   };

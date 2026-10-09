@@ -1,7 +1,7 @@
 'use strict';
 /* ═════════ SQUAD · FIRE RESCUE (sq_blanket), 3-4 players, one corner each ═════════
    A (cartoon, harmless) apartment block is on fire and the residents are throwing themselves out of the windows: a cat, a grandma with an
-   umbrella, a pizza, a sleepy walrus, a goldfish bowl and a piano. The firefighter Claudes hold the corners of ONE big rescue blanket.
+   umbrella, a pizza, a sleepy walrus, a goldfish bowl and a piano. The firefighter Caoses hold the corners of ONE big rescue blanket.
    Every player owns ONE corner (n = 4: the four corners of a rectangle, n = 3: a triangle). The pointer is the corner:
      pointer X (or ◄ ► / A D)       = where this corner wants to stand. The blanket's centre is the AVERAGE of everybody's corners.
      pointer Y (or ▲ ▼ / W S, Space) = how high the corner is held. Arms get tired: ~3 s above the line and the corner droops until it rests.
@@ -204,7 +204,7 @@ function fighter(fx, fy, hx, hy, u, col, mood, tired, T, k, hat) {
     const sxp = fx + sx * 6.4 * u, syp = fy - 6.6 * u, gx = hx + sx * 5.5 + sh, gy = hy + 5;
     tube([[sxp, syp], [(sxp + gx) / 2 + sx * 3, (syp + gy) / 2 + 2], [gx, gy]], Math.max(4, u * 1.15), col);
   }
-  claude(fx, fy, u, { col, mood: tired && !mood ? null : mood });
+  caos(fx, fy, u, { col, mood: tired && !mood ? null : mood });
   X.save(); if (hat) { X.translate(fx + hat.x, fy - 9.1 * u + hat.y); X.rotate(hat.rot); helmet(u, 0); } else { X.translate(fx, fy); helmet(u, -9.1 * u); } X.restore();
   for (const sx of [-1, 1]) { X.beginPath(); X.arc(hx + sx * 5.5 + sh, hy + 5, 5.2, 0, TAU); ink('#ffd23f', 2.5); }
 }
@@ -305,7 +305,7 @@ function ambulance(S, T) {
   rr(x0 - 2, y0 + 6, 38, 66, 4); ink('#2b2838', 3.5); X.fillStyle = '#4a4660'; X.fillRect(x0 + 4, y0 + 56, 30, 4); X.fillStyle = '#e8434f'; X.fillRect(x0 + 6, y0 + 50, 26, 6);
   const lit = S.ambGlow;
   if (lit > 0) { X.globalAlpha = .35 + .25 * Math.sin(T * 9); X.fillStyle = '#5CFF7A'; rr(x0 - 6, y0 + 2, 46, 74, 8); X.fill(); X.globalAlpha = 1; }
-  claude(MX + 4, y1 - 4, 2.7, { col: '#fff', mood: S.res === 'win' ? 'happy' : null });
+  caos(MX + 4, y1 - 4, 2.7, { col: '#fff', mood: S.res === 'win' ? 'happy' : null });
   X.save(); X.translate(MX + 4, y1 - 4); rr(-4.6 * 2.7, -11 * 2.7, 9.2 * 2.7, 2.4 * 2.7, 1.2 * 2.7); ink('#fff', 2.5); X.fillStyle = '#ff4d5e'; X.fillRect(-1 * 2.7, -11 * 2.7 + 2, 2 * 2.7, 2.4 * 2.7 - 4); X.restore();
   rr(x0 - 6, y0 - 2, 14, 82, 3); ink('#d3cfe0', 3);                                                   // door frame / the open door hinged flat
   if (S.res === 'win' && rk > .08) { rr(x0 - 4, y0 + 2, 12 + ease((rk - .08) / .1) * 28, 74, 3); ink('#f6f8ff', 3); }
@@ -363,7 +363,7 @@ function heli(S, T) {
   line([[-34, -2], [-72, -10]], 7, INK); line([[-34, -2], [-72, -10]], 3, '#c9ced6'); X.save(); X.translate(-72, -10); X.rotate(T * 22); line([[0, -9], [0, 9]], 3, INK); X.restore();
   cel(() => el(0, 0, 36, 22), '#4db8ff', '#2a82c6', 5, 6, 4.5);
   X.save(); el(0, 0, 36, 22); X.clip(); X.fillStyle = '#fff'; X.fillRect(-40, 4, 80, 8); X.restore();
-  rr(6, -15, 26, 20, 8); ink('#cfe9ff', 3); claude(20, 5, 1.1, { col: '#D97757' }); glint(12, -10, 6, 2, -.5, .8);
+  rr(6, -15, 26, 20, 8); ink('#cfe9ff', 3); caos(20, 5, 1.1, { col: '#FF6B3D' }); glint(12, -10, 6, 2, -.5, .8);
   line([[-30, 24], [30, 24]], 5, INK); line([[-20, 14], [-20, 24]], 4, INK); line([[20, 14], [20, 24]], 4, INK);
   line([[0, -22], [0, -28]], 5, INK); { const rl = 20 + 36 * Math.abs(Math.cos(T * 18)); line([[-rl, -28], [rl, -28]], 5, INK); line([[-rl, -28], [rl, -28]], 2.2, '#c9ced6'); }
   txt('7', -14, 1, 15, '#fff');

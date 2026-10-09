@@ -28,7 +28,7 @@ const W2K = (() => {
     return 9 - d;
   };
   K.keyCap = (x, y, s) => { X.font = '700 15px Fredoka, Arial, sans-serif'; const w = Math.max(26, X.measureText(s).width + 14); K.rr(x - w / 2, y - 12, w, 24, 6); K.ink('#fff', 2.5); txt(s, x, y + 1, 15, INK, 'center', w - 6); };
-  /* thin blocky arms out of claude()'s side stubs (origin = Claude's feet); angles 0 = straight up */
+  /* thin blocky arms out of caos()'s side stubs (origin = Caos's feet); angles 0 = straight up */
   K.arms = (u, la, ra, col = OR) => {
     const ol = Math.max(3, u * .5), L = 3.3 * u, aw = 1.2 * u, hs = 2 * u, gap = .35 * u;
     const one = (sx, an) => {
@@ -73,7 +73,7 @@ const W2K = (() => {
   return K;
 })();
 
-/* 7 ── STOP art. Scene: a ski-lift in the Alps. Claude rides a red gondola (the plumb rope under it is the needle) and must stop
+/* 7 ── STOP art. Scene: a ski-lift in the Alps. Caos rides a red gondola (the plumb rope under it is the needle) and must stop
    over the green landing mat. Win: the gondola docks, the penguin station master jumps, the snowman cheers. Fail: the hanger
    snaps and the gondola drops onto the platform in a cloud of snow. */
 const W2STOP = (() => {
@@ -151,7 +151,7 @@ const W2STOP = (() => {
       X.fillStyle = INK; for (const y of [452, 468, 484]) { X.beginPath(); X.arc(690, y, 3, 0, TAU); X.fill(); }
     });
   }
-  /* the gondola, drawn with its hanger at local (0,0); window and Claude inside */
+  /* the gondola, drawn with its hanger at local (0,0); window and Caos inside */
   function cabin(mood, la, ra, sw, T) {
     X2.save(); X2.scale(1.25, 1.25);
     K.rr(-52, 26, 104, 16, 8); K.ink('#d93a4a', 4);
@@ -159,9 +159,9 @@ const W2STOP = (() => {
     K.rr(-38, 44, 76, 46, 10); K.ink('#dff4ff', 3);
     K.rr(-38, 44, 76, 46, 10); X2.fillStyle = 'rgba(191,233,255,.25)'; X2.fill(); X2.lineWidth = 6; X2.strokeStyle = INK; X2.stroke();
     X2.save(); K.rr(-38, 44, 76, 46, 10); X2.clip(); X2.fillStyle = 'rgba(255,255,255,.4)'; X2.beginPath(); X2.moveTo(-28, 44); X2.lineTo(-14, 44); X2.lineTo(-30, 90); X2.lineTo(-44, 90); X2.fill(); X2.restore();
-    // open-top cabin: Claude's head and eyes rise over the window frame so his face reads
+    // open-top cabin: Caos's head and eyes rise over the window frame so his face reads
     const u = 5, cx = 0, cyf = 94;
-    X2.save(); X2.translate(cx, cyf); K.arms(u, la, ra); X2.restore(); claude(cx, cyf, u, { mood });
+    X2.save(); X2.translate(cx, cyf); K.arms(u, la, ra); X2.restore(); caos(cx, cyf, u, { mood });
     // beanie with a pom-pom (it sits above the eyes)
     const y0 = cyf - 9 * u; K.rr(cx - 5.2 * u, y0 - 1.8 * u, 10.4 * u, 2.6 * u, u * .8); K.ink('#4DB8FF', 2.4);
     X2.beginPath(); X2.arc(cx, y0 - 2.4 * u, 1.2 * u, 0, TAU); K.ink('#fff', 2.2);
@@ -298,8 +298,8 @@ function gStop(sp) {
 }
 
 /* 8 ── DON'T art. Scene: the control room of the Totally Safe Rocket Company. A grinning red button on a hazard pedestal begs to
-   be pressed; Claude (hard hat, sweating) sits on his hands while they creep toward it. A worried rocket watches from the
-   window. Win: Claude gets a medal, the button sulks, the rocket dozes. Fail: slam, siren, and the rocket blasts off. */
+   be pressed; Caos (hard hat, sweating) sits on his hands while they creep toward it. A worried rocket watches from the
+   window. Win: Caos gets a medal, the button sulks, the rocket dozes. Fail: slam, siren, and the rocket blasts off. */
 const W2DONT = (() => {
   const K = W2K, TAU = K.TAU, WIN = [40, 96, 210, 166], FEET = 380;
   let WALL = null, CON = null, KW = -1;
@@ -406,10 +406,10 @@ const W2DONT = (() => {
     K.line([[545, 82], [545, 92]], 4, '#8f9cb3'); K.rr(530, 90, 30, 8, 3); K.ink('#8f9cb3', 3);
     ctx.beginPath(); ctx.arc(545, 98, 14, Math.PI, 0); ctx.lineTo(559, 98); ctx.lineTo(531, 98); ctx.closePath(); K.ink(lost ? '#ff4d5e' : '#ff9aa6', 3.5);
     ctx.fillStyle = lost ? '#fff' : 'rgba(255,255,255,.55)'; ctx.beginPath(); ctx.ellipse(545 + Math.cos(sirA) * 5, 92, 3.5, 5, 0, 0, TAU); ctx.fill();
-    // ── Claude, standing behind the console ──
+    // ── Caos, standing behind the console ──
     const sag = won ? 0 : Math.sin(T * 3.1) * .03 + creep * .04;
     ctx.save(); ctx.translate(cx, FEET); ctx.scale(1 + sag, 1 - sag); ctx.translate(-cx, -FEET);
-    claude(cx, FEET, 10, { mood: lost ? 'sad' : won ? 'happy' : null });
+    caos(cx, FEET, 10, { mood: lost ? 'sad' : won ? 'happy' : null });
     // hard hat with a lamp (sits above the eyes)
     const hy = FEET - 90, hat = new Path2D(); hat.moveTo(cx - 54, hy + 4); hat.quadraticCurveTo(cx - 54, hy - 34, cx, hy - 34); hat.quadraticCurveTo(cx + 54, hy - 34, cx + 54, hy + 4); hat.closePath();
     K.rr(cx - 66, hy - 2, 132, 10, 5); K.ink('#ffd23f', 3.5); K.cel(hat, '#ffd23f', '#c99512', 4, 4, 4); K.glint(hat, cx - 24, hy - 22, 16, 5, 'rgba(255,255,255,.6)', -.4);
@@ -450,7 +450,7 @@ const W2DONT = (() => {
     txt(S.taunt, cx, top + 62, 26, '#fff', 'center', 200);
     // the second taunt swings across the bottom on a tag
     if (!lost && !won) { const tx = cx + Math.sin(S.now * 9) * 160, ty = 500 + Math.cos(S.now * 7) * 20; K.rr(tx - 98, ty - 20, 196, 40, 20); K.ink('#FFE14D', 3); txt(S.taunt2, tx, ty + 1, 26, INK, 'center', 170); }
-    if (won) { for (let i = 0; i < 4; i++) { const k = (T * .7 + i * .25) % 1, hx = i % 2 ? 560 + hash(i) * 120 : 150 + hash(i + 3) * 100; K.heart(hx + Math.sin(T * 3 + i) * 8, 330 - k * 120, .9, Math.sin(k * Math.PI)); } txt('GOOD CLAUDE', cx, 138, 48, '#5CFF7A'); }
+    if (won) { for (let i = 0; i < 4; i++) { const k = (T * .7 + i * .25) % 1, hx = i % 2 ? 560 + hash(i) * 120 : 150 + hash(i + 3) * 100; K.heart(hx + Math.sin(T * 3 + i) * 8, 330 - k * 120, .9, Math.sin(k * Math.PI)); } txt('GOOD CAOS', cx, 138, 48, '#5CFF7A'); }
     vignette(.18);
   }
   return { draw };
@@ -472,8 +472,8 @@ function gDont(sp) {
   return g;
 }
 
-/* 9 ── COUNT: how many Claudes? (number keys or click)
-   Scene: census day at a peach apartment block. Shutters bang open and Claudes in nightcaps, curlers and party hats lean out;
+/* 9 ── COUNT: how many Caoses? (number keys or click)
+   Scene: census day at a peach apartment block. Shutters bang open and Caoses in nightcaps, curlers and party hats lean out;
    you ring the right doorbell on the intercom. Win: the whole building cheers and the roof pigeon takes off. Fail: a flowerpot
    drops off the roof onto the doorbell you rang. */
 const W2COUNT = (() => {
@@ -541,7 +541,7 @@ const W2COUNT = (() => {
       K.cel(panel, '#cfd8e6', '#8f9cb3', 0, 7, 4); K.glint(panel, 120, 432, 90, 6, 'rgba(255,255,255,.5)', 0);
       for (const [sx, sy] of [[48, 440], [752, 440], [48, 526], [752, 526]]) { X.beginPath(); X.arc(sx, sy, 5, 0, TAU); K.ink('#e8edf5', 2); X.strokeStyle = '#8f9cb3'; X.lineWidth = 2; X.beginPath(); X.moveTo(sx - 3, sy - 3); X.lineTo(sx + 3, sy + 3); X.stroke(); }
     });
-    FG = K.layer(X => {          // sills (and flower boxes) in front of the Claudes, so they lean OUT of the window
+    FG = K.layer(X => {          // sills (and flower boxes) in front of the Caoses, so they lean OUT of the window
       for (let c = 0; c < 8; c++) {
         const [cx, cy] = wc(c);
         K.cel(K.rrP(cx - 76, cy + 28, 152, 16, 6), '#fff4e2', '#d9b98f', 0, 4, 4);
@@ -616,7 +616,7 @@ const W2COUNT = (() => {
     ctx.drawImage(BLD, -OX, 0);
     const won = g.result === 'win', lost = g.result === 'lose', rt = resAt == null ? 0 : clock - resAt;
     const hi = Math.floor((mouse.x - x0) / step), hover = !g.result && !TOUCH && hi >= 0 && hi < 8 && mouse.x - x0 - hi * step <= bw && mouse.y > by && mouse.y < by + 80;
-    // windows: shutters bang open and a Claude leans out
+    // windows: shutters bang open and a Caos leans out
     const at = {}; pts.forEach((p, i) => { at[cells[i]] = i; });
     for (let c = 0; c < 8; c++) {
       const [cx, cy] = wc(c), i = at[c], p = i == null ? null : pts[i];
@@ -628,7 +628,7 @@ const W2COUNT = (() => {
           ctx.save(); ctx.beginPath(); ctx.rect(cx - 100, cy - 160, 200, 190); ctx.clip(); ctx.translate(fx, fy);
           if (won) K.arms(u, -.45 + Math.sin(T * 12 + i) * .2, .45 - Math.sin(T * 12 + i) * .2);
           else if (!lost && i % 2 === 0) K.arms(u, null, .5 + Math.sin(T * 9 + i) * .45);
-          claude(0, 0, u, { mood: won ? 'happy' : lost ? 'sad' : null });
+          caos(0, 0, u, { mood: won ? 'happy' : lost ? 'sad' : null });
           hat(1 + (i + cells[0] % 5) % 5, u, T, i);          // the first five tenants always wear five different looks
           ctx.restore();
         }
@@ -690,7 +690,7 @@ function gCount(sp) {
     const bx = x0 + (v - 1) * step + bw / 2;
     if (v === n) { sfx.coin(); sfx.sparkle(); burst(bx, by, '#5CFF7A', 14); ring(bx, by + 40, '#fff', 90); floatText('YES!', bx, by - 30, '#5CFF7A', 38); } else { sfx.buzz(); shake(6, .2); burst(bx, by, '#FF4D4D', 8); } };
   const g = {
-    cmd: 'COUNT!', hint: 'HOW MANY CLAUDES?', thint: 'TAP THE NUMBER', dur: 5, wide: true,
+    cmd: 'COUNT!', hint: 'HOW MANY BOMBS?', thint: 'TAP THE NUMBER', dur: 5, wide: true,
     key(e) { const v = +e.key; if (v >= 1 && v <= 8) choose(v); },
     down(p) { const i = Math.floor((p.x - x0) / step); if (i >= 0 && i < 8 && p.x - x0 - i * step <= bw && p.y > by && p.y < by + 80) choose(i + 1); },
     update(dt) {
@@ -704,9 +704,9 @@ function gCount(sp) {
 }
 
 /* 10 ── SLICE: swipe the fruit, avoid the bombs (mouse)
-   Scene: Claude's juice-bar kitchen. Fruit with faces get tossed up, panic when the knife comes near and land in halves;
-   juice splats the tiles and the blender on the counter fills up. Win: the blender whirs, the lid hops, Claude cheers.
-   Fail (bomb): KABOOM, Claude and the cat are covered in soot. Fail (missed): the blender sulks. */
+   Scene: Caos's juice-bar kitchen. Fruit with faces get tossed up, panic when the knife comes near and land in halves;
+   juice splats the tiles and the blender on the counter fills up. Win: the blender whirs, the lid hops, Caos cheers.
+   Fail (bomb): KABOOM, Caos and the cat are covered in soot. Fail (missed): the blender sulks. */
 const W2SLICE = (() => {
   const K = W2K, TAU = Math.PI * 2;
   const COLS = ['#ff4d4d', '#9be564', '#ffd23f', '#ff8c42'];
@@ -827,7 +827,7 @@ const W2SLICE = (() => {
     if (!st.soot) for (let i = 0; i < 3; i++) { const dx = st.x - 14 + i * 14, L = Math.min(40 + i * 8, age * (30 + i * 10)); c.fillRect(dx - 2.5, y + 6, 5, L); c.beginPath(); c.arc(dx, y + 6 + L, 4, 0, TAU); c.fill(); }
     c.globalAlpha = 1;
   }
-  function chef(x, y, T, st) {      // Claude the juice-bar chef, standing on the counter
+  function chef(x, y, T, st) {      // Caos the juice-bar chef, standing on the counter
     const u = 6, c = ctx, won = st === 'win', soot = st === 'boom', sad = st === 'miss' || soot, scared = st === 'scared';
     const jump = won ? Math.abs(Math.sin(T * 9)) * 16 : 0, br = 1 + Math.sin(T * 3.1) * .025;
     shadow(x, y + 2, 34, 6, .3);
@@ -835,7 +835,7 @@ const W2SLICE = (() => {
     if (won) K.arms(u, -.4 + Math.sin(T * 14) * .2, .4 - Math.sin(T * 14) * .2);
     else if (scared) K.arms(u, -1.1, 1.1);
     else if (!sad) K.arms(u, null, .9 + Math.sin(T * 4) * .25);
-    claude(0, 0, u, { mood: won ? 'happy' : sad ? 'sad' : null, col: soot ? '#4a3f55' : OR });
+    caos(0, 0, u, { mood: won ? 'happy' : sad ? 'sad' : null, col: soot ? '#4a3f55' : OR });
     // chef's toque (blackened and knocked crooked by the blast)
     c.save(); c.translate(0, -9 * u); c.rotate(soot ? -.35 : 0);
     const hc = soot ? '#6b6378' : '#fff';
@@ -1035,9 +1035,9 @@ function gSlice(sp) {
 
 /* 11 ── COPY: press the arrows in order (arrow keys or WASD)
    Scene: the throne room of Keyboard Kingdom. The King (a big keycap in a crown and a curly moustache) points his sceptre at
-   the royal dance scroll; Claude the court dancer, in a sweatband, copies every move on the palace dance pad while the royal
+   the royal dance scroll; Caos the court dancer, in a sweatband, copies every move on the palace dance pad while the royal
    corgi chases its own tail. Win: the King laughs and claps, roses fly, a wax seal stamps the scroll. Fail: the King goes red
-   and lobs a tomato at Claude's face. */
+   and lobs a tomato at Caos's face. */
 const W2COPY = (() => {
   const K = W2K, TAU = Math.PI * 2, KX = 690, CX = 400, CY = 474, VY = 140;
   let BG = null, KW = -1;
@@ -1221,7 +1221,7 @@ const W2COPY = (() => {
     // win: the royal wax seal thumps onto the scroll's corner
     if (won) { const k = K.outBack((rt - .12) / .25), sxp = Math.min(W / 2 + pw / 2 - 34, W - 190), syp = 120; if (k > 0) { ctx.save(); ctx.translate(sxp, syp); ctx.rotate(-.25); ctx.scale(k * 1.0 + (1 - Math.min(1, rt * 3)) * .6, k); ctx.beginPath(); for (let a = 0; a < 14; a++) { const r = a % 2 ? 30 : 34, an = a * TAU / 14; ctx.lineTo(Math.cos(an) * r, Math.sin(an) * r); } ctx.closePath(); K.ink('#d6283d', 3.5); ctx.beginPath(); ctx.arc(0, 0, 21, 0, TAU); ctx.strokeStyle = '#a81d2e'; ctx.lineWidth = 3; ctx.stroke(); ctx.beginPath(); ctx.moveTo(-12, 8); ctx.lineTo(-14, -8); ctx.lineTo(-6, 0); ctx.lineTo(0, -12); ctx.lineTo(6, 0); ctx.lineTo(14, -8); ctx.lineTo(12, 8); ctx.closePath(); ctx.fillStyle = '#ffb3bf'; ctx.fill(); ctx.restore(); } }
     ctx.restore();
-    // dance pad tiles (the one Claude just stepped on lights up)
+    // dance pad tiles (the one Caos just stepped on lights up)
     const lit = art.dir != null && T - art.at < .3 ? art.dir : -1;
     for (const [d, px, py, w, h] of PAD) {
       const on = d === lit || (won && Math.sin(T * 12 + d * 1.6) > 0), p = K.rrP(px - w / 2, py - h / 2, w, h, 10);
@@ -1233,7 +1233,7 @@ const W2COPY = (() => {
     // the King on his throne
     const kmood = won ? 'win' : lost ? 'lose' : T - (art.miss ?? -9) < .5 ? 'cross' : late ? 'late' : 'idle';
     king(T, kmood, x0 + Math.min(i, len - 1) * (sz + gap) + sz / 2, rt, won && Math.sin(T * 16) > .6);
-    // Claude, court dancer in a sweatband, copying the pose
+    // Caos, court dancer in a sweatband, copying the pose
     const pk = T - (art.at ?? -9), d = art.dir, wob = T - (art.miss ?? -9) < .45 ? Math.sin(T * 40) * .12 * (1 - (T - art.miss) / .45) : 0;
     let la = -2.5, ra = 2.5, lean = 0, sy = 1 + Math.sin(T * 3.1) * .025, jy = 0;
     if (won) { la = -.4 + Math.sin(T * 12) * .25; ra = .4 - Math.sin(T * 12) * .25; jy = Math.abs(Math.sin(T * 9)) * 26; }
@@ -1247,7 +1247,7 @@ const W2COPY = (() => {
     shadow(CX, CY + 2, 54 - jy * .4, 10, .3);
     ctx.save(); ctx.translate(CX, CY - jy); ctx.rotate(lean + wob); ctx.scale(sq * (2 - sy), (2 - sq) * sy);
     K.arms(u, la, ra);
-    claude(0, 0, u, { mood: won ? 'happy' : lost ? 'sad' : null });
+    caos(0, 0, u, { mood: won ? 'happy' : lost ? 'sad' : null });
     // sweatband with fluttering tails
     K.rr(-6.3 * u, -9.2 * u, 12.6 * u, 1.5 * u, 4); K.ink('#ff5c8a', 2.5); ctx.fillStyle = '#fff'; ctx.fillRect(-6.3 * u, -8.6 * u, 12.6 * u, .35 * u);
     const fl = Math.sin(T * 14) * 4; K.line([[6.2 * u, -8.5 * u], [6.2 * u + 16, -8.5 * u - 8 + fl], [6.2 * u + 28, -8.5 * u + fl]], 4, '#ff5c8a');
@@ -1255,9 +1255,9 @@ const W2COPY = (() => {
     if ((late || T - (art.miss ?? -9) < .6) && !g.result) K.sweat(CX - 44, CY - 64 - jy, 1, (T * 1.6) % 1);
     // win: roses (hearts) fly from the throne to the stage
     if (won) for (let h = 0; h < 5; h++) { const k = (rt * 1.2 + h * .2) % 1, hx = KX - 50 - k * (180 + h * 40), hy = 400 - Math.sin(k * Math.PI) * (40 + h * 8) + k * 70; K.heart(hx, hy, 1.15, Math.min(1, (1 - k) * 3)); }
-    // fail: the King lobs a tomato, SPLAT on Claude's face
+    // fail: the King lobs a tomato, SPLAT on Caos's face
     if (lost) {
-      // thrown underhand from the King's low hand, flat (arc 30 px) and below the FAIL! stamp, lands on Claude's chest/face line
+      // thrown underhand from the King's low hand, flat (arc 30 px) and below the FAIL! stamp, lands on Caos's chest/face line
       const ft = .22, w0 = .1, sxx = KX - 110, syy = 412, tx = CX + 6, ty = CY - 30, Z = 1.3;
       if (rt < w0) tomato(KX - 70 - 400 * rt, 412 - 60 * rt, 13, 0);
       else if (rt < w0 + ft) { const k = (rt - w0) / ft; tomato(sxx + (tx - sxx) * k, syy + (ty - syy) * k - Math.sin(k * Math.PI) * 30, 15, k * 9); }
@@ -1296,7 +1296,7 @@ function gCopy(sp) {
   return g;
 }
 
-/* 12 ── STEADY art (stage 4). Scene: a living-room floor. The wire tunnel is a toy road with red-white kerbs; Claude carries a glass of
+/* 12 ── STEADY art (stage 4). Scene: a living-room floor. The wire tunnel is a toy road with red-white kerbs; Caos carries a glass of
    lemonade on its head from the GO pad to the trophy. Fail: the glass flies off and splashes. Win: it lifts the glass high, hearts. A robot vacuum
    with a face patrols the bottom of the room. Cosmetic state only (hr = hashed variety, no Math.random). */
 const W2STEADY = (() => {
@@ -1373,7 +1373,7 @@ const W2STEADY = (() => {
       rr(-5, 6, 10, 8, 2); ink('#c99512', 3); rr(-12, 13, 24, 7, 3); ink('#a5622c', 3);
       X.fillStyle = 'rgba(255,255,255,.55)'; el(-6, -10, 3, 7, .2); X.fill(); X.restore();
     }
-    // Claude with the glass on its head
+    // Caos with the glass on its head
     {
       const u = 2.6, hx = mx, hy = my + 12, near = clamp(1 - edge, 0, 1), sloshA = clamp(vx * .0008, -.35, .35) + (res ? 0 : Math.sin(T * 14) * near * .06);
       X.save(); shadowEl(hx, hy + 2, 18, 5);
@@ -1382,7 +1382,7 @@ const W2STEADY = (() => {
       else if (lost) K.arms(u, -2.2 + Math.sin(T * 30) * .3, 2.2 - Math.sin(T * 30) * .3, OR);
       X.restore();
       X.save(); X.translate(hx, hy); if (won) K.arms(u, -2.6 + Math.sin(T * 10) * .15, 2.6 - Math.sin(T * 10) * .15, OR); else if (lost) K.arms(u, -2.4 + Math.sin(T * 30) * .3, 2.4 - Math.sin(T * 30) * .3, OR); else K.arms(u, -1.3 + sloshA, 1.3 + sloshA, OR); X.restore();
-      claude(hx, hy, u, { mood: lost ? 'sad' : won ? 'happy' : null, run: res ? null : (started ? T * .6 : null) });
+      caos(hx, hy, u, { mood: lost ? 'sad' : won ? 'happy' : null, run: res ? null : (started ? T * .6 : null) });
       const gy = hy - 9.4 * u + 2;
       if (!lost) glass(hx, gy - (won ? 14 + Math.abs(Math.sin(rT * 8)) * 6 : 0), sloshA, won ? .75 : .72 - near * .06, 0);
       else {
@@ -1401,7 +1401,7 @@ const W2STEADY = (() => {
   return { draw };
 })();
 
-/* 12 ── STEADY: guide Claude through the tunnel without touching the walls (mouse) */
+/* 12 ── STEADY: guide Caos through the tunnel without touching the walls (mouse) */
 function gSteady(sp) {
   const hw = sp > 1.5 ? 28 : 36;
   const pts = [{ x: 90, y: 300 }];

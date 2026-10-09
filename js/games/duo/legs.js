@@ -1,14 +1,14 @@
 'use strict';
 /* ═════════ DUO · WOBBLE WALK (du_legs) ═════════
-   A tall Claude on two long wobbly legs has to cross a river over 6 stepping stones. Each player IS one leg:
+   A tall Caos on two long wobbly legs has to cross a river over 6 stepping stones. Each player IS one leg:
    LEFT LEG (role 0, JUDGE) and RIGHT LEG (role 1). Hold to lift your leg (the foot swings forward and a dotted marker shows where
    it would land), let go to put it down. The reach is measured from the OTHER foot (capped at MAXS), so one leg alone gets nowhere:
-   the legs have to take turns. Water = SPLOOSH and that foot goes back to its stone. Both legs up for more than GRACE s = Claude
+   the legs have to take turns. Water = SPLOOSH and that foot goes back to its stone. Both legs up for more than GRACE s = Caos
    faceplants into the river (stunned, the front foot goes back one stone). Both feet on the far bank = win.
    Netcode (events only): 'up' [epoch, anchor, otherAnchor] when a leg lifts, 'pl' [epoch, x, ok, clock] when it comes down: the acting
    player decides where it landed and whether that was a stone. The partner replays the swing locally from 'up' with the same
    formula (it has the same lag as the 'pl' that ends it, so the marker is smooth and lands where the partner saw it land).
-   The body pose is computed only from the planted feet, so both screens draw the same Claude. The judge (left leg) watches for both
+   The body pose is computed only from the planted feet, so both screens draw the same Caos. The judge (left leg) watches for both
    legs up (GRACE covers late packets), sends 'fall' [epoch, foothold] and checks the win; 'up'/'pl' sent before a fall carry an
    older epoch and are ignored. At the time limit the judge waits up to .25 s (END_SLACK .6 - lag) for a friend's leg that is still up (its last step may be
    on the way) and accepts that plant only if it was stamped before the limit. */
@@ -41,7 +41,7 @@ const BTN = [[84, 500], [716, 500]], BR = 40;   // hold indicators: left leg bot
 const PILLX = [196, 604];                        // the foot name tags stay between the two buttons
 
 /* palette */
-const OR = '#D97757', ORS = '#b4553a', ORL = '#f3a283';
+const OR = '#FF6B3D', ORS = '#b4553a', ORL = '#f3a283';
 const GRASS = '#6fd660', GRASSL = '#b2f27f', GRASSS = '#3fa64a', DIRT = '#c98a55', DIRTS = '#9a6238', DIRTL = '#e3ac74';
 const STONE = '#bab4d8', STONES = '#8c85b4', STONEL = '#e6e3f6', MOSS = '#82d460', MOSSS = '#4fa845';
 const WAT0 = '#5fd2f7', WAT1 = '#2f9fe3', WAT2 = '#1f6fc0', FOAM = '#d9f7ff';
@@ -65,7 +65,7 @@ function pill(x, y, label, col, size = 17, px = x, up = false) {   // a name tag
   rr(x - w / 2, y - h / 2, w, h, h / 2); ink(col, 3); txt(label, x, y + 1, size, INK, 'center', w - 12);
 }
 
-/* ───────────── the walker: Claude's blocky body on two long jointed legs ───────────── */
+/* ───────────── the walker: Caos's blocky body on two long jointed legs ───────────── */
 const SHOE = 'M-24,10 C-27,-4 -18,-12 -8,-11 L4,-10 C14,-9 22,-2 33,4 C43,8 43,15 36,16 L-22,16 C-27,16 -27,13 -24,10 Z';
 const SOLE = 'M-28,13 L41,13 C46,13 46,23 40,23 L-24,23 C-30,23 -31,14 -28,13 Z';
 const TOE = 'M26,2 C36,6 41,9 40,13 L23,13 C22,8 23,5 26,2 Z';
@@ -273,7 +273,7 @@ function buildWorld(F, B0, B1) {
 }
 
 /* ═════════ the game ═════════ */
-let DCOL = ['#D97757', '#6EA8FE'], DROLE = 0;   // leg colours + my role in the last round built (the intro demos use them)
+let DCOL = ['#FF6B3D', '#6EA8FE'], DROLE = 0;   // leg colours + my role in the last round built (the intro demos use them)
 function duLegs(sp, D) {
   D = D || DUO.SOLO; const R = mkR(), rl = D.role, judge = rl === 0, V = V0 * sp;   // the swing scales with sp (the clock only with sqrt(sp)): 8 half-steps that each wait for the partner's packet must still fit at top speed with 300 ms of lag
   /* level: start bank, NST stones (water gaps 60-120 + two wide "hero" jumps of 118-134, stones 62-84 wide), far bank.
@@ -288,9 +288,9 @@ function duLegs(sp, D) {
   const footAt = x => { for (let k = LAST; k >= 0; k--) if (x >= F[k].x0 - LEN && x <= F[k].x1 + LEN) return k; return -1; };
   const spot = k => k === 0 ? [B0 - 64, B0 - 30] : k === LAST ? [B1 + 30, B1 + 64] : (h => [F[k].c - h, F[k].c + h])(Math.max(4, Math.min(14, F[k].w / 2 - 16)));
   /* colours: my leg in my colour, the friend's leg in theirs */
-  const pc = okHex(D.partner && D.partner.color) ? D.partner.color : (rl ? '#D97757' : '#6EA8FE');
+  const pc = okHex(D.partner && D.partner.color) ? D.partner.color : (rl ? '#FF6B3D' : '#6EA8FE');
   let mc = null; try { if (typeof me === 'function') { const m = me(); if (m && okHex(m.color)) mc = m.color; } } catch (e) {}
-  if (!mc || mc.toLowerCase() === pc.toLowerCase()) { const def = rl ? '#6EA8FE' : '#D97757'; mc = def.toLowerCase() !== pc.toLowerCase() ? def : ['#6EA8FE', '#D97757', '#FFD23F'].find(c => c.toLowerCase() !== pc.toLowerCase()); }
+  if (!mc || mc.toLowerCase() === pc.toLowerCase()) { const def = rl ? '#6EA8FE' : '#FF6B3D'; mc = def.toLowerCase() !== pc.toLowerCase() ? def : ['#6EA8FE', '#FF6B3D', '#FFD23F'].find(c => c.toLowerCase() !== pc.toLowerCase()); }
   const COL = []; COL[rl] = mc; COL[1 - rl] = pc; DCOL = COL.slice(); DROLE = rl;
 
   const mkLeg = (a, i) => ({ i, a, k: 0, up: false, t: 0, o: 0, wet: 0, land: null, spl: null, cap: false, tick: 0, vx: a, vy: GY - ANK, vr: 0 });
@@ -669,12 +669,12 @@ function duLegs(sp, D) {
     const free = !legs[0].up && !legs[1].up && !(legs[0].k === LAST && legs[1].k === LAST), myTurn = free && behind(rl) && !g.result && !fall && stun <= 0 && g.c >= mine.wet;
     const [bx, by] = BTN[rl], [ox, oy] = BTN[1 - rl], held = mine.up, lx = held ? swingX(mine) : 0, wet = held && footAt(lx) < 0, ok = held && !wet && useful(mine, lx), far = wet && mine.cap;
     ctx.save(); ctx.globalAlpha = fade;
-    // the friend's little button: presses down while their leg is up; a tiny Claude in their colour stands on it (no text: the FRIEND tag is on their foot)
+    // the friend's little button: presses down while their leg is up; a tiny Caos in their colour stands on it (no text: the FRIEND tag is on their foot)
     const fu = fr.up ? 1 : 0, fc = COL[1 - rl], fy = oy + 10;
     X.beginPath(); X.ellipse(ox, fy + 30, 28, 7, 0, 0, TAU); X.fillStyle = 'rgba(20,16,28,.3)'; X.fill();
     X.beginPath(); X.arc(ox, fy + 7, 24, 0, TAU); ink(dark(fc, .35), 3.5); X.beginPath(); X.arc(ox, fy + fu * 4, 24, 0, TAU); ink(fu ? lite(fc, .3) : fc, 3.5);
     shoe(ox - 2, fy - 3 + fu * 4, fu ? -.3 : -.1, .36, lite(fc, fu ? .55 : .25));
-    claude(ox, fy - 25 + fu * 5, 2.3, { col: fc, mood: fu ? 'happy' : null });
+    caos(ox, fy - 25 + fu * 5, 2.3, { col: fc, mood: fu ? 'happy' : null });
     // my big button
     const pr = held || pressed ? 1 : 0, pulse = myTurn ? .5 + .5 * Math.sin(now * 8) : 0, s = 1 + pulse * .07 + btnFx * .05;
     const face = ok ? GO : far ? NO : held ? YEL : COL[rl], label = ok ? 'LET GO!' : far ? 'TOO FAR!' : held ? 'KEEP GOING' : 'HOLD';
@@ -703,7 +703,7 @@ function duLegs(sp, D) {
     rr(x0 - 16, y - 12, x1 - x0 + 32, 24, 12); ink(null, 3.5);
     for (let k = 1; k < LAST; k++) { X.beginPath(); X.ellipse(mx(F[k].c), y + 1, 7, 5, 0, 0, TAU); ink(k <= best ? STONEL : STONE, 2); }
     for (const l of legs) { X.beginPath(); X.arc(mx(l.a), y + 1, 6, 0, TAU); ink(COL[l.i], 2.5); }
-    claude(mx(hxS), y - 6, 1.5, { mood: g.result === 'win' ? 'happy' : g.result === 'lose' ? 'sad' : null });
+    caos(mx(hxS), y - 6, 1.5, { mood: g.result === 'win' ? 'happy' : g.result === 'lose' ? 'sad' : null });
     star(x1 + 30, y, 13, 6, 5, now * 1.5, best === LAST ? YEL : '#fff', 2.5);
   }
   g.dbg = {
@@ -767,7 +767,7 @@ function demo(r) {
       if (on[i]) { const x = i !== r ? sx : r ? Math.min(sx, 346) : Math.max(sx, 202); pill(x, fe[i][1] - 26, lab, cols[i], sz, clamp(sx, x - 18, x + 18), false); }
       else pill(sx, gy + 34, lab, cols[i], sz, sx, true); };
     tag(r, own ? 'YOU' : 'FRIEND', own ? 16 : 14); tag(o, own ? 'FRIEND' : 'YOU', own ? 14 : 16);
-    // leg r's button (HOLD -> KEEP GOING -> LET GO!), the finger holding it during the step; on the friend beat a tiny Claude in their colour stands on it
+    // leg r's button (HOLD -> KEEP GOING -> LET GO!), the finger holding it during the step; on the friend beat a tiny Caos in their colour stands on it
     const bx = r ? 462 : 58, by = 80, pr = on[r] ? 1 : 0, face = on[r] ? (ok[r] ? GO : YEL) : cols[r], label = on[r] ? (ok[r] ? 'LET GO!' : 'KEEP GOING') : 'HOLD';
     const ps = turn[r] ? 1 + .06 * (.5 + .5 * Math.sin(t * 8)) : 1;
     ctx.save(); ctx.translate(bx, by); ctx.scale(ps, ps);
@@ -778,7 +778,7 @@ function demo(r) {
     X.font = '700 22px Fredoka, "Helvetica Neue", Arial, sans-serif'; const lw = clamp(X.measureText(t2(label)).width + 26, 84, 150), rx = clamp(0, lw / 2 + 6 - bx, 514 - lw / 2 - bx);
     rr(rx - lw / 2, pr * 6 + 18, lw, 32, 16); ink(ok[r] ? '#eaffef' : '#fffdf6', 3.5); txt(label, rx, pr * 6 + 35, 22, INK, 'center', lw - 14);
     ctx.restore();
-    if (!own) claude(bx + (r ? 28 : -28), by - 31 + pr * 6, 2.7, { col: cols[r], mood: on[r] ? 'happy' : null });
+    if (!own) caos(bx + (r ? 28 : -28), by - 31 + pr * 6, 2.7, { col: cols[r], mood: on[r] ? 'happy' : null });
     demoFinger(bx + (r ? -22 : 22), by - 14 + pr * 6, on[r], k[r] * 2 % 1);   // on the button face, clear of the label
     // the big cue high in the sky, on the side away from the walker and clear of the button
     const lo = r ? 118 : 222, hi = r ? 300 : 402, cx = lerp(hi, lo, ease((hx - 230) / 70)), cy = 27;

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* Renders the PWA / home-screen icons in the DUO look (docs/ART-STYLE.md): a sunny place, hard ink horizon, Claude on a crate.
+/* Renders the PWA / home-screen icons in the DUO look (docs/ART-STYLE.md): a sunny place, hard ink horizon, Caos on a crate.
    node scripts/art/icon.js        -> img/icons/icon-512.png, icon-192.png, icon-180.png
    The subject stays inside the maskable safe zone (a circle of 40% of the width around the centre), the sky/ground bleed to the edges. */
 const fs = require('fs'), path = require('path'), os = require('os');
@@ -13,7 +13,7 @@ const outDir = path.join(__dirname, '../../img/icons');
 function paint(S) {                                    // runs in the page; draws at 512 and scales
   const c = document.createElement('canvas'); c.width = c.height = S; const g = c.getContext('2d');
   g.scale(S / 512, S / 512);
-  const INK = '#14101c', OR = '#D97757', SH = '#b4553a', LT = '#f3a283';
+  const INK = '#14101c', OR = '#FF6B3D', SH = '#c9452a', LT = '#ffa184';
   g.lineJoin = 'round'; g.lineCap = 'round';
   const rrp = (x, y, w, h, r) => { g.beginPath(); g.roundRect(x, y, w, h, r); };
   const ink = (fill, o) => { g.lineWidth = o * 2; g.strokeStyle = INK; g.stroke(); g.fillStyle = fill; g.fill(); };
@@ -51,15 +51,20 @@ function paint(S) {                                    // runs in the page; draw
   g.strokeStyle = '#b06d33'; g.lineWidth = 6; for (const x of [210, 256, 302]) { g.beginPath(); g.moveTo(x, 364); g.lineTo(x, 418); g.stroke(); }
   rrp(160, 350, 192, 82, 12); g.lineWidth = 8; g.strokeStyle = INK; g.stroke();
   g.fillStyle = '#f2b878'; g.beginPath(); g.roundRect(168, 356, 176, 8, 4); g.fill();
-  // Claude: legs, arms (waving), body
-  const leg = x => { rrp(x, 300, 26, 56, 8); ink(OR, 7); cel(x, 300, 26, 56, 8, OR, SH, 5, 0); };
-  [186, 226, 262, 300].forEach(leg);
+  // Caos: legs, arms (waving), a round bomb body, cap and lit fuse
+  const leg = x => { rrp(x, 300, 30, 56, 8); ink(OR, 7); cel(x, 300, 30, 56, 8, OR, SH, 5, 0); };
+  [200, 282].forEach(leg);
   rrp(92, 226, 48, 58, 16); ink(OR, 8); cel(92, 226, 48, 58, 16, OR, SH, -6, 0);    // left arm
   rrp(372, 176, 48, 58, 16); ink(OR, 8); cel(372, 176, 48, 58, 16, OR, SH, 6, 0);     // right arm up, waving
-  rrp(132, 150, 248, 160, 36); ink(OR, 10);
-  cel(132, 150, 248, 160, 36, OR, SH, 0, 16);
-  glint(190, 182, 38, 14, -.4, .5);
-  rrp(132, 150, 248, 160, 36); g.lineWidth = 10; g.strokeStyle = INK; g.stroke();
+  g.lineCap = 'round';                                                              // fuse (behind the cap)
+  for (const [c, w] of [[INK, 26], ['#e8d6a8', 10]]) { g.beginPath(); g.moveTo(256, 120); g.quadraticCurveTo(300, 92, 292, 52); g.lineWidth = w; g.strokeStyle = c; g.stroke(); }
+  rrp(224, 104, 64, 38, 8); ink('#9a8fb5', 8);                                      // cap
+  rrp(122, 120, 268, 222, 110); ink(OR, 10);
+  cel(122, 120, 268, 222, 110, OR, SH, 0, 18);
+  glint(180, 170, 34, 16, -.6, .55);
+  rrp(122, 120, 268, 222, 110); g.lineWidth = 10; g.strokeStyle = INK; g.stroke();
+  const spark = (cx, cy) => { g.fillStyle = '#FFE14D'; g.beginPath(); for (let i = 0; i < 16; i++) { const r = i % 2 ? 9 : 30, a = i * Math.PI / 8; g.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); } g.closePath(); g.lineWidth = 5; g.strokeStyle = INK; g.stroke(); g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.arc(cx, cy, 8, 0, 7); g.fill(); };
+  spark(292, 48);
   // face: tall inked eyes with a white highlight, blush, open smile
   for (const ex of [212, 300]) { rrp(ex, 192, 38, 58, 17); ink(INK, 3); g.beginPath(); g.arc(ex + 12, 209, 8, 0, 7); g.fillStyle = '#fff'; g.fill(); g.beginPath(); g.arc(ex + 26, 235, 4, 0, 7); g.fill(); }
   g.fillStyle = 'rgba(255,110,165,.7)'; for (const cx of [188, 324]) { g.beginPath(); g.ellipse(cx, 268, 20, 12, 0, 0, 7); g.fill(); }

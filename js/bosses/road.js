@@ -260,7 +260,7 @@
           z: Math.round(st.z), fin: FIN * SEG, tFin: +tFin.toFixed(2), carX: Math.round(carX()), aimX: Math.round(W / 2 + Math.max(-1.6, Math.min(1.6, .25 * Math.sign(b) + b / G)) * PXK), G, SK, D: Dm(), pxk: PXK };
       }
     };
-    // rally car, seen from behind with Claude at the wheel: cel-shaded body, goggles whose pupils follow the steering, a face that reacts
+    // rally car, seen from behind with Caos at the wheel: cel-shaded body, goggles whose pupils follow the steering, a face that reacts
     function drawCar(x, y, rot, sq, mood, T) {
       const lose = mood === 'sad', win = mood === 'happy', scared = mood === 'panic';
       ctx.save(); ctx.translate(x, y - 34); ctx.rotate(rot); ctx.translate(0, 34); ctx.scale(1 + sq * .08, 1 - sq * .08);
@@ -272,7 +272,7 @@
       // arms (behind the body, reaching for the wheel; up in the air on a win)
       const sw = win ? 0 : Math.max(-1, Math.min(1, st.vx * .18)), hy = win ? -112 + Math.sin(now * 14) * 4 : -58;
       for (const sd of [-1, 1]) { const hx = win ? sd * 40 : sd * 17 + sw * 7; ctx.strokeStyle = INK; ctx.lineWidth = 17; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(sd * 24, -84); ctx.lineTo(hx, hy); ctx.stroke(); ctx.strokeStyle = OR; ctx.lineWidth = 9; ctx.stroke(); }
-      claude(0, -62, 4.4, { mood: win ? 'happy' : lose ? 'sad' : null, run: null });
+      caos(0, -62, 4.4, { mood: win ? 'happy' : lose ? 'sad' : null, run: null });
       box(-28, -107, 56, 8, '#FF4D4D', 3);
       // goggles: lenses over the eyes
       for (const sd of [-1, 1]) {

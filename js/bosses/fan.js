@@ -1,5 +1,5 @@
 'use strict';
-/* BIGGEST FAN (after Smooth Moves' Wario-stage boss): bugs march at Claude in 2 waves, then an armoured big bug.
+/* BIGGEST FAN (after Smooth Moves' Wario-stage boss): bugs march at Caos in 2 waves, then an armoured big bug.
    Wave the mouse (or alternate ←/→) to swing a giant paper fan; every stroke slides all planted bugs back a bit. */
 (function () {
   /* ── DUO-look art kit for the stage-4 restyle of the FAN boss (docs/ART-STYLE.md): local copy of the drawing helpers; art only, no Math.random ── */
@@ -17,7 +17,7 @@
     for (const [a, b, r] of c) { X.beginPath(); X.arc(a - 3, b - 5, r * .8, 0, TAU); X.fillStyle = '#fff'; X.fill(); }
     X.restore();
   }
-  function farms(u, la, ra, col) {   // blocky arms from claude()'s side stubs (origin = Claude's feet)
+  function farms(u, la, ra, col) {   // blocky arms from caos()'s side stubs (origin = Caos's feet)
     const ol = Math.max(3, u * .5), L = 3.3 * u, aw = 1.2 * u, hs = 2 * u, gap = .35 * u;
     const one = (sx, an) => {
       X.save(); X.translate(sx * 6.6 * u, -5.2 * u); X.rotate(an);
@@ -63,7 +63,7 @@
   }
   BOSSES.fan = function (sp, s) {
     const k = Math.min(sp, 1.3) / 1.3, LANES = [305, 400, 495], LSC = [.85, 1, 1.15];
-    // [lane, where it plants (u), big?]: bugs run in, plant on screen, then march; u=0 is Claude, u=1 the right edge
+    // [lane, where it plants (u), big?]: bugs run in, plant on screen, then march; u=0 is Caos, u=1 the right edge
     const WAVES = [[[0, .86], [2, .78], [1, .7]], [[1, .9], [0, .82], [2, .74], [1, .66]], [[1, .8, true]]];
     const bugs = [], gone = [], winds = [];
     let wave = 0, waveT = .01, waveAt = 0, clock = 0, last = 0, lastKey = 0, fanDir = 1, fanA = .35, fanK = 0, strokes = 0, biter = null, biteT = 0;
@@ -147,7 +147,7 @@
         X.lineCap = 'round';
         for (const w of winds) { const a = w.a * Math.min(1, w.life * 3); X.beginPath(); for (let j = 0; j <= 8; j++) X.lineTo(w.x + w.len * j / 8, w.y + Math.sin(j * .9 + w.x * .02) * 6); X.strokeStyle = `rgba(20,16,28,${a * .5})`; X.lineWidth = 9; X.stroke(); X.strokeStyle = `rgba(255,255,255,${a})`; X.lineWidth = 5; X.stroke(); }
         X.lineCap = 'butt';
-        // marching bugs (far lane first); the one that got Claude is drawn on top of him later
+        // marching bugs (far lane first); the one that got Caos is drawn on top of him later
         const drawB = (b, x, y, sc, rot) => {
           const back = b.vb > b.walk && b.on, sq = 1 + b.hit * 1.5 - b.land * 1.2, mood = (back || b.hit > 0) ? 'panic' : 'idle';
           shadow(x, y + 30 * sc, 34 * sc, 9 * sc, .25);
@@ -165,13 +165,13 @@
         };
         for (const b of [...bugs].sort((a, c) => a.l - c.l)) if (b !== biter) drawB(b, ux(b.u), LANES[b.l] - (b.big ? 20 : 4), b.big ? 2.1 : LSC[b.l], -Math.PI / 2);
         for (const o of gone) { X.globalAlpha = Math.min(1, o.life * 2); fbug(o.x, o.y, o.r, o.sc, T * 3, 'panic', 0); X.globalAlpha = 1; }
-        // Claude on his crate with the giant paper fan
+        // Caos on his crate with the giant paper fan
         const CX = cx(), Y = 450, U = 8, kq = fanK * .1;
         shadow(CX, Y + 4, 80, 14, .3);
         X.save(); X.translate(CX, Y); X.scale(1 + kq, 1 - kq); X.translate(-CX, -Y);
         const ra = won ? 1.2 : lost ? .5 : .95 + fanA * .5;
         X.save(); X.translate(CX, Y); farms(U, won ? -2.6 + Math.sin(T * 12) * .3 : lost ? -.4 : -.8, ra, OR); X.restore();
-        claude(CX, Y, U, { mood: lost ? 'sad' : won ? 'happy' : null, run: g.result ? null : now * .4 });
+        caos(CX, Y, U, { mood: lost ? 'sad' : won ? 'happy' : null, run: g.result ? null : now * .4 });
         X.restore();
         const px = CX + 6.6 * U + 5.65 * U * Math.sin(ra) * .8, py = Y - 5.2 * U - 5.65 * U * Math.cos(ra) * .8, A = won ? Math.sin(T * 12) * .6 : lost ? 1.3 : fanA, R = 122 * (1 + fanK * .06);
         X.save(); X.translate(px, py);
@@ -183,7 +183,7 @@
         X.restore();
         token(px + Math.cos(A) * R * .62, py + Math.sin(A) * R * .62, 18);
         X.beginPath(); X.arc(px, py, 10, 0, TAU); fink('#8a5a2b', 4);
-        if (biter) {   // the winner of the race leaps onto Claude and chomps
+        if (biter) {   // the winner of the race leaps onto Caos and chomps
           const e = Math.min(1, biteT / .2), bx = ux(0) + (CX + 34 - ux(0)) * e, by = LANES[biter.l] + (Y - 30 - LANES[biter.l]) * e - Math.sin(e * Math.PI) * 60;
           biter.ph += .05; drawB(biter, bx, by, (biter.big ? 1.6 : 1.05) * (1 + Math.abs(Math.sin(T * 14)) * .08), -Math.PI / 2 - .5);
         }

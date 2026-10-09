@@ -1,6 +1,6 @@
 'use strict';
 /* GALAXY BOUNCE: TOUCH SCREEN boss, after WarioWare: Touched!'s "Galaxy Bounce".
-   A little Claude-coloured planet falls; draw lines under it so it bounces up, 6 times, until it reaches the moon.
+   A little Caos-coloured planet falls; draw lines under it so it bounces up, 6 times, until it reaches the moon.
    Pointer: drag to draw a line (a tap makes a short flat one). Keyboard: ←/→ slide the pen along its rail (it does NOT follow the ball), Space drops a flat line there (0.8 s cooldown).
    Art: the DUO look. A rooftop city at dusk, a night sky with inked planets, a UFO cow-napper, a sleepy moon in a nightcap. */
 (() => {
@@ -67,7 +67,7 @@
     X.strokeStyle = 'rgba(255,255,255,.5)'; X.lineWidth = r * .03; ringP(.6, 1.4); X.stroke(); X.restore(); X.lineCap = 'butt';
     if (mood === 'sleep') { for (let i = 0; i < 2; i++) { const z = (tt * .8 + i * .5) % 1; ctx.globalAlpha = 1 - z; txt('Z', x + r * .8 + z * 30 + i * 12, y - r * .6 - z * 40, 18 + z * 14, '#fff'); ctx.globalAlpha = 1; } }
   }
-  /* the ball: a cel-shaded Claude planet with a ring and a face that reacts */
+  /* the ball: a cel-shaded Caos planet with a ring and a face that reacts */
   function planet(bx, by, b, scared, rising, win, dizzy) {
     const R = 29, st = Math.min(.22, Math.abs(b.vy) / 4000), sx = 1 + b.sq * .35 - st * .6, syy = 1 - b.sq * .3 + st;
     X.save(); X.translate(bx, by + b.sq * 8); X.scale(sx, syy);
@@ -248,7 +248,7 @@
             X.restore();
           } }
         moon(m.x, m.y, m.r, lose ? 'laugh' : win ? 'happy' : hits >= 3 ? 'awake' : 'sleep', now, [Math.max(-1, Math.min(1, (b.x - m.x) / 300)), Math.max(-1, Math.min(1, (sy(b.y) - m.y) / 300))]);
-        /* the city we leave behind, with Claude cheering from a rooftop */
+        /* the city we leave behind, with Caos cheering from a rooftop */
         const gy = 600 - cam;
         if (gy < H + 150) {
           if (!CITY) CITY = bakeCity(city);
@@ -258,7 +258,7 @@
           for (let wy = ty0 + 28; wy < Math.min(H, gy) - 6; wy += 22) { rr(tx0 + 12, wy, 12, 10, 3); ink('#ffd96a', 1.5); rr(tx0 + 38, wy, 12, 10, 3); ink(hash(wy) < .5 ? '#ffd96a' : '#ff9f5a', 1.5); }
           rr(tx0 - 5, ty0 - 8, 74, 12, 5); ink('#4a3b80', 3);
           X.fillStyle = 'rgba(20,16,28,.3)'; el(W / 2 - 230, ty0 - 2, 22, 5); X.fill();
-          claude(W / 2 - 230, cy0, 2.8, { mood: cmood });
+          caos(W / 2 - 230, cy0, 2.8, { mood: cmood });
           X.save(); X.translate(W / 2 - 192, cy0 - 20); X.rotate(-.5 + (cheer > 0 ? -.3 : 0)); rr(-3, -34, 6, 30, 3); ink('#FFE14D', 2.5); X.beginPath(); X.moveTo(-3, -4); X.lineTo(3, -4); X.lineTo(0, 4); X.closePath(); ink('#5CFFE0', 2); X.restore();
           if (lose) sparkle(W / 2 - 216, cy0 - 36, 6, '#9fe3ff', 0);
           else if (!hits && !win) drop(W / 2 - 207, cy0 - 20 + (now * 14 % 12), 1);
@@ -318,7 +318,7 @@
           if (clock < 4) { ctx.globalAlpha = Math.min(1, 4 - clock) * a; rr(W / 2 - 150, 508, 300, 34, 17); ink('#fff', 3); txt('←/→ MOVE · SPACE = LINE', W / 2, 526, 18, INK); }
           ctx.globalAlpha = 1;
         }
-        /* the ball: comet trail, then a tiny Claude planet with a face */
+        /* the ball: comet trail, then a tiny Caos planet with a face */
         const bx = b.x, by = sy(b.y), rising = b.vy < -200 && !lose;
         if (rising || win) for (let i = 0; i < trail.length; i++) { ctx.globalAlpha = i / trail.length * .5; ctx.fillStyle = '#FFE14D'; ctx.beginPath(); ctx.arc(trail[i].x, sy(trail[i].y), R * (.3 + .6 * i / trail.length), 0, TAU); ctx.fill(); }
         ctx.globalAlpha = 1;

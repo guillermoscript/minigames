@@ -1,15 +1,15 @@
 <div align="center">
 
-<img src="img/og.png" alt="Claude Ware: a WarioWare-style microgame game" width="640">
+<img src="img/og.png" alt="MiniCaos: a WarioWare-style microgame game" width="640">
 
-# Claude Ware
+# MiniCaos
 
 **100+ five-second microgames. 14 stages. Bosses. Zero installs.**
 A WarioWare-style game that runs in your browser, on desktop and phone.
 
-### [▶ Play now: claudeware.guille.tech](https://claudeware.guille.tech)
+### [▶ Play now: minicaos.guille.tech](https://minicaos.guille.tech)
 
-[![Play](https://img.shields.io/badge/play-free%20in%20browser-7C4DFF?style=for-the-badge)](https://claudeware.guille.tech)
+[![Play](https://img.shields.io/badge/play-free%20in%20browser-7C4DFF?style=for-the-badge)](https://minicaos.guille.tech)
 [![Microgames](https://img.shields.io/badge/microgames-100%2B-D97757?style=for-the-badge)](#whats-inside)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-3DDC97?style=for-the-badge)](#add-your-own-minigame)
 
@@ -40,7 +40,7 @@ You get a few seconds per game and a one-word command: **SWAT!**, **JUMP!**, **T
 | Mouse Mayhem | Point, drag, scrub! |
 | Brain Break | Think fast! |
 | Mega Mix | Everything. At once. |
-| Wii Waggle | Smooth moves, Claude! |
+| Wii Waggle | Smooth moves, Caos! |
 | Cube Party | Mega party game, mega fast! |
 | Touch Screen | Poke it. Draw it. Cut it. |
 | Get Together | Stay still. Pick. Run. Fry. |

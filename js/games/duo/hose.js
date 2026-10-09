@@ -73,7 +73,7 @@ function bubble(s, x, y, size, sc) {
   X.fillStyle = '#fff'; X.fillRect(-6, -21, 15, 6);
   txt(s, 0, -18 - h / 2 + 2, size, INK, 'center', 200); X.restore();
 }
-/* two thin blocky arms from claude()'s side stubs (drawn before claude(), so the body hides the shoulders); a = angle (0 = up), k = 0..1 raised */
+/* two thin blocky arms from caos()'s side stubs (drawn before caos(), so the body hides the shoulders); a = angle (0 = up), k = 0..1 raised */
 function arm(u, sx, an, k, col) {
   if (k <= .02) return; const ol = Math.max(3, u * .5), L = 3.3 * u * k, aw = 1.2 * u, hs = 2 * u, gap = .35 * u;
   X.save(); X.translate(sx * 6.6 * u, -5.2 * u); X.rotate(an);
@@ -182,21 +182,21 @@ function mopHead(hx, hy, sw, dirt, T, wet) {
   el(hx, hy - 10, 22, 9); ink('#4db8ff', 3); X.fillStyle = 'rgba(255,255,255,.5)'; el(hx - 6, hy - 13, 10, 2.5); X.fill();
   if (wet) { X.fillStyle = 'rgba(255,255,255,.85)'; for (let i = 0; i < 4; i++) { el(hx - 27 + i * 18, hy + 6 + (i % 2) * 3, 3.4, 1.6); X.fill(); } }
 }
-/* the mopper: feet at (bx, by), its mop head at (hx, hy). fall: 0..1 knocked over; sw: strand sway; mood for claude() */
+/* the mopper: feet at (bx, by), its mop head at (hx, hy). fall: 0..1 knocked over; sw: strand sway; mood for caos() */
 function mopper(bx, by, hx, hy, col, mood, sw, dirt, fall, T, wet) {
   const u = 4.3;
   if (fall > 0) {                                     // SPLOOSH: flat on its back, legs up, mop flung aside
     const k = ease(fall);
     shadow(bx, by + 2, 40, 9, .25);
     mopHead(hx + 30 * k, hy + 6 * k, 0, dirt, T, wet);
-    X.save(); X.translate(bx, by - 8 * (1 - k)); X.rotate(-Math.PI / 2 * k); claude(0, 0, u, { col, mood: 'sad' }); X.restore();
+    X.save(); X.translate(bx, by - 8 * (1 - k)); X.rotate(-Math.PI / 2 * k); caos(0, 0, u, { col, mood: 'sad' }); X.restore();
     for (let i = 0; i < 3; i++) { const a = T * 7 + i * TAU / 3; star(bx - 20 + Math.cos(a) * 30, by - 52 + Math.sin(a) * 9, 9, 4, 5, a, '#FFE14D', 3); }
     return;
   }
   shadow(bx, by + 1, 34, 8, .22);
   const an = -.5 - sw * .12, d = 3.3 * u * .9 + .35 * u + u, hand = [bx - 6.6 * u + d * Math.sin(an), by - 5.2 * u - d * Math.cos(an)];
   X.save(); X.translate(bx, by); arm(u, -1, an, .9, col); X.restore();
-  claude(bx, by, u, { col, mood });
+  caos(bx, by, u, { col, mood });
   // the stick goes from the raised hand down to the mop head (in front of the body), the hand grips it
   X.lineCap = 'round'; X.lineWidth = 12; X.strokeStyle = INK; X.beginPath(); X.moveTo(hand[0] + (hand[0] - hx) * .12, hand[1] + (hand[1] - hy) * .12); X.lineTo(hx, hy - 12); X.stroke();
   X.lineWidth = 6; X.strokeStyle = '#d9a066'; X.stroke();
@@ -215,7 +215,7 @@ function hoser(ax, ay, col, mood, spray, T, recoil, cheer) {
   X.save(); X.translate(HX, HY + recoil * 3);
   if (cheer) { const w = Math.sin(T * 14) * .3; arm(u, -1, -.45 + w, 1, col); arm(u, 1, .45 - w, 1, col); }
   else { const a2 = an + Math.PI / 2; arm(u, 1, clamp(a2, .2, 2.6) - .15 * recoil, .85, col); }
-  claude(0, 0, u, { col, mood });
+  caos(0, 0, u, { col, mood });
   X.restore();
   if (cheer) return;
   // the brass nozzle points at the target

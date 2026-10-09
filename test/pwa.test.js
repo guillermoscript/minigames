@@ -48,8 +48,8 @@ test('complete offline shell, isolated cache cleanup, fresh online files and API
     const res = await response; await Promise.all(pending); return res;
   }
   offline = true;
-  assert.match(await (await get('https://game.test/?lang=es')).text(), /Claude Ware/);
-  assert.match(await (await get('https://game.test/index.html')).text(), /Claude Ware/);
+  assert.match(await (await get('https://game.test/?lang=es')).text(), /MiniCaos/);
+  assert.match(await (await get('https://game.test/index.html')).text(), /MiniCaos/);
   for (const url of store.keys()) assert.equal((await get(url)).status, 200, url);
   assert.equal(await get('https://game.test/api/collections/users'), undefined);
   assert.equal(await get('https://game.test/_/'), undefined);

@@ -74,7 +74,7 @@ function bubble(s, x, y, size, sc) {                 // speech bubble with a tai
   X.fillStyle = '#fff'; X.fillRect(-6, -21, 15, 6);
   txt(s, 0, -18 - h / 2 + 2, size, INK, 'center', 200); X.restore();
 }
-/* blocky arm from claude()'s side stub; an = angle (0 = up), k = reach (stretches like a cartoon arm when > 1) */
+/* blocky arm from caos()'s side stub; an = angle (0 = up), k = reach (stretches like a cartoon arm when > 1) */
 function arm(u, sx, an, k, col) {
   if (k <= .02) return; const ol = Math.max(3, u * .5), L = 3.3 * u * k, aw = 1.2 * u, hs = 2 * u, gap = .35 * u;
   X.save(); X.translate(sx * 6.6 * u, -5.2 * u); X.rotate(an);
@@ -83,7 +83,7 @@ function arm(u, sx, an, k, col) {
   X.fillStyle = 'rgba(255,255,255,.35)'; X.fillRect(-hs / 2, -L - gap - hs, hs * .45, hs * .4);
   X.restore();
 }
-/* reach with the arm of a claude() standing at (bx, by) towards (tx, ty) */
+/* reach with the arm of a caos() standing at (bx, by) towards (tx, ty) */
 function reach(bx, by, u, sx, tx, ty, col) {
   const sx0 = bx + sx * 6.6 * u, sy0 = by - 5.2 * u, dx = tx - sx0, dy = ty - sy0, d = Math.hypot(dx, dy), L0 = 3.3 * u + .35 * u + 2 * u;
   X.save(); X.translate(bx, by); arm(u, sx, Math.atan2(dx, -dy), clamp((d - 1.2 * u) / L0, .2, 3.4), col); X.restore();
@@ -500,10 +500,10 @@ function duPump(sp, D) {
       const bob = pump ? Math.sin(Hv * Math.PI) * 0 : 0;
       reach(PX, PY, 5.4, 1, grip[0], grip[1], pcol);
       if (!happy) reach(PX, PY, 5.4, -1, grip[0] - 4, grip[1] + 2, pcol); else { X.save(); X.translate(PX, PY); const w = Math.sin(T * 14) * .3; arm(5.4, -1, -.45 + w, 1.3, pcol); X.restore(); }
-      claude(PX, PY - bob, 5.4, { col: pcol, mood: mp });
+      caos(PX, PY - bob, 5.4, { col: pcol, mood: mp });
       if (!happy && !sadm && jit > .55) sweat(PX + 22, PY - 70, T, 0);
       reach(VX, VY, 5.4, -1, VW[0] + 4, VW[1] + 6, vcol);
-      claude(VX, VY, 5.4, { col: vcol, mood: mp });
+      caos(VX, VY, 5.4, { col: vcol, mood: mp });
       if (!happy && !sadm && jit > .55) sweat(VX - 20, VY - 70, T, .4);
       if (open && !lost) for (let i = 0; i < 2; i++) { const a = (T * 3 + i * .5) % 1; X.globalAlpha = (1 - a) * .9; drawPuff(VW[0] + 6 + a * 24, VW[1] - 20 - a * 40, 6 + a * 8); X.globalAlpha = 1; }
       pill(PX, PY - 76, pump ? 'YOU' : 'YOUR FRIEND', pcol); pill(VX, VY - 76, pump ? 'YOUR FRIEND' : 'YOU', vcol);
@@ -583,11 +583,11 @@ function demo(role, t) {
   X.restore();
   if (role === 0) {
     X.save(); X.translate(330, 214); X.scale(.52, .52); X.translate(-BX, -BY); const gp = bellows(hh, t, 0); X.restore();
-    X.save(); X.translate(262, 218); X.scale(.52, .52); X.translate(-PX, -PY); reach(PX, PY, 5.4, 1, gp[0] * 0 + PX + 52, PY - 40 - hh * 22, '#FFC93C'); claude(PX, PY, 5.4, { col: '#FFC93C' }); X.restore();
+    X.save(); X.translate(262, 218); X.scale(.52, .52); X.translate(-PX, -PY); reach(PX, PY, 5.4, 1, gp[0] * 0 + PX + 52, PY - 40 - hh * 22, '#FFC93C'); caos(PX, PY, 5.4, { col: '#FFC93C' }); X.restore();
     demoFinger(330 - 30, 120 + (1 - hh) * 60, true, 0); badge('PUMP!', 400, 34, 18, '#2b9ee6', '#fff', 1, -.03);
   } else {
     X.save(); X.translate(380, 120); X.scale(.62, .62); gauge(0, 0, 66, P, 1 - .22 * S, t, P > .75 ? 1 : 0); X.restore();
-    X.save(); X.translate(300, 234); X.scale(.55, .55); X.translate(-VX, -VY); claude(VX, VY, 5.4, { col: '#6EA8FE', mood: u > 3 ? 'happy' : null }); X.restore();
+    X.save(); X.translate(300, 234); X.scale(.55, .55); X.translate(-VX, -VY); caos(VX, VY, 5.4, { col: '#6EA8FE', mood: u > 3 ? 'happy' : null }); X.restore();
     demoFinger(330, 206, venting, venting ? ((u - 1.2) / .6) : 0); badge(venting ? 'HISSSS' : u > 2.8 ? 'TIE IT!' : 'WATCH THE GAUGE', 390, 34, 18, venting ? '#7a5040' : '#22a447', '#fff', 1, -.03);
   }
 }

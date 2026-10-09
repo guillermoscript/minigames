@@ -49,7 +49,7 @@ const I18N = (() => {
     /* static page bits: <html lang>, <title>, meta tags and [data-i18n] / [data-i18n-attr="attr:key,..."] elements */
     apply() {
       document.documentElement.lang = api.lang;
-      document.title = t('Claude Ware');
+      document.title = t('MiniCaos');
       document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
       document.querySelectorAll('[data-i18n-attr]').forEach(el => el.dataset.i18nAttr.split(',').forEach(p => {
         const [a, k] = p.split(':'); el.setAttribute(a, t(k));

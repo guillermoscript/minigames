@@ -81,7 +81,7 @@ function heart(x, y, s) {
   ink('#ff5c8a', 3); X.fillStyle = 'rgba(255,255,255,.6)'; el(-6, -9, 3, 2, -.6); X.fill(); X.restore();
 }
 function sweat(x, y, s, T) { const k = (T * 2.2) % 1; X.globalAlpha = 1 - k; X.save(); X.translate(x + k * 6, y + k * 14); X.scale(s, s); X.beginPath(); X.moveTo(0, -8); X.quadraticCurveTo(6, 0, 0, 5); X.quadraticCurveTo(-6, 0, 0, -8); ink('#9fe3ff', 2); X.restore(); X.globalAlpha = 1; }
-/* two thin blocky arms from claude()'s side stubs; a = angle (0 = up), k = 0..1 raised (drawn before claude()) */
+/* two thin blocky arms from caos()'s side stubs; a = angle (0 = up), k = 0..1 raised (drawn before caos()) */
 function arm(u, sx, an, k, col) {
   if (k <= .02) return; const ol = Math.max(3, u * .5), L = 3.3 * u * k, aw = 1.2 * u, hs = 2 * u, gap = .35 * u;
   X.save(); X.translate(sx * 6.6 * u, -5.2 * u); X.rotate(an);
@@ -90,7 +90,7 @@ function arm(u, sx, an, k, col) {
   X.fillStyle = 'rgba(255,255,255,.35)'; X.fillRect(-hs / 2, -L - gap - hs, hs * .45, hs * .4);
   X.restore();
 }
-function hardHat(x, y, u, col) {                      // sits on top of claude() (y = its feet)
+function hardHat(x, y, u, col) {                      // sits on top of caos() (y = its feet)
   X.save(); X.translate(x, y - 9 * u - 1); el(0, -1.2 * u, 4 * u, 2.6 * u); ink(col, 3); rr(-5.6 * u, -1.3 * u, 11.2 * u, 2.1 * u, u * .9); ink(col, 3);
   X.fillStyle = 'rgba(255,255,255,.5)'; el(-1.6 * u, -2.2 * u, 1.3 * u, .7 * u, -.4); X.fill(); X.restore();
 }
@@ -546,7 +546,7 @@ function duBridge(sp, D) {
     const hmood = won ? 'happy' : lost ? 'sad' : null, hcol = carrier ? pCol() : myCol(), jump = won ? Math.abs(Math.sin(T * 9)) * 10 : 0, rock = won ? Math.sin(T * 8) * .03 : lost ? .05 : 0;
     boat(bxx, bobY, T, rock);
     hammer(hxNow, HY, won ? 0.2 : hv, T, hitK2);
-    X.save(); X.translate(bxx, BOATY - 10 - jump); arm(5, 1, .25 + (won ? Math.sin(T * 14) * .3 : 0), won ? 1 : .55, hcol); claude(0, 0, 5, { col: hcol, mood: hmood }); hardHatAt(0, 0, 5, '#ff4d5e'); X.restore();
+    X.save(); X.translate(bxx, BOATY - 10 - jump); arm(5, 1, .25 + (won ? Math.sin(T * 14) * .3 : 0), won ? 1 : .55, hcol); caos(0, 0, 5, { col: hcol, mood: hmood }); hardHatAt(0, 0, 5, '#ff4d5e'); X.restore();
     boatLip(bxx, bobY, T, rock);
     rr(hxNow - 8, HY - 8 - jump * 0, 16, 16, 4); ink('#fff', 3);
     if (lost && rk > .1) sweat(bxx + 30, BOATY - 62, 1.1, T);
@@ -564,7 +564,7 @@ function duBridge(sp, D) {
     X.fillStyle = WOODL; X.fillRect(-26, BASK - 33, 52, 3);
     X.beginPath(); X.arc(0, 0, 12, 0, TAU); ink(STEEL, 3.5); X.fillStyle = 'rgba(255,255,255,.7)'; el(-3, -3, 3, 2); X.fill(); X.fillStyle = INK; X.beginPath(); X.arc(0, 0, 3, 0, TAU); X.fill();
     X.restore();
-    X.save(); X.translate(cb, cy + BASK - 10 - cj); arm(4.6, -1, -.3 + (won ? -Math.sin(T * 14) * .3 : 0), won ? 1 : .75, ccol); arm(4.6, 1, .3 + (won ? Math.sin(T * 14) * .3 : 0), won ? 1 : .75, ccol); claude(0, 0, 4.6, { col: ccol, mood: cmood }); hardHatAt(0, 0, 4.6, '#ff9a4d'); X.restore();
+    X.save(); X.translate(cb, cy + BASK - 10 - cj); arm(4.6, -1, -.3 + (won ? -Math.sin(T * 14) * .3 : 0), won ? 1 : .75, ccol); arm(4.6, 1, .3 + (won ? Math.sin(T * 14) * .3 : 0), won ? 1 : .75, ccol); caos(0, 0, 4.6, { col: ccol, mood: cmood }); hardHatAt(0, 0, 4.6, '#ff9a4d'); X.restore();
     X.save(); X.translate(cb, cy); rr(-50, BASK - 22, 100, 24, 8); ink('#e6a85a', 4); X.fillStyle = WOOD2; X.fillRect(-46, BASK - 6, 92, 4); X.fillStyle = 'rgba(255,255,255,.4)'; rr(-40, BASK - 19, 30, 4, 2); X.fill(); X.restore();
     if (!won && ((lost && rk > .1) || (!g.result && stuckNow()))) sweat(cb + 34, cy + BASK - 56, 1.1, T);
     sideTag(cb < 620 ? cb + 78 : cb - 78, cy + BASK - 8, carrier ? 'YOU' : 'YOUR FRIEND', ccol, cb < 620 ? 1 : -1);
@@ -659,7 +659,7 @@ function demo(role, t) {
     const cx = 130 + 130 * ease(clamp(u / 1.2, 0, 1)), a = Math.sin(u * 5) * .6 * Math.exp(-u * 1.1), rel = u > 2 ? clamp((u - 2) / .3, 0, 1) : 0;
     tube([[60, 40], [460, 40]], 3, '#8f9cb3');
     X.save(); X.translate(cx, 40); X.beginPath(); X.arc(0, 0, 8, 0, TAU); ink(STEEL, 3); rr(-26, 14, 52, 20, 6); ink('#e6a85a', 3.5); X.restore();
-    X.save(); X.translate(cx, 46); claude(0, 0, 2.4, { col: '#6EA8FE' }); X.restore();
+    X.save(); X.translate(cx, 46); caos(0, 0, 2.4, { col: '#6EA8FE' }); X.restore();
     const px = lerp(cx + 64 * Math.sin(a), 262, rel * rel), py = lerp(50 + 64 * Math.cos(a), DYd - 8, rel * rel);
     if (u < 2.9) { if (!rel) tube([[cx, 54], [px, py]], 2.6, ROPE); X.save(); X.translate(px, py); X.rotate(rel ? lerp(a, 0, rel) : a); X.scale(.62, .62); plank(PW, [0, 0], 0, 0); X.restore(); }
     else { X.save(); X.translate(262, DYd - 8); X.scale(.62, .62); plank(PW, [1, 0], 0, 0); X.restore(); }
@@ -669,7 +669,7 @@ function demo(role, t) {
   } else {
     const ph = u * 3.7, phi = AMP * Math.sin(ph), hit = u > 2 && u < 2.4;
     X.save(); X.translate(262, DYd - 8); X.scale(.62, .62); plank(PW, [u > 2.2 ? 1 : 0, 0], 0, 0); X.restore();
-    boat(230, 196, t, 0); X.save(); X.translate(230, 190); claude(0, 0, 2.6, { col: '#FFC93C' }); X.restore();
+    boat(230, 196, t, 0); X.save(); X.translate(230, 190); caos(0, 0, 2.6, { col: '#FFC93C' }); X.restore();
     X.save(); X.translate(262, 174); X.scale(.55, .55); X.rotate(hit ? 0 : phi); const L = HL; tube([[0, 16], [0, -L + 14]], 8, '#d9a066'); X.translate(0, -L); rr(-21, -13, 42, 24, 6); ink(STEEL, 4); X.restore();
     X.save(); X.translate(262, 174); for (const [a0, a1, col] of [[-GZ, GZ, 'rgba(92,255,122,.55)']]) { X.beginPath(); X.arc(0, 0, 54, a0 - Math.PI / 2, a1 - Math.PI / 2); X.arc(0, 0, 36, a1 - Math.PI / 2, a0 - Math.PI / 2, true); X.closePath(); X.fillStyle = col; X.fill(); } X.restore();
     demoFinger(300, 200, u > 1.9 && u < 2.3, ((u - 1.9) / .4) % 1);

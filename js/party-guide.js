@@ -74,7 +74,7 @@ function partyModeIcon(m, x, y, size, color) {
   if (m === 'cards') { box(-12, -13, 22, 27, '#fff', 2); box(-6, -9, 22, 27, color, 2); star(5, 3, 7, 3, 5, -.2, INK, 0); }
   else if (m === 'balloon') { ctx.fillStyle = color; ctx.beginPath(); ctx.ellipse(0, -4, 11, 14, 0, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, 11); ctx.lineTo(3, 19); ctx.stroke(); circ(-3, -9, 3, '#fff', 0); }
   else if (m === 'lantern') { ctx.fillStyle = 'rgba(255,225,77,.3)'; ctx.beginPath(); ctx.moveTo(-1, 0); ctx.lineTo(19, -18); ctx.lineTo(19, 18); ctx.fill(); box(-17, -5, 17, 10, color, 1); box(-1, -8, 4, 16, '#fff', 1); }
-  else if (m === 'duo' || m === 'team') { claude(-10, 10, 1.2, { col: color }); claude(11, 10, 1.2, { col: '#fff' }); if (m === 'team') star(0, -12, 8, 4, 5, -.2, color, 0); }
+  else if (m === 'duo' || m === 'team') { caos(-10, 10, 1.2, { col: color }); caos(11, 10, 1.2, { col: '#fff' }); if (m === 'team') star(0, -12, 8, 4, 5, -.2, color, 0); }
   else if (m === 'survival') { for (let i = -1; i <= 1; i++) star(i * 13, i === 0 ? -5 : 6, 8, 4, 5, -.2, color, 0); }
   else if (m === 'knockout') { ctx.strokeStyle = color; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(-10, -10); ctx.lineTo(10, 10); ctx.moveTo(10, -10); ctx.lineTo(-10, 10); ctx.stroke(); }
   else { star(-8, -4, 11, 5, 5, -.3, color, 0); star(10, 7, 9, 4, 5, .3, '#fff', 0); }

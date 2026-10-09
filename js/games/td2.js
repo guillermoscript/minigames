@@ -1,6 +1,6 @@
 'use strict';
 /* 3D stage, set 2: td_tunnel (FLY!), td_mole (WHACK!), td_roll (ROLL!), td_basket (CATCH!). Wrapped in an IIFE so helpers don't leak into the shared global scope.
-   Art: the DUO look in 3D (docs/ART-STYLE.md): toon (cel) materials with inked hulls, a 2D painted place under the transparent WebGL layer, a 3D Claude with a
+   Art: the DUO look in 3D (docs/ART-STYLE.md): toon (cel) materials with inked hulls, a 2D painted place under the transparent WebGL layer, a 3D Caos with a
    face that reacts, 2D payoffs on top. ART ONLY: every Math.random call of the game (rnd / Math.random) keeps its count and order; all decor uses the
    local hash / mulberry32 generators. */
 (() => {
@@ -103,7 +103,7 @@
   const put = (S, m, x = 0, y = 0, z = 0) => { m.position.set(x, y, z); m.traverse(o => { if (o.isMesh && !o.userData.outline) { o.castShadow = true; o.receiveShadow = true; } }); S.scene.add(m); return m; };
   const flat = (S, w, d, c, x, y, z) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), tm(c)); m.rotation.x = -Math.PI / 2; m.position.set(x, y, z); m.receiveShadow = true; S.scene.add(m); return m; };
 
-  /* the 3D Claude hero: blocky crab with real eyes (white, pupil, highlight), cheeks, a mouth and moods.
+  /* the 3D Caos hero: blocky crab with real eyes (white, pupil, highlight), cheeks, a mouth and moods.
      g.mood(mood, lookX, lookY, T): idle | eager | panic | happy | sad | dizzy | sick | bonk */
   const hero = (col = OR) => {
     const g = new THREE.Group(), skin = [];
@@ -199,7 +199,7 @@
   const scr = (S, x, y, z) => X.screen(S, new THREE.Vector3(x, y, z));
 
   /* ───────────────────────── 1. TUNNEL ─────────────────────────
-     Place: the Rubber-Duck Highway, a purple candy tube full of drifting ducks and donuts. Claude rides a hover board. */
+     Place: the Rubber-Duck Highway, a purple candy tube full of drifting ducks and donuts. Caos rides a hover board. */
   reg3('td_tunnel', sp => {
     const FOG = 0x3d3480;
     const S = T3.scene({ bg: FOG, fog: [16, 72], cam: [0, 1, 2], look: [0, 0, -20], fov: 72 });
@@ -275,7 +275,7 @@
       const side = cr() < .5 ? -1 : 1; let x = side * (5.5 + cr() * 4) * WK, y = (cr() * 2 - 1) * 6.5;
       g.position.set(x, y, -16 - cr() * 76); g.userData.spin = (cr() - .5) * 2; S.scene.add(g); props.push(g);
     }
-    /* ship = Claude on a hover board */
+    /* ship = Caos on a hover board */
     const ship = new THREE.Group(); S.scene.add(ship); ship.position.set(0, -.4, SZ); ship.scale.setScalar(.62);
     const hr = hero(OR); hr.position.set(0, .1, -.2); ship.add(hr);
     const board = mb.box(3.9, .26, 4.4, 0x5ac8fa, 1.06); board.position.y = -.1; ship.add(board);
@@ -411,7 +411,7 @@
   }, 'Fly');
 
   /* ───────────────────────── 2. MOLE ─────────────────────────
-     Place: Grandma's vegetable patch, a picket fence, a hedge, sunflowers and one very relaxed chicken. Claude the gardener watches. */
+     Place: Grandma's vegetable patch, a picket fence, a hedge, sunflowers and one very relaxed chicken. Caos the gardener watches. */
   reg3('td_mole', sp => {
     const S = T3.scene({ bg: 0x9ad8ff, ground: 0x7ed957, cam: [0, 10, 8.6], look: [0, 0, .6], fov: 48, sun: [4, 12, 6] });
     const uuidBack = uuidOff();
@@ -507,7 +507,7 @@
     const handle = M.cyl(.12, .12, 2.6, 0xc98a3d); handle.position.y = 1.3; mal.add(handle);
     for (const s of [-1, 1]) { const band = M.cyl(.53, .53, .12, 0xffe14d, 1.04); band.rotation.z = Math.PI / 2; band.position.x = s * .5; mal.add(band); }
     T3.add(S, mal, [0, 2, 1]);
-    /* Claude the gardener, bottom-left, straw hat */
+    /* Caos the gardener, bottom-left, straw hat */
     const hr = hero(OR); hr.k = 1.3; const hat = mb.cyl(1.7, 1.7, .14, 0xe9c25a, 1.04); hat.position.set(0, 2.78, 0); hr.add(hat); const crown = mb.cyl(1.0, 1.1, .6, 0xe9c25a, 1.06); crown.position.set(0, 3.1, 0); hr.add(crown);
     const band = new THREE.Mesh(new THREE.CylinderGeometry(1.12, 1.12, .2, 18), tm(0xe8433a)); band.position.y = 2.95; hr.add(band);
     hr.scale.setScalar(.5); T3.add(S, hr, [-6.0, 0, -2.4]);
@@ -588,7 +588,7 @@
         let lift = 2.1, tilt = .5;
         if (sw > 0) { sw -= dt; const p = 1 - sw / .28, d = p < .35 ? p / .35 : 1 - (p - .35) / .65; lift = 2.1 - 1.55 * d; tilt = .5 - .85 * d; }
         mal.position.set(mx, lift, mz); mal.rotation.set(tilt, 0, 0);
-        /* art: chicken, sunflowers, gold carrots, Claude */
+        /* art: chicken, sunflowers, gold carrots, Caos */
         const cx = -.6 + Math.sin(T * .33) * 3.6, cdir = Math.cos(T * .33) > 0 ? 1 : -1;
         chick.position.x = cx; chick.rotation.y = cdir > 0 ? Math.PI / 2 : -Math.PI / 2; chick.position.y = Math.abs(Math.sin(T * 5.5)) * .07;
         chick.head.position.y = 1.55 - Math.max(0, Math.sin(T * 2.2)) * .55 * (Math.sin(T * 9) > 0 ? 1 : .7); chick.head.rotation.x = Math.max(0, Math.sin(T * 2.2)) * .9;
@@ -605,7 +605,7 @@
       },
       draw() {
         Q = ctx; X.render(S);
-        /* 2D on top: stars around bonked critters, Claude's tag, sweat, tears, hearts, the carrot plank */
+        /* 2D on top: stars around bonked critters, Caos's tag, sweat, tears, hearts, the carrot plank */
         for (const c of pool) if (c.state === 'hit') { const s = scr(S, c.hole.x, 1.6, c.hole.z); orbitStars(s.x, s.y, T, 3, 30); comic(s.x, s.y + 18, 26 * outBack(c.t / .1), 8, c.t * 4, '#fff', 3); }
         const hs = scr(S, -6.0, 3.0, -2.4);
         if (!g.result && T < 2.5) tag(hs.x, Math.max(hs.y - 36, 96), T < 1.9 ? 1 : (2.5 - T) / .6);
@@ -621,7 +621,7 @@
   }, 'Whack');
 
   /* ───────────────────────── 3. ROLL ─────────────────────────
-     Place: a pastry tray on a gingham tablecloth. The ball is a hamster ball with Claude running inside; the holes are donut holes. */
+     Place: a pastry tray on a gingham tablecloth. The ball is a hamster ball with Caos running inside; the holes are donut holes. */
   reg3('td_roll', sp => {
     const S = T3.scene({ bg: 0xffd88a, cam: [0, 11.5, 9.5], look: [0, -.4, .5], fov: 48, sun: [5, 14, 7], ground: 0xf4e6ff });
     X.init(); if (X.R) S.scene.background = null;
@@ -659,7 +659,7 @@
     const pole = M.cyl(.06, .06, 1.8, 0xffffff, 1.4); pole.position.set(goal.x, 1.2, goal.z - .3); piv.add(pole);
     const flag = M.box(.8, .45, .05, 0xe8433a, 1.12); flag.position.set(goal.x + .4, 1.9, goal.z - .3); piv.add(flag);
     const cherry = M.sphere(.22, 0xe8433a, 1.12); cherry.position.set(goal.x, .62, goal.z + .0); piv.add(cherry);
-    /* the hamster ball: shell + rings roll, Claude (hb) stays upright inside */
+    /* the hamster ball: shell + rings roll, Caos (hb) stays upright inside */
     const ball = new THREE.Group();
     const shell = new THREE.Mesh(new THREE.SphereGeometry(.72, 22, 16), new THREE.MeshPhongMaterial({ color: 0xcff3ff, transparent: true, opacity: .22, shininess: 80, specular: 0xffffff, depthWrite: false }));
     shell.position.y = .2; ball.add(shell);
@@ -743,7 +743,7 @@
         ball.position.set(bx, by, bz);
         gRing.scale.setScalar(1 + .08 * Math.sin(T * 6)); gRing.position.y = .45 + .05 * Math.sin(T * 4); gRing.rotation.z = T * 2;
         flag.rotation.y = Math.sin(T * 6) * .3;
-        /* art: Claude inside the ball runs, looks where it rolls and reacts */
+        /* art: Caos inside the ball runs, looks where it rolls and reacts */
         let near = 9; for (const h of holes) near = Math.min(near, Math.hypot(bx - h.x, bz - h.z));
         const dg = Math.hypot(bx - goal.x, bz - goal.z), spd = Math.hypot(vx, vz);
         const sc = ball.scale.x, edge = Math.max(bx, bz) > 3.9 || Math.min(bx, bz) < -3.9;
@@ -779,7 +779,7 @@
   }, 'Roll');
 
   /* ───────────────────────── 4. BASKET ─────────────────────────
-     Place: a fruit orchard where it rains fruit (and ladybugs), a flying cow in the sky. Claude holds the basket; his catch piles up inside. */
+     Place: a fruit orchard where it rains fruit (and ladybugs), a flying cow in the sky. Caos holds the basket; his catch piles up inside. */
   reg3('td_basket', sp => {
     const FOGC = 0xa9dfc6;
     const S = T3.scene({ bg: 0x9ad8ff, ground: 0x7ed957, cam: [0, 6, 10.5], look: [0, 2, 0], fov: 62, sun: [4, 14, 6], fog: [28, 60] });
@@ -807,7 +807,7 @@
       const cr2 = M.box(1.9, .9, 1.3, 0xd9944f, 1.06); put(S, cr2, x, .45, -4.6);
       for (let k = 0; k < 5; k++) { const f = M.sphere(.34, c0, 1.1); put(S, f, x - .65 + k * .33, .98 + (k % 2) * .08, -4.6 + (k % 2 ? .25 : -.2)); }
     }
-    /* basket + Claude */
+    /* basket + Caos */
     const bk = new THREE.Group();
     const body = M.cyl(1.05, .82, .8, 0xc98a3d); body.position.y = .4; bk.add(body);
     const inner = new THREE.Mesh(new THREE.CylinderGeometry(.95, .95, .02, 20), tm(0x4a2e14)); inner.position.y = .8; bk.add(inner);
@@ -921,7 +921,7 @@
             kill(it); items.splice(i, 1);
           }
         }
-        /* art: Claude looks at the nearest falling thing, worries about bugs, juggles on a win, turns green on a loss */
+        /* art: Caos looks at the nearest falling thing, worries about bugs, juggles on a win, turns green on a loss */
         const lx = nearI ? (nearI.x - bx) * .25 : 0, ly = nearI ? clamp((nearI.y - 3) * .2, -1, 1) : 0;
         const mood = g.result === 'win' ? 'happy' : g.result === 'lose' ? 'sick' : happyT > 0 ? 'happy' : bugNear ? 'panic' : nearI && nearD < 2.8 ? 'eager' : 'idle';
         cl.mood(mood, clamp(lx, -1, 1), ly, T); cl.tint(g.result === 'lose' ? 0x9ad45a : OR);

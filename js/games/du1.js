@@ -60,8 +60,8 @@ const DEMOS = {
   ],
   du_steer: [
     t => { const x = 260 + 130 * Math.sin(t * 1.8), ry = ((t * 130) % 300) - 40; ctx.fillStyle = INK; ctx.beginPath(); ctx.ellipse(260, ry, 62, 30, 0, 0, 7); ctx.fill(); ctx.fillStyle = '#8a86a3'; ctx.beginPath(); ctx.ellipse(260, ry - 2, 56, 25, 0, 0, 7); ctx.fill();
-      claude(x, 190, 3, {}); txt('◄', 40, 190, 50, '#fff'); txt('►', 480, 190, 50, '#fff'); demoFinger(x, 232, true, 0); },
-    t => { const k = (t % .3) / .3, fl = 40 + Math.sin(t * 20) * 8 + 20; ctx.fillStyle = YEL; ctx.beginPath(); ctx.moveTo(244, 150); ctx.lineTo(260, 150 + fl); ctx.lineTo(276, 150); ctx.fill(); claude(260, 110, 3, {});
+      caos(x, 190, 3, {}); txt('◄', 40, 190, 50, '#fff'); txt('►', 480, 190, 50, '#fff'); demoFinger(x, 232, true, 0); },
+    t => { const k = (t % .3) / .3, fl = 40 + Math.sin(t * 20) * 8 + 20; ctx.fillStyle = YEL; ctx.beginPath(); ctx.moveTo(244, 150); ctx.lineTo(260, 150 + fl); ctx.lineTo(276, 150); ctx.fill(); caos(260, 110, 3, {});
       box(160, 14, 200, 18, '#3a3550', 3); ctx.fillStyle = ORG; ctx.fillRect(160, 14, 200 * (.3 + .5 * Math.abs(Math.sin(t))), 18); txt('TAP! TAP! TAP!', 260, 236, 30, '#fff'); demoFinger(430, 150, k < .4, k * 2.5); },
   ],
   du_gun: [
@@ -84,7 +84,7 @@ const rolePick = (D, a, b) => D.role === 0 ? a : b;
 
 
 /* ───────────── art kit for the four games below (docs/ART-STYLE.md). Everything draws on X: ctx while playing, an offscreen
-   context while a background is baked. txt/star/claude/shadow/vignette draw on the global ctx, so they are never used while baking ───────────── */
+   context while a background is baked. txt/star/caos/shadow/vignette draw on the global ctx, so they are never used while baking ───────────── */
 const TAU = Math.PI * 2;
 let X = null;                                                                    // set to ctx at the top of each draw()
 const ease = k => { k = clamp(k, 0, 1); return k * k * (3 - 2 * k); };
@@ -100,7 +100,7 @@ function ink(fill, o = 4, oc = INK) { X.lineJoin = 'round'; X.lineCap = 'round';
 function cel(base, shade, build, sx, sy, o = 4) { build(); ink(shade, o); X.save(); build(); X.clip(); X.translate(-sx, -sy); build(); X.fillStyle = base; X.fill(); X.restore(); }
 function glint(x, y, rx, ry, rot = -.5, a = .5) { X.fillStyle = `rgba(255,255,255,${a})`; el(x, y, rx, ry, rot); X.fill(); }
 function line(pts, w, col) { X.lineCap = 'round'; X.lineJoin = 'round'; X.beginPath(); pts.forEach(([a, b], i) => i ? X.lineTo(a, b) : X.moveTo(a, b)); X.strokeStyle = INK; X.lineWidth = w + 5; X.stroke(); X.strokeStyle = col; X.lineWidth = w; X.stroke(); }
-function arms(u, la, ra, k, col) {                                               // blocky arms with square hands, drawn before claude() at its feet origin
+function arms(u, la, ra, k, col) {                                               // blocky arms with square hands, drawn before caos() at its feet origin
   const ol = Math.max(3, u * .5), L = 3.3 * u * k, aw = 1.2 * u, hs = 2 * u, gp = .35 * u;
   const one = (sx, an) => {
     X.save(); X.translate(sx * 6.6 * u, -5.2 * u); X.rotate(an);
@@ -279,7 +279,7 @@ function duCatch(sp, D) {
       for (const s of [-1, 1]) line([[0, 14], [s * 27, 50]], 2.5, '#e6c58c');
       X.save(); X.translate(0, 60 - (won ? Math.abs(Math.sin(rT * 9)) * 8 : 0));
       if (won) arms(3.4, -.35 + Math.sin(rT * 14) * .2, .35 - Math.sin(rT * 14) * .2, 1, thCol);
-      claude(0, 0, 3.4, { col: thCol, mood: won || dropK < 1 ? 'happy' : lost ? 'sad' : null });
+      caos(0, 0, 3.4, { col: thCol, mood: won || dropK < 1 ? 'happy' : lost ? 'sad' : null });
       X.restore();
       const bucket = () => { X.beginPath(); X.moveTo(-31, 50); X.lineTo(31, 50); X.lineTo(25, 84); X.lineTo(-25, 84); X.closePath(); };
       cel('#8f9cb3', '#6b7690', bucket, -5, -4, 4);
@@ -301,7 +301,7 @@ function duCatch(sp, D) {
       if (won) arms(4.2, -.35 + Math.sin(rT * 14) * .15, .35 - Math.sin(rT * 14) * .15, 1, caCol);
       else if (lost) arms(4.2, -2.7, 2.7, .9, caCol);
       else arms(4.2, side * -1.3, side * -1.2, 1, caCol);
-      claude(0, 0, 4.2, { col: soot > .3 ? mixC(caCol, '#4a4452', soot) : caCol, mood: won || T - happyAt < .35 ? 'happy' : lost || soot > .3 ? 'sad' : null });
+      caos(0, 0, 4.2, { col: soot > .3 ? mixC(caCol, '#4a4452', soot) : caCol, mood: won || T - happyAt < .35 ? 'happy' : lost || soot > .3 ? 'sad' : null });
       X.restore();
       if (danger || lost) sweat(px - 24, CA_RAIL - 40 - hop, 1, T);
       const front = cx > 560 ? -1 : cx < 240 ? 1 : -side, tip = lost ? ease((rT - .08) / .35) : 0, wheelOff = lost ? clamp((rT - .05) / .8, 0, 1) : 0;
@@ -515,14 +515,14 @@ function duDecode(sp, D) {
         if (reader) { el(x + 48, y - 44, 15, 15); ink('#FFE14D', 3); txt(String(s + 1), x + 48, y - 43, 20, INK); }
         else if (!TOUCH) keyCap(x - 48, y - 44, String(k + 1));
       });
-      // Claude at the console
+      // Caos at the console
       const col = myCol(), ok = T - okAt < .35, slip = T - badAt < .5, hop = won ? Math.abs(Math.sin(rT * 9)) * 16 : ok ? Math.sin((T - okAt) / .35 * Math.PI) * 5 : 0;
       shadow(58, 541, 30, 6, .25);
       X.save(); X.translate(58, 539 - hop);
       if (won) arms(4.4, -.35 + Math.sin(rT * 14) * .15, .35 - Math.sin(rT * 14) * .15, 1, col);
       else if (lost || slip) arms(4.4, -2.7, 2.7, .9, col);
       else arms(4.4, -.25, 1.05 + Math.sin(T * 3) * .08, 1, col);
-      claude(0, 0, 4.4, { col, mood: won || ok ? 'happy' : lost || slip ? 'sad' : null });
+      caos(0, 0, 4.4, { col, mood: won || ok ? 'happy' : lost || slip ? 'sad' : null });
       X.restore();
       if (lost || slip) sweat(34, 500 - hop, 1, T);
       pill(58, 474 - hop, 'YOU', col, false, 14);
@@ -748,14 +748,14 @@ function stBoat(bx, by, T, E, lean, steer, D, res, rT, sinceHit, tapFx) {
   const hitK = sinceHit < .6 ? 1 - sinceHit / .6 : 0, hopS = won ? Math.abs(Math.sin(rT * 9)) * 8 : 0;
   X.save(); X.translate(0, 2 - hopS);
   if (won) arms(3.2, -.3 + Math.sin(rT * 14) * .2, .3 - Math.sin(rT * 14) * .2, 1, sCol); else arms(3.2, -1.9 - lean, 1.9 - lean, .85, sCol);
-  claude(0, 0, 3.2, { col: sCol, mood: won ? 'happy' : lost || hitK > 0 ? 'sad' : null });
+  caos(0, 0, 3.2, { col: sCol, mood: won ? 'happy' : lost || hitK > 0 ? 'sad' : null });
   X.restore();
   rr(-30, -4, 60, 10, 3); ink('#e3a868', 2.5);
   // the booster at the stern, pumping the motor
   const pump = lost ? 0 : clamp(tapFx + boost * .5, 0, 1), hopB = won ? Math.abs(Math.sin(rT * 9 + 1)) * 6 : 0;
   X.save(); X.translate(0, 34 - hopB);
   if (won) arms(2.6, -.3, .3, 1, bCol); else arms(2.6, -.5 - Math.sin(T * 30) * .5 * pump, .5 + Math.sin(T * 30) * .5 * pump, .9, bCol);
-  claude(0, 0, 2.6, { col: bCol, mood: won || pump > .6 ? 'happy' : lost ? 'sad' : null });
+  caos(0, 0, 2.6, { col: bCol, mood: won || pump > .6 ? 'happy' : lost ? 'sad' : null });
   X.restore();
   rr(-24, 30, 48, 9, 3); ink('#e3a868', 2.5);
   rr(-10, 42, 20, 17, 5); ink('#3b3550', 3); rr(-12, 40, 24, 7, 3); ink(lost ? '#8f88a6' : '#ff9a3a', 2.5);
@@ -869,7 +869,7 @@ function duGun(sp, D) {
         else if (sad) arms(3.4, -2.7, 2.7, .9, col);
         else if (s > 0) arms(3.4, -1.2 + rec * .3, .3, 1, col);                    // the gunner holds the lever
         else arms(3.4, -.2, 1.25 - clamp(1 - (T - pickAt) / .3, 0, 1) * .4, 1, col); // the loader tips its bucket into the cannon
-        claude(0, 0, 3.4, { col, mood: won ? 'happy' : sad ? 'sad' : null });
+        caos(0, 0, 3.4, { col, mood: won ? 'happy' : sad ? 'sad' : null });
         X.restore();
         if (s < 0) { X.save(); X.translate(px + 26, 474 - hop * .8); X.rotate(-.5); rr(-10, -10, 20, 18, 4); ink('#c9ced6', 2.5); rr(-10, -10, 20, 6, 3); ink(ac[0], 2); X.restore(); }
         if (mine && gun) pill(px, 462 - hop, 'YOU', col, false, 13);

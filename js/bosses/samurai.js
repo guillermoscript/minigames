@@ -1,6 +1,6 @@
 'use strict';
 /* SAMURAI boss (GET TOGETHER): a ronin bug winds up a strike from the LEFT, RIGHT or ABOVE and you parry that way.
-   After Smooth Moves' "Samurai" form / "Produce Stand-Off". 6 parries shatter his sword; 2 hits and Claude is out. */
+   After Smooth Moves' "Samurai" form / "Produce Stand-Off". 6 parries shatter his sword; 2 hits and Caos is out. */
 (function () {
   const DIRS = ['L', 'R', 'U'], CODE = { L: 'ArrowLeft', R: 'ArrowRight', U: 'ArrowUp' };
   const KEYS = { ArrowLeft: 'L', KeyA: 'L', ArrowRight: 'R', KeyD: 'R', ArrowUp: 'U', KeyW: 'U' };
@@ -8,7 +8,7 @@
   const CX = 400, CY = 530, CU = 7, BX = 400, FY = 442, BLADE = 150;
   const POSE = { idle: [455, 350, -1.0], L: [282, 248, -2.55], R: [518, 248, -.6], U: [400, 178, -Math.PI / 2],   // rival: hand x, y, blade angle
     sL: [235, 430, .35], sR: [565, 430, Math.PI - .35], sU: [400, 330, Math.PI / 2] };
-  const GUARD = { idle: [447, 500, -1], L: [337, 514, -Math.PI / 2], R: [463, 514, -Math.PI / 2], U: [325, 427, 0] };   // Claude's katana
+  const GUARD = { idle: [447, 500, -1], L: [337, 514, -Math.PI / 2], R: [463, 514, -Math.PI / 2], U: [325, 427, 0] };   // Caos's katana
   const HIT = { L: [337, 450], R: [463, 450], U: [400, 427] };
   const angL = (a, b, k) => a + (((b - a + Math.PI * 3) % (Math.PI * 2)) - Math.PI) * k;
   const lerpP = (p, q, k) => { p[0] += (q[0] - p[0]) * k; p[1] += (q[1] - p[1]) * k; p[2] = angL(p[2], q[2], k); };
@@ -222,17 +222,17 @@
           drawArrow(ax, ay, ARW[dir], rr * .7 * (1 + .1 * Math.sin(clk * 40)) * Math.min(1, u * 8 + .4), (clk * 14 | 0) % 2 ? '#fff' : '#FFE14D'); }
         if (ph === 'wind' && !g.result) txt('!', BX + 70 + lean, hy - 70, 64 + Math.sin(clk * 30) * 6, '#ff4d4d');
         for (const q of shards) { ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(q.r); ctx.beginPath(); ctx.moveTo(-14, -5); ctx.lineTo(16, 0); ctx.lineTo(-10, 6); ctx.closePath(); ctx.lineWidth = 4; ctx.strokeStyle = INK; ctx.stroke(); ctx.fillStyle = '#e9eef6'; ctx.fill(); ctx.restore(); }
-        // Claude the samurai: headband + katana guard
+        // Caos the samurai: headband + katana guard
         const cx = CX + knock + (cflash > 0 ? Math.sin(clk * 90) * 4 : 0), cy = CY - (g.result === 'win' ? Math.abs(Math.sin(clk * 10)) * 16 : 0);
         shadow(CX, CY + 2, 54, 10, .35);
         const blk = guard !== 'idle' && guardT > .2 ? 1.08 : 1; ctx.save(); ctx.translate(cx, cy); ctx.scale(blk, 2 - blk); ctx.translate(-cx, -cy);
-        claude(cx, cy, CU, { mood: g.result === 'lose' || cflash > 0 ? 'sad' : g.result === 'win' ? 'happy' : null, col: cflash > 0 && (clk * 20 | 0) % 2 ? '#fff' : OR });
+        caos(cx, cy, CU, { mood: g.result === 'lose' || cflash > 0 ? 'sad' : g.result === 'win' ? 'happy' : null, col: cflash > 0 && (clk * 20 | 0) % 2 ? '#fff' : OR });
         const bt = cy - 9 * CU; box(cx - 6 * CU, bt + 1, 12 * CU, 8, '#e8433a', 3);
         for (const j of [0, 1]) { const w = Math.sin(clk * 12 + j) * 6; ctx.beginPath(); ctx.moveTo(cx + 6 * CU, bt + 3 + j * 4); ctx.quadraticCurveTo(cx + 6 * CU + 16, bt - 4 + w, cx + 6 * CU + 32, bt + j * 10 + w); ctx.lineWidth = 9; ctx.strokeStyle = INK; ctx.lineCap = 'round'; ctx.stroke(); ctx.lineWidth = 4; ctx.strokeStyle = '#e8433a'; ctx.stroke(); }
         ctx.lineCap = 'butt';
         katana(gp[0] + (cx - CX), gp[1] + (cy - CY), gp[2], 128, 0, false);
         ctx.restore();
-        if (g.result) {                                                                // outro: stars circle a beaten Claude, hearts float up from a winner
+        if (g.result) {                                                                // outro: stars circle a beaten Caos, hearts float up from a winner
           const oT = rT0 >= 0 ? now - rT0 : 0;
           if (g.result === 'lose') for (let i = 0; i < 3; i++) { const a = oT * 5 + i * 2.09; star(cx + Math.cos(a) * 44, cy - 112 + Math.sin(a) * 10, 10, 5, 4, oT * 3, '#FFE14D', 3); }
           else for (let i = 0; i < 4; i++) { const u = (oT * 1.2 + i / 4) % 1; X = ctx; ctx.globalAlpha = 1 - u * u; heart(cx - fallDir * 70 + (i % 2 ? 14 : -14) +Math.sin(u * 6 + i) * 6, cy - 70 - u * 150, 14, '#ff5c8a', 3.5); ctx.globalAlpha = 1; }

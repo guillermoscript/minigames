@@ -2,7 +2,7 @@
 const STAGE_MAX = 29;         // highest stage index (30 stages of headroom; keep in sync with the migrations)
 const SCORE_MAX = 2000;       // per stage
 const WRITES_PER_MIN = 40;    // per-user score writes per minute
-const COLORS = ["#FF6B3D", "#6EA8FE", "#7BD88F", "#F28CB1", "#B49CFF", "#FFD23F", "#FF6B4D", "#4DD0E1"];
+const COLORS = ["#D97757", "#6EA8FE", "#7BD88F", "#F28CB1", "#B49CFF", "#FFD23F", "#FF6B4D", "#4DD0E1"];
 const isInt = (v, lo, hi) => typeof v === "number" && Number.isInteger(v) && v >= lo && v <= hi;
 
 function checkScore(record, body) {

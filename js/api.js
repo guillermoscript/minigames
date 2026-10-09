@@ -4,7 +4,7 @@
    window.CLAUDEWARE_API may point at another origin (default: same origin, under /api/). */
 const API_BASE = (typeof window !== 'undefined' && window.CLAUDEWARE_API) || '';
 const PROFILE_KEY = 'claudeware-profile-v2', QUEUE_KEY = 'claudeware-queue-v2';
-const AVATAR_COLORS = ['#FF6B3D', '#6EA8FE', '#7BD88F', '#F28CB1', '#B49CFF', '#FFD23F', '#FF6B4D', '#4DD0E1'];
+const AVATAR_COLORS = ['#D97757', '#6EA8FE', '#7BD88F', '#F28CB1', '#B49CFF', '#FFD23F', '#FF6B4D', '#4DD0E1'];
 const PER_BOARD = 20;
 
 const net = {

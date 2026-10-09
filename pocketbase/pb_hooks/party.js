@@ -16,7 +16,7 @@ const preTurn = (room) => room.mode === "balloon" ? PRE_MS_BALLOON : room.mode =
 const betweenMs = (room) => room.mode === "balloon" ? (room.last && room.last.final ? BETWEEN_MS_BALLOON_FINAL : BETWEEN_MS_BALLOON) : BETWEEN_MS;
 const BETWEEN_MS = 4000;        // results screen minimum time before the next round may start
 const AWARD = [100, 70, 50, 30];
-const COLORS = ["#FF6B3D", "#6EA8FE", "#7BD88F", "#F28CB1", "#B49CFF", "#FFD23F", "#FF6B4D", "#4DD0E1"];
+const COLORS = ["#D97757", "#6EA8FE", "#7BD88F", "#F28CB1", "#B49CFF", "#FFD23F", "#FF6B4D", "#4DD0E1"];
 /* party microgames: id -> { dur (s, at speed 1), pts (ranked by `pts` instead of finish time) } - keep in sync with js/games/pt1.js */
 const GAMES = {
   pt_mash: { dur: 5, pts: true },

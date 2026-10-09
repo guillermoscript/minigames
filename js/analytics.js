@@ -17,4 +17,22 @@ const OP = (() => {
     props: p => call('setGlobalProperties', p),
   };
 })();
-const track = OP.track;
+/* Meta Pixel, for the ad campaigns (docs/marketing/PLAN.md). Inert unless <meta name="meta-pixel-id"> is set.
+   Only a few game events are forwarded, each at most once per page load:
+   GameStart = the first stage / practice / party / challenge started, MicrogamePlayed = the first microgame finished
+   (the campaign's conversion: "played one game"), plus Meta's standard CompleteRegistration on Google sign-in. */
+const PIX = (() => {
+  const m = document.querySelector('meta[name="meta-pixel-id"]'), id = m ? m.content.trim() : '';
+  if (!id || id.startsWith('__')) return { fwd() {} };
+  /* Meta's base code, unrolled */
+  const f = window.fbq = function () { f.callMethod ? f.callMethod.apply(f, arguments) : f.queue.push(arguments); };
+  if (!window._fbq) window._fbq = f;
+  f.push = f; f.loaded = true; f.version = '2.0'; f.queue = [];
+  const s = document.createElement('script'); s.async = true; s.src = 'https://connect.facebook.net/en_US/fbevents.js'; document.head.appendChild(s);
+  const call = (...a) => { try { window.fbq(...a); } catch (e) {} };
+  call('init', id); call('track', 'PageView');
+  const MAP = { stage_start: 'GameStart', practice_start: 'GameStart', party_start: 'GameStart', challenge_accept: 'GameStart', microgame_end: 'MicrogamePlayed', sign_in: 'CompleteRegistration' };
+  const sent = new Set();
+  return { fwd(name) { const ev = MAP[name]; if (!ev || sent.has(ev)) return; sent.add(ev); call(ev === 'CompleteRegistration' ? 'track' : 'trackCustom', ev); } };
+})();
+const track = (name, props) => { OP.track(name, props); PIX.fwd(name); };

@@ -37,11 +37,17 @@ track('app_loaded', { touch: !!TOUCH, challenge: !!CH, challenger: CH ? CH.from 
 let chOpen = !!CH;                       // title screen still offers the incoming challenge
 const attempts = {};                     // stage index -> tries this session (retry funnel)
 let sh = { on: false, surface: '', text: '', url: '' };   // desktop share menu
+/* the spoiler-free result grid on top of shared text, e.g. "💣 MiniCaos 3/19\n🟩🟩🟥🟩🟩🟩🟩🟩🟩👑 ⭐⭐⭐" (last 20 tries) */
+function shareGrid(st) {
+  const g = runLog.length > 20 ? '…' + runLog.slice(-20).join('') : runLog.join('');
+  return '💣 MiniCaos ' + (stageIdx + 1) + '/' + STAGES.length + '\n' + g + (st ? ' ' + '⭐'.repeat(st) : '');
+}
 async function doShare(surface) {
   const run = surface === 'invite' ? null : { score: Math.round(score), stage: stageIdx };
   const name = net.user ? net.user.username : '';
   const url = run ? challengeUrl(run.score, run.stage, name) : gameUrl();
-  const text = run ? t('I scored {score} on {stage} in MiniCaos. Think you can beat me?', { score: run.score, stage: t(STAGES[run.stage].name) }) : t('MiniCaos: 100+ five-second microgames. Come play!');
+  const line = run ? t('I scored {score} on {stage} in MiniCaos. Think you can beat me?', { score: run.score, stage: t(STAGES[run.stage].name) }) : t('MiniCaos: 100+ five-second microgames. Come play!');
+  const text = run && runLog.length ? shareGrid(surface === 'stage_clear' ? stars : null) + '\n' + line : line;
   const props = { surface, native: !!navigator.share, score: run ? run.score : undefined, stage: run ? run.stage + 1 : undefined };
   track('share_click', props);
   if (!navigator.share) { sh = { on: true, surface, text, url }; return; }       // desktop: pick a network
@@ -88,6 +94,7 @@ function challengeLine() {
 let state = 'title', st = 0, mode = 'stage';
 const PRE = 1.4; let pre = 0, preMax = PRE;   // read-time: game frozen while the instruction is shown
 let retryId = null, stageIdx = 0, stage = STAGES[0], lives = 4, played = 0, score = 0, lastOut = null, stars = 0;
+let runLog = [];                          // this stage run, one emoji per microgame / boss try: the Wordle-style grid in shared text
 let cur = null, curId = '', tt = 0, dur = 5, outcome = null, outT = 0, tickN = 0, recent = [], isBoss = false;
 let practiceId = 'swat', practiceSp = 1, menuPage = 0, practicePage = 0;
 const PER_MENU = 6, PER_PRACTICE = 30;
@@ -272,7 +279,7 @@ function startStage(i) {
   runRank = null; attempts[i] = (attempts[i] || 0) + 1;
   track('stage_start', { stage: i + 1, stage_name: STAGES[i].name, attempt: attempts[i], unlocked: save.unlocked });
   if (poolOf(STAGES[i]).some(is3D)) loadThree();
-  mode = 'stage'; stageIdx = i; stage = STAGES[i]; lives = 4; played = 0; score = 0; lastOut = null; recent = []; retryId = null;
+  mode = 'stage'; stageIdx = i; stage = STAGES[i]; lives = 4; played = 0; score = 0; lastOut = null; recent = []; retryId = null; runLog = [];
   state = 'stagein'; st = 0; shownScore = 0; lifeT = 99; jingleGo();
 }
 function startPractice(id) { if (is3D(id)) loadThree(); track('practice_start', { game: id }); mode = 'practice'; practiceId = id; lastOut = null; stage = STAGES[0]; state = 'inter'; st = 0; }
@@ -349,6 +356,7 @@ function update(dt) {
         cur.result = cur.timeWin ? 'win' : 'lose'; setOutcome(cur.result); }
     } else if (outT > .95) {
       lastOut = outcome;
+      if (mode === 'stage') runLog.push(isBoss ? (outcome === 'win' ? '👑' : '💥') : outcome === 'win' ? '🟩' : '🟥');
       if (mode === 'party') partyLocalDone(outcome);
       else if (mode === 'practice') { state = 'inter'; st = 0; }
       else if (isBoss) { if (outcome === 'win') clearStage(); else if (lives <= 0) toOver(); else toInter(); }

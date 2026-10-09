@@ -53,13 +53,25 @@ async function scoreCard(o) {
   };
   const mascot = (x, y, u, col, mood) => {          // same pixel Caos as in the game, drawn on this canvas, with a little shading
     const ol = Math.max(3, u * .45), up = mood === 'happy' ? -u : 0;
-    const body = [x - 6 * u, y - 9 * u, 12 * u, 7 * u], arms = [[x - 8 * u, y - 6.5 * u + up, 2 * u, 2.4 * u], [x + 6 * u, y - 6.5 * u + up, 2 * u, 2.4 * u]],
-      legs = [-5, -2.6, 1.4, 3.8].map(lx => [x + lx * u, y - 2 * u, 1.2 * u, 2 * u]), shapes = [body, ...arms, ...legs];
+    const body = [x - 6 * u, y - 10.8 * u, 12 * u, 9.6 * u], rows = [[x - 6 * u, y - 8.6 * u, 12 * u, 5.8 * u], [x - 5 * u, y - 10 * u, 10 * u, 8.4 * u], [x - 3.6 * u, y - 10.8 * u, 7.2 * u, 9.6 * u]],
+      arms = [[x - 8 * u, y - 6.5 * u + up, 2 * u, 2.4 * u], [x + 6 * u, y - 6.5 * u + up, 2 * u, 2.4 * u]],
+      cap = [x - 1.5 * u, y - 12.2 * u, 3 * u, 1.6 * u],
+      legs = [-3.6, 2].map(lx => [x + lx * u, y - 2 * u, 1.6 * u, 2 * u]), shapes = [...rows, ...arms, cap, ...legs];
     g.save(); g.shadowColor = 'rgba(20,16,28,.35)'; g.shadowBlur = 30; g.shadowOffsetY = 16; g.fillStyle = INKC; for (const q of shapes) g.fillRect(q[0] - ol, q[1] - ol, q[2] + ol * 2, q[3] + ol * 2); g.restore();
     g.fillStyle = INKC; for (const q of shapes) g.fillRect(q[0] - ol, q[1] - ol, q[2] + ol * 2, q[3] + ol * 2);
     g.fillStyle = col; for (const q of shapes) g.fillRect(q[0], q[1], q[2], q[3]);
     const bg2 = g.createLinearGradient(0, body[1], 0, body[1] + body[3]); bg2.addColorStop(0, 'rgba(255,255,255,.28)'); bg2.addColorStop(.5, 'rgba(255,255,255,0)'); bg2.addColorStop(1, 'rgba(20,16,28,.22)');
-    g.fillStyle = bg2; g.fillRect(body[0], body[1], body[2], body[3]);
+    g.save(); g.beginPath(); for (const q of rows) g.rect(q[0], q[1], q[2], q[3]); g.clip(); g.fillStyle = bg2; g.fillRect(body[0], body[1], body[2], body[3]); g.restore();
+    g.fillStyle = '#9a8fb5'; g.fillRect(cap[0], cap[1], cap[2], cap[3]);
+    g.lineCap = 'round';                             // the fuse and its spark
+    if (mood === 'sad') {                             // burnt out: a short black stub, no spark
+      g.strokeStyle = INKC; g.lineWidth = u * 1.1; g.beginPath(); g.moveTo(x, y - 12.2 * u); g.lineTo(x + .5 * u, y - 13.2 * u); g.stroke();
+    } else {
+      for (const [c, lw] of [[INKC, u * 1.1], ['#e8d6a8', u * .45]]) { g.strokeStyle = c; g.lineWidth = lw; g.beginPath(); g.moveTo(x, y - 12.2 * u); g.quadraticCurveTo(x + 2 * u, y - 13.6 * u, x + 1.6 * u, y - 15.2 * u); g.stroke(); }
+      g.fillStyle = '#FFE14D'; g.fillRect(x + .4 * u, y - 15.55 * u, 2.4 * u, .7 * u); g.fillRect(x + 1.25 * u, y - 16.4 * u, .7 * u, 2.4 * u);
+      g.fillStyle = '#fff'; g.fillRect(x + 1.25 * u, y - 15.55 * u, .7 * u, .7 * u);
+    }
+    g.lineCap = 'butt';
     g.fillStyle = shade(col, .78); for (const q of legs) g.fillRect(q[0], q[1] + q[3] * .55, q[2], q[3] * .45);
     g.strokeStyle = g.fillStyle = INKC; g.lineWidth = Math.max(2, u * .6);
     for (const ex of [x - 2.8 * u, x + 2.8 * u]) {
@@ -94,7 +106,7 @@ async function scoreCard(o) {
   if (o.stars != null) for (let i = 0; i < 3; i++) star(cx + (i - 1) * 180, i === 1 ? 362 : 392, i === 1 ? 68 : 54, i < o.stars ? '#FFE14D' : '#6b6580', -Math.PI / 2 + (i - 1) * .22);
   else T(t('GAME OVER'), cx, 375, 104, '#FF4D4D', 'center', 860);
   g.save(); g.fillStyle = 'rgba(20,16,28,.3)'; g.filter = 'blur(6px)'; g.beginPath(); g.ellipse(cx, 682, 170, 22, 0, 0, 7); g.fill(); g.restore();
-  mascot(cx, 664, 25, o.color || S.col, o.stars == null ? 'sad' : 'happy');
+  mascot(cx, 664, 22, o.color || S.col, o.stars == null ? 'sad' : 'happy');
 
   /* score card */
   plate(140, 730, 800, 290, '#fff', 48, 8, 12);

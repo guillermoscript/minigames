@@ -1,17 +1,17 @@
 'use strict';
-/* Stages, WarioWare-style: each one has a "host" (a recoloured Caos), a themed pool of
+/* Stages, WarioWare-style: each one has a "host" (a cast member from js/art/cast.js, or a recoloured Caos), a themed pool of
    microgames, a speed curve and a boss at the end. Game ids come from REG (see js/games/).
    Every stage has its own boss with its own mechanic (no two stages share one); bosses live in js/games/bosses.js and js/bosses/. */
 const STAGES = [
-  { name: 'BUG HUNT', tag: 'Click it. Squash it.', col: '#FF6B3D', bg: ['#B8E05A', '#a8d046'],
+  { name: 'BUG HUNT', host: 'sapito', tag: 'Click it. Squash it.', col: '#FF6B3D', bg: ['#B8E05A', '#a8d046'],
     pool: ['swat', 'whack', 'spot', 'count', 'dodge', 'slice'], n: 8, sp0: 1.0, boss: 'bug', bossHp: 10 },
-  { name: 'KEYBOARD KINGDOM', tag: 'Fingers on the keys!', col: '#6EA8FE', bg: ['#FF8FD0', '#ff7cc6'],
+  { name: 'KEYBOARD KINGDOM', host: 'pulpi', tag: 'Fingers on the keys!', col: '#6EA8FE', bg: ['#FF8FD0', '#ff7cc6'],
     pool: ['type', 'copy', 'math', 'race', 'sort', 'maze'], n: 8, sp0: 1.1, boss: 'type', bossWord: 'REFACTOR' },
-  { name: 'REFLEX RUSH', tag: 'Faster. Then faster.', col: '#7BD88F', bg: ['#6EC6FF', '#5fb8f5'],
+  { name: 'REFLEX RUSH', host: 'zumbi', tag: 'Faster. Then faster.', col: '#7BD88F', bg: ['#6EC6FF', '#5fb8f5'],
     pool: ['jump', 'stop', 'reflex', 'flap', 'charge', 'dont'], n: 8, sp0: 1.2, boss: 'stomp' },
-  { name: 'MOUSE MAYHEM', tag: 'Point, drag, scrub!', col: '#F28CB1', bg: ['#FFE9A8', '#ffe08c'],
+  { name: 'MOUSE MAYHEM', host: 'chigui', tag: 'Point, drag, scrub!', col: '#F28CB1', bg: ['#FFE9A8', '#ffe08c'],
     pool: ['steady', 'drag', 'scrub', 'crank', 'wires', 'mash'], n: 8, sp0: 1.3, boss: 'fan' },
-  { name: 'BRAIN BREAK', tag: 'Think fast!', col: '#B49CFF', bg: ['#A0E7E5', '#8fdbd9'],
+  { name: 'BRAIN BREAK', host: 'lechuza', tag: 'Think fast!', col: '#B49CFF', bg: ['#A0E7E5', '#8fdbd9'],
     pool: ['flip', 'shell', 'rps', 'balance', 'catch', 'pong'], n: 8, sp0: 1.4, boss: 'simon' },
   { name: 'MEGA MIX', tag: 'Everything. At once.', col: '#FFD23F', bg: ['#FF9AA2', '#ff8892'],
     pool: null /* every game */, n: 12, sp0: 1.5, boss: 'dodge', bossBalls: 1 },

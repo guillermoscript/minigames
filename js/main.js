@@ -486,7 +486,7 @@ function render() {
       hoverBox(x, y, 240, 155, locked ? '#5a5870' : s.bg[0], 5, 7);
       shadow(x + 62, y + 120, 36, 7, .25);
       if (s.intro === 'ap' && !locked) AP.person(AP.CAST.chamo, { la: [2.4 + Math.sin(now * 9) * .2, .3], ra: [.12, .1], mouth: 'yell', talk: .8, wide: 1, bob: Math.abs(Math.sin(now * 8)) * -8 }, x + 62, y + 140, .44);   // Luisito, shouting
-      else caos(x + 62, y + 118 - (locked ? 0 : Math.abs(Math.sin(now * 3 + i)) * 6), 5.2, { col: locked ? '#7a7890' : s.col, mood: locked ? null : undefined });
+      else CAST.host(s.host, x + 58, y + 118 - (locked ? 0 : Math.abs(Math.sin(now * 3 + i)) * 6), s.host === 'chigui' || s.host === 'zumbi' ? 4.3 : 5.2, { col: s.col, locked });
       txt(t('STAGE {n}', { n: i + 1 }), x + 14, y + 20, 17, '#fff', 'left');
       const words = t(s.name).split(' ');
       txt(words[0], x + 160, y + 58, 26, locked ? '#aaa' : '#fff', 'center', 150);
@@ -541,7 +541,7 @@ function render() {
     ctx.globalAlpha = clamp01((st - .5) / .3); txt(stage.tag, W / 2, 275, 28, '#fff', 'center', 700); ctx.globalAlpha = 1;
     const jb = Math.abs(Math.sin(now * 5)) * 40;
     shadow(W / 2, 484, 100 - jb * .6, 14, .3);
-    ctx.save(); ctx.translate(W / 2, 480 - jb); ctx.scale(e3, e3); caos(0, 0, 16, { col: stage.col, mood: 'happy' }); ctx.restore();
+    ctx.save(); ctx.translate(W / 2, 480 - jb); ctx.scale(e3, e3); CAST.host(stage.host, 0, 0, 16, { col: stage.col, mood: 'happy' }); ctx.restore();
     ctx.globalAlpha = clamp01((st - .7) / .3); txt(t('{n} GAMES + BOSS', { n: stage.n }), W / 2, 545, 28, '#fff'); ctx.globalAlpha = 1;
   } else if (state === 'inter') {
     const bossNext = mode === 'stage' && played >= stage.n;

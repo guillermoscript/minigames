@@ -1,6 +1,6 @@
 'use strict';
 /* ═════════ SQUAD · SUB CREW (sq_sub), 3-4 players, one role each ═════════
-   A yellow submarine crewed by tiny Claudes sails an underwater route to the treasure. The sea is full of grumpy residents: pufferfish
+   A yellow submarine crewed by tiny Caoses sails an underwater route to the treasure. The sea is full of grumpy residents: pufferfish
    that are really mines, sleepy jellyfish, a whale who wants the road to himself and two GIANT puffers that fill the whole tunnel.
    n = 4:  PILOT (0, JUDGE)  steers between 3 lanes (pointer / W S / arrows / tap). Owns the position along the route and the HULL.
            SCOPE (1)         is the only one who SEES what is far ahead. Taps a lane = flags the next danger there: it shows up on every screen.
@@ -243,8 +243,8 @@ function subBody(x, y, s, tilt, T, o) {
   }
   X.restore();
 }
-/* the crew inside the portholes: tiny claudes, whose moods carry the story. Drawn live on the global ctx */
-function crewFace(col, mood, px, py, big) { claude(px, py + 11, 1.55 * (big || 1), { col, mood }); }
+/* the crew inside the portholes: tiny caoses, whose moods carry the story. Drawn live on the global ctx */
+function crewFace(col, mood, px, py, big) { caos(px, py + 11, 1.55 * (big || 1), { col, mood }); }
 
 /* ───────────── background (baked once) ───────────── */
 let BG = null;
@@ -582,7 +582,7 @@ function subCrew(sp, D) {
   function porthole(i, r, c, px, py, mood, T, hot) {
     const eng = n === 4 ? r === 3 : r === 2, busy = (r === 1 && g.c - flagAt2 < .3) || (r === 2 && n === 4 && g.c - fireAt < .3) || (eng && g.c - shovelAt < .2);
     X.save(); X.beginPath(); X.arc(px, py, 15.5, 0, TAU); X.clip();
-    claude(px, py + 12 - (busy ? Math.abs(Math.sin(T * 24)) * 2 : 0), 1.5, { col: c, mood: eng && hot > .5 ? 'sad' : mood });
+    caos(px, py + 12 - (busy ? Math.abs(Math.sin(T * 24)) * 2 : 0), 1.5, { col: c, mood: eng && hot > .5 ? 'sad' : mood });
     X.save(); X.translate(px, py);
     if (r === 0) { X.beginPath(); X.arc(0, 9, 8, 0, TAU); X.lineWidth = 3.4; X.strokeStyle = INK; X.stroke(); X.lineWidth = 1.6; X.strokeStyle = '#c98443'; X.stroke(); }
     else if (r === 1) { X.fillStyle = '#c9ced6'; X.fillRect(2, -6, 10, 3.5); X.strokeStyle = INK; X.lineWidth = 1.3; X.strokeRect(2, -6, 10, 3.5); }
@@ -701,7 +701,7 @@ function demoBg(t) {
 }
 function demoSub(x, y, s, t, mood) {
   X.save(); X.translate(x, y); X.scale(s, s); X.translate(-x, -y);
-  subBody(x, y, 1, 0, t, { crew: [{ col: DEF[0] }, { col: DEF[1] }, { col: DEF[2] }], hull: HULL, scope: true, spin: 9, loaded: true, look: 1, draw: (i, px, py) => { X.save(); X.beginPath(); X.arc(px, py, 15.5, 0, TAU); X.clip(); claude(px, py + 12, 1.5, { col: DEF[i], mood }); X.restore(); } });
+  subBody(x, y, 1, 0, t, { crew: [{ col: DEF[0] }, { col: DEF[1] }, { col: DEF[2] }], hull: HULL, scope: true, spin: 9, loaded: true, look: 1, draw: (i, px, py) => { X.save(); X.beginPath(); X.arc(px, py, 15.5, 0, TAU); X.clip(); caos(px, py + 12, 1.5, { col: DEF[i], mood }); X.restore(); } });
   X.restore();
 }
 const DL = [78, 132, 186];                                 // the three lanes of the demo sea
@@ -713,7 +713,7 @@ function demoPorthole(kind, t, act, col) {
   X.save(); X.beginPath(); X.arc(cx, cy, r, 0, TAU); X.clip();
   X.fillStyle = '#ffe9a8'; X.fillRect(cx - r, cy - r, r * 2, r * 2); X.fillStyle = 'rgba(217,148,79,.28)'; X.fillRect(cx - r, cy + 34, r * 2, r);
   X.fillStyle = 'rgba(20,16,28,.12)'; for (let i = 0; i < 4; i++) X.fillRect(cx - r + 8 + i * 30, cy - r, 5, r * 2);
-  claude(cx - (kind === 'torp' ? 14 : 0), cy + 46, 3.6, { col });
+  caos(cx - (kind === 'torp' ? 14 : 0), cy + 46, 3.6, { col });
   const hand = (x, y) => { rr(x - 6, y - 6, 12, 12, 3); ink('#fff', 2); };
   if (kind === 'pilot') {                                   // a big wheel
     const a = Math.sin(t * 2) * .9; X.save(); X.translate(cx, cy + 46); X.rotate(a);

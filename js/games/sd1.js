@@ -64,7 +64,7 @@ const SDK = (() => {
     ink('#ff5c8a', 3); X.fillStyle = 'rgba(255,255,255,.6)'; el(-6, -9, 3, 2, -.6); X.fill(); X.restore();
   };
   K.sweat = (x, y, s, T) => { const k = (T * 2.2) % 1; X.save(); X.globalAlpha = 1 - k; X.translate(x + k * 6, y + k * 14); X.scale(s, s); X.beginPath(); X.moveTo(0, -8); X.quadraticCurveTo(6, 0, 0, 5); X.quadraticCurveTo(-6, 0, 0, -8); ink('#9fe3ff', 2); X.restore(); };
-  /* blocky Claude arms (hippo.js): origin at Claude's feet, drawn before claude(); an = 0 points up, + swings right */
+  /* blocky Caos arms (hippo.js): origin at Caos's feet, drawn before caos(); an = 0 points up, + swings right */
   K.arms = (u, la, ra, k, col = OR) => {
     if (k <= .02) return; const ol = Math.max(3, u * .5), L = 3.3 * u * k, aw = 1.2 * u, hs = 2 * u, gap = .35 * u;
     const one = (sx, an) => {
@@ -75,7 +75,7 @@ const SDK = (() => {
     };
     one(-1, la); one(1, ra);
   };
-  /* sports gear for Claude (origin = feet): a headband, goggles */
+  /* sports gear for Caos (origin = feet): a headband, goggles */
   K.band = (x, y, u, col = RED, T = 0) => {
     const ol = Math.max(2.5, u * .4); X.fillStyle = INK; X.fillRect(x - 6 * u - ol, y - 8.9 * u - ol, 12 * u + ol * 2, 1.25 * u + ol * 2);
     X.fillStyle = col; X.fillRect(x - 6 * u, y - 8.9 * u, 12 * u, 1.25 * u); X.fillStyle = 'rgba(255,255,255,.4)'; X.fillRect(x - 6 * u, y - 8.9 * u, 12 * u, .35 * u);
@@ -176,12 +176,12 @@ const SDK = (() => {
   return K;
 })();
 const K = SDK;
-/* the Claude hero's finishing touches, drawn around claude(): shadow, arms then body then headband */
+/* the Caos hero's finishing touches, drawn around caos(): shadow, arms then body then headband */
 function sdHero(x, y, u, g, o) {
   o = o || {}; const X = ctx;
   K.shade(x, y + 3, 7.4 * u, 1.5 * u, .3);
   X.save(); X.translate(x, y); K.arms(u, o.la == null ? -.45 : o.la, o.ra == null ? .45 : o.ra, o.k == null ? 1 : o.k, o.col || OR); X.restore();
-  claude(x, y, u, { mood: o.mood !== undefined ? o.mood : sdMood(g), col: o.col });
+  caos(x, y, u, { mood: o.mood !== undefined ? o.mood : sdMood(g), col: o.col });
   if (o.band !== false) K.band(x, y, u, o.band || RED, now);
 }
 
@@ -194,7 +194,7 @@ function hmBake() {
   K.hills(0, W, 384, 20, .013, 4, '#87d19b', '#4f9a6a', 3);
   // the far stands: a canopy, three rows of cheering dots
   K.rr(22, 312, 756, 76, 16); K.ink('#c9d0fb', 3, '#7b80c6');
-  for (let r = 0; r < 3; r++) for (let i = 0; i < 38; i++) { const x = 42 + i * 19.6 + (r % 2) * 9, y = 340 + r * 16; if (x > 770) continue; X.beginPath(); X.arc(x, y, 6, 0, K.TAU); X.fillStyle = ['#ff4d9e', '#ffe14d', '#4DB8FF', '#5cff7a', '#fff', '#D97757', '#c78bff'][Math.floor(K.hash(i * 7 + r * 31) * 7)]; X.fill(); X.lineWidth = 2; X.strokeStyle = '#7b80c6'; X.stroke(); }
+  for (let r = 0; r < 3; r++) for (let i = 0; i < 38; i++) { const x = 42 + i * 19.6 + (r % 2) * 9, y = 340 + r * 16; if (x > 770) continue; X.beginPath(); X.arc(x, y, 6, 0, K.TAU); X.fillStyle = ['#ff4d9e', '#ffe14d', '#4DB8FF', '#5cff7a', '#fff', '#FF6B3D', '#c78bff'][Math.floor(K.hash(i * 7 + r * 31) * 7)]; X.fill(); X.lineWidth = 2; X.strokeStyle = '#7b80c6'; X.stroke(); }
   K.rr(14, 306, 772, 16, 8); K.ink('#ff7a3d', 3); X.fillStyle = 'rgba(255,255,255,.7)'; for (let i = 0; i < 20; i++) X.fillRect(30 + i * 38, 309, 18, 10);
   // floodlight towers
   for (const fx of [52, 748]) { K.line([[fx, 392], [fx, 262]], 5, '#8f88a6'); K.rr(fx - 22, 236, 44, 28, 6); K.ink('#d8d4e6', 3); for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) { X.beginPath(); X.arc(fx - 12 + i * 12, 243 + j * 13, 4.5, 0, K.TAU); K.ink('#fff3a0', 1.5); } }
@@ -262,7 +262,7 @@ function sdHammer(sp) {
       K.shade(jx, jy + 4, 26, 6, .25);
       K.person(jx, jy, .95, { shirt: '#fff', stripe: '#2f4fd6', pants: '#2b2640', hat: 'cap', hatc: '#2f4fd6', mood: lost ? 'panic' : won ? 'cheer' : 'idle', look: [-.8, .2], la: won || lost ? 3.0 : .15, ra: .15, bob: won ? Math.abs(Math.sin(now * 9)) * 8 : 0, T: now });
       if (won || lost) { const k = K.outBack(ot * 4); X.save(); X.translate(jx - 30, jy - 108 - (won ? Math.abs(Math.sin(now * 9)) * 8 : 0)); X.rotate(-.12); X.scale(k, k); K.rr(-20, -18, 40, 34, 6); K.ink(won ? '#fff' : '#ffd0d0', 3); X.fillStyle = won ? '#1f9e4a' : RED; X.font = '900 28px "Arial Black", Impact, sans-serif'; X.textAlign = 'center'; X.textBaseline = 'middle'; X.fillText(won ? '10' : '0', 0, 2); X.restore(); }
-      // Claude in the circle: arms haul the chain, a headband flaps
+      // Caos in the circle: arms haul the chain, a headband flaps
       const p = power(), fl = fly ? Math.min(1, fly.t / .9) : 0;
       let la = 1.0, ra = .55, k = 1;
       if (held) { la = 1.0 + Math.sin(spin) * .2; ra = .55 + Math.cos(spin) * .18; k = 1.15; }
@@ -274,7 +274,7 @@ function sdHammer(sp) {
       if (held && p > .75) K.sweat(176, 478, 1.2, now);
       if (won) { K.heart(96, 440 - jump - ot * 24, 1, Math.max(0, 1 - ot)); K.heart(168, 424 - jump - ot * 30, .8, Math.max(0, 1 - ot * 1.1)); }
       if (lost) for (let i = 0; i < 3; i++) K.star(130 + Math.cos(now * 6 + i * 2.1) * 34, 468 + Math.sin(now * 6 + i * 2.1) * 8, 8, 3.5, 5, now * 4 + i, YEL, 2);
-      // the hammer: orbits Claude while held; flies when released
+      // the hammer: orbits Caos while held; flies when released
       let bx = 130 + Math.cos(spin) * 82, by = 462 + Math.sin(spin) * 34, lx = 142, ly = 480;
       if (fly) {
         const u = Math.min(1, fly.t / .9), tx = DX(fly.p);
@@ -392,7 +392,7 @@ function sdSki(sp) {
       sdHero(0, -4, 4.2, g, { la: -.9, ra: .9, k: 1.1, band: '#4DB8FF' });
       K.goggles(0, -4, 4.2);
       X.restore();
-      if (!sk || sk.k !== 'fly') K.tag(clamp(x, 70, 730) + 4, y - 66, 'CLAUDE', '#ffe14d');
+      if (!sk || sk.k !== 'fly') K.tag(clamp(x, 70, 730) + 4, y - 66, 'CAOS', '#ffe14d');
       if (lost && sk && sk.k === 'early' && sk.t > .5) for (let i = 0; i < 3; i++) K.star(x + (i - 1) * 24, y - 50 + Math.sin(now * 10 + i) * 5, 8, 3.5, 5, now * 4 + i, YEL, 2);
       if (won && ot > .1) K.heart(x + 20, y - 74 - ot * 20, 1, Math.max(0, 1 - ot));
       vignette(.2);
@@ -493,7 +493,7 @@ function sdBowl(sp) {
         K.shade(0, 14 - (f ? 0 : 0), 14, 4, .2); bwPin(X, f, 1, near, now, p.x * .1); X.restore();
       }
       if (won && ot > .05) for (let i = 0; i < 5; i++) K.star(PX + (i - 2) * 46, PY - 40 - ((ot * 90 + i * 14) % 60), 9, 4, 5, now * 5 + i, YEL, 2);
-      // sliding / locked Claude, holding the ball over its head
+      // sliding / locked Caos, holding the ball over its head
       const x = phase === 0 ? slideX() : lockX;
       const hold = phase < 2, aimA = swing();
       sdHero(x, 574, 5, g, { la: hold ? -.25 : -.9, ra: hold ? .25 : .9, k: hold ? 1.5 : 1, band: '#4DB8FF' });
@@ -596,11 +596,11 @@ function sdCurl(sp) {
       const sx = HX; K.shade(sx, sy + 14, 36, 11, .25);
       const ST = K.elP(0, 0, 31, 31); X.save(); X.translate(sx, sy); K.cel(ST, '#8A93A6', '#5d6580', 5, 7, 4); X.fillStyle = '#a9b2c6'; K.el(0, -1, 21, 21); X.fill(); K.glint(ST, -11, -13, 11, 5, .5, -.6);
       K.rr(-6, -17, 12, 8, 3); K.ink(CLAY, 2.5); K.rr(-16, -7, 32, 11, 5); K.ink(CLAY, 2.5); X.restore();
-      // Claude beside the sheet with a knitted hat, the broom when the pointer holds one
+      // Caos beside the sheet with a knitted hat, the broom when the pointer holds one
       const cx0 = HX - 130, cy0 = Math.max(sy + 36, 120);
       sdHero(cx0, cy0, 4, g, { la: -.7, ra: .7, band: false });
       const ky = cy0 - 8.8 * 4; X.beginPath(); X.ellipse(cx0, ky + 4, 25, 12, 0, Math.PI, 0); K.ink('#ff5c8a', 3); K.rr(cx0 - 26, ky + 1, 52, 8, 4); K.ink('#d93a68', 2.5); K.el(cx0, ky - 11, 6, 6); K.ink('#fff', 2.5);
-      if (c < 1.5 || s < 5) K.tag(cx0, cy0 - 74, 'CLAUDE', '#ffe14d');
+      if (c < 1.5 || s < 5) K.tag(cx0, cy0 - 74, 'CAOS', '#ffe14d');
       // broom
       let bx = null, by = null;
       if (brush) { bx = brush.x; by = brush.y; } else if (sweep > .05) { bx = HX + Math.sin(now * 30) * 40; by = sy - 70; }
@@ -701,7 +701,7 @@ function sdHoops(sp) {
       K.rr(196, 494, 82, 36, 10); K.cel(K.rrP(196, 494, 82, 36, 10), '#4d7cff', '#2f4fd6', 5, 4, 4);
       for (const wx of [212, 262]) K.circ(wx, 536, 8, '#3a3550', '#2b2640', 3);
       for (let i = 0; i < 2; i++) { const bx2 = 220 + i * 34; if (i < balls) { K.circ(bx2, 488, 15, '#ff8a3d', '#d95f1a', 3.5); X.strokeStyle = INK; X.lineWidth = 2.5; X.beginPath(); X.moveTo(bx2 - 15, 488); X.lineTo(bx2 + 15, 488); X.stroke(); } else { K.el(bx2, 496, 14, 6); X.fillStyle = 'rgba(20,16,28,.2)'; X.fill(); } }
-      // Claude: crouches while charging, the ball above the raised hands
+      // Caos: crouches while charging, the ball above the raised hands
       const sq = held ? .94 : 1;
       X.save(); X.translate(110, 520); X.scale(2 - sq, sq); X.translate(-110, -520);
       const upBall = !g.result && balls > 0 && !(shot && !shot.done);
@@ -814,7 +814,7 @@ function sdVolley(sp) {
         const k = (c - tB - RISE) / TEL; X.globalAlpha = .55 + .45 * Math.sin(now * 24); drawArrow(LX[lane], 380, 2, 26, RED); X.globalAlpha = 1;
         X.fillStyle = 'rgba(255,77,77,' + (.12 + k * .2) + ')'; K.rr(LX[lane] - 85, 262, 170, 168, 14); X.fill();
       }
-      // Claude
+      // Caos
       const up = bl >= 0 && c - tapT <= JUMP, jh = up ? Math.sin((c - tapT) / JUMP * Math.PI) * 34 : 0;
       const bumping = phase === 0 && !g.result;
       sdHero(cx, FY - jh, 8, g, { mood: sdMood(g) || (up ? 'happy' : null), la: up || won ? .08 : bumping ? .6 : -.4, ra: up || won ? -.08 : bumping ? -.6 : .4, k: up ? 1.6 : won ? 1.3 : bumping ? 1.15 : .85, band: '#4DB8FF' });
@@ -1016,7 +1016,7 @@ function sdStar(sp) {
         else if (lost) { X.moveTo(-12, 17); X.quadraticCurveTo(0, 30, 12, 17); X.stroke(); K.el(8, 25, 5, 6); K.ink('#ff7a9a', 2); }
         else { X.moveTo(-11, 19); X.quadraticCurveTo(0, 25, 11, 17); X.stroke(); }
         X.restore(); }
-      // Claude with the slingshot
+      // Caos with the slingshot
       sdHero(90, 538, 7, g, { la: .7, ra: 1.15, k: 1.25, band: '#ffe14d' });
       K.line([[158, 538], [158, 478]], 8, '#a5622c'); K.line([[158, 478], [144, 450]], 7, '#a5622c'); K.line([[158, 478], [174, 452]], 7, '#a5622c');
       const starF = (sx2, sy2, r, rot) => { K.star(sx2, sy2, r, r * .46, 5, rot, GOLD, 4); X.save(); X.translate(sx2, sy2); X.fillStyle = INK; for (const sd of [-1, 1]) { X.beginPath(); X.arc(sd * 6, -2, 2.6, 0, K.TAU); X.fill(); } X.strokeStyle = INK; X.lineWidth = 2.4; X.beginPath(); X.arc(0, 2, 5, .2, Math.PI - .2); X.stroke(); X.restore(); };

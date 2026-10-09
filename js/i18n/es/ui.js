@@ -47,10 +47,10 @@ I18N.add('es', {
   '{n} LIVES': '{n} VIDAS',
   'DRAW!': '¡EMPATE!',
   /* page */
-  'Claude Ware': 'Claude Ware',
-  'Claude Ware: a fast-paced WarioWare-style game with 100+ five-second microgames, 18 stages and bosses. Play free in your browser, with optional profiles and global leaderboards.':
-    'Claude Ware: un juego rápido estilo WarioWare con más de 100 microjuegos de cinco segundos, 18 etapas y jefes. Juega gratis en tu navegador, con perfiles opcionales y rankings globales.',
-  'Claude Ware: 100+ five-second microgames': 'Claude Ware: más de 100 microjuegos de cinco segundos',
+  'MiniCaos': 'MiniCaos',
+  'MiniCaos: a fast-paced WarioWare-style game with 100+ five-second microgames, 18 stages and bosses. Play free in your browser, with optional profiles and global leaderboards.':
+    'MiniCaos: un juego rápido estilo WarioWare con más de 100 microjuegos de cinco segundos, 18 etapas y jefes. Juega gratis en tu navegador, con perfiles opcionales y rankings globales.',
+  'MiniCaos: 100+ five-second microgames': 'MiniCaos: más de 100 microjuegos de cinco segundos',
   'Fast 5-second microgames, 18 stages and bosses. Play free in your browser, then challenge your friends to beat your score.':
     'Microjuegos de 5 segundos, 18 etapas y jefes. Juega gratis en tu navegador y reta a tus amigos a superar tu puntaje.',
   'Fast 5-second microgames, 18 stages and bosses. Play free, then challenge your friends.':
@@ -66,7 +66,7 @@ I18N.add('es', {
   'MOUSE MAYHEM': 'LOCURA DE MOUSE', 'Point, drag, scrub!': '¡Apunta, arrastra, frota!',
   'BRAIN BREAK': 'DESCANSO MENTAL', 'Think fast!': '¡Piensa rápido!',
   'MEGA MIX': 'SUPER MEZCLA', 'Everything. At once.': 'Todo. A la vez.',
-  'WII WAGGLE': 'AGITA Y GANA', 'Smooth moves, Claude!': '¡Con estilo, Claude!',
+  'WII WAGGLE': 'AGITA Y GANA', 'Smooth moves, Caos!': '¡Con estilo, Caos!',
   'CUBE PARTY': 'FIESTA CUBO', 'Mega party game, mega fast!': '¡Mega fiesta, mega rápido!',
   'TOUCH SCREEN': 'PANTALLA TÁCTIL', 'Poke it. Draw it. Cut it.': 'Toca. Dibuja. Corta.',
   'GET TOGETHER': 'A JUNTARSE', 'Stay still. Pick. Run. Fry.': 'Quieto. Elige. Corre. Fríe.',
@@ -151,8 +151,8 @@ I18N.add('es', {
   'GOOGLE SIGN-IN FAILED - TRY AGAIN': 'FALLÓ EL INICIO DE SESIÓN CON GOOGLE - INTENTA DE NUEVO',
 
   /* share text */
-  'I scored {score} on {stage} in Claude Ware. Think you can beat me?': 'Hice {score} puntos en {stage} de Claude Ware. ¿Crees que puedes superarme?',
-  'Claude Ware: 100+ five-second microgames. Come play!': 'Claude Ware: más de 100 microjuegos de cinco segundos. ¡Ven a jugar!',
+  'I scored {score} on {stage} in MiniCaos. Think you can beat me?': 'Hice {score} puntos en {stage} de MiniCaos. ¿Crees que puedes superarme?',
+  'MiniCaos: 100+ five-second microgames. Come play!': 'MiniCaos: más de 100 microjuegos de cinco segundos. ¡Ven a jugar!',
   'CHALLENGE YOUR FRIENDS': 'RETA A TUS AMIGOS', 'COPY LINK': 'COPIAR ENLACE', 'CLOSE': 'CERRAR', 'X / TWITTER': 'X / TWITTER',
   'CAN YOU BEAT IT?': '¿PUEDES SUPERARLO?',
   'CAN YOU BEAT ME?': '¿PUEDES SUPERARME?', 'PLAY FREE': 'JUEGA GRATIS', 'SCORE': 'PUNTOS', 'NEW BEST!': '¡NUEVO RÉCORD!', 'GUEST': 'INVITADO',

@@ -50,7 +50,7 @@ const SWK = (() => {
     X.save(); X.globalAlpha = clamp(a, 0, 1); X.translate(x, y); X.scale(s, s); X.lineJoin = 'round'; X.lineCap = 'round';
     X.beginPath(); X.moveTo(-6, -7); X.lineTo(6, -7); X.lineTo(-6, 7); X.lineTo(6, 7); X.lineWidth = 9; X.strokeStyle = INK; X.stroke(); X.lineWidth = 4; X.strokeStyle = '#fff'; X.stroke(); X.restore();
   };
-  /* blocky Claude arms (hippo.js): call with the origin at Claude's feet, before claude() */
+  /* blocky Caos arms (hippo.js): call with the origin at Caos's feet, before caos() */
   K.arms = (u, la, ra, k, col = OR) => {
     if (k <= .02) return; const ol = Math.max(3, u * .5), L = 3.3 * u * k, aw = 1.2 * u, hs = 2 * u, gap = .35 * u;
     const one = (sx, an) => {
@@ -231,7 +231,7 @@ function swFreeze(sp) {
       X.save(); X.translate(400, ty); fzTruck(s, k, lost ? 'happy' : (won || k > .75) ? 'panic' : 'angry', now, won ? Math.min(ot * 14, 1) * .05 * Math.max(0, 1 - ot) : 0); X.restore();
       if (k > .1 && !g.result) { X.strokeStyle = 'rgba(255,255,255,.6)'; X.lineWidth = 4; X.lineCap = 'round'; for (let i = 0; i < 8; i++) { const a = i * .78 + .2, r1 = 160 + k * 60, r2 = r1 + 60 * k; X.beginPath(); X.moveTo(400 + Math.cos(a) * r1 * 1.4, 400 + Math.sin(a) * r1 * .8); X.lineTo(400 + Math.cos(a) * r2 * 1.4, 400 + Math.sin(a) * r2 * .8); X.stroke(); } }
       if (k > .7 && !g.result) { const hk = Math.sin(now * 30) > 0 ? 1 : .6; X.strokeStyle = '#ffe14d'; X.lineWidth = 5; X.lineCap = 'round'; for (const sx of [-1, 1]) for (let i = 0; i < 3; i++) { X.beginPath(); X.moveTo(400 + sx * (170 + i * 14), ty - 190 * s - 6 + i * 14); X.lineTo(400 + sx * (200 + i * 18) * hk, ty - 200 * s - 16 + i * 18); X.stroke(); } }
-      // Claude, the living statue (a hat for coins at his feet, a pigeon on his head)
+      // Caos, the living statue (a hat for coins at his feet, a pigeon on his head)
       const fy = 506; let cx = 400, cy = fy, rot = 0;
       K.shade(400, fy + 20, 70, 9, .3);
       K.rr(352, fy, 96, 22, 5); X.save(); K.cel(K.rrP(352, fy, 96, 22, 5), '#d9944f', '#a5622c', 4, 4, 4); X.restore();
@@ -240,7 +240,7 @@ function swFreeze(sp) {
       X.save(); X.translate(cx, cy); X.rotate(rot);
       const wob = lost ? 0 : Math.sin(now * 2) * .01;
       K.arms(5.4, won ? -.9 : -.5 + wob, won ? .9 : .5 - wob, 1, OR); X.restore();
-      claude(cx, cy, 5.4, { mood: swSad(g) }); // (the arms are drawn first, then the body)
+      caos(cx, cy, 5.4, { mood: swSad(g) }); // (the arms are drawn first, then the body)
       if (!lost || ot < .22) {
         const sc = lost ? 1 : Math.min(1, 1 - Math.max(0, k - .6) * .3), pf = lost ? ot * 6 : 0, bx = cx + (lost ? pf * 90 : 0), by = cy - 55 - pf * 80 + (won ? -Math.abs(Math.sin(now * 7)) * 4 : 0), sh = k > .6 && !g.result ? Math.sin(now * 50) * 2 : 0;
         X.save(); X.translate(bx + sh, by); X.scale(sc * (lost ? 1.1 : 1), sc); K.el(0, 0, 14, 11); K.ink('#9aa3b8', 3); K.el(-3, 2, 8, 5); X.fillStyle = '#c9d0e0'; X.fill();
@@ -353,9 +353,9 @@ function swPick(sp) {
       if (!landed && !drop === false) K.shade(fx, 438, 22, 7, .3);
       if (!drop && c > .3) { K.el(fx + 30, fy + 50 + (now * 80 % 30), 5, 8); K.ink('#9fe3ff', 2); }
       if (!landed && !drop) K.shade(fx, 438, 20, 6, .3);
-      // Claude helps from the corner
+      // Caos helps from the corner
       const cm = win ? 'happy' : lose ? 'sad' : null;
-      X.save(); X.translate(-OX + 58, 536); K.arms(3.4, win ? -2.6 : -.3, win ? 2.6 : .3, 1); X.restore(); claude(-OX + 58, 536, 3.4, { mood: cm });
+      X.save(); X.translate(-OX + 58, 536); K.arms(3.4, win ? -2.6 : -.3, win ? 2.6 : .3, 1); X.restore(); caos(-OX + 58, 536, 3.4, { mood: cm });
       if (win) { for (let i = 0; i < 3; i++) K.heart(260 + i * 140 + Math.sin(ot * 4 + i) * 12, 190 - ot * 50 - (i % 2) * 24, 1.1, Math.max(0, 1 - ot * .9)); }
       if (lose && ot > .1) for (let i = 0; i < 3; i++) K.star(400 + Math.cos(now * 6 + i * 2.1) * 70, 440 + Math.sin(now * 6 + i * 2.1) * 20, 9, 4, 5, now * 4, '#FFE14D', 2.5);
       vignette(.18);
@@ -433,29 +433,29 @@ function swRun(sp) {
       if (won) { K.el(86, -86, 18, 34); K.ink('#ff7aa8', 3); }
       else if (!lost) for (let i = 0; i < 2; i++) { const dk = (now * 1.5 + i * .5) % 1; X.save(); X.translate(66 + i * 30, -80 + dk * 30); K.el(0, 0, 4, 7); K.ink('#9fe3ff', 1.5); X.restore(); }
       X.restore();
-      // Claude
+      // Caos
       const fx = hx;
       if (!lost) {
         X.save(); X.translate(fx, 520 - (won ? Math.abs(Math.sin(ot * 9)) * 18 : 0)); K.arms(8, won ? -2.8 : -.9 + Math.sin(run * 16) * .5, won ? 2.8 : .9 - Math.sin(run * 16) * .5, 1); X.restore();
-        claude(fx, 520 - (won ? Math.abs(Math.sin(ot * 9)) * 18 : 0), 8, { mood: swSad(g), run: g.result ? null : now });
+        caos(fx, 520 - (won ? Math.abs(Math.sin(ot * 9)) * 18 : 0), 8, { mood: swSad(g), run: g.result ? null : now });
         if (!g.result && near > .3) K.sweat(fx + 46, 440, 1.3, now);
         if (!g.result && gap > 300) K.heart(fx + 60 - OX * 0, 430, .8, .7);
       }
       X.restore();
-      // the chase strip: the monster closes on the little Claude
+      // the chase strip: the monster closes on the little Caos
       const kk = Math.max(0, Math.min(1, (gap - 40) / 380)), bx = 240, bw = 320, byb = 64;
       K.rr(bx - 14, byb - 6, bw + 28, 40, 20); K.ink('#fff', 4); X.fillStyle = 'rgba(155,107,209,.4)'; K.rr(bx + 2, byb + 8, bw - 4, 12, 6); X.fill();
       for (let i = 0; i <= 6; i++) { X.fillStyle = INK; X.fillRect(bx + 20 + i * (bw - 40) / 6 - 1, byb + 22, 2, 5); }
       const mp = bx + 24 + (1 - kk) * (bw - 120);
       X.beginPath(); X.arc(mp, byb + 14, 12, 0, K.TAU); K.ink('#8a4dff', 3); K.el(mp + 3, byb + 11, 4, 4); X.fillStyle = '#fff'; X.fill(); X.fillStyle = INK; X.beginPath(); X.arc(mp + 4, byb + 11, 2, 0, K.TAU); X.fill();
-      claude(bx + bw - 28, byb + 24, 1.5, { mood: swSad(g) });
+      caos(bx + bw - 28, byb + 24, 1.5, { mood: swSad(g) });
       vignette(.16);
     }
   };
   return g;
 }
 
-/* ── 4 ARREST: pick the suspect that matches the poster (a police line-up, a security camera, a cop Claude) ── */
+/* ── 4 ARREST: pick the suspect that matches the poster (a police line-up, a security camera, a cop Caos) ── */
 function swFaceDraw(x, y, s, tr, o) {
   o = o || {}; const K = SWK, X = ctx, HC = [null, '#E8433A', '#4DB8FF', '#5CFF7A'], HS = [null, '#b8283a', '#2a8fcb', '#23a046'], mood = o.mood || 'calm', T = o.T || 0;
   X.save(); X.translate(x, y); X.scale(s, s);
@@ -549,11 +549,11 @@ function swWanted(sp) {
         if (fl) { X.fillStyle = 'rgba(255,255,255,' + Math.min(.9, flash * 3) + ')'; K.rr(-65, -80, 130, 160, 12); X.fill(); }
         X.restore();
       });
-      // Claude the detective, magnifier in hand
+      // Caos the detective, magnifier in hand
       const cm = won ? 'happy' : lost ? 'sad' : null, hop = won ? Math.abs(Math.sin(ot * 9)) * 14 : 0;
       K.shade(98, 541, 38, 7, .3);
       X.save(); X.translate(98, 538 - hop); K.arms(5, won ? -2.7 : -.3, won ? 2.7 : .8, 1); X.restore();
-      claude(98, 538 - hop, 5, { mood: cm });
+      caos(98, 538 - hop, 5, { mood: cm });
       X.save(); X.translate(98, 538 - hop - 9); K.rr(-17, -48, 34, 9, 3); K.ink('#2b2640', 2.5); K.rr(-12, -62, 24, 16, 5); K.ink('#2b2640', 2.5); X.beginPath(); X.arc(0, -53, 3, 0, 7); X.fillStyle = '#ffd23f'; X.fill(); X.restore();
       K.curve(130, 502, 148, 486, 162, 480, 4, '#a5622c'); X.beginPath(); X.arc(170, 474, 12, 0, 7); K.ink('rgba(191,239,255,.7)', 3);
       if (lost) K.badge('WRONG!', 400, 100, 36, '#ff4d5e', '#fff', K.outBack(ot / .25), -.04);
@@ -658,11 +658,11 @@ function swFry(sp) {
       if (!g.result && hold) { X.fillStyle = '#9fe3ff'; K.el(10, -66 + (now * 40) % 14, 2.5, 4); X.fill(); }
       if (won) K.heart(26, -122 - ot * 20, 1, Math.max(0, 1 - ot));
       X.restore();
-      // Claude the chef
+      // Caos the chef
       const fy = 536, hop = won ? Math.abs(Math.sin(ot * 9)) * 14 : 0, cmx = -OX + 92;
       K.shade(cmx, fy + 3, 40, 7, .3);
       X.save(); X.translate(cmx, fy - hop); K.arms(5.4, won ? -2.5 : hold ? -1.1 : -.25, won ? 2.5 : lost ? 2.2 : .5, 1); X.restore();
-      claude(cmx, fy - hop, 5.4, { mood: swSad(g) });
+      caos(cmx, fy - hop, 5.4, { mood: swSad(g) });
       X.save(); X.translate(cmx, fy - hop - 5.4 * 9); for (const [a, b, r] of [[-14, -6, 11], [0, -14, 13], [14, -6, 11]]) { X.beginPath(); X.arc(a, b, r, 0, 7); K.ink('#fff', 3); } K.rr(-18, -6, 36, 10, 4); K.ink('#f4f4f4', 3); X.restore();
       if (hold && !g.result) K.sweat(cmx + 40, fy - 62, 1.2, now);
       if (lost) { const w = raw ? 'RAW!' : 'BURNT!'; K.badge(w, 400, 462, 46, '#ff4d5e', '#fff', K.outBack(ot / .25), -.05); }
@@ -750,11 +750,11 @@ function swFill(sp) {
       if (over) K.badge('OVERFLOW!', 590, 126, 40, '#ff4d5e', '#fff', K.outBack(ot / .25), -.04); else if (lost) K.badge(f < B0 ? 'NOT ENOUGH!' : 'TOO MUCH!', 590, 126, 36, '#ff4d5e', '#fff', K.outBack(ot / .25), -.04); else if (won) K.badge('PERFECT!', 560, 210, 44, '#5CFF7A', INK, K.outBack(ot / .25), .04);
       if (won) for (let i = 0; i < 3; i++) K.heart(540 + i * 50, 340 - ot * 40 - (i % 2) * 18, 1, Math.max(0, 1 - ot));
       if (lost && !over && ot < .8) { for (let i = 0; i < 3; i++) K.puff(660 + i * 14, 400 - ot * 60 - i * 20, 12 + i * 4, 1 - ot * 1.2, '#8c8a9e'); }
-      // Claude with the pump handle
+      // Caos with the pump handle
       const cmx = 262, fy = 536, hop = won ? Math.abs(Math.sin(ot * 9)) * 14 : 0;
       K.shade(cmx, fy + 3, 40, 7, .3);
       X.save(); X.translate(cmx, fy - hop); K.arms(5.4, won ? -2.5 : hold ? -1.0 : -.3, won ? 2.5 : hold ? 1.3 : .3, 1); X.restore();
-      claude(cmx, fy - hop, 5.4, { mood: swSad(g) });
+      caos(cmx, fy - hop, 5.4, { mood: swSad(g) });
       if (hold && !g.result) K.sweat(cmx + 42, fy - 60, 1.2, now);
       vignette(.16);
     }
@@ -814,7 +814,7 @@ function swLimbo(sp) {
       K.shade(cbx, cby + 4, 30, 6, .25); X.save(); X.translate(cbx, cby - cj);
       for (const sx of [-1, 1]) { K.line([[sx * 16, -4], [sx * 28, 4]], 3.5, '#e8434f'); K.curve(sx * 20, -20, sx * 38, -40 - (won || lost ? Math.abs(Math.sin(now * 10)) * 10 : 0), sx * 30, -52, 4, '#e8434f'); X.beginPath(); X.arc(sx * 30, -56, 8, 0, 7); K.ink('#e8434f', 3); }
       const CRB = K.elP(0, -14, 26, 18); K.cel(CRB, '#ff5a4a', '#c93a34', 4, 3, 3.5); K.eye(-9, -34, 6, cs, [-.6, 0], now, 8); K.eye(9, -34, 6, cs, [-.6, 0], now, 9); K.line([[-9, -26], [-9, -30]], 2, '#ff5a4a'); X.restore();
-      // the saucers (the limbo bars); the aliens inside look at Claude
+      // the saucers (the limbo bars); the aliens inside look at Caos
       for (const u of sq) {
         const y = u.decoy ? 190 : 360, bob = Math.sin(now * 4 + u.ph) * 4, near = !u.decoy && Math.abs(u.x - 200) < 140;
         if (!u.decoy) { X.beginPath(); X.moveTo(u.x - 22, y + 20); X.lineTo(u.x + 22, y + 20); X.lineTo(u.x + 52, 472); X.lineTo(u.x - 52, 472); X.closePath(); X.fillStyle = 'rgba(120,255,160,.4)'; X.fill(); X.strokeStyle = 'rgba(70,200,110,.8)'; X.lineWidth = 3; X.beginPath(); X.moveTo(u.x - 22, y + 20); X.lineTo(u.x - 52, 472); X.moveTo(u.x + 22, y + 20); X.lineTo(u.x + 52, 472); X.stroke(); }
@@ -828,13 +828,13 @@ function swLimbo(sp) {
         for (let d = -1; d <= 1; d++) { X.beginPath(); X.arc(d * 30, 4, 5.5, 0, 7); K.ink(['#ff5c8a', '#ffe14d', '#5CFF7A'][((d + 1 + Math.floor(now * 4)) % 3 + 3) % 3], 2); }
         X.restore();
       }
-      // Claude, the limbo champion (a flower lei)
+      // Caos, the limbo champion (a flower lei)
       const cr = crouch; let ang = 0, lx = 200, ly = 470; if (lost) { ang = -1.35 * K.ease(ot / .25); lx = 200 - K.ease(ot / .25) * 20; }
       K.shade(200, 472, 55 + cr * 14, 10, .3);
       X.save(); X.translate(lx, ly); X.rotate(ang); X.scale(1 + .12 * cr, 1 - .45 * cr);
       const hop = won ? Math.abs(Math.sin(ot * 9)) * 14 : 0; X.translate(0, -hop);
       K.arms(9, won ? -2.6 : -1.0 + cr * .7, won ? 2.6 : 1.0 - cr * .7, 1);
-      claude(0, 0, 9, { mood: swSad(g) });
+      caos(0, 0, 9, { mood: swSad(g) });
       for (let i = 0; i < 9; i++) { const k = i / 8, fx = -50 + k * 100, fy2 = -38 + Math.sin(k * Math.PI) * 14; X.beginPath(); X.arc(fx, fy2, 7, 0, 7); K.ink(['#ff5c8a', '#ffe14d', '#fff'][i % 3], 2.5); }
       X.restore();
       if (lost) for (let i = 0; i < 3; i++) K.star(lx - 20 + i * 24, ly - 120 + Math.sin(now * 9 + i * 2) * 8, 8, 3.5, 5, now * 5 + i, '#FFE14D', 2.5);
@@ -926,7 +926,7 @@ function swSteer(sp) {
       const CT = K.rrP(-13, -8, 26, 26, 11); K.cel(CT, '#4a3d6e', '#2c2346', 3, 3, 3.5); for (const sx of [-1, 1]) { X.beginPath(); X.moveTo(sx * 12, -22); X.lineTo(sx * 11, -39); X.lineTo(sx * 1, -24); X.closePath(); K.ink('#4a3d6e', 2.5); X.fillStyle = '#ff9ec2'; X.beginPath(); X.moveTo(sx * 10, -26); X.lineTo(sx * 9.5, -34); X.lineTo(sx * 4, -26); X.closePath(); X.fill(); }
       K.el(0, -15, 15, 13); K.ink('#4a3d6e', 3); K.eye(-6, -16, 6.5, cE, [.9, -.1], now, 3); K.eye(6, -16, 6.5, cE, [.9, -.1], now, 4); X.fillStyle = '#ff9ec2'; K.el(0, -9, 2.4, 1.8); X.fill(); X.strokeStyle = INK; X.lineWidth = 1.6; for (const sx of [-1, 1]) for (const dy of [-1, 1]) { X.beginPath(); X.moveTo(sx * 6, -9); X.lineTo(sx * 17, -9 + dy * 4); X.stroke(); } X.restore();
       K.arms(5.1, won ? -2.4 : -.5, won ? 2.4 : .5, 1);
-      X.save(); X.translate(0, 4); claude(0, 0, 5.1, { mood: swSad(g) }); X.restore();
+      X.save(); X.translate(0, 4); caos(0, 0, 5.1, { mood: swSad(g) }); X.restore();
       // witch hat: crooked tip, buckle, a star
       X.save(); X.translate(0, -5); X.beginPath(); X.moveTo(-17, -36); X.quadraticCurveTo(-4, -62, 10, -86); X.quadraticCurveTo(14, -80, 9, -74); X.quadraticCurveTo(16, -52, 17, -36); X.closePath(); K.ink('#6a32a0', 3); K.rr(-26, -41, 52, 9, 4); K.ink('#6a32a0', 3); X.fillStyle = '#ffd23f'; K.rr(-10, -42, 20, 7, 2); X.fill(); K.star(4, -58, 6, 2.6, 5, 0, '#ffe14d', 1.5); X.restore();
       X.restore();
@@ -957,7 +957,7 @@ function slBake() {
   K.rr(640, 508, 90, 24, 8); K.ink('#d9944f', 4);
   // floor lamp stand
   K.line([[690, 340], [690, 486]], 9, '#8f9cb3'); K.el(690, 488, 34, 8); K.ink('#6d7690', 3);
-  // the bed frame behind Claude
+  // the bed frame behind Caos
   const HB = K.rrP(222, 246, 356, 252, 26); K.cel(HB, '#a5622c', '#7a4620', 8, 6, 5);
 }
 function swSleep(sp) {
@@ -994,14 +994,14 @@ function swSleep(sp) {
       // the moon in the window peeks in, sleepy
       X.save(); K.rr(336, 84, 128, 122, 6); X.clip(); X.beginPath(); X.arc(420, 130, 30, 0, 7); K.ink('#fff3b0', 3.5); X.fillStyle = 'rgba(200,170,70,.4)'; K.el(410, 140, 6, 6); X.fill(); K.el(430, 122, 4, 4); X.fill();
       K.eye(410, 130, 5.5, won || !awake && !half ? 'sleep' : 'idle', [.5, .5], now, 1); K.eye(430, 130, 5.5, won || !awake && !half ? 'sleep' : 'idle', [.5, .5], now, 2); X.restore();
-      // the bed + Claude
+      // the bed + Caos
       const PIL = K.rrP(304, 280, 192, 90, 32); K.cel(PIL, '#fff', '#d5dae6', 6, 5, 4);
       const jolt = awake ? -K.outBack(ot / .2) * 22 : 0;
       K.shade(400, 492, 200, 12, .25);
       const sc = won ? 1 + Math.sin(now * 1.6) * .02 : half ? 1 + Math.sin(now * 20) * .01 : 1 + Math.sin(now * 1.6) * .015;
       X.save(); X.translate(400, 380 + jolt); X.scale(1, sc); X.translate(-400, -380);
       if (awake) { X.save(); X.translate(400, 380); K.arms(11, -1.2, 1.2, 1); X.restore(); } else { X.save(); X.translate(400, 380); K.arms(11, won ? 2.6 : 2.8, won ? -2.6 : -2.8, .5); X.restore(); }
-      claude(400, 380, 11, { mood: awake ? null : half ? null : 'happy' });
+      caos(400, 380, 11, { mood: awake ? null : half ? null : 'happy' });
       X.restore();
       X.save(); X.translate(0, jolt);
       if (!awake && half) { X.strokeStyle = '#e8434f'; X.lineWidth = 6; X.lineCap = 'round'; X.beginPath(); X.moveTo(342, 288); X.lineTo(372, 300); X.moveTo(458, 288); X.lineTo(428, 300); X.stroke(); K.sweat(472, 310, 1.4, now); }
@@ -1081,7 +1081,7 @@ function swStars(sp) {
       X.drawImage(K.baked('sts', stsBake), -OX, 0);
       for (let i = 0, ns = Math.round(30 * VW / W); i < ns; i++) { X.fillStyle = 'rgba(255,255,255,' + (.4 + .4 * Math.sin(now * 3 + i)) + ')'; X.fillRect((i * 97) % VW - OX, (i * 53) % 440, 3, 3); }
       { const k = (now * .22) % 1.6; if (k < .5) { const sx = 90 + k * 900 - OX, sy = 40 + k * 240; X.strokeStyle = 'rgba(255,255,255,' + (1 - k * 2) + ')'; X.lineWidth = 3; X.lineCap = 'round'; X.beginPath(); X.moveTo(sx, sy); X.lineTo(sx - 46, sy - 14); X.stroke(); } }
-      // camp: fire, Claude and the telescope
+      // camp: fire, Caos and the telescope
       const fxx = L + 392, fyy = 548;
       K.shade(fxx, fyy + 4, 40, 7, .35); for (const sx of [-1, 1]) K.line([[fxx + sx * 24, fyy + 2], [fxx - sx * 6, fyy - 10]], 6, '#8a5a34');
       for (let i = 0; i < 3; i++) { const fh = 34 - i * 8 + Math.sin(now * 11 + i * 2) * 6; X.beginPath(); X.moveTo(fxx - 16 + i * 4, fyy - 4); X.quadraticCurveTo(fxx - 18 + i * 8, fyy - fh, fxx + (i - 1) * 6, fyy - fh - 12); X.quadraticCurveTo(fxx + 18 - i * 4, fyy - fh * .5, fxx + 16 - i * 4, fyy - 4); X.closePath(); K.ink(['#ff7a3d', '#ffb347', '#ffe14d'][i], 3 - i * .5); }
@@ -1090,7 +1090,7 @@ function swStars(sp) {
       K.line([[cmx + 70, cfy], [cmx + 88, cfy - 56]], 5, '#8f9cb3'); K.line([[cmx + 106, cfy], [cmx + 88, cfy - 56]], 5, '#8f9cb3'); K.line([[cmx + 88, cfy], [cmx + 88, cfy - 56]], 5, '#8f9cb3');
       X.save(); X.translate(cmx + 88, cfy - 60); X.rotate(-.9); K.rr(-12, -52, 24, 60, 8); K.ink('#e8434f', 3.5); K.rr(-9, -64, 18, 16, 5); K.ink('#cfd8e6', 3); X.restore();
       X.save(); X.translate(cmx, cfy - ch); K.arms(5.2, won ? -2.6 : -.2, won ? 2.6 : 1.0, 1); X.restore();
-      claude(cmx, cfy - ch, 5.2, { mood: swSad(g) });
+      caos(cmx, cfy - ch, 5.2, { mood: swSad(g) });
       // the constellation
       X.lineCap = 'round'; X.lineJoin = 'round';
       const path = () => { X.beginPath(); for (let i = 0; i < next; i++) X.lineTo(pts[i].x, pts[i].y); if (g.result === 'win') X.closePath(); };
@@ -1200,14 +1200,14 @@ function swDraw(sp) {
       dwRice(fx, 470, { mood, T: now });
       if (sword) { X.save(); X.translate(fx - 62, 470 - 88); K.rr(-120, -5, 126, 10, 4); K.ink('#e6ebf3', 2.5); K.rr(-2, -9, 10, 18, 3); K.ink('#ffd23f', 2.5); K.rr(6, -6, 34, 12, 5); K.ink('#2b2640', 2.5); X.restore(); }
     }
-    // Claude, the other duellist: a headband, a sheathed katana at his hip
+    // Caos, the other duellist: a headband, a sheathed katana at his hip
     let cx = 220, cy = 470, cm = swSad(g);
     if (won) cx = 220 + K.ease(ot / .15) * 440; if (lose) cx = 220 - K.ease(ot / .3) * 30;
     const cdy = lose ? -Math.abs(Math.sin(ot * 10)) * 4 : won ? -Math.abs(Math.sin(Math.max(0, ot - .3) * 9)) * 14 : 0;
     K.shade(cx, 472, 55, 10, .3);
     X.save(); X.translate(cx, cy + cdy); if (lose) X.rotate(-.25 * K.ease(ot / .3));
     K.arms(9, won ? -2.6 : -.35, won ? 2.6 : .7, 1);
-    claude(0, 0, 9, { mood: cm });
+    caos(0, 0, 9, { mood: cm });
     K.rr(-56, -80, 112, 12, 4); K.ink('#e8434f', 3); X.beginPath(); X.moveTo(-54, -76); X.quadraticCurveTo(-82, -68 + Math.sin(now * 6) * 8, -96, -52 + Math.sin(now * 6) * 12); X.strokeStyle = INK; X.lineWidth = 10; X.stroke(); X.strokeStyle = '#e8434f'; X.lineWidth = 4.5; X.stroke();
     if (!won) { K.rr(34, -48, 96, 12, 5); K.ink('#7a1f2e', 3); K.rr(30, -52, 16, 20, 4); K.ink('#fff', 3); X.beginPath(); X.arc(48, -42, 6, 0, 7); K.ink('#ffd23f', 2); }
     X.restore();
@@ -1291,11 +1291,11 @@ function swProtect(sp) {
         K.eye(-9, -4, 7, 'idle', [(m.tx - m.x) / 300, 1], now, 2); K.eye(9, -4, 7, 'idle', [(m.tx - m.x) / 300, 1], now, 3);
         X.strokeStyle = INK; X.lineWidth = 3.5; X.lineCap = 'round'; X.beginPath(); X.moveTo(-17, -14); X.lineTo(-3, -9); X.moveTo(17, -14); X.lineTo(3, -9); X.stroke(); K.el(0, 12, 7, 5 + Math.abs(Math.sin(now * 14)) * 3); K.ink(INK, 1.5); X.restore();
       }
-      // Claude on the left with a swatting arm that follows the cursor
+      // Caos on the left with a swatting arm that follows the cursor
       const cmx = -OX + 72, cfy = 535, aim = Math.atan2(mouse.x - cmx, -(mouse.y - (cfy - 28))), sw = Math.max(0, 1 - (now - swing) * 5), hop = won ? Math.abs(Math.sin(ot * 9)) * 14 : 0;
       K.shade(cmx, cfy + 3, 36, 7, .3);
       X.save(); X.translate(cmx, cfy - hop); K.arms(5, won ? -2.6 : -.3, won ? 2.6 : K.clamp(aim, -.4, 2.2) + sw * .7, 1); X.restore();
-      claude(cmx, cfy - hop, 5, { mood: swSad(g) });
+      caos(cmx, cfy - hop, 5, { mood: swSad(g) });
       if (lost) K.sweat(cmx + 40, cfy - 55, 1.2, now);
       vignette(.16);
     }

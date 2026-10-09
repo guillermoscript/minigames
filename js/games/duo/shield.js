@@ -1,6 +1,6 @@
 'use strict';
 /* ═════════ DUO · BODYGUARD (du_shield), after Lovers in a Dangerous Spacetime ═════════
-   PILOT (role 0, JUDGE): flies a heavy little saucer (Claude in the cockpit) to 5 stars that pop up one at a time, each on the side
+   PILOT (role 0, JUDGE): flies a heavy little saucer (Caos in the cockpit) to 5 stars that pop up one at a time, each on the side
    opposite the last one, so every trip crosses the cannons' fire. SHIELD (role 1): turns a 100° energy arc around that saucer.
    Three cannons on the edges charge up (glow + arrows) and fire orbs at the saucer; the shield bounces them back, and a bounced orb
    that hits a cannon knocks it out for a couple of seconds. 3 hits = the team loses; 5 stars before the time runs out = the team wins.
@@ -178,12 +178,12 @@ function drawShip(x, y, o) {
   ctx.beginPath(); ctx.ellipse(0, 2, 41, 12, 0, 0, TAU); inked(HUL, 4);
   ctx.save(); ctx.clip(); ctx.fillStyle = HUL2; ctx.beginPath(); ctx.ellipse(4, 10, 44, 9, 0, 0, TAU); ctx.fill();
   ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.ellipse(-16, -4, 14, 3, -.08, 0, TAU); ctx.fill(); ctx.restore();
-  // glass dome with Claude inside
+  // glass dome with Caos inside
   ctx.save(); ctx.beginPath(); ctx.arc(0, -1, 28, Math.PI, 0); ctx.closePath(); ctx.clip();
   ctx.fillStyle = GLASS; ctx.fillRect(-29, -30, 58, 30);
   if (!DOME) { DOME = ctx.createRadialGradient(-6, -12, 2, 0, -4, 30); DOME.addColorStop(0, 'rgba(120,200,255,.55)'); DOME.addColorStop(1, 'rgba(120,200,255,0)'); }
   ctx.fillStyle = DOME; ctx.fillRect(-29, -30, 58, 30);
-  claude(0, 7 + (o.mood === 'happy' ? -Math.abs(Math.sin(now * 12)) * 3 : 0), 2.75, { col, mood: o.mood });
+  caos(0, 7 + (o.mood === 'happy' ? -Math.abs(Math.sin(now * 12)) * 3 : 0), 2.75, { col, mood: o.mood });
   ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.beginPath(); ctx.ellipse(-13, -19, 8, 4, -.7, 0, TAU); ctx.fill();
   ctx.fillStyle = 'rgba(255,255,255,.3)'; ctx.beginPath(); ctx.ellipse(13, -12, 3, 2, -.9, 0, TAU); ctx.fill();
   if (o.dmg > 0) { ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(6, -24); ctx.lineTo(1, -15); ctx.lineTo(8, -10); ctx.lineTo(3, -2); ctx.moveTo(1, -15); ctx.lineTo(-7, -12); ctx.stroke(); }
@@ -451,10 +451,10 @@ function duShield(sp, D) {
     }
     return { x: px, y: py };
   });
-  const myCol = (() => { try { const m = typeof me === 'function' ? me() : null; if (m && m.color) return m.color; } catch (e) {} return pilot ? '#D97757' : '#6EA8FE'; })();
-  const pCol = (D.partner && D.partner.color) || (pilot ? '#6EA8FE' : '#D97757');
+  const myCol = (() => { try { const m = typeof me === 'function' ? me() : null; if (m && m.color) return m.color; } catch (e) {} return pilot ? '#FF6B3D' : '#6EA8FE'; })();
+  const pCol = (D.partner && D.partner.color) || (pilot ? '#6EA8FE' : '#FF6B3D');
   let shipCol = pilot ? myCol : pCol, shCol = pilot ? pCol : myCol;
-  if (shipCol === shCol) { shipCol = '#D97757'; shCol = '#6EA8FE'; }   // a room never gives two players one colour; previews do
+  if (shipCol === shCol) { shipCol = '#FF6B3D'; shCol = '#6EA8FE'; }   // a room never gives two players one colour; previews do
   /* state */
   let x = START[0], y = START[1], vx = 0, vy = 0, kx = 0, ky = 0, tgt = null, preTgt = null, drag = null;   // pilot (the shield screen renders it from sxT/syT)
   let sa = -Math.PI / 2, armed = false, armT = -9, kr = 0, ptr = null, lastSa = null, saSend = -1, spSend = -1, lastSp = '';
@@ -850,12 +850,12 @@ function demoSky(w, h) {
 }
 /* the real colours on the intro card: the pilot's and the shield player's, and what to call the OTHER piece from the viewer's seat */
 function demoInfo(r) {
-  let pc = '#D97757', sc = '#6EA8FE', label = 'FRIEND';
+  let pc = '#FF6B3D', sc = '#6EA8FE', label = 'FRIEND';
   try {
     const m = me(), pn = party.room.players.find(p => !p.left && p.id !== party.you.id), mine = cur.role;
     if (m && pn && (mine === 0 || mine === 1)) { pc = mine === 0 ? m.color : pn.color; sc = mine === 0 ? pn.color : m.color; if (mine !== r) label = 'YOU'; }
   } catch (e) {}
-  if (pc === sc) { pc = '#D97757'; sc = '#6EA8FE'; }
+  if (pc === sc) { pc = '#FF6B3D'; sc = '#6EA8FE'; }
   return { pc, sc, label };
 }
 function demoPilot(t) {

@@ -1,11 +1,11 @@
 /// <reference path="../pb_data/types.d.ts" />
-/* Claude Ware schema: extends the built-in `users` auth collection, creates `scores`, and sets app settings.
+/* MiniCaos schema: extends the built-in `users` auth collection, creates `scores`, and sets app settings.
  * To change the number of stages, see STAGE_MAX below (highest stage INDEX, i.e. stage count - 1)
  * and pb_hooks/lib.js (STAGE_MAX too). Existing installs: edit the field limits in the admin UI (/_/).
  */
 const STAGE_MAX = 9;      // stages 0..9 => 10 stages
 const SCORE_MAX = 2000;   // per stage
-const COLORS = ["#D97757", "#6EA8FE", "#7BD88F", "#F28CB1", "#B49CFF", "#FFD23F", "#FF6B4D", "#4DD0E1"];
+const COLORS = ["#FF6B3D", "#6EA8FE", "#7BD88F", "#F28CB1", "#B49CFF", "#FFD23F", "#FF6B4D", "#4DD0E1"];
 
 migrate((app) => {
   /* ---------- users ---------- */
@@ -77,7 +77,7 @@ migrate((app) => {
 
   /* ---------- settings ---------- */
   const s = app.settings();
-  s.meta.appName = "Claude Ware";
+  s.meta.appName = "MiniCaos";
   s.meta.hideControls = false;
   s.rateLimits.enabled = true;
   s.rateLimits.rules = [

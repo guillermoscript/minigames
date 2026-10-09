@@ -32,7 +32,7 @@ const HX = 196, HY = 192;                            // grandma's head
 const FRX = 648, FRY = 128, FRW = 136, FRH = FLOOR + 6 - 128;   // the fridge
 const KTX = 556, KTY = 300;                          // kettle (bottom centre) on the stove
 const PLATE = [262, 500, 276, 44];
-const KU = 5.2;                                      // the kids' claude() unit
+const KU = 5.2;                                      // the kids' caos() unit
 const CHAIRP = 'M116 274 C112 244 132 232 150 238 L242 238 C262 232 280 244 276 274 L276 392 L116 392 Z';   // the wingback, from behind
 const WHIP = .16, BACK = .3, GRACE = .07, FAKE = .6, TWITCH = .34;
 
@@ -73,7 +73,7 @@ function keyCap(x, y, s) { X.font = '700 15px Fredoka, Arial, sans-serif'; const
 function puff(x, y, r, a) { if (a <= 0) return; X.globalAlpha = clamp(a, 0, 1); for (const [dx, dy, k] of [[0, 0, 1], [-r * .7, r * .2, .7], [r * .7, r * .15, .75], [0, -r * .5, .7]]) { el(x + dx, y + dy, r * k, r * k * .9); ink('#f4f1ff', 3); } X.globalAlpha = 1; }
 function sweat(x, y, s, T) { const k = (T * 2.2) % 1; X.globalAlpha = 1 - k; X.save(); X.translate(x + k * 6, y + k * 14); X.scale(s, s); X.beginPath(); X.moveTo(0, -9); X.quadraticCurveTo(7, 2, 0, 5); X.quadraticCurveTo(-7, 2, 0, -9); ink('#9fe3ff', 2); X.restore(); X.globalAlpha = 1; }
 
-/* two thin blocky arms from claude()'s side stubs, each with a little square hand (drawn before claude(), so the body hides the shoulder).
+/* two thin blocky arms from caos()'s side stubs, each with a little square hand (drawn before caos(), so the body hides the shoulder).
    la / ra: arm angles (0 = straight up, + leans right), k: 0..1 how far they are raised */
 function arms(u, la, ra, k, col) {
   if (k <= .02) return; const ol = Math.max(3, u * .5), L = 3.3 * u * k, aw = 1.2 * u, hs = 2 * u, gap = .35 * u;
@@ -590,7 +590,7 @@ function duGranny(sp, D) {
       const hx = kidX(r), jump = won && rk > .3 ? Math.abs(Math.sin((rk - .3) * 9)) * 22 : 0;
       X.save(); X.translate(hx, y - jump); shadow(0, 0, 28, 6, .25);
       arms(KU, won ? -.5 : .2, won ? .5 : -.2, won ? 1 : .6, col);
-      claude(0, 0, KU, { col, mood: won ? 'happy' : null });
+      caos(0, 0, KU, { col, mood: won ? 'happy' : null });
       X.restore();
       if (won && rk > .3) txt('!!', hx, y - 74 - jump, 28, '#ffe14d');
       if (mine && T - k.inAt < 1.2 && !won) badge('SAFE!', hx, y - 86, 18, '#22a447', '#fff', outBack((T - k.inAt) / .25), 0);
@@ -601,7 +601,7 @@ function duGranny(sp, D) {
     X.save(); X.translate(k.x, y - bob); shadow(0, bob, 28, 6, .25); X.rotate(lean);
     if (moving) arms(KU, .8 + Math.sin(T * 12) * .15, 1.05 - Math.sin(T * 12) * .15, .8, col);       // sneaky hands out front
     else arms(KU, -.15, 1.45, 1, col);                                                                   // a statue pose
-    claude(0, 0, KU, { col, mood: ck >= 0 && ck < .3 ? 'sad' : null });
+    caos(0, 0, KU, { col, mood: ck >= 0 && ck < .3 ? 'sad' : null });
     if (!moving) { X.fillStyle = INK; X.fillRect(-7, -20, 14, 3); }                                       // tight-lipped
     X.restore();
     if ((look || (mine && tellOf(role, T) > 0)) && !moving && ck < 0) sweat(k.x + 20, y - 50, 1, T + r);
@@ -658,7 +658,7 @@ function demo(role, tm) {
   const x = 230 + (u < 1.3 ? u : 1.3 + Math.max(0, u - 3.1)) * 40, bob = moving ? Math.abs(Math.sin(tm * 12)) * 5 : 0;
   X.save(); X.translate(x, 200 - bob);
   if (moving) arms(3.4, .8, 1.05, .8, '#FFC93C'); else arms(3.4, -.15, 1.45, 1, '#FFC93C');
-  claude(0, 0, 3.4, { col: '#FFC93C' }); X.restore();
+  caos(0, 0, 3.4, { col: '#FFC93C' }); X.restore();
   demoFinger(x + 70, 226, moving, moving ? (tm * 1.8) % 1 : 0);
   txt(moving ? 'HOLD TO SNEAK' : 'FREEZE!', role === 0 ? 380 : 250, 30, 24, moving ? '#fff' : '#ff4d5e');
 }

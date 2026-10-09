@@ -1,7 +1,7 @@
 'use strict';
 /* ═════════ DUO · SPLIT KEYBOARD (du_keys), after Just My Type (Move It!) ═════════
    A giant typewriter is writing a love letter, and its keyboard has been sawn in half: 8 letters, 4 per player.
-   LEFT HAND (role 0, the JUDGE) owns the 4 keys left of the crack, RIGHT HAND (role 1) the 4 on the right. Two tiny Claudes
+   LEFT HAND (role 0, the JUDGE) owns the 4 keys left of the crack, RIGHT HAND (role 1) the 4 on the right. Two tiny Caoses
    stomp on the giant keys. The 2-3 words (seeded, built only from those 8 letters) need both halves, so the players take turns
    letter by letter. A wrong key types a silly letter, a doodle (a loaf, a fish...) lands in the margin and that half jams for
    JAM s. All the words in time: the letter folds into a paper plane and bonks the crush across the street on the head.
@@ -30,7 +30,7 @@ const KY = 450, KR = 27;                                  // the key row
 const KX = [70, 136, 202, 268, 352, 418, 484, 550];       // left half (role 0) | crack at x=310 | right half (role 1)
 const SPL = 310;
 const WIN = [596, 80, 170, 340];                          // the window (x, y, w, h); the crush stands on a balcony across the street
-const CRX = 676, CRY = 342, CU = 6.2;                     // the crush: feet (behind the railing) + claude() unit
+const CRX = 676, CRY = 342, CU = 6.2;                     // the crush: feet (behind the railing) + caos() unit
 const HEADP = [CRX, CRY - 9 * CU];                        // where the paper plane lands
 const BIN = [720, 470];                                   // the waste basket full of failed drafts
 const JAM = .55, RET = .2, TOL = .3;                      // a typo jams that half for JAM s (longer each time the same letter is missed); a finished word
@@ -207,7 +207,7 @@ function keyCap(x, y, ch, rim, o) {
 /* the crush: a pink critter with a bow and eyelashes; mood 'read' | 'huh' | 'love' | 'meh' */
 function crush(x, y, u, mood, T, look) {
   const col = '#ff8fc4';
-  claude(x, y, u, { col, mood: mood === 'love' ? 'happy' : mood === 'meh' ? 'sad' : null });
+  caos(x, y, u, { col, mood: mood === 'love' ? 'happy' : mood === 'meh' ? 'sad' : null });
   const ey = y - 6.2 * u;
   X.strokeStyle = INK; X.lineWidth = 2.5; X.lineCap = 'round';
   if (mood === 'read' || mood === 'huh') for (const sx of [-1, 1]) { const ex = x + sx * 2.8 * u; X.beginPath(); X.moveTo(ex - .7 * u, ey - 1.3 * u); X.lineTo(ex - 1.2 * u, ey - 2 * u); X.moveTo(ex + .7 * u, ey - 1.3 * u); X.lineTo(ex + 1.2 * u, ey - 2 * u); X.stroke(); }
@@ -292,7 +292,7 @@ function duKeys(sp, D) {
   const done = SEQ.map(() => false), jit = SEQ.map(() => [(cr() - .5) * 2.4, (cr() - .5) * 2.4, (cr() - .5) * .12]);
   let cur = 0, ending = null, allAt = -1, resAt = -1, nTypo = 0, wordAt = -9, wordW = -1, strikeAt = -9, strikeK = -1, lookAt = -9, waitAt = -9, sparkled = false, bonked = false, lost = false;
   const typos = [], doodles = [], pops = [], bits = [], jamTo = [-9, -9], keyAt = KEYS.map(() => -9), miss = SEQ.map(() => 0);
-  const on = [1, 2], hopAt = [-9, -9], hopFrom = [1, 2];             // which key (0..3 of its half) each Claude stands on
+  const on = [1, 2], hopAt = [-9, -9], hopFrom = [1, 2];             // which key (0..3 of its half) each Caos stands on
   let px = PX - MARG - LW / 2, py = 0, spin = 0, zipped = false;
   const myCol = () => { try { const m = typeof me === 'function' && me(); return (m && m.color) || '#FFE14D'; } catch (e) { return '#FFE14D'; } };
   const pCol = () => (D.partner && D.partner.color) || '#6EA8FE';
@@ -398,13 +398,13 @@ function duKeys(sp, D) {
       const [vw, vj] = view(), atEnd = T - wordAt < RET;
       carriage(px, atEnd ? 1 : clamp((PX - MARG - LW / 2 - vj * LW - px) / 120, 0, 1));
       if (sad && rk < 1.2) for (let i = 0; i < 3; i++) { const k = ((T * 1.2 + i / 3) % 1); X.globalAlpha = (1 - k) * .8; X.beginPath(); X.arc(PX - 120 + i * 120 + Math.sin(T * 4 + i) * 8, 268 - k * 80, 10 + k * 14, 0, TAU); X.fillStyle = '#ece8f5'; X.fill(); X.globalAlpha = 1; }
-      // the keys + the two Claudes stomping on them
+      // the keys + the two Caoses stomping on them
       const nx = cur < N && !won && !g.result && !(T - wordAt < RET) ? SEQ[cur] : null;
       for (let k = 0; k < 8; k++) {
         const o = ownerOf(k), mine = o === role, jam = jamTo[o] > T && !g.result;
         keyCap(KX[k], KY, KEYS[k], colOf(o), { down: T - keyAt[k] < .1, lit: !!nx && nx.o === o && mine && !jam, mine, jam });
       }
-      for (const r of [0, 1]) claudeOn(r, T, won, wk, sad);
+      for (const r of [0, 1]) caosOn(r, T, won, wk, sad);
       pill(180, 532, role === 0 ? 'YOU' : 'YOUR FRIEND', colOf(0), true);
       pill(440, 532, role === 1 ? 'YOU' : 'YOUR FRIEND', colOf(1), true);
       // whose turn: a banner over the half that has to press now
@@ -437,7 +437,7 @@ function duKeys(sp, D) {
     X.restore();
     for (const [hx, hy, s] of [[24, 96, .55], [138, 112, .7], [130, 206, .5], [20, 214, .6]]) heart(hx, hy + Math.sin(T * 2 + hx) * 2, s, '#ff4d7e');
   }
-  function crushMini(x, y, u, T) { claude(x, y, u, { col: '#ff8fc4' }); X.save(); X.translate(x + 3.4 * u, y - 9.2 * u); poly([[0, 0], [-2.6 * u, -1.6 * u], [-2.6 * u, 1.4 * u]]); ink('#ff2f6d', 2); poly([[0, 0], [2.6 * u, -1.6 * u], [2.6 * u, 1.4 * u]]); ink('#ff2f6d', 2); X.restore(); }
+  function crushMini(x, y, u, T) { caos(x, y, u, { col: '#ff8fc4' }); X.save(); X.translate(x + 3.4 * u, y - 9.2 * u); poly([[0, 0], [-2.6 * u, -1.6 * u], [-2.6 * u, 1.4 * u]]); ink('#ff2f6d', 2); poly([[0, 0], [2.6 * u, -1.6 * u], [2.6 * u, 1.4 * u]]); ink('#ff2f6d', 2); X.restore(); }
   function wasteBasket(T, rk) {
     const [bx, by] = BIN;
     for (const [ox, oy, r] of [[-20, -44, 13], [6, -50, 14], [26, -40, 12], [-4, -36, 12]]) ball(bx + ox, by + oy, r, ox);
@@ -525,8 +525,8 @@ function duKeys(sp, D) {
     }
     if (wk > .8 && wk < 1.4) { const a = wk - .8; badge('BONK!', HEADP[0] - 46, HEADP[1] - 74 - a * 20, 26, '#ff4d9e', '#fff', a < .15 ? outBack(a / .15) : 1, -.12); }
   }
-  /* a Claude on top of its current key: hops key to key, stomps, gets dizzy on a jam, cheers or droops at the end */
-  function claudeOn(r, T, won, wk, sad) {
+  /* a Caos on top of its current key: hops key to key, stomps, gets dizzy on a jam, cheers or droops at the end */
+  function caosOn(r, T, won, wk, sad) {
     const base = r === 0 ? 0 : 4, k = clamp((T - hopAt[r]) / .1, 0, 1), xa = KX[base + hopFrom[r]], xb = KX[base + on[r]];
     let x = lerp(xa, xb, ease(k)), y = KY - KR + 2 - Math.sin(k * Math.PI) * (xa === xb ? 10 : 22);
     const stomp = T - keyAt[base + on[r]] < .1; if (stomp) y += 7;
@@ -535,7 +535,7 @@ function duKeys(sp, D) {
     const sq = stomp ? 1.15 : 1;
     X.save(); X.translate(x, y); X.scale(sq, 2 - sq);
     shadow(0, 2, 18, 4, .25);
-    claude(0, 0, 3, { col: colOf(r), mood: cheer ? 'happy' : sad || jam ? 'sad' : null });
+    caos(0, 0, 3, { col: colOf(r), mood: cheer ? 'happy' : sad || jam ? 'sad' : null });
     X.restore();
     if (jam) for (let i = 0; i < 3; i++) { const a = T * 8 + i * TAU / 3; star(x + Math.cos(a) * 18, y - 34 + Math.sin(a) * 5, 6, 2.5, 5, a, '#FFE14D', 2); }
     if (sad) { X.globalAlpha = .9; el(x + 14, y - 26 + ((T * 30) % 10), 3, 4.5); ink('#9fe3ff', 2); X.globalAlpha = 1; }
@@ -576,7 +576,7 @@ function demo(role, T) {
     X.beginPath(); X.arc(x, y + 4, 22, 0, TAU); ink('#8f96a8', 3); X.beginPath(); X.arc(x, y, 22, 0, TAU); ink(o ? '#6EA8FE' : '#FFC93C', 3);
     X.beginPath(); X.arc(x, y, 16, 0, TAU); ink(mine ? '#fffaf0' : '#d9d5e6', 2); X.font = TYPE(mine ? 26 : 22); X.fillStyle = mine ? INK : '#8a84a0'; X.fillText(DKEYS[k], x, y + 1);
   }
-  claude(DKX[tapI >= 0 && tapI % 2 === 0 ? 3 : 1], 154, 2, { col: '#FFC93C' }); claude(DKX[tapI >= 0 && tapI % 2 === 1 ? 5 : 6], 154, 2, { col: '#6EA8FE' });
+  caos(DKX[tapI >= 0 && tapI % 2 === 0 ? 3 : 1], 154, 2, { col: '#FFC93C' }); caos(DKX[tapI >= 0 && tapI % 2 === 1 ? 5 : 6], 154, 2, { col: '#6EA8FE' });
   txt(role === 0 ? 'YOU' : 'YOUR FRIEND', 75, 40, 18, '#FFC93C', 'center', 130); txt(role === 1 ? 'YOU' : 'YOUR FRIEND', 445, 40, 18, '#6EA8FE', 'center', 130);
   if (tapI >= 0 && (tapI % 2) === role) demoFinger(DKX[tapK], 196, pressNow, (ph - .55) / .45);
   else demoFinger(DKX[role === 0 ? 1 : 6], 200, false);

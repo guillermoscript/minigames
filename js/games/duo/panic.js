@@ -303,7 +303,7 @@ function paintConsole(X, role) {
 }
 
 /* ───────────── characters + props ───────────── */
-/* the Claude crew: the same blocky critter as claude(), with poses: eyes dot|panic|happy|sad, mouth yell|o|grin, arms (rad), squash */
+/* the Caos crew: the same blocky critter as caos(), with poses: eyes dot|panic|happy|sad, mouth yell|o|grin, arms (rad), squash */
 function crew(x, y, u, o) {
   const col = o.col || OR, sh = dark(col, .22), hl = lite(col, .3), ol = Math.max(2.5, u * .55), aL = o.aL || 0, aR = o.aR || 0, sq = o.sq || 1;
   ctx.save(); ctx.translate(x, y); if (o.rot) ctx.rotate(o.rot); ctx.scale(u / Math.sqrt(sq), u * sq);
@@ -800,7 +800,7 @@ function duPanic(sp, D) {
     txt('HULL', 528, 126, 18, '#fff', 'center', 70);
     for (let i = 0; i < MAXX; i++) { const j = MAXX - 1 - i, ok = nExp <= j; shield(590 + i * 32, 126, ok, ok && nExp === MAXX - 1 && !g.result, (now - shieldAt[j]) / .45); }
   }
-  /* the Claude crew stand ON the desk, in the gaps between the control bays: panic, cheer on every done order,
+  /* the Caos crew stand ON the desk, in the gaps between the control bays: panic, cheer on every done order,
      launch into a big arms-up jump on a win, keel over onto the desk (dizzy) on a loss */
   const CREWX = [271, 529], DESK = 414, GEAR = judge ? 'cap' : 'hard';
   function drawCrew(dt, panic, res) {

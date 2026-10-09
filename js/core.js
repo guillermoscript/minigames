@@ -14,7 +14,7 @@ function fitScreen() {
   cv.style.width = VW * k + 'px'; cv.style.height = H * k + 'px';
 }
 addEventListener('resize', fitScreen); fitScreen();
-const INK = '#14101c', OR = '#D97757';
+const INK = '#14101c', OR = '#FF6B3D';
 let muted = false, now = 0;
 
 /* ───────────── sound ───────────── */
@@ -164,24 +164,50 @@ function bg(color, ray, t) {
   for (let y = 10; y < H; y += 28) for (let x = (y / 28 & 1) * 14 + 6 - Math.ceil(OX / 28) * 28; x < W + OX; x += 28) { ctx.beginPath(); ctx.arc(x, y, 3, 0, 7); ctx.fill(); }
 }
 
-/* The Claude Code mascot: a blocky orange crab-critter. x = centre, y = bottom of feet, u = pixel unit */
-function claude(x, y, u, o = {}) {
+/* Caos, the MiniCaos mascot: a little lit bomb. x = centre, y = bottom of feet, u = pixel unit.
+   Same footprint as the old blocky mascot (body x±6u from y-9u to y-2u, side stubs at y-6.5u, eyes at y-6.2u)
+   so every prop a microgame draws on it (hats, hands, held items) still lines up. The fuse and spark sit above the body.
+   o.fuse (0..1) shortens the fuse, e.g. to follow a timer. */
+function caos(x, y, u, o = {}) {
   const c = o.col || OR, ol = Math.max(3, u * .5), mood = o.mood;
   const wave = mood === 'happy' ? Math.sin(now * 14) * 1.4 * u : 0;
-  const legs = [-5, -2.6, 1.4, 3.8].map((lx, i) => {
+  const legs = [-3.6, 2].map((lx, i) => {
     const lift = o.run != null ? Math.max(0, Math.sin(o.run * 16 + i * Math.PI)) * 1.1 * u : 0;
-    return [x + lx * u, y - 2 * u - lift * 0 , 1.2 * u, 2 * u - lift];
+    return [x + lx * u, y - 2 * u, 1.6 * u, 2 * u - lift];
   });
-  const shapes = [
-    [x - 6 * u, y - 9 * u, 12 * u, 7 * u],
+  const cap = [x - 1.5 * u, y - 12.2 * u, 3 * u, 1.6 * u];
+  const shapes = [                                   // a round bomb: three stacked rows, a bit taller than the old block (hats sit slightly lower)
+    [x - 6 * u, y - 8.6 * u, 12 * u, 5.8 * u],
+    [x - 5 * u, y - 10 * u, 10 * u, 8.4 * u],
+    [x - 3.6 * u, y - 10.8 * u, 7.2 * u, 9.6 * u],
     [x - 8 * u, y - 6.5 * u - wave, 2 * u, 2.4 * u],
     [x + 6 * u, y - 6.5 * u + wave, 2 * u, 2.4 * u],
-    ...legs.map(l => [l[0], y - 2 * u, l[2], l[3]])
+    cap,
+    ...legs
   ];
   ctx.fillStyle = INK;
   for (const s of shapes) ctx.fillRect(s[0] - ol, s[1] - ol, s[2] + ol * 2, s[3] + ol * 2);
   ctx.fillStyle = c;
   for (const s of shapes) ctx.fillRect(s[0], s[1], s[2], s[3]);
+  ctx.fillStyle = '#9a8fb5'; ctx.fillRect(cap[0], cap[1], cap[2], cap[3]);
+  ctx.fillStyle = 'rgba(255,255,255,.4)'; ctx.fillRect(x - 4 * u, y - 9.2 * u, 1.4 * u, 1.8 * u);
+  // fuse: a short curl out of the cap, burning at the tip (out and smoking when sad)
+  const f = o.fuse == null ? 1 : Math.max(0, Math.min(1, o.fuse)), seg = Math.max(1, Math.round(5 * f));
+  const fx = k => x + Math.sin(k * 2) * 1.6 * u, fy = k => y - 12.2 * u - k * 2.6 * u;
+  ctx.lineCap = 'round';
+  for (const [col, lw] of [[INK, u * 1.1], ['#e8d6a8', u * .45]]) {
+    ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.beginPath(); ctx.moveTo(fx(0), fy(0));
+    for (let i = 1; i <= seg; i++) ctx.lineTo(fx(i / 5), fy(i / 5));
+    ctx.stroke();
+  }
+  const sx = fx(seg / 5), sy = fy(seg / 5);
+  if (mood === 'sad') {
+    ctx.fillStyle = 'rgba(210,205,225,.55)'; const p = now * 1.5 % 1; ctx.fillRect(sx - .5 * u + p * u, sy - (1 + p * 2) * u, u, u);
+  } else {
+    const fl = 1 + .35 * Math.sin(now * 30);
+    ctx.fillStyle = '#FFE14D'; ctx.fillRect(sx - 1.2 * u * fl, sy - .35 * u, 2.4 * u * fl, .7 * u); ctx.fillRect(sx - .35 * u, sy - 1.2 * u * fl, .7 * u, 2.4 * u * fl);
+    ctx.fillStyle = '#fff'; ctx.fillRect(sx - .35 * u, sy - .35 * u, .7 * u, .7 * u);
+  }
   // eyes
   const ex = [x - 2.8 * u, x + 2.8 * u], ey = y - 6.2 * u;
   ctx.strokeStyle = INK; ctx.fillStyle = INK; ctx.lineWidth = Math.max(2, u * .55); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
@@ -202,7 +228,7 @@ function claude(x, y, u, o = {}) {
 /* ───────────── particles ───────────── */
 const parts = [];
 function confetti(x, y, n = 40) {
-  const cols = ['#FFE14D', '#5CFF7A', '#4DB8FF', '#FF4D9E', '#D97757', '#fff'];
+  const cols = ['#FFE14D', '#5CFF7A', '#4DB8FF', '#FF4D9E', '#FF6B3D', '#fff'];
   for (let i = 0; i < n; i++) {
     const a = Math.random() * 6.28, v = 150 + Math.random() * 450;
     parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 200, c: cols[i % cols.length], life: 1 + Math.random(), r: Math.random() * 6 });

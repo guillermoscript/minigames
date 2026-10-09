@@ -1,6 +1,6 @@
 'use strict';
 /* ═════════ DUO · DUET (du_beat) ═════════
-   Two Claude mariachis serenade a grumpy walrus critic in his theatre box. Each singer owns one spotlight: notes fall down
+   Two Caos mariachis serenade a grumpy walrus critic in his theatre box. Each singer owns one spotlight: notes fall down
    it and the singer taps as a note's head crosses the ring above the sombrero (anywhere on the screen, or Space).
    Every tap is judged on the tapper's own screen against the ring it sees: PERFECT (±85 ms) = 2 claps, GOOD (±160 ms) = 1,
    a note that slips past untapped = MISS (it drops on the sombrero), a tap with no note in reach = a SOUR note (−1 clap).
@@ -548,7 +548,7 @@ function duBeat(sp, D) {
       const L = 3.2 * u, aw = 1.2 * u; X.fillStyle = INK; X.fillRect(-aw / 2 - 3, -L - 3, aw + 6, L + 6); X.fillStyle = col; X.fillRect(-aw / 2, -L, aw, L);
       maraca(0, -L - 2, sx * .2, l ? '#5CFF7A' : '#ff6b9e'); X.restore();
     }
-    claude(0, 0, u, { col, mood: won ? 'happy' : dizzy || lost ? 'sad' : null });
+    caos(0, 0, u, { col, mood: won ? 'happy' : dizzy || lost ? 'sad' : null });
     // mustache (left singer) + mouth
     const my = -3.4 * u;
     if (sour > 0) { X.strokeStyle = INK; X.lineWidth = 4; X.beginPath(); for (let i = 0; i <= 6; i++) X.lineTo(-12 + i * 4, my + 3 + (i % 2 ? -3 : 3)); X.stroke(); X.fillStyle = 'rgba(140,220,90,.55)'; el(0, -6 * u, 6 * u, 2.6 * u); X.fill(); }
@@ -656,7 +656,7 @@ function demo(role, tt) {
     for (const h of H2) { const y = DHY - (h - u) * VYd; if (u < h && y > -20) { X.globalAlpha = mineL ? 1 : .6; note(x, y, mineL ? .72 : .62, col, false, 0); X.globalAlpha = 1; } }
     // the singer
     const sing = H2.some(h => u >= h && u - h < .3);
-    X.save(); X.translate(x, 214 - (sing ? 4 : 0)); claude(0, 0, 3, { col, mood: sing ? 'happy' : null }); sombrero(0, -29, .48, l ? '#2ec27e' : '#e8434f', 0);
+    X.save(); X.translate(x, 214 - (sing ? 4 : 0)); caos(0, 0, 3, { col, mood: sing ? 'happy' : null }); sombrero(0, -29, .48, l ? '#2ec27e' : '#e8434f', 0);
     if (sing) { el(0, -9, 5, 6); ink('#7a1838', 2); }
     X.restore();
     const hk = H2.map(h => u - h).find(a => a >= 0 && a < .45);

@@ -292,7 +292,7 @@
         rr(ex - 10, 516, 20, 36, 9); ink('#7a4a2a', 3);
         X.strokeStyle = INK; X.lineWidth = 7; X.lineCap = 'round'; X.beginPath(); X.moveTo(ex - 58, BY + 36); X.lineTo(ex + 104, BY + 36); X.moveTo(ex - 56, BY + 36); X.lineTo(ex - 56, BY + 56); X.moveTo(ex + 102, BY + 36); X.lineTo(ex + 102, BY + 56); X.stroke();
         X.strokeStyle = '#cfd8e6'; X.lineWidth = 3; X.stroke();
-        { const kk = won ? Math.abs(Math.sin(now * 9)) * 8 : 0; ctx.save(); claude(ex + 86, BY + 56 - kk, 4.4, { mood: won ? 'happy' : lost ? 'sad' : '' }); ctx.restore(); }
+        { const kk = won ? Math.abs(Math.sin(now * 9)) * 8 : 0; ctx.save(); caos(ex + 86, BY + 56 - kk, 4.4, { mood: won ? 'happy' : lost ? 'sad' : '' }); ctx.restore(); }
         rr(ex - 62, BY + 56, 170, 13, 5); ink('#a7b3c4', 4); X.fillStyle = 'rgba(255,255,255,.4)'; rr(ex - 56, BY + 58, 158, 3, 1.5); X.fill();
         const q = bq * .5, hy = BY + 40; X.save(); X.translate(ex, hy); X.scale(1 + q, 1 - q); X.translate(-ex, -hy);
         for (let j = 0; j < 3; j++) { rr(ex - 20 + j * 2, BY + 38 + j * 7, 40 - j * 4, 6, 3); ink(j % 2 ? '#a7b3c4' : '#d6dde8', 2.5); }

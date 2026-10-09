@@ -350,7 +350,7 @@ const MODE_NEXT = { versus: 'team', team: 'duo', duo: 'survival', survival: 'kno
 const partyMode = () => partyAct('mode', { mode: MODE_NEXT[party.room.mode] || 'versus' });
 const partyAgain = () => partyAct('again');
 async function partyInvite() {
-  const R = party.room, url = location.origin + '/r/' + R.code, text = t('Join my Claude Ware room! Code: {code}', { code: R.code });
+  const R = party.room, url = location.origin + '/r/' + R.code, text = t('Join my MiniCaos room! Code: {code}', { code: R.code });
   track('share_click', { surface: 'party', native: !!navigator.share });
   const r = await shareText(text, url);
   if (r === 'copied') say('LINK COPIED! SEND IT TO YOUR FRIENDS', '#5CFF7A'); else if (r === 'failed') say('COULDN\'T SHARE', '#FF4D4D');
@@ -513,12 +513,12 @@ function drawPartyModeIntro(left) {
   /* the actor's banner */
   const dyb = K.btn(40, 78, 720, 62, '', null, { fill: color, depth: 7 });
   txt(mine ? 'YOUR TURN TO PLAY!' : t('{name} IS PLAYING', { name: actor.name.toUpperCase() }), W / 2, 110 + dyb, 36, INK, 'center', 640);
-  /* the hero: Claude on a little stage, with its name tag */
+  /* the hero: Caos on a little stage, with its name tag */
   const bob = Math.abs(Math.sin(T * 3)) * 6;
   ctx.save(); ctx.fillStyle = 'rgba(20,16,28,.28)'; ctx.beginPath(); ctx.ellipse(W / 2 + 4, 258, 100 - bob, 12, 0, 0, 7); ctx.fill();
   U.rr(W / 2 - 84, 246, 168, 20, 10); U.ink(U.shade(actor.color, .38), 3);
   ctx.save(); U.rr(W / 2 - 84, 246, 168, 20, 10); ctx.clip(); ctx.fillStyle = actor.color; U.rr(W / 2 - 84, 242, 168, 20, 10); ctx.fill(); ctx.restore(); ctx.restore();
-  claude(W / 2, 252 - bob, 7.4, { col: actor.color, mood: 'happy' });
+  caos(W / 2, 252 - bob, 7.4, { col: actor.color, mood: 'happy' });
   if (R.mode === 'balloon') {
     partyBalloonDraw(690, 190, 30, partyBalloonShown(R), {});
   }
@@ -535,7 +535,7 @@ function drawPartyModeIntro(left) {
   if (!go) U.dots(W / 2, 542, 5, clamp(Math.round(5 * (1 - left / pre)), 0, 5), { r: 7, col: '#5CFF7A', t: T });
   if (R.mode === 'cards') txt(partyCardReveal(R), W / 2, 566, 20, '#F28CB1', 'center', 730);
 }
-function mini(x, y, p, u) { claude(x, y, u, { col: p.color }); }
+function mini(x, y, p, u) { caos(x, y, u, { col: p.color }); }
 
 function drawParty() {
   const R = party.room, v = party.view;

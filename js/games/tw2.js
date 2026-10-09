@@ -59,7 +59,7 @@
       X.save(); X.globalAlpha = cl(a, 0, 1); X.translate(x, y); X.scale(s, s); X.lineJoin = 'round'; X.lineCap = 'round';
       X.beginPath(); X.moveTo(-6, -7); X.lineTo(6, -7); X.lineTo(-6, 7); X.lineTo(6, 7); X.lineWidth = 9; X.strokeStyle = INK; X.stroke(); X.lineWidth = 4; X.strokeStyle = '#fff'; X.stroke(); X.restore();
     };
-    /* blocky Claude arms (hippo.js): origin at Claude's feet, drawn before claude() */
+    /* blocky Caos arms (hippo.js): origin at Caos's feet, drawn before caos() */
     K.arms = (u, la, ra, k, col = OR) => {
       if (k <= .02) return; const ol = Math.max(3, u * .5), L = 3.3 * u * k, aw = 1.2 * u, hs = 2 * u, gap = .35 * u;
       const one = (sx, an) => {
@@ -339,7 +339,7 @@
           X.globalAlpha = 1;
         }
         for (const q of cones) coneAt(X, q, car, T, spin);
-        // the car (top view) with Claude at the wheel
+        // the car (top view) with Caos at the wheel
         const lean = tl.n * .12 + (res ? Math.sin(spin) * .4 : 0), hop = res === 'win' ? Math.abs(Math.sin(c * 9)) * 9 : 0;
         if (!res) for (let i = 0; i < 3; i++) { const k = (c * 1.6 + i / 3) % 1; K.puff(x - tl.n * 14 * k, 506 + k * 44, 5 + k * 9, (1 - k) * .75, '#e8e4f0'); }
         X.save(); X.translate(x, 455 - hop); X.rotate(lean);
@@ -353,7 +353,7 @@
         for (const s of [-1, 1]) { el(s * 14, -43, 6, 3.4); ink('#ffe14d', 2); el(s * 15, 41, 5, 2.8); ink('#ff2d3d', 2); }
         glint(body, -14, -30, 5, 2.6, .45, -.4);
         X.restore();
-        claude(x, 462 - hop, 2.4, { mood: sad(g) });
+        caos(x, 462 - hop, 2.4, { mood: sad(g) });
         if (res === 'lose') { for (let i = 0; i < 3; i++) { const a = T * 5 + i * 2.1; K.star(x + Math.cos(a) * 30, 410 - hop + Math.sin(a) * 8, 8, 3.5, 5, a, '#FFE14D', 2.5); } K.puff(x + 24, 424, 11 + Math.min(10, ot * 14), 1 - clamp(ot * .9, 0, .6), '#9a96a8'); }
         if (res === 'win') for (let i = 0; i < 2; i++) { const k = clamp(ot * 1.2 - i * .25, 0, 1); if (k > 0 && k < 1) K.heart(x + (i ? 36 : -36), 420 - k * 60, .9, 1 - k * k); }
         // the steering wheel (the tilt readout): chunky ring, three spokes, a hub that watches
@@ -506,7 +506,7 @@
     return g;
   }
 
-  /* ── 4 BALANCE: keep Claude upright on a giant watermelon against gusts (ants on the rind) ── */
+  /* ── 4 BALANCE: keep Caos upright on a giant watermelon against gusts (ants on the rind) ── */
   function skateBg(X) {
     const sk = X.createLinearGradient(0, 0, 0, 340); sk.addColorStop(0, '#3fb0ff'); sk.addColorStop(.55, '#8fdcff'); sk.addColorStop(1, '#e6fbff'); X.fillStyle = sk; X.fillRect(-OX, 0, VW, H);
     X.fillStyle = '#c9d0fb'; X.beginPath(); X.moveTo(-OX, 330); for (let x = -OX; x <= W + OX + 40; x += 40) X.lineTo(x, 280 - 46 * Math.abs(Math.sin(x * .012 + .4))); X.lineTo(W + OX, 330); X.closePath(); X.fill();
@@ -586,7 +586,7 @@
         if (res === 'lose') X.translate(lsg * lox * 1.25, loy * 1.3 - 40);
         const flail = Math.abs(bal), la = res === 'lose' ? -2.5 + Math.sin(T * 30) * .3 : -1.25 + bal * .45 - Math.sin(T * 13) * .18 * flail, ra = res === 'lose' ? 2.5 - Math.sin(T * 30) * .3 : 1.25 + bal * .45 + Math.sin(T * 13 + 1) * .18 * flail;
         K.arms(5.2, la, ra, 1);
-        claude(0, 0, 5.2, { mood: sad(g) });
+        caos(0, 0, 5.2, { mood: sad(g) });
         rr(-31, -53, 62, 14, 7); ink('#ffd23f', 3.5); X.fillStyle = 'rgba(255,255,255,.4)'; rr(-22, -50, 26, 5, 2.5); X.fill();
         if (flail > .55 && !res) { K.sweat(40, -42, 1.2, T); K.sweat(-40, -40, 1.1, T + .4); }
         if (res === 'lose') for (let i = 0; i < 3; i++) { const a = T * 7 + i * 2.1; K.star(Math.cos(a) * 40, -59 + Math.sin(a) * 10, 9, 4, 5, a, '#FFE14D', 2.5); }

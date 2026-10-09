@@ -15,7 +15,7 @@
       }
     }
   }
-  /* pixel Claude. x = centre, y = bottom of feet, c = cell size */
+  /* pixel Caos. x = centre, y = bottom of feet, c = cell size */
   function cl(x, y, c, mood, armsUp) {
     R(x - 7 * c, y - 8 * c, 14 * c, 6 * c, 0); R(x - 6 * c, y - 7 * c, 12 * c, 4 * c, 2);
     const ay = armsUp ? y - 9 * c : y - 6 * c;
@@ -162,7 +162,7 @@
         const dn = anim > 0 ? Math.sin(Math.min(1, (.22 - anim) / .22) * Math.PI) : 0, sy = 70 + dn * 130;
         R(SX - 8, 0, 16, sy, 1); R(SX - 32, sy, 64, 24, 0); R(SX - 24, sy + 24, 48, 24, 1); R(SX - 40, sy + 48, 80, 20, 0); R(SX - 32, sy + 62, 64, 6, 2);
         R(SX - 6, 150 + 90, 12, 4, 3);
-        // claude clerk
+        // caos clerk
         cl(690, 560, 6, g.result === 'lose' ? 'sad' : g.result === 'win' ? 'happy' : null, g.result === 'win');
         for (let i = 0; i < 3; i++) { R(24 + i * 40, 24, 32, 32, 0); R(28 + i * 40, 28, 24, 24, i < good ? 0 : 3); }
         fxDraw();
@@ -297,7 +297,7 @@
         const fr = Math.floor(now * 3) % 2 ? A : B;
         for (const v of inv) if (v.alive) spr(fr, px(v), py(v), 6);
         for (const b of bul) { R(b.x - 4, b.y, 8, 20, 0); R(b.x - 2, b.y + 4, 4, 8, 3); }
-        // cannon-Claude
+        // cannon-Caos
         R(cx - 12, CY - 48 - 26 + (rec > 0 ? 6 : 0), 24, 26, 0); R(cx - 6, CY - 48 - 20 + (rec > 0 ? 6 : 0), 12, 18, 1);
         if (rec > .05) { R(cx - 10, CY - 96, 20, 8, 3); R(cx - 4, CY - 106, 8, 8, 3); }
         cl(cx, CY, 6, g.result === 'lose' ? 'sad' : g.result === 'win' ? 'happy' : null, g.result === 'win');

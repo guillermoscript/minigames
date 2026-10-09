@@ -156,13 +156,13 @@
     const p = new Path2D(); for (let i = 0; i < 14; i++) { const an = i * Math.PI / 7, rr_ = r * (i % 2 ? .62 : 1) * (.8 + hs(i) * .4); const px = x + Math.cos(an) * rr_ * 1.5, py = y + Math.sin(an) * rr_ * .4; i ? p.lineTo(px, py) : p.moveTo(px, py); } p.closePath();
     celP(p, '#ff4d5e', '#b8283a', 3.5, -2, -2); glint(x - r * .5, y - 3, r * .3, 3, 0, .6);
   }
-  function arms(cx, cy, u, r) {   // blocky arms, r: 0 hanging .. 1 straight up; drawn before claude()
+  function arms(cx, cy, u, r) {   // blocky arms, r: 0 hanging .. 1 straight up; drawn before caos()
     const ol = Math.max(3, u * .5), L = 3.3 * u, aw = 1.2 * u, hs_ = 2 * u, ang = (1 - r) * Math.PI * .85;
     for (const sx of [-1, 1]) { X.save(); X.translate(cx + sx * 6.6 * u, cy - 5.2 * u); X.rotate(sx * ang);
       X.fillStyle = INK; X.fillRect(-aw / 2 - ol, -L - ol, aw + ol * 2, L + ol * 2); X.fillRect(-hs_ / 2 - ol, -L - .35 * u - hs_ - ol, hs_ + ol * 2, hs_ + ol * 2);
       X.fillStyle = OR; X.fillRect(-aw / 2, -L, aw, L); X.fillRect(-hs_ / 2, -L - .35 * u - hs_, hs_, hs_); X.fillStyle = 'rgba(255,255,255,.35)'; X.fillRect(-hs_ / 2, -L - .35 * u - hs_, hs_ * .45, hs_ * .4); X.restore(); }
   }
-  function chefHat(x, y, rot) {   // paper chef hat sitting on Claude's head (eyes stay clear)
+  function chefHat(x, y, rot) {   // paper chef hat sitting on Caos's head (eyes stay clear)
     X.save(); X.translate(x, y); X.rotate(rot);
     const puffs = [[-18, -20, 14], [0, -30, 18], [18, -20, 14]]; J(); X.strokeStyle = INK; X.lineWidth = 7;
     for (const [px, py, pr] of puffs) { X.beginPath(); X.arc(px, py, pr, 0, 7); X.stroke(); } X.fillStyle = '#fff'; for (const [px, py, pr] of puffs) { X.beginPath(); X.arc(px, py, pr, 0, 7); X.fill(); }
@@ -245,7 +245,7 @@
           if (f.u >= 1) {
             fly.splice(i, 1); stack.push({ k: f.k, sq: 1 }); wob = Math.min(2.4, wob + .5 + stack.length * .08); landSfx(f.k); burst(CX, ty, '#fff', 5, 160);
             if (f.k === 'top') { phase = 'ready'; win = win0; ring(CX, ty - 30, '#FFE14D', 120, .3); }
-            else if (DECOY[f.k]) cl.hopIn = .3;   // Claude notices a beat later
+            else if (DECOY[f.k]) cl.hopIn = .3;   // Caos notices a beat later
           }
         }
       },
@@ -300,13 +300,13 @@
         for (const d of debris) piece(d.k, d.x, d.y, d.r, 0, SC);
         if (gl) { gull(gl.x, gl.y, now * 22, 1, 'thief', 1.5, false, now);
           if (gl.t > .3) for (let i = 0; i < 6; i++) { const ag = gl.t - .3, fx = CX + (hs(i) - .5) * 240 + Math.sin(ag * 5 + i) * 16, fy = Math.min(520, 330 + ag * (70 + hs(i + 5) * 60) + hs(i + 9) * 60); X.save(); X.translate(fx, fy); X.rotate(Math.sin(ag * 4 + i) * .8); celP(elP(0, 0, 14, 5), '#fff', '#d3d9ea', 2.5, -1, -1); X.restore(); } }
-        // Claude at the counter: watches nervously, hops on decoys, chomps at the end
+        // Caos at the counter: watches nervously, hops on decoys, chomps at the end
         const nerv = phase === 'ready' && !g.result ? Math.sin(now * 40) * 2 : 0, u = 6.5, cx = cl.x + nerv, cy = 512 - Math.sin(cl.hop * Math.PI) * 34;
         const mood = g.result === 'lose' ? 'sad' : g.result === 'win' || phase === 'served' ? 'happy' : null;
         shadow(cl.x, 514, 50, 10);
         const rz = g.result === 'win' ? 1 : g.result === 'lose' ? .05 : phase === 'ready' ? .72 : phase === 'served' ? .9 : .18 + Math.sin(now * 1.6) * .03;
         arms(cx, cy, u, rz);
-        claude(cx, cy, u, { mood });
+        caos(cx, cy, u, { mood });
         chefHat(cx, cy - 9 * u + Math.sin(now * 3.1) * .8, g.result === 'win' ? Math.sin(now * 9) * .12 : 0);
         if ((phase === 'ready' || how === 'late' || how === 'early') && Math.floor(now * 3) >= 0) { const sw = (now * .9 + (how ? .3 : 0)) % 1; X.fillStyle = '#9fe3ff'; X.globalAlpha = 1 - sw * .8; X.beginPath(); X.ellipse(cx + 40, cy - 54 + sw * 26, 4, 6, 0, 0, 7); X.fill(); X.strokeStyle = INK; X.lineWidth = 2; X.stroke(); X.globalAlpha = 1; }
         if (how === 'bite') for (let i = 0; i < 6; i++) { const ag = resT - i * .09 - .1; if (ag > 0 && ag < 1.2) { X.globalAlpha = Math.min(1, (1.1 - ag) * 3); heart(cl.x + (hs(i) - .5) * 70, 430 - ag * 110, 9 + hs(i + 3) * 5); X.globalAlpha = 1; } }

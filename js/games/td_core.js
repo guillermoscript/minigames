@@ -72,15 +72,25 @@ const T3 = (() => {
       cone: (r, h, c, ol = 1.08) => outline(new THREE.Mesh(new THREE.ConeGeometry(r, h, 14), mat(c)), ol),
     },
     add(S, o, pos) { if (pos) o.position.set(pos[0], pos[1], pos[2]); o.traverse(m => { if (m.isMesh && !m.userData.outline) { m.castShadow = true; m.receiveShadow = true; } }); S.scene.add(o); return o; },
-    /* 3D Claude mascot, same blocky crab as the 2D one. origin = bottom centre of feet, ~2.2 units tall at s=1.
+    /* Caos's bomb top for a 3D mascot: grey cap, a short curled fuse and an unlit-safe glowing spark (MeshBasic, so it reads in any light).
+       y = top of the body. Returns the spark mesh (flicker it via .scale if you like). */
+    fuse(g, y) {
+      const M = T3.mk, cap = M.cyl(.32, .36, .26, 0x9a8fb5); cap.position.set(0, y + .12, 0); g.add(cap);
+      const rope = new THREE.MeshBasicMaterial({ color: 0xe8d6a8 });
+      for (let i = 0; i < 3; i++) { const p = new THREE.Mesh(new THREE.CylinderGeometry(.07, .07, .3, 8), rope); p.position.set(Math.sin(i * .9) * .2, y + .38 + i * .26, 0); p.rotation.z = -Math.cos(i * .9) * .5; g.add(p); }
+      const spark = new THREE.Mesh(new THREE.SphereGeometry(.16, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffe14d })); spark.position.set(Math.sin(2.7) * .2, y + 1.15, 0); g.add(spark);
+      return spark;
+    },
+    /* 3D Caos mascot, same blocky shape as the 2D one. origin = bottom centre of feet, ~2.2 units tall at s=1.
        returns a Group with .legs[4], .armL, .armR, .eyes[2] for animation. */
-    claude(S, s = 1, c = OR, pos) {
+    caos(S, s = 1, c = OR, pos) {
       const g = new THREE.Group(), M = T3.mk;
       const body = M.box(3, 1.75, 1.8, c); body.position.y = 1.65; g.add(body);
       const armL = M.box(.5, .6, .6, c); armL.position.set(-1.75, 1.45, 0); g.add(armL);
       const armR = M.box(.5, .6, .6, c); armR.position.set(1.75, 1.45, 0); g.add(armR);
       g.legs = [-1.25, -.65, .35, .95].map(x => { const l = M.box(.3, .8, .4, c); l.position.set(x + .15, .4, 0); g.add(l); return l; });
       const eyes = [-.7, .7].map(x => { const e = new THREE.Mesh(new THREE.BoxGeometry(.3, .6, .2), new THREE.MeshBasicMaterial({ color: 0x14101c })); e.position.set(x, 1.75, .92); g.add(e); return e; });
+      g.fuse = T3.fuse(g, 2.52);
       g.eyes = eyes; g.armL = armL; g.armR = armR; g.body = body; g.scale.setScalar(s);
       if (S) T3.add(S, g, pos);
       return g;

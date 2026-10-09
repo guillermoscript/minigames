@@ -66,7 +66,7 @@ function bubble(s, x, y, size, sc) {
   X.fillStyle = '#fff'; X.fillRect(-6, -21, 15, 6);
   txt(s, 0, -18 - h / 2 + 2, size, INK, 'center', 200); X.restore();
 }
-function arm(u, sx, an, k, col) {                     // a thin blocky arm from claude()'s side stub (drawn before claude()); an = angle (0 = up), k = 0..1 raised
+function arm(u, sx, an, k, col) {                     // a thin blocky arm from caos()'s side stub (drawn before caos()); an = angle (0 = up), k = 0..1 raised
   if (k <= .02) return; const ol = Math.max(3, u * .5), L = 3.3 * u * k, aw = 1.2 * u, hs = 2 * u, gap = .35 * u;
   X.save(); X.translate(sx * 6.6 * u, -5.2 * u); X.rotate(an);
   X.fillStyle = INK; X.fillRect(-aw / 2 - ol, -L - ol, aw + ol * 2, L + ol * 2); X.fillRect(-hs / 2 - ol, -L - gap - hs - ol, hs + ol * 2, hs + ol * 2);
@@ -227,7 +227,7 @@ function sprayer(x, y, ax, ay, col, mood, on, T) {
   const u = 4, an = Math.atan2(ay - NZ[1], ax - NZ[0]), hx = x + 22, hy = y - 30;
   shadow(x, y + 2, 34, 6, .2);
   X.save(); X.translate(x, y); arm(u, 1, clamp(an + Math.PI / 2, .3, 2.5) - .1, .85, col); X.restore();
-  claude(x, y, u, { col, mood });
+  caos(x, y, u, { col, mood });
   squirtBottle(hx + 8, hy - 2, an, on, T);
 }
 /* the wiper arm + blade. th = angle, v = angular velocity (for the rubber to lag), dry = squeaking */
@@ -512,7 +512,7 @@ function duSqueegee(sp, D) {
       const jump = won ? Math.abs(Math.sin(T * 9)) * 14 : 0;
       X.save(); X.translate(tip[0], tip[1] - 6 - jump); X.rotate(lean);
       X.save(); X.scale(1, 1); arm(3.4, -1, won ? -.6 + Math.sin(T * 14) * .3 : -.3, 1, wcol); arm(3.4, 1, won ? .6 - Math.sin(T * 14) * .3 : .3, 1, wcol); X.restore();
-      claude(0, 0, 3.4, { col: wcol, mood: wm });
+      caos(0, 0, 3.4, { col: wcol, mood: wm });
       X.restore();
       pill(clamp(tip[0], 80, 720), tip[1] - 56 - jump, wiper ? 'YOU' : 'YOUR FRIEND', wcol);
       // exhaust + brake lights when it drives off
@@ -636,7 +636,7 @@ function demo(role, t) {
   X.restore();
   // the wiper rides the tip, the sprayer stands on the left
   const tipx = ox + (PX + Math.cos(th) * R1) * k, tipy = oy + (PY + Math.sin(th) * R1) * k;
-  X.save(); X.translate(tipx, tipy - 3); X.scale(.6, .6); claude(0, 0, 3.4, { col: role ? '#6EA8FE' : '#FFC93C', mood: hp <= 0 ? 'happy' : null }); X.restore();
+  X.save(); X.translate(tipx, tipy - 3); X.scale(.6, .6); caos(0, 0, 3.4, { col: role ? '#6EA8FE' : '#FFC93C', mood: hp <= 0 ? 'happy' : null }); X.restore();
   X.save(); X.translate(64, 200); X.scale(.8, .8); X.translate(-46, -356);
   ladder(20, 340, t); sprayer(46, 356, b.x, b.y, role ? '#FFC93C' : '#6EA8FE', null, spray, t); X.restore();
   if (spray) {

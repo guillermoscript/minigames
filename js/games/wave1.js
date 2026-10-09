@@ -44,7 +44,7 @@ const W1A = (() => {
     X.save(); X.globalAlpha = a; X.translate(x, y); X.scale(s, s); X.beginPath(); X.moveTo(0, -9); X.quadraticCurveTo(7, 1, 0, 6); X.quadraticCurveTo(-7, 1, 0, -9); X.closePath();
     ink('#9fe3ff', 2.5); X.fillStyle = '#fff'; el(-1.8, 0, 1.6, 2.4); X.fill(); X.restore();
   }
-  /* blocky arms from claude()'s side stubs (drawn before claude(), origin = Claude's feet). la/ra: 0 = straight up */
+  /* blocky arms from caos()'s side stubs (drawn before caos(), origin = Caos's feet). la/ra: 0 = straight up */
   function arms(u, la, ra, k, col) {
     if (k <= .02) return; const ol = Math.max(3, u * .5), L = 3.3 * u * k, aw = 1.2 * u, hs = 2 * u, gap = .35 * u;
     const one = (sx, an) => {
@@ -246,9 +246,9 @@ const W1A = (() => {
     X.save(); X.translate(0, -16 + Math.sin(T * 11) * 1.2); X.rotate(Math.sin(T * 5.5) * .08); rr(-10, -9, 20, 18, 3); ink('#fff', 2); X.fillStyle = '#d6f2ff'; X.fillRect(2, -7, 6, 14); X.restore();
     X.restore();
   }
-  /* Claude guarding lunch near the bottom-right corner, kept above main.js's fuse strip (y > 552) and left of the bomb column */
+  /* Caos guarding lunch near the bottom-right corner, kept above main.js's fuse strip (y > 552) and left of the bomb column */
   const SWFY = 535, SWCX = () => W + OX - 140;
-  function swatClaude(T, res, rT, danger, alive) {
+  function swatCaos(T, res, rT, danger, alive) {
     const u = 5.2, cx = SWCX(), won = res === 'win', lost = res === 'lose';
     const jump = won ? Math.abs(Math.sin(rT * 9)) * 16 : 0, shiver = danger && !res ? Math.sin(T * 60) * 1.6 : 0;
     const fy = SWFY - jump, x = cx + shiver;
@@ -258,7 +258,7 @@ const W1A = (() => {
     else if (lost) arms(u, -1.25 + Math.sin(T * 10) * .15, -.85, 1, OR);
     else arms(u, .32, -.32, 1, OR);
     X.restore();
-    claude(x, fy, u, { mood: won ? 'happy' : lost ? 'sad' : null });
+    caos(x, fy, u, { mood: won ? 'happy' : lost ? 'sad' : null });
     if (!res) { const sb = Math.sin(T * 3.1) * 2; sandwich(x, fy - 86 + sb, .9, 0); }
     if (won) { const bites = Math.min(3, Math.floor(rT / .22)); if (bites < 3) sandwich(x, fy - 76 + Math.min(1, rT / .2) * 14, .9, bites); for (let i = 0; i < 3; i++) { const k = (rT * .9 + i * .33) % 1; X.globalAlpha = 1 - k; heart(x - 30 + i * 30, fy - 70 - k * 70, .8 + .3 * Math.sin(k * 3)); X.globalAlpha = 1; } }
     if (lost) { for (const s of [-1, 1]) { const k = (T * 2.4 + (s > 0 ? .5 : 0)) % 1; drop(x + s * 16, fy - 26 + k * 18, .8, 1 - k); } }
@@ -290,7 +290,7 @@ const W1A = (() => {
     if (mx !== swMx || my !== swMy) { swMx = mx; swMy = my; swMove = T; }
     const hand = [SWCX(), SWFY - 86];
     const danger = alive.some(b => Math.hypot(b.x - hand[0], b.y - hand[1]) < 190);
-    swatClaude(T, res, rT, danger, alive.length);
+    swatCaos(T, res, rT, danger, alive.length);
     if (res === 'lose') heist(alive, rT, T);
     else for (const b of alive) bug(b, T, !res && Math.hypot(mx - b.x, my - b.y) < 140, mx, my);
     const last = pings.length ? pings[pings.length - 1] : null;
@@ -368,7 +368,7 @@ const W1A = (() => {
     X.restore();
     if (flash > 0) { const fx = x + 64 * s, fy = y; X.save(); X.globalCompositeOperation = 'lighter'; const g = X.createRadialGradient(fx, fy, 4, fx, fy, 110); g.addColorStop(0, `rgba(255,255,230,${flash})`); g.addColorStop(1, 'rgba(255,255,230,0)'); X.fillStyle = g; X.fillRect(fx - 110, fy - 110, 220, 220); X.restore(); }
   }
-  /* claude()'s own blink is in unison for the whole class; repaint the eyes per kid: staggered blink, an optional look */
+  /* caos()'s own blink is in unison for the whole class; repaint the eyes per kid: staggered blink, an optional look */
   function kidEyes(x, y, u, col, i, T, look) {
     const ey = y - 6.2 * u;
     X.fillStyle = col;
@@ -412,7 +412,7 @@ const W1A = (() => {
       shadow(cx, fy + 1, uk * 6.5, uk * 1.2, .22);
       if (ar) { X.save(); X.translate(cx, y); arms(uk, ar[0], ar[1], 1, base); X.restore(); }
       if (won && isOdd) { X.save(); X.translate(cx + Math.sin(T * 50) * 2, y); arms(uk, -.9, .9, .8, oddC); X.restore(); }
-      claude(cx + lx + (won && isOdd ? Math.sin(T * 50) * 2 : 0), y, uk, { col: isOdd ? oddC : base, mood });
+      caos(cx + lx + (won && isOdd ? Math.sin(T * 50) * 2 : 0), y, uk, { col: isOdd ? oddC : base, mood });
       if (!mood) kidEyes(cx, y, uk, isOdd ? oddC : base, i, T, i === near ? look : [0, 0]);
       const toss = won && !isOdd ? Math.sin(cl(rT / .85) * Math.PI) * (50 + hr(i) * 30) : 0;   // win: caps fly
       cap(cx + (won && isOdd ? Math.sin(T * 50) * 2 : 0), y - 9 * uk - toss, uk, T + i, toss > 2 ? rT * (8 + hr(i + 9) * 6) * (i % 2 ? 1 : -1) : null);
@@ -434,11 +434,11 @@ const W1A = (() => {
   }
 
   /* ═════════════ TYPE: the royal typing chamber (stage 2, KEYBOARD KINGDOM) ═════════════
-     The king dictates from his throne (left), Claude hammers the royal keyboard (centre), the word hangs on a scroll
-     with a pigeon pacing its rod. Win: the king tosses Claude a little crown and seals the scroll. Lose: a tomato.
+     The king dictates from his throne (left), Caos hammers the royal keyboard (centre), the word hangs on a scroll
+     with a pigeon pacing its rod. Win: the king tosses Caos a little crown and seals the scroll. Lose: a tomato.
      The boss look (g.boss) is the same hall at night: torch glow, purple drapes, a bigger king in a taller crown. */
   const TYFL = 420;                                // wall / floor line
-  /* throne: x, seat y, scale. Low and to the left so the king (drawn in front of the scroll) never covers a letter, even CLAUDE / REFACTOR */
+  /* throne: x, seat y, scale. Low and to the left so the king (drawn in front of the scroll) never covers a letter, even CAOS / REFACTOR */
   const kGeo = boss => boss ? { x: 94, y: 464, s: 1.04 } : { x: 88, y: 452, s: .9 };
   const tyPal = boss => boss
     ? { w0: '#241a40', w1: '#4a3970', mort: '#17112b', bl: .06, f0: '#4f4276', f1: '#3a2f5c', tile: 'rgba(10,6,24,.22)', vel: '#7b3fb0', velS: '#55267f', robe: '#7b3fb0', robeS: '#55267f', skin: '#ffd6b0', skinS: '#efa982' }
@@ -665,7 +665,7 @@ const W1A = (() => {
     rr(hx - 19, hy - 12 - lift, 38, 9, 4); ink('#b3bccf', 3);
     glint(hx - 9, hy - 22, 6, 4, .55);
   }
-  /* Claude's eyes repainted so they look at the scroll; wince = '> <' after a typo */
+  /* Caos's eyes repainted so they look at the scroll; wince = '> <' after a typo */
   function clEyes(x, y, u, look, wince, T) {
     const ey = y - 6.2 * u; X.fillStyle = OR;
     for (const e of [x - 2.8 * u, x + 2.8 * u]) X.fillRect(e - 1.1 * u, ey - 1.6 * u, 2.2 * u, 3.2 * u);
@@ -679,7 +679,7 @@ const W1A = (() => {
     }
   }
   function tomato(x, y, s, rot) { X.save(); X.translate(x, y); X.rotate(rot); X.scale(s, s); X.beginPath(); X.arc(0, 0, 13, 0, TAU); ink('#ff4d5e', 3); glint(-5, -5, 4, 2.5, .6); X.beginPath(); for (let i = 0; i < 5; i++) { const a = i * TAU / 5 - Math.PI / 2; X.moveTo(0, -11); X.lineTo(Math.cos(a) * 7, -11 + Math.sin(a) * 4); } X.lineWidth = 3; X.strokeStyle = '#3fa34d'; X.stroke(); X.restore(); }
-  function splat(x, y, u, k) {   // tomato on Claude's face
+  function splat(x, y, u, k) {   // tomato on Caos's face
     X.save(); X.translate(x, y); X.scale(.6 + .4 * outBack(k), .6 + .4 * outBack(k));
     X.beginPath(); for (let i = 0; i <= 14; i++) { const a = i * TAU / 14, r = u * (i % 2 ? 2.2 : 3.2) * (.85 + hr(i + 600) * .3); i ? X.lineTo(Math.cos(a) * r, Math.sin(a) * r * .8) : X.moveTo(Math.cos(a) * r, Math.sin(a) * r * .8); } X.closePath(); ink('#ff4d5e', 3);
     for (const [a, b] of [[-1, 1.6], [.8, 2.2], [1.6, 1.2]]) { const len = u * (1 + k * 2.2) * b * .6; rr(a * u - u * .35, u, u * .7, len, u * .35); ink('#ff4d5e', 2); }
@@ -732,7 +732,7 @@ const W1A = (() => {
     X.save(); X.translate(K.x, K.y); X.scale(K.s, K.s);
     throneBack(P, boss); king(T, { mood: kMood, look: kLook, rT, boss, P }); throneFront(P, T, kMood, boss);
     X.restore();
-    // Claude at the royal keyboard (desktop) or on a crate by the letter pad (touch)
+    // Caos at the royal keyboard (desktop) or on a crate by the letter pad (touch)
     const cx = desk ? 400 : W - 70, u = desk ? 8.5 : 5, base = desk ? 480 : 390, DY = 18;
     const jump = won ? Math.abs(Math.sin(rT * 9)) * (desk ? 5 : 10) : 0, fy = base - jump;
     const tapK = Math.max(0, 1 - (T - tapT) / .12), missK = Math.max(0, 1 - (T - missT) / .2), side = taps % 2;
@@ -746,10 +746,10 @@ const W1A = (() => {
     else arms(u, .3, -2.1 - tapK * .4, 1, OR);
     X.restore();
     if (!desk) shadow(cx, base + 1, 32, 6, .2);
-    claude(cx, fy, u, { mood: won ? 'happy' : lost && rT > .3 ? 'sad' : null });
+    caos(cx, fy, u, { mood: won ? 'happy' : lost && rT > .3 ? 'sad' : null });
     if (!won && !(lost && rT > .3)) clEyes(cx, fy, u, desk ? [Math.max(-1, Math.min(1, (x0 + i * (sz + gap) + sz / 2 - cx) / 260)), -1] : [-1, -.6], missK > 0, T);
     if (!res && (missK > 0 || low)) { const k = (T * 2.2) % 1; drop(cx + 7 * u, fy - 8 * u + k * 14, .9, 1 - k); if (missK > 0) drop(cx - 7 * u, fy - 8 * u + k * 10, .8, 1 - k); }
-    // the royal keyboard on its desk, in front of Claude's legs
+    // the royal keyboard on its desk, in front of Caos's legs
     if (desk) {
       X.save(); X.translate(0, DY);
       cel(() => rr(222, 450, 356, 36, 12), '#f2b878', '#d9944f', 4, 0, -5);
@@ -773,10 +773,10 @@ const W1A = (() => {
       X.strokeStyle = '#ffd23f'; X.lineWidth = 3; rr(34, 400, 632, 132, 12); X.stroke();
       pad.forEach((c, j) => { const r = padRect(j); keycap(r.x, r.y, r.w, r.h, '#fffbf0', '#d9c39b', INK, c, 38); });
     }
-    // win: the king tosses Claude a little crown; hearts over the throne
+    // win: the king tosses Caos a little crown; hearts over the throne
     if (won) {
       // the stamp covers the middle (and the outcome only lasts ~.95 s), so the crown flies OVER it:
-      // lifted high above the throne, a high arc across the top, then a quick drop onto Claude's head
+      // lifted high above the throne, a high arc across the top, then a quick drop onto Caos's head
       const [hx, hy] = kw(62, -150), tx = head[0], ty = head[1] - 2, Lx = hx - 34, Ly = 150, top = 150;
       const kA = ease(rT / .22), kB = cl((rT - .22) / .36), kC = cl((rT - .58) / .12), landed = rT >= .7;
       let bx, by;
@@ -904,7 +904,7 @@ const W1A = (() => {
     // windmill and cow ride the meadow on a slow parallax
     const wp = 1400, wx = (((620 - scroll * .16) % wp) + wp) % wp - 200;
     windmill(wx, 352, T, res);
-    const cx = Math.max(440, 690 - scroll * .12);   // slow parallax, always on screen and clear of Claude
+    const cx = Math.max(440, 690 - scroll * .12);   // slow parallax, always on screen and clear of Caos
     cow(cx, 424, T, won ? 'happy' : lost ? 'lol' : null);
     // a bird crossing the sky
     const bx = ((T * 60) % 1000) - 100, by = 120 + Math.sin(T * 2) * 10, fl = Math.sin(T * 14) * 7;
@@ -913,10 +913,10 @@ const W1A = (() => {
     X.restore();
     strip(JGR, scroll, JGY - 4);
     // little ground chips flying past
-    // beetles (behind Claude so the face reads)
+    // beetles (behind Caos so the face reads)
     obs.forEach((o, i) => { if (o.x > -OX - 80 && o.x < W + OX + 80) beetle(o.x, T, [(150 - o.x) / 160, py < -30 ? -.8 : .3], res, i); });
     if (!res) speedLines(scroll);
-    // Claude
+    // Caos
     const u = 9, hop = won ? Math.abs(Math.sin(rT * 9)) * 22 : 0;
     const air = py < 0, sqx = lost ? Math.max(0, 1 - rT * 3) : 0;
     X.save(); X.fillStyle = `rgba(20,16,28,${Math.max(.08, .28 + py * .0015)})`; el(150, JGY + 6, 46 - Math.min(20, -py * .12) + (lost ? 8 : 0), 9); X.fill(); X.restore();
@@ -930,7 +930,7 @@ const W1A = (() => {
     else if (air) arms(u, -.7, .7, 1, OR);
     else arms(u, .5 + Math.sin(T * 16) * .2, -.5 - Math.sin(T * 16) * .2, 1, OR);
     X.restore();
-    claude(0, 0, u, { run: !air && !res ? T : null, mood: lost ? 'sad' : won ? 'happy' : null });
+    caos(0, 0, u, { run: !air && !res ? T : null, mood: lost ? 'sad' : won ? 'happy' : null });
     X.restore();
     // after-effects
     if (air && !res) { for (let i = 0; i < 3; i++) { const d = rT; X.strokeStyle = 'rgba(255,255,255,.7)'; X.lineWidth = 3; X.lineCap = 'round'; X.beginPath(); X.moveTo(110 + i * 40, JGY + py + 40 + i * 6); X.lineTo(110 + i * 40, JGY + py + 62 + i * 6); X.stroke(); } }
@@ -944,7 +944,7 @@ const W1A = (() => {
     }
   }
   /* ═════════════ MASH: the birthday backyard (stage 4) ═════════════
-     Claude pumps a floor pump into a party balloon that gets more nervous as it swells. Win: it pops, confetti, the cat on the fence panics. */
+     Caos pumps a floor pump into a party balloon that gets more nervous as it swells. Win: it pops, confetti, the cat on the fence panics. */
   let MBG = null, MBW = -1;
   const MHZ = 330, MPX = 346;      // horizon / x of the pump
   function mashBg() {
@@ -1011,7 +1011,7 @@ const W1A = (() => {
     // pressure dial on the pump
     X.beginPath(); X.arc(bx, 486, 13, 0, TAU); ink('#fff', 3); X.beginPath(); X.arc(bx, 486, 8, Math.PI * .75, Math.PI * 2.25); X.lineWidth = 3.5; X.strokeStyle = f > .8 ? '#ff4d5e' : '#5CFF7A'; X.stroke();
     X.strokeStyle = INK; X.lineWidth = 3; X.lineCap = 'round'; const na = Math.PI * .75 + f * Math.PI * 1.5; X.beginPath(); X.moveTo(bx, 486); X.lineTo(bx + Math.cos(na) * 8, 486 + Math.sin(na) * 8); X.stroke();
-    // Claude, with a party hat and arms on the handle
+    // Caos, with a party hat and arms on the handle
     const u = 6, kx = 236, ky = 520, ang = Math.atan2(bx - 34 - (kx + 6.6 * u), -(hy - 6 - (ky - 5.2 * u)));
     const reach = Math.hypot(bx - 34 - (kx + 6.6 * u), hy - 6 - (ky - 5.2 * u)), ak = Math.max(.3, Math.min(1.6, reach / (5.65 * u)));
     shadow(kx, ky + 3, 50, 9, .3);
@@ -1019,7 +1019,7 @@ const W1A = (() => {
     if (won) arms(u, -2.7 + Math.sin(T * 14) * .2, 2.7 - Math.sin(T * 14) * .2, 1, OR);
     else if (lost) arms(u, -.5, .55, .9, OR);
     else arms(u, -ang * .9 - .2, ang, ak, OR);
-    claude(0, 0, u, { mood: won ? 'happy' : lost ? 'sad' : null });
+    caos(0, 0, u, { mood: won ? 'happy' : lost ? 'sad' : null });
     X.save(); X.translate(0, -9 * u + 3 - (won ? Math.abs(Math.sin(rT * 9)) * 10 : 0)); X.rotate(won ? Math.sin(rT * 12) * .2 : -.12);
     X.beginPath(); X.moveTo(-3.2 * u, 0); X.lineTo(0, -7 * u); X.lineTo(3.2 * u, 0); X.closePath(); ink('#ffd23f', 3.5);
     X.save(); X.clip(); X.strokeStyle = '#ff5c8a'; X.lineWidth = 6; for (let i = -2; i < 4; i++) { X.beginPath(); X.moveTo(i * 12 - 26, 4); X.lineTo(i * 12 + 10, -44); X.stroke(); } X.restore();
@@ -1072,9 +1072,9 @@ const W1A = (() => {
     vignette(.14);
   }
   /* ═════════════ CATCH: the gold mine (stage 5) ═════════════
-     Gold coins and grumpy dynamite drop from the cave ceiling. Claude carries a barrel over his head on the mine track, a mole peeks
+     Gold coins and grumpy dynamite drop from the cave ceiling. Caos carries a barrel over his head on the mine track, a mole peeks
      out of its hill, lanterns swing, gems twinkle. Win: the barrel overflows, gold rains and hearts rise. Fail: the dynamite goes
-     off in the barrel (soot, stars, the barrel hops away); or, if too many coins were missed, Claude sags with an empty barrel. */
+     off in the barrel (soot, stars, the barrel hops away); or, if too many coins were missed, Caos sags with an empty barrel. */
   const CAHZ = 468;
   let CABG = null, CAW = -1;
   function pill(x, y, label, col) {
@@ -1155,7 +1155,7 @@ const W1A = (() => {
         X.strokeStyle = '#fff'; X.lineWidth = 2.5; X.beginPath(); X.arc(it.x, it.y + 12, 6, Math.PI * 1.15, Math.PI * 1.85); X.stroke();
       }
     }
-    // Claude with the barrel overhead
+    // Caos with the barrel overhead
     {
       const u = 8, hop = won ? Math.abs(Math.sin(rT * 9)) * 22 : 0, x = me.x, ys = sag ? 6 : 0, run = Math.abs(me.tx - me.x) > 8, sq = happy > 0 ? 1 + Math.sin((.3 - happy) / .3 * Math.PI) * -.1 : 1;
       shadowE(x, FY + 4, 56 - hop * .4, 10, .3);
@@ -1172,7 +1172,7 @@ const W1A = (() => {
       X.restore();
       // arms up gripping the barrel, then the body
       if (won) arms(u, -.5 - Math.sin(T * 14) * .1, .5 + Math.sin(T * 14) * .1, 1, OR); else if (bomb) arms(u, -2.6 + Math.sin(T * 25) * .3, 2.6 - Math.sin(T * 25) * .3, 1, '#4a4452'); else if (sag) arms(u, -.2, .3, .7, OR); else arms(u, -.45, .45, 1, OR);
-      claude(0, 0, u, { mood: won ? 'happy' : res === 'lose' ? 'sad' : happy > 0 ? 'happy' : null, run: run && !res ? T : null, col: bomb ? '#4a4452' : OR });
+      caos(0, 0, u, { mood: won ? 'happy' : res === 'lose' ? 'sad' : happy > 0 ? 'happy' : null, run: run && !res ? T : null, col: bomb ? '#4a4452' : OR });
       X.restore();
       if (!res) pill(x, FY - 134, 'YOU', '#FFE14D');
       if (bomb) { stars(x, FY - 110, 34, T); const pk = outBack(rT / .22), k = clamp01(rT / .6); X.globalAlpha = 1 - k * .8; star(x, FY - 70, 110 * pk, 54 * pk, 12, T * .8, '#ff9a3a', 6); star(x, FY - 70, 74 * pk, 36 * pk, 12, -T * .6, '#FFE14D', 0); star(x, FY - 70, 40 * pk, 20 * pk, 10, T, '#fff', 0); X.globalAlpha = 1;
@@ -1267,7 +1267,7 @@ function gJump(sp) {
 
 /* 3 ── TYPE: type the word (keyboard) */
 function gType(sp, forced) {
-  const pool = sp < 1.2 ? ['BUG', 'FIX', 'SHIP', 'CODE'] : ['BUG', 'FIX', 'SHIP', 'CODE', 'DEBUG', 'MERGE', 'PUSH', 'TEST', 'CLAUDE', 'TOKEN'];
+  const pool = sp < 1.2 ? ['BUG', 'FIX', 'SHIP', 'CODE'] : ['BUG', 'FIX', 'SHIP', 'CODE', 'DEBUG', 'MERGE', 'PUSH', 'TEST', 'CAOS', 'TOKEN'];
   const w = forced || pool[Math.random() * pool.length | 0];
   let i = 0, shk = 0;
   let el = 0, rT0 = -1, lastI = 0, tapT = -9, taps = 0, missT = -9, lastShk = 0;   // art only (animation timing)

@@ -60,7 +60,7 @@ function badge(s, x, y, size, bgc, fg, sc, rot) {
   X.restore();
 }
 function keyCap(x, y, s) { X.font = '700 15px Fredoka, Arial, sans-serif'; const w = Math.max(26, X.measureText(t(s)).width + 14); rr(x - w / 2, y - 12, w, 24, 6); ink('#fff', 2.5); txt(s, x, y + 1, 15, INK, 'center', w - 6); }
-function arm(u, sx, an, k, col) {                       // a thin blocky arm from claude()'s side stub (drawn before claude()); an = angle (0 = up, + = right), k = 0..1 raised
+function arm(u, sx, an, k, col) {                       // a thin blocky arm from caos()'s side stub (drawn before caos()); an = angle (0 = up, + = right), k = 0..1 raised
   if (k <= .02) return; const ol = Math.max(3, u * .5), L = 3.3 * u * k, aw = 1.2 * u, hs = 2 * u, gap = .35 * u;
   X.save(); X.translate(sx * 6.6 * u, -5.2 * u); X.rotate(an);
   X.fillStyle = INK; X.fillRect(-aw / 2 - ol, -L - ol, aw + ol * 2, L + ol * 2); X.fillRect(-hs / 2 - ol, -L - gap - hs - ol, hs + ol * 2, hs + ol * 2);
@@ -202,13 +202,13 @@ function eye(x, y, s) {                                       // the "you watch 
   X.beginPath(); X.moveTo(-14, 0); X.quadraticCurveTo(0, -13, 14, 0); X.quadraticCurveTo(0, 13, -14, 0); X.closePath(); ink('#fff', 2.8);
   ci(0, 0, 6); ink('#ffd23f', 2); X.fillStyle = INK; ci(0, 0, 2.8); X.fill(); X.restore();
 }
-/* a burglar-crew Claude: the player colour, a striped beanie, a swag sack of dollars by the feet */
+/* a burglar-crew Caos: the player colour, a striped beanie, a swag sack of dollars by the feet */
 function crew(x, y, col, mood, o = {}) {
   const u = 3.7; X.save(); X.translate(x, y);
   shadow(0, 1, 28, 6, .25);
   if (o.arms) { const [la, lk, ra, rk] = o.arms; arm(u, -1, la, lk, col); arm(u, 1, ra, rk, col); }
   X.restore();
-  X.save(); X.translate(x, y); claude(0, 0, u, { col, mood, run: o.run }); X.restore();
+  X.save(); X.translate(x, y); caos(0, 0, u, { col, mood, run: o.run }); X.restore();
   X.save(); X.translate(x, y);
   X.beginPath(); X.moveTo(-5.4 * u, -9.4 * u); X.quadraticCurveTo(-5 * u, -14.2 * u, 0, -14.2 * u); X.quadraticCurveTo(5 * u, -14.2 * u, 5.4 * u, -9.4 * u); X.closePath(); ink(o.hat || '#2d3142', 3);
   X.save(); X.beginPath(); X.moveTo(-5.4 * u, -9.4 * u); X.quadraticCurveTo(-5 * u, -14.2 * u, 0, -14.2 * u); X.quadraticCurveTo(5 * u, -14.2 * u, 5.4 * u, -9.4 * u); X.closePath(); X.clip();

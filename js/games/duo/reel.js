@@ -1,6 +1,6 @@
 'use strict';
 /* ═════════ DUO · REEL & RELEASE (du_reel), after Twisted!'s fishing / crank gags ═════════
-   Two Claudes in a tiny rowboat are hooked to a giant grumpy tuna in sunglasses and a tie. ONE rod, ONE line, and the line's tension is
+   Two Caoses in a tiny rowboat are hooked to a giant grumpy tuna in sunglasses and a tie. ONE rod, ONE line, and the line's tension is
    what both of them are really fighting with:
    REELER (role 0, JUDGE): cranks the reel (drag in circles anywhere, or hold Space, or alternate A / D). Cranking pulls the fish in, but only
    while the line is taut, and it also raises the tension. The reeler never sees the gauge: it feels the line (it SAGS when slack, SHAKES when
@@ -30,7 +30,7 @@ const HZ = 172;                                       // horizon
 const POLE = [400, 515];                              // where the rod stands in the boat
 const RSC = 118, TIPY = 300;                          // rod tip travels ±RSC px sideways, rests at TIPY
 const FX = 230;                                       // the fish swims ±FX px around the middle
-const FEET = 520;                                     // the Claudes' feet
+const FEET = 520;                                     // the Caoses' feet
 const GAUGE = [248, 452], GR = 34;
 const LEVER = [304, 505];
 const REEL = [434, 480], RR = 31, HR = 21;
@@ -70,7 +70,7 @@ function arm(u, sx, an, k, col) {
   X.fillStyle = 'rgba(255,255,255,.35)'; X.fillRect(-hs / 2, -L - gap - hs, hs * .45, hs * .4);
   X.restore();
 }
-/* an arm of a Claude standing at (cx, cy) reaching for (tx, ty) */
+/* an arm of a Caos standing at (cx, cy) reaching for (tx, ty) */
 function reach(cx, cy, u, sx, tx, ty, col) {
   const dx = tx - (cx + sx * 6.6 * u), dy = ty - (cy - 5.2 * u), d = Math.hypot(dx, dy);
   X.save(); X.translate(cx, cy); arm(u, sx, Math.atan2(dx, -dy), clamp((d - 2.35 * u) / (3.3 * u), .15, 1.7), col); X.restore();
@@ -438,13 +438,13 @@ function duReel(sp, D) {
       { const cx = RX[0], cy = FEET - hop, a = (myDr - .5) * 1.7, kn = [LEVER[0] + Math.sin(a) * 36, LEVER[1] - Math.cos(a) * 36];
         lever(LEVER[0], LEVER[1], myDr);
         if (landed) cheer(cx, cy, rodCol); else { reach(cx, cy, 5, 1, grip[0], grip[1], rodCol); reach(cx, cy, 5, -1, kn[0], kn[1], rodCol); }
-        claude(cx, cy, 5, { col: rodCol, mood });
+        caos(cx, cy, 5, { col: rodCol, mood });
         if (strained && !won) sweat(cx + 26, cy - 40, T, 2);
         tags.push([cx, reeler ? 'YOUR FRIEND' : 'YOU', rodCol]);
       }
       { const cx = RX[1], cy = FEET - hop, hk = [REEL[0] + Math.cos(ang) * HR, REEL[1] + Math.sin(ang) * HR];
         if (landed) cheer(cx, cy, reelCol); else { reach(cx, cy, 5, -1, hk[0], hk[1], reelCol); reach(cx, cy, 5, 1, cx + 40, cy - 14, reelCol); }
-        claude(cx, cy, 5, { col: reelCol, mood });
+        caos(cx, cy, 5, { col: reelCol, mood });
         if (w > 1.2 && reeler && !g.result || (!reeler && (wTr.at() || 0) > 1.2 && !g.result)) sweat(cx - 30, cy - 40, T, 2);
         tags.push([cx, reeler ? 'YOU' : 'YOUR FRIEND', reelCol]);
       }
@@ -554,13 +554,13 @@ function demo(role, t) {
   lineDraw(tip, [fx + 44, fy + 6], role ? .1 : 0, vibr, vibr * .6, t, null);
   if (!role) {
     const a = t * 11; reelBody(205, 180, a, .5, vibr * 2, t); reelHandle(205, 180, a, vibr * 2, t);
-    claude(240, 205, 3.4, { col: '#FFC93C' });
+    caos(240, 205, 3.4, { col: '#FFC93C' });
     X.strokeStyle = 'rgba(255,255,255,.8)'; X.lineWidth = 4; X.setLineDash([7, 7]); X.lineDashOffset = -t * 40; X.beginPath(); X.arc(420, 172, 34, 0, TAU); X.stroke(); X.setLineDash([]);
     demoFinger(420 + Math.cos(a) * 34, 172 + Math.sin(a) * 34, true, 0);
     badge(vibr ? 'EASE OFF!' : 'CRANK!', 380, 30, 18, vibr ? '#e8434f' : '#2b9ee6', '#fff', 1, -.03);
   } else {
     gauge(70, 168, 28, tele || lunge ? (lunge ? .62 : .5) : .5, true, t, 202);
-    claude(150, 205, 3.4, { col: '#6EA8FE' });
+    caos(150, 205, 3.4, { col: '#6EA8FE' });
     const px = 330 + lat * 90 + (tele ? 0 : 0);
     demoFinger(clamp(px + 12, 270, 470), 190, true, 0);
     badge(tele ? 'LEAN WITH IT!' : 'KEEP IT GREEN', 380, 30, 18, tele ? '#ffd23f' : '#22a447', tele ? INK : '#fff', 1, -.03);

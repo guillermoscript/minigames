@@ -356,7 +356,7 @@ function wSubtitle(U, label, col) {
   U.text(label, 400, y + h / 2 + 1, 18, col, 'center', w - 24);
   c.restore();
 }
-/* the lounge where the idle trap panel is: baked wall, rug, sofa (back and front layers), plant pot; live bulbs, sign, plant leaves, motes, Claude and a name tag */
+/* the lounge where the idle trap panel is: baked wall, rug, sofa (back and front layers), plant pot; live bulbs, sign, plant leaves, motes, Caos and a name tag */
 const W_LOUNGE = { w: 468, h: 88 };
 function wLoungeBack(U, g) {
   g.save(); U.rr(1.5, 1.5, 465, 85, 14); g.clip();
@@ -399,11 +399,11 @@ function wLounge(U, mx, y, mw, st) {
   c.save(); c.translate(152.5, 56);
   [[-.75, 21, '#2f9a55'], [.8, 22, '#2f9a55'], [-.22, 28, '#3fb260'], [.3, 25, '#3fb260']].forEach(([a, l, col], i) => { c.save(); c.rotate(a + Math.sin(now * 1.6 + i * 1.4) * .06); U.el(0, -l * .55, 5.4, l * .55); U.ink(col, 2.5); c.fillStyle = 'rgba(255,255,255,.28)'; U.el(-1.6, -l * .7, 1.5, l * .22, 0); c.fill(); c.restore(); });
   c.restore();
-  // Claude on the sofa
+  // Caos on the sofa
   const m = me(), glow = Math.sin(now * 3.1), hop = alert ? Math.abs(Math.sin(now * 13)) * 4 : st.lunge > 0 ? Math.sin(st.lunge * Math.PI) * 7 : glad ? Math.abs(Math.sin(now * 9)) * 3 : 0;
   c.save(); c.translate(71, 66 - hop); c.scale(1 + glow * .012, 1 - glow * .012);
   U.el(0, hop - 8, 20, 3); c.fillStyle = 'rgba(20,16,28,.22)'; c.fill();
-  claude(0, 0, 3.6, { col: m ? m.color : OR, mood: st.mood });
+  caos(0, 0, 3.6, { col: m ? m.color : OR, mood: st.mood });
   c.restore();
   if (back && front) c.drawImage(front, 0, 0, W_LOUNGE.w, W_LOUNGE.h);
   if (m) U.pill(71, 18, m.name, m.color, false, 10.5);
@@ -489,7 +489,7 @@ function partyWaitDraw(R, pk) {
     const shake = hit ? Math.sin(now * 60) * 3 : 0, mood = hit && race ? 'sad' : hit || done ? 'happy' : null;
     c.save(); U.el(532, y + 38, 29, 29); U.ink(U.shade(p.color, .5), 3); c.clip();
     c.fillStyle = 'rgba(255,255,255,.12)'; U.el(524, y + 25, 15, 6, -.5); c.fill();
-    claude(532 + shake, y + 55 + (done ? 0 : Math.sin(now * 3 + i) * 1.2), 2.6, { col: p.color, mood }); c.restore();
+    caos(532 + shake, y + 55 + (done ? 0 : Math.sin(now * 3 + i) * 1.2), 2.6, { col: p.color, mood }); c.restore();
     U.el(532, y + 38, 29, 29); c.lineWidth = 6; c.strokeStyle = INK; c.stroke();
     if (done) { c.save(); c.translate(551, y + 56); U.el(0, 0, 11, 11); U.ink('#5CFF7A', 2.5); c.strokeStyle = INK; c.lineWidth = 3.4; c.lineCap = 'round'; c.lineJoin = 'round'; c.beginPath(); c.moveTo(-4.5, 0); c.lineTo(-1, 3.6); c.lineTo(5, -3.4); c.stroke(); c.restore(); }
     if (hit) for (let s = 0; s < 3; s++) { const q = (now - k.hits[p.id]) / .9; wSpark(U, 532 + (s - 1) * 22, y + 8 - q * 8 + (s % 2) * 6, 7 * (1 - q) + 2, now * 4 + s, race ? '#FFE14D' : '#FF8FB8', 1.8); }

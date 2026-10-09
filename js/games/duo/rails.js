@@ -340,11 +340,11 @@ function leverStand(x, y, k, col, live, T) {
   }
   if (live) { X.globalAlpha = .4 + .3 * Math.sin(T * 8); X.strokeStyle = '#fff'; X.lineWidth = 4; rr(x - 54, y - 100, 90, 108, 14); X.stroke(); X.globalAlpha = 1; }
 }
-/* a signalman (Claude) next to its lever: yanks on a flip, cheers on a delivery, gasps at a crash */
+/* a signalman (Caos) next to its lever: yanks on a flip, cheers on a delivery, gasps at a crash */
 function signalman(x, y, u, col, T, flipK, mood) {
   const hop = flipK > 0 && flipK < 1 ? Math.sin(flipK * Math.PI) * 8 : 0, sq = flipK > 0 && flipK < .25 ? 1 + .15 * (1 - flipK / .25) : 1;
   X.save(); X.translate(x, y - hop); X.scale(sq, 2 - sq); shadow(0, hop, 26, 5, .22);
-  claude(0, 0, u, { col, mood });
+  caos(0, 0, u, { col, mood });
   X.restore();
 }
 /* puffy steam: a set of circles inked as one shape */
@@ -594,7 +594,7 @@ function duRails(sp, D) {
       for (const p of puffs) { const k = (T - p.t0) / p.life, r = p.r * (.7 + k * 1.1); X.globalAlpha = Math.max(0, 1 - k * k); X.beginPath(); X.arc(p.x + Math.sin(k * 5) * 4, p.y, r, 0, TAU); ink(p.dark ? '#a69fb6' : '#fff', 2.5); X.fillStyle = p.dark ? '#c9c3d6' : '#e4e8f2'; el(p.x + Math.sin(k * 5) * 4 + r * .2, p.y + r * .25, r * .6, r * .45); X.fill(); X.globalAlpha = 1; }
       if (!tunnel && won) for (let i = 0; i < 4; i++) { const q = ((T * .8 + i * .25) % 1); X.globalAlpha = Math.sin(q * Math.PI); heart(SMX - 70 + i * 24 + Math.sin(T * 3 + i) * 8, SMY - 34 - q * 80, .7 + (i % 2) * .3); X.globalAlpha = 1; }
       if (!tunnel && won && wk > .45) for (let i = 0; i < 3; i++) { const a = T * 5 + i * TAU / 3; star(SMX - 62 + Math.cos(a) * 26, SMY - 34 + Math.sin(a) * 8, 8, 4, 5, a, '#FFE14D', 2); }
-      // the two signalmen (Claudes): mine at my lever; the friend's lever is never drawn (the steam hides it)
+      // the two signalmen (Caoses): mine at my lever; the friend's lever is never drawn (the steam hides it)
       const cMood = () => won ? 'happy' : lost ? 'sad' : T - cheerAt < .6 ? 'happy' : null;
       const fk = r => (T - flipAt[r]) / .3;
       if (tunnel) leverStand(ALX, ACY, swK[0], roleCol(0), callOff() && !busy(), T);
@@ -671,7 +671,7 @@ function duRails(sp, D) {
     },
   };
   const rowAt = y => { let b = 0; for (let k = 1; k < 4; k++) if (Math.abs(y - (ROWS[k] - 30)) < Math.abs(y - (ROWS[b] - 30))) b = k; return b; };
-  const lastFlagIn = () => trains.reduce((m, tr) => Math.max(m, tr.flAt), -9);   // the friend's Claude waves when a flag goes up
+  const lastFlagIn = () => trains.reduce((m, tr) => Math.max(m, tr.flAt), -9);   // the friend's Caos waves when a flag goes up
   /* tunnel side: the friend's call for the next train at my switch: 0 / 1, or null while it has not come back */
   function callFor() { const nx = seenT()[0]; return nx ? { tr: nx, line: nx.pk === null ? null : nx.pk >> 1 } : null; }
   const callOff = () => { const c = callFor(); return !!c && c.line !== null && c.line !== sw[0]; };

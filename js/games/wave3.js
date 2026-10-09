@@ -31,7 +31,7 @@ const W3K = (() => {
     X.save(); X.globalAlpha = clamp(a, 0, 1); X.translate(x, y); X.scale(s, s); X.lineJoin = 'round'; X.lineCap = 'round';
     X.beginPath(); X.moveTo(-6, -7); X.lineTo(6, -7); X.lineTo(-6, 7); X.lineTo(6, 7); X.lineWidth = 9; X.strokeStyle = INK; X.stroke(); X.lineWidth = 4; X.strokeStyle = '#fff'; X.stroke(); X.restore();
   };
-  /* blocky Claude arms (hippo.js): call with the origin at Claude's feet, before claude() */
+  /* blocky Caos arms (hippo.js): call with the origin at Caos's feet, before caos() */
   K.arms = (u, la, ra, k, col = OR) => {
     if (k <= .02) return; const ol = Math.max(3, u * .5), L = 3.3 * u * k, aw = 1.2 * u, hs = 2 * u, gap = .35 * u;
     const one = (sx, an) => {
@@ -270,7 +270,7 @@ function gWhack(sp) {
         if (won) for (let i = 0; i < 3; i++) { const q = (rk * .8 + i / 3) % 1; K.heart(mx - 30 + i * 22 - q * 30, my - 66 - q * 26, .7, Math.sin(q * Math.PI)); }
         if (!won && !lost && Math.sin(now * .9) > .6) K.zee(mx + 30, my - 66 - (now * 20 % 14), .7, .8);
       }
-      // Claude on the picnic blanket: cheers each bonk, jumps on the win, slumps on the fail
+      // Caos on the picnic blanket: cheers each bonk, jumps on the win, slumps on the fail
       {
         const cx = 64, cy = 546, u = 5.2, cheer = clamp(1 - (clock - lastHit) / .4, 0, 1);
         const jump = won ? Math.abs(Math.sin(rk * 9)) * 18 : cheer * Math.sin(cheer * Math.PI) * 12, br = Math.sin(now * 3.1) * .025;
@@ -279,7 +279,7 @@ function gWhack(sp) {
         if (won) { const w = Math.sin(now * 14) * .3; K.arms(u, -.45 + w, .45 - w, ease(rk / .2)); }
         else if (lost) K.arms(u, -2.6, 2.6, ease(rk / .25));
         else if (cheer > 0) K.arms(u, -.3, .3, cheer);
-        claude(0, 0, u, { mood: won || cheer > 0 ? 'happy' : lost ? 'sad' : null });
+        caos(0, 0, u, { mood: won || cheer > 0 ? 'happy' : lost ? 'sad' : null });
         X.restore();
         if (lost) K.sweat(cx + 30, cy - 58, 1.3, now);
         K.tag(cx, cy - 72 - jump + Math.sin(now * 3) * 2);
@@ -356,7 +356,7 @@ function whackGround() {
   }
 }
 
-/* DRAG art (stage 4). Scene: a garden. Claude drags a coin to a piggy bank across a dirt crossing patrolled by a ladybug guard with a STOP paddle.
+/* DRAG art (stage 4). Scene: a garden. Caos drags a coin to a piggy bank across a dirt crossing patrolled by a ladybug guard with a STOP paddle.
    Win: the coin drops into the slot, the pig hops and hearts rise. Fail (time out): the pig bawls, the guard giggles.
    Cosmetic only: variety comes from K.hash, never Math.random. */
 const W3DRAG = (() => {
@@ -422,11 +422,11 @@ const W3DRAG = (() => {
     for (let i = 0; i < 2; i++) butterfly(i ? 230 : 600, i ? 500 : 430, T, i);
     // the stump the coin starts on
     X.save(); X.translate(sx, sy + 32); X.fillStyle = 'rgba(20,16,28,.25)'; el(4, 22, 36, 9); X.fill(); rr(-26, -2, 52, 26, 8); ink('#a5622c', 4); el(0, -2, 26, 10); ink('#e3a868', 3.5); X.strokeStyle = '#c98443'; X.lineWidth = 2; el(0, -2, 15, 5); X.stroke(); X.restore();
-    // Claude cheers from the corner
+    // Caos cheers from the corner
     const near = !res && Math.hypot(tok.x - 400, tok.y - gy) < 120, u = 4.4;
     X.save(); X.translate(70, 524); X.fillStyle = 'rgba(20,16,28,.3)'; el(0, 3, 36, 7); X.fill();
     if (won) K.arms(u, -2.7 + Math.sin(T * 12) * .2, 2.7 - Math.sin(T * 12) * .2, 1); else if (lost) K.arms(u, -.5, .5, .8); else K.arms(u, -1.1 - (near ? Math.sin(T * 30) * .15 : 0), 1.1 + (near ? Math.sin(T * 30) * .15 : 0), 1);
-    claude(0, 0, u, { mood: won ? 'happy' : lost ? 'sad' : null }); X.restore();
+    caos(0, 0, u, { mood: won ? 'happy' : lost ? 'sad' : null }); X.restore();
     if (near) K.sweat(86, 480, 1, T);
     // the bank and its drop zone
     const kk = bin.r / 66, wy = won ? Math.max(0, rT - .45) : 0, hop = won ? Math.abs(Math.sin(wy * 9)) * 12 * (wy > 0 ? 1 : 0) : 0;
@@ -476,7 +476,7 @@ function gDrag(sp) {
   return g;
 }
 
-/* 15 ── RACE: sports day at the village track. Claude (sweatband on) sprints against a smug ladybug in
+/* 15 ── RACE: sports day at the village track. Caos (sweatband on) sprints against a smug ladybug in
    running shoes while the crowd and a gum-chewing cow watch from the bleachers. Alternate ← → (or A D). */
 function gRace(sp) {
   let me = 0, rival = 0, last = '', shk = 0, clock = 0;
@@ -558,7 +558,7 @@ function gRace(sp) {
         if (won) for (let i = 0; i < 3; i++) { const q = (rk * .9 + i / 3) % 1; K.heart(cx - 22 + i * 22, cy - 40 - q * 30, .55, Math.sin(q * Math.PI)); }
         X.restore();
       }
-      // the finish tape: Claude or the bug snaps it, and the two ends flap from the posts
+      // the finish tape: Caos or the bug snaps it, and the two ends flap from the posts
       {
         const tx = fx + 16;
         if (!g.result) { X.beginPath(); X.moveTo(tx, 216); X.quadraticCurveTo(tx + 6 + Math.sin(now * 3) * 4, 341, tx, 466); X.lineCap = 'round'; X.lineWidth = 11; X.strokeStyle = INK; X.stroke(); X.lineWidth = 5; X.strokeStyle = '#ff4d5e'; X.stroke(); }
@@ -592,7 +592,7 @@ function gRace(sp) {
           X.fillStyle = 'rgba(255,255,255,.55)'; el(-6, -14, 3, 5, -.3); X.fill(); X.restore();
         }
       }
-      // Claude: pumping arms + a red sweatband; breaks the tape with a medal on the win, on the loss it faceplants and skids all the way back to the start line (clear of the centre stamp)
+      // Caos: pumping arms + a red sweatband; breaks the tape with a medal on the win, on the loss it faceplants and skids all the way back to the start line (clear of the centre stamp)
       {
         const u = 7, cy = 330, running = !g.result && clock - stepAt < .3, k = Math.sin(now * 16);
         const jump = won ? Math.abs(Math.sin(rk * 9)) * 18 : running ? Math.abs(k) * 4 : 0;
@@ -604,7 +604,7 @@ function gRace(sp) {
         else if (lost) K.arms(u, -2.4, 2.4, 1);
         else if (running) K.arms(u, -.2 + k * .9, .2 + k * .9, 1);
         else K.arms(u, -.9, .9, .8);
-        claude(0, 0, u, { run: running ? now : null, mood: won || (ahead && !lost) ? 'happy' : lost ? 'sad' : null });
+        caos(0, 0, u, { run: running ? now : null, mood: won || (ahead && !lost) ? 'happy' : lost ? 'sad' : null });
         // sweatband with fluttering tails
         rr(-6 * u - 2, -8.8 * u, 12 * u + 4, 1.4 * u, 3); ink('#ff4d5e', 2.5);
         const fl = Math.sin(now * 20) * 4;
@@ -672,8 +672,8 @@ function raceGround(fx) {
   }
 }
 
-/* 16 ── WAIT: a drag strip. Claude sits in a soapbox kart on the start line under a giant traffic light; a sleepy tortoise
-   idles in the next lane. Press only when the light turns green. Early = the kart falls apart, late = Claude naps. */
+/* 16 ── WAIT: a drag strip. Caos sits in a soapbox kart on the start line under a giant traffic light; a sleepy tortoise
+   idles in the next lane. Press only when the light turns green. Early = the kart falls apart, late = Caos naps. */
 let REFLEX_BG = null;
 const RF_P = {}; const rfRR = (x, y, w, h, r) => { const k = [x, y, w, h, r].join(); if (!RF_P[k]) { const p = new Path2D(); p.moveTo(x + r, y); p.arcTo(x + w, y, x + w, y + h, r); p.arcTo(x + w, y + h, x, y + h, r); p.arcTo(x, y + h, x, y, r); p.arcTo(x, y, x + w, y, r); p.closePath(); RF_P[k] = p; } return RF_P[k]; };
 const RF_TX = 520;                                           // x of the traffic light post
@@ -822,7 +822,7 @@ function gReflex(sp) {
         if (go && !g.result) { X.strokeStyle = `rgba(255,255,255,${.5 + Math.sin(T * 14) * .4})`; X.lineWidth = 4; rr(px - 84, py - 38, 168, 90, 24); X.stroke(); }
         if (!TOUCH) K.keyCap('SPACE', px, py + 30 + down);
       }
-      // ───── Claude's soapbox kart ─────
+      // ───── Caos's soapbox kart ─────
       {
         const u = 5.2;
         let kx = 178, ky = 532, spin = 0, sink = 0, flame = 0, lurch = 0, wheels = true;
@@ -841,12 +841,12 @@ function gReflex(sp) {
         K.shade(0, 2 - sink * .4, 90, 10, .32);
         // exhaust flame out the back
         if (flame > 0) { const fl = 36 * flame + Math.sin(T * 60) * 5; X.beginPath(); X.moveTo(-72, -44); X.quadraticCurveTo(-72 - fl * .7, -50, -72 - fl, -36); X.quadraticCurveTo(-72 - fl * .7, -26, -72, -30); X.closePath(); ink('#ff9a3c', 3.5); X.beginPath(); X.moveTo(-72, -41); X.quadraticCurveTo(-72 - fl * .45, -44, -72 - fl * .6, -37); X.quadraticCurveTo(-72 - fl * .45, -32, -72, -34); X.closePath(); X.fillStyle = '#ffe14d'; X.fill(); }
-        // Claude at the wheel
+        // Caos at the wheel
         const fy = -47 + sink * .3, bobN = won ? Math.sin(T * 16) * 1.2 : 0, cl = TOUCH ? 0 : 0;
         X.save(); X.translate(0, bobN);
         const armUp = won ? 1 : go ? .75 : early ? .1 : late ? 0 : .5;
         X.save(); X.translate(0, fy); K.arms(u, won ? -.2 : go ? -.3 : -.5, won ? .2 : go ? .3 : .5, armUp, OR); X.restore();
-        claude(0, fy, u, { mood });
+        caos(0, fy, u, { mood });
         const exy = fy - 6.2 * u;
         if (late) { X.fillStyle = OR; for (const sx of [-1, 1]) X.fillRect(sx * 2.8 * u - 1.4 * u, exy - 1.5 * u, 2.8 * u, 3 * u); X.strokeStyle = INK; X.lineWidth = 3; X.lineCap = 'round'; for (const sx of [-1, 1]) { X.beginPath(); X.arc(sx * 2.8 * u, exy - .2 * u, u * .9, .2 * Math.PI, .8 * Math.PI); X.stroke(); } }
         // goggles (see-through, so the eyes still read) + a red racing helmet
@@ -881,7 +881,7 @@ function gReflex(sp) {
           wheel(46 + q * 420, -24 - Math.abs(Math.sin(q * 6)) * 54 * (1 - Math.min(1, q / .9)) + (q > 0 ? 0 : 0), q * 22);
           wheel(-46 - q * 90, -24 + 2 - Math.abs(Math.sin(q * 7 + 1)) * 40 * (1 - Math.min(1, q / .8)), -q * 14);
         }
-        // a false start: bolts and stars fly, Claude sees stars
+        // a false start: bolts and stars fly, Caos sees stars
         if (early) { for (let i = 0; i < 4; i++) { const a = rk * 7 + i * 1.57; star(Math.cos(a) * 46, -112 + Math.sin(a) * 9, 7, 3, 5, a, '#FFE14D', 2); } for (let i = 0; i < 5; i++) { const q = (rk * 1.1 + i * .17); if (q > .1 && q < .9) { X.fillStyle = '#8f9cb3'; X.save(); X.translate(-20 + i * 26 + Math.cos(i * 2) * q * 70, -50 - Math.sin(q * 3.1) * 50 + q * q * 70); X.rotate(q * 12 + i); rr(-5, -2, 10, 4, 2); ink('#c9ced6', 2); X.restore(); } } }
         X.restore();
         // sweat while tense; Zs while asleep
@@ -912,7 +912,7 @@ function gReflex(sp) {
 /* ───────────── BEAT IT + FIND IT art (stage 5), in the DUO look (docs/ART-STYLE.md) ─────────────
    BEAT IT: a schoolyard rock-paper-scissors duel against a smug raccoon bandit; his throw sits in a speech bubble and your three plates are
    on the blacktop. Win: the raccoon loses his mask and sees stars. Fail: he cackles and does a victory wiggle.
-   FIND IT: a carnival shell-game booth. Claude hides under one of three cups, a fox in a top hat deals, a duck in the crowd follows every swap.
+   FIND IT: a carnival shell-game booth. Caos hides under one of three cups, a fox in a top hat deals, a duck in the crowd follows every swap.
    Win: the fox's hat pops off. Fail: the wrong cup lifts to show a rubber duck. ART ONLY: no RNG calls (noise is a hash). */
 const W3G = (() => {
   const TAU = Math.PI * 2;
@@ -1049,14 +1049,14 @@ const W3G = (() => {
     // a bird crosses the sky (background gag) and the school flag waves
     { const bx = ((T * 60 + 100) % 1000) - 100, by = 120 + Math.sin(T * 3) * 6; X.strokeStyle = INK; X.lineWidth = 3; X.lineCap = 'round'; X.beginPath(); const w = Math.sin(T * 14) * 5; X.moveTo(bx - 10, by - w); X.quadraticCurveTo(bx - 4, by - 6, bx, by); X.quadraticCurveTo(bx + 4, by - 6, bx + 10, by - w); X.stroke(); }
     { X.save(); X.translate(404, 144); const f = Math.sin(T * 5) * 4; X.beginPath(); X.moveTo(0, -8); X.quadraticCurveTo(14, -12 + f, 28, -6); X.quadraticCurveTo(14, -2 + f, 0, 4); X.closePath(); ink('#ff4d5e', 2); X.restore(); }
-    // the raccoon bandit (right) and Claude (left)
+    // the raccoon bandit (right) and Caos (left)
     const rm = won ? 'dizzy' : lost ? 'gloat' : 'smug';
     raccoon(696, 360, 5.4, rm, T, -.6);
     if (won) { const q = clampV(rT / .9, 0, 1); X.save(); X.translate(696 - 6 + q * 90, 260 - Math.sin(q * Math.PI) * 120 + q * q * 40); X.rotate(q * 9); rr(-33, -12, 66, 24, 12); ink('#3b3550', 3.5); X.restore(); stars(696, 250, 30, T); }
     { const u = 5.4, cx0 = 112, bounce = won ? Math.abs(Math.sin(rT * 9)) * 18 : 0;
       shadowEl(cx0, 362, 40, 8, .3); X.save(); X.translate(cx0, 360 - bounce);
       if (won) arms(u, -2.6 + Math.sin(T * 14) * .2, 2.6 - Math.sin(T * 14) * .2, 1, OR); else if (lost) arms(u, -.4, .6, .8, OR); else arms(u, -.9, 1.2 + Math.sin(T * 5) * .08, 1, OR);
-      claude(0, 0, u, { mood: won ? 'happy' : lost ? 'sad' : null }); X.restore();
+      caos(0, 0, u, { mood: won ? 'happy' : lost ? 'sad' : null }); X.restore();
       if (lost) drop(cx0 + 44, 292, 1.2, 1);
       if (won) for (let i = 0; i < 5; i++) { const q = (rT * 1.1 + i * .2) % 1; heart(cx0 + (i - 2) * 24, 270 - q * 70, 1 - q * .3, 1 - q); } }
     if (!res) { pill(112, 286, 'YOU', '#FFE14D'); pill(696, 236, 'BANDIT', '#9aa0b4'); }
@@ -1158,10 +1158,10 @@ const W3G = (() => {
     const dkx = -OX + 64, dm = won ? 'win' : lost ? 'lose' : 'idle';
     duck(dkx, 540, dm, clampV((follow - dkx) / 300, -1, 1), T, won ? Math.abs(Math.sin(rT * 9)) * 16 : 0);
     if (phase === 'pick' && !res) { drop(dkx + 34, 462, 1, 1); }
-    // Claude hides under his cup
+    // Caos hides under his cup
     for (const c of cups) shadowEl(c.x, 388, 62 - c.lift * 10, 13, .3 - c.lift * .12);
     { const cx0 = cups[hid].x, hop = won ? Math.abs(Math.sin(rT * 9)) * 20 * c1(cups[hid].lift) : 0; shadowEl(cx0, 382, 36, 7, .25); X.save(); X.translate(cx0, 382 - hop); if (won) arms(5.5, -2.7 + Math.sin(T * 14) * .2, 2.7 - Math.sin(T * 14) * .2, 1, OR); else if (lost) arms(5.5, -.4, .5, .8, OR);
-      claude(0, 0, 5.5, { mood: won ? 'happy' : lost ? 'sad' : null }); X.restore(); }
+      caos(0, 0, 5.5, { mood: won ? 'happy' : lost ? 'sad' : null }); X.restore(); }
     // the wrong cup shows a rubber duck instead
     if (lost && picked >= 0 && picked !== hid && cups[picked].lift > .4) { const c = cups[picked]; X.save(); X.translate(c.x, 382 - 4); const sq = 1 + Math.sin(T * 14) * .05; X.scale(1, sq); celF(() => { X.beginPath(); X.ellipse(0, -14, 20, 15, 0, 0, TAU); }, '#ffe14d', '#e0b82e', 4, 0, 3.5); X.beginPath(); X.arc(10, -34, 12, 0, TAU); ink('#ffe14d', 3.5); X.beginPath(); X.ellipse(21, -31, 8, 4, 0, 0, TAU); ink('#ff9a3a', 2.5); X.beginPath(); X.arc(12, -37, 2.4, 0, TAU); X.fillStyle = INK; X.fill(); X.restore(); badge('SQUEAK!', c.x, 224, 26, '#ff9a3a', .06); }
     // the cups
@@ -1210,7 +1210,7 @@ function gRps(sp) {
   return g;
 }
 
-/* 18 ── SOLVE: a TV quiz show. A walrus host reads the sum off a bulb board, Claude buzzes from the contestant
+/* 18 ── SOLVE: a TV quiz show. A walrus host reads the sum off a bulb board, Caos buzzes from the contestant
    podium, and a wrong answer tips the gunge bucket. Quick maths (1 2 3 or click). */
 function gMath(sp) {
   let a = 2 + Math.random() * 8 | 0, b = 2 + Math.random() * 7 | 0, op = ['+', '-', 'x'][sp > 1.5 ? Math.random() * 3 | 0 : Math.random() * 2 | 0];
@@ -1304,7 +1304,7 @@ function gMath(sp) {
         if (!TOUCH) K.keyCap(String(i + 1), cx, 458 + press * .5);
         X.globalAlpha = 1; X.restore();
       }
-      // Claude on the contestant podium (left); the gunge bucket hangs over it from the lighting rig
+      // Caos on the contestant podium (left); the gunge bucket hangs over it from the lighting rig
       {
         const cx = 58, cy = 336, u = 5.2, jump = won ? Math.abs(Math.sin(rk * 9)) * 16 : 0;
         const tip = lost ? ease(rk / .2) * 2.1 : 0, pour = lost ? clamp((rk - .12) / .25, 0, 1) : 0, cover = lost ? clamp((rk - .25) / .3, 0, 1) : 0;
@@ -1314,10 +1314,10 @@ function gMath(sp) {
         if (won) { const w = Math.sin(now * 14) * .3; K.arms(u, -.45 + w, .45 - w, ease(rk / .2)); }
         else if (lost) K.arms(u, -2.5, 2.5, 1);
         else K.arms(u, -.5, .4 + Math.sin(now * 5) * .1, 1);
-        claude(0, 0, u, { mood: won ? 'happy' : lost ? 'sad' : null });
+        caos(0, 0, u, { mood: won ? 'happy' : lost ? 'sad' : null });
         X.restore();
         if (!won && !lost) K.sweat(cx + 36, cy - 50, 1, now);
-        // the gunge (drawn over Claude): a stream from the bucket, then a green blob dripping down
+        // the gunge (drawn over Caos): a stream from the bucket, then a green blob dripping down
         if (pour > 0 && pour < 1 || (lost && rk < .55)) { X.beginPath(); X.moveTo(cx - 12, 216); X.quadraticCurveTo(cx - 4, 260, cx - 8, cy - 48); X.lineCap = 'round'; X.lineWidth = 24 * (1 - Math.max(0, (rk - .4) / .15)) + 4; X.strokeStyle = INK; X.stroke(); X.lineWidth = Math.max(1, 24 * (1 - Math.max(0, (rk - .4) / .15)) - 4); X.strokeStyle = '#7fd34a'; X.stroke(); }
         if (cover > 0) {
           X.save(); X.translate(cx, cy);
@@ -1344,7 +1344,7 @@ function gMath(sp) {
         rr(x - 26, hy + 8, 52, 40, 16); ink('#2a2050', 3); el(x, hy, 19, 20); ink('#2a2050', 3);
         X.fillStyle = 'rgba(160,140,255,.35)'; el(x - 7, hy - 9, 6, 9, -.4); X.fill();
         if (won) for (const s of [-1, 1]) K.line([[x + s * 20, hy + 12], [x + s * 30, hy - 22 - Math.sin(now * 16 + i) * 5]], 6, '#2a2050');
-        if (i === 3) {                                                         // the fan's sign: a heart and a pixel Claude
+        if (i === 3) {                                                         // the fan's sign: a heart and a pixel Caos
           const sy = hy - 30 - (won ? Math.abs(Math.sin(rk * 10)) * 10 : 0);
           K.line([[x, hy - 8], [x, sy + 20]], 4, '#e3ac66');
           X.save(); X.translate(x, sy); X.rotate(Math.sin(now * 3) * .1 + (won ? Math.sin(now * 16) * .25 : 0));
@@ -1413,7 +1413,7 @@ function quizStage() {
 }
 
 /* 19 ── SORT: a pool hall table seen from above. Pot the numbered balls in order (mouse): each one rolls into
-   the nearest pocket and pops up in the ball-return tray. Claude leans on the cue; the hall cat bats at the balls. */
+   the nearest pocket and pops up in the ball-return tray. Caos leans on the cue; the hall cat bats at the balls. */
 function gSort(sp) {
   const n = sp > 1.5 ? 6 : 5;
   const cells = shuffle([...Array(12).keys()]).slice(0, n);
@@ -1437,13 +1437,13 @@ function gSort(sp) {
       if (!POOL_BG || POOL_BG.width !== VW) POOL_BG = K.bake(VW, H, c => { c.translate(OX, 0); poolTable(); });
       X.drawImage(POOL_BG, -OX, 0);
       const pockets = poolPockets(), mp = TOUCH ? null : mouse;
-      // Claude at the head of the table (bottom-left), drawn under the balls so it never hides one; leaning on the cue; it cheers each pot, twirls the cue on the win,
+      // Caos at the head of the table (bottom-left), drawn under the balls so it never hides one; leaning on the cue; it cheers each pot, twirls the cue on the win,
       // and on the fail the cue ball pops off the table and bonks it on the head
       {
         const cx = 72 - OX, cy = 534, u = 5, cheer = clamp(1 - (now - lastPot) / .35, 0, 1);
         const jump = won ? Math.abs(Math.sin(rk * 9)) * 14 : cheer * Math.sin(cheer * Math.PI) * 8, br = Math.sin(now * 3.1) * .025;
         K.shade(cx, cy + 2, 38, 7);
-        // the cue (a long stick resting on Claude's shoulder; twirls on the win)
+        // the cue (a long stick resting on Caos's shoulder; twirls on the win)
         X.save(); X.translate(cx - 40, cy - 40 - jump); X.rotate(won ? Math.sin(rk * 14) * .5 : Math.sin(now * 2) * .04);   // kept on the rail, clear of the balls
         K.line([[0, 40], [0, -80]], 7, '#e3ac66'); K.line([[0, 40], [0, 6]], 9, '#5a3a22'); K.line([[0, -78], [0, -84]], 7, '#4db8ff');
         X.restore();
@@ -1451,9 +1451,9 @@ function gSort(sp) {
         if (won) { const w = Math.sin(now * 14) * .3; K.arms(u, -.45 + w, .45 - w, ease(rk / .2)); }
         else if (lost) K.arms(u, -2.6, 2.6, ease(rk / .25));
         else K.arms(u, -.3 + Math.sin(now * 9) * .25 * (cheer > 0 ? 0 : 1), .35, 1);
-        claude(0, 0, u, { mood: won || cheer > 0 ? 'happy' : lost ? 'sad' : null });
+        caos(0, 0, u, { mood: won || cheer > 0 ? 'happy' : lost ? 'sad' : null });
         X.restore();
-        if (lost) {                                        // the cue ball hops up out of the table and drops on Claude's head
+        if (lost) {                                        // the cue ball hops up out of the table and drops on Caos's head
           const q = clamp(rk / .45, 0, 1), bx = cx + 120 - q * 120, by = cy - 120 - Math.sin(q * Math.PI) * 160 + q * 50;
           if (q < 1) { X.save(); X.translate(bx, by); X.scale(.45, .45); poolBall(0, '#fff', 0, 0); X.restore(); }
           else {
@@ -1566,7 +1566,7 @@ function gShell(sp) {
     sw = { a, b }; swT = 0; cups[a].from = cups[a].x; cups[a].to = cups[b].x; cups[b].from = cups[b].x; cups[b].to = cups[a].x;
   };
   const g = {
-    wide: true, cmd: 'FIND IT!', hint: 'FIND CLAUDE', dur: 6.5,
+    wide: true, cmd: 'FIND IT!', hint: 'FIND CAOS', dur: 6.5,
     down(p) {
       if (phase !== 'pick' || g.result) return;
       cups.forEach((c, i) => { if (Math.abs(p.x - c.x) < 66 && p.y > 250 && p.y < 400) { picked = i; g.result = i === hid ? 'win' : 'lose'; if (g.result === 'win') { sfx.coin(); sfx.sparkle(); burst(c.x, 340, '#FFE14D', 16); ring(c.x, 340, '#fff', 90); floatText('NICE!', c.x, 230, '#fff'); } else { sfx.buzz(); shake(6, .22); } } });
@@ -1590,8 +1590,8 @@ function gShell(sp) {
   return g;
 }
 
-/* SCRUB art (stage 4). Scene: the outside of a brick house. The sponge scrubs a muddy window; the room behind it, with Claude waving, shows
-   through as the glass gets clean. Win: sparkles and squeaks, Claude waves. Fail: a pigeon on the sill leaves a splat and Claude looks sad.
+/* SCRUB art (stage 4). Scene: the outside of a brick house. The sponge scrubs a muddy window; the room behind it, with Caos waving, shows
+   through as the glass gets clean. Win: sparkles and squeaks, Caos waves. Fail: a pigeon on the sill leaves a splat and Caos looks sad.
    Cosmetic only (K.hash for variety, never Math.random). */
 const W3SCRUB = (() => {
   const K = W3K, { rr, el, ink, TAU, ease, outBack, clamp, hash } = K;
@@ -1640,13 +1640,13 @@ const W3SCRUB = (() => {
     // motion for the sponge's soap trail
     const dt = Math.max(1 / 120, T - lT); if (T !== lT) { spd += (Math.hypot(mx - lx, my - ly) / dt - spd) * .3; acc += Math.hypot(mx - lx, my - ly); lx = mx; ly = my; lT = T; if (spd > 260 && !res && trail.length < 60 && acc > 18) { acc = 0; trail.push({ x: mx + (hash(T * 91) - .5) * 40, y: my + (hash(T * 37) - .5) * 24, t: T, r: 3 + hash(T * 11) * 6 }); } }
     trail = trail.filter(b => T - b.t < 1.2 && T >= b.t);
-    // Claude in the room (waves when it clears, worried while it stays dirty)
+    // Caos in the room (waves when it clears, worried while it stays dirty)
     const u = 17, cx = 400, cy = 450, wv = won ? Math.sin(T * 12) : Math.sin(T * 3) * .3, bob = won ? Math.abs(Math.sin(rT * 9)) * 18 : 0;
     X.save(); X.beginPath(); X.rect(GX, GY, GW, GH); X.clip();
     X.fillStyle = 'rgba(20,16,28,.28)'; el(cx, cy + 4, 120, 18); X.fill();
     X.save(); X.translate(cx, cy - bob);
     if (won) K.arms(u, -2.5 + wv * .4, 2.5 - wv * .4, 1); else if (lost) K.arms(u, -.5, .6, .9); else K.arms(u, -1.2 + wv * .3, 1.2 - wv * .3, .9);
-    claude(0, 0, u, { mood: won ? 'happy' : lost ? 'sad' : null }); X.restore();
+    caos(0, 0, u, { mood: won ? 'happy' : lost ? 'sad' : null }); X.restore();
     if (lost) K.sweat(cx + 120, cy - 150, 1.8, T);
     X.restore();
     // the mud
@@ -1743,14 +1743,14 @@ function gDodge(sp, extra = 0) {
       const won = g.result === 'win', lost = g.result === 'lose', rk = endK;
       if (!DODGE_BG || DODGE_BG.width !== VW) DODGE_BG = K.bake(VW, H, c => { c.translate(OX, 0); bedScene(); });
       X.drawImage(DODGE_BG, -OX, 0);
-      // who is closest to Claude (they all hunt; the closest one gets the bite)
+      // who is closest to Caos (they all hunt; the closest one gets the bite)
       let near = null, nd = 1e9; for (const b of balls) { const d = Math.hypot(b.x - me.x, b.y - me.y); if (d < nd) { nd = d; near = b; } }
       const scared = !g.result && nd < 130;
       // bedbugs: grumpy hunters, dizzy after a wall bounce; party on the bite, panic when the alarm rings
       if (won) { X.save(); X.globalAlpha = Math.min(.22, rk * .5); X.fillStyle = '#fff3b0'; X.fillRect(-OX, 0, VW, H); X.restore(); }   // morning light
       for (const b of balls) {
         const dx = me.x - b.x, dy = me.y - b.y, dl = Math.hypot(dx, dy) || 1;
-        // on the win the alarm scares them off the bed: they scurry away from Claude (drawn offset only, the game is over)
+        // on the win the alarm scares them off the bed: they scurry away from Caos (drawn offset only, the game is over)
         const run = won ? K.ease(rk / .9) * 760 : 0, x = b.x - dx / dl * run, y = b.y - dy / dl * run;
         const rot = won ? Math.atan2(-dy, -dx) + Math.PI / 2 : Math.atan2(b.vy, b.vx) + Math.PI / 2, c = Math.cos(-rot), s = Math.sin(-rot);
         const look = won ? [0, 1] : [(dx * c - dy * s) / dl, (dx * s + dy * c) / dl];
@@ -1760,7 +1760,7 @@ function gDodge(sp, extra = 0) {
         if (won) K.sweat(x + 18, y - 30, .9, now + b.x * .01);
         if (lost && b === near) for (let i = 0; i < 2; i++) { const q = (rk * .7 + i * .5) % 1; K.heart(x + Math.sin(q * 9 + i) * 12, Math.min(y - 44, 170) - q * 70, .8, Math.sin(q * Math.PI)); }
       }
-      // Claude in a nightcap
+      // Caos in a nightcap
       {
         const u = 3.4, bx = me.x, by = me.y + 16, jump = won ? Math.abs(Math.sin(rk * 9)) * 16 : 0, itch = lost ? Math.sin(now * 40) * 2 : 0, br = Math.sin(now * 3.1) * .025;
         shadow(me.x, me.y + 18, 28, 8);
@@ -1768,8 +1768,8 @@ function gDodge(sp, extra = 0) {
         if (won) { const w = Math.sin(now * 14) * .3; K.arms(u, -.45 + w, .45 - w, ease(rk / .2)); }
         else if (lost) K.arms(u, -2.5 + Math.sin(now * 30) * .3, 2.5 - Math.sin(now * 30) * .3, ease(rk / .2));
         else if (scared) { const w = Math.sin(now * 30) * .35; K.arms(u, -.9 + w, .9 + w, clamp((130 - nd) / 40, 0, 1)); }
-        claude(0, 0, u, { mood: lost ? 'sad' : won ? 'happy' : null, run: g.result ? null : now });
-        // the nightcap flops the way Claude runs
+        caos(0, 0, u, { mood: lost ? 'sad' : won ? 'happy' : null, run: g.result ? null : now });
+        // the nightcap flops the way Caos runs
         const sw = clamp((me.tx - me.x) / 120, -1, 1) * .5 + Math.sin(now * 3) * .08;
         X.save(); X.translate(0, -9 * u - 4); X.rotate(sw);
         X.beginPath(); X.moveTo(-6 * u, 0); X.quadraticCurveTo(-3 * u, -9 * u, 5 * u, -8 * u); X.quadraticCurveTo(8.6 * u, -7.4 * u, 8.6 * u, -3.6 * u); X.quadraticCurveTo(4 * u, -5 * u, 6 * u, 0); X.closePath(); ink('#6EA8FE', 3);
@@ -1874,7 +1874,7 @@ function bedScene() {
     K.cel(p, '#ffffff', '#d9d3ea', 5, 5, 4); K.glint(p, px + 40, 82, 30, 7, .8, -.1);
     X.strokeStyle = 'rgba(20,16,28,.25)'; X.lineWidth = 2.5; X.lineCap = 'round'; X.beginPath(); X.moveTo(px + 12, 78); X.lineTo(px + 22, 86); X.moveTo(px + 158, 78); X.lineTo(px + 148, 86); X.moveTo(px + 12, 128); X.lineTo(px + 22, 120); X.moveTo(px + 158, 128); X.lineTo(px + 148, 120); X.stroke();
   }
-  X.fillStyle = 'rgba(110,168,254,.35)'; el(W / 2 - 92, 118, 12, 6, .2); X.fill();          // a drool spot on Claude's pillow
+  X.fillStyle = 'rgba(110,168,254,.35)'; el(W / 2 - 92, 118, 12, 6, .2); X.fill();          // a drool spot on Caos's pillow
   // the lost sock (nobody knows whose)
   X.save(); X.translate(L + 70, 470); X.rotate(-.5);
   const sock = new Path2D('M -10 -34 L 12 -34 L 12 6 Q 12 22 28 22 L 34 22 Q 44 22 44 32 Q 44 42 32 42 L 4 42 Q -10 42 -10 26 Z');

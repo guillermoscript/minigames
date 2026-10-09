@@ -56,7 +56,7 @@ English is the source language and the English text is the key: `txt('SPLAT!')`,
 
 ## Sharing and analytics
 
-- **Link previews**: `index.html` carries Open Graph / Twitter card tags (absolute URLs on `https://claudeware.guille.tech`; change them if the domain moves) and the 1200x630 card `img/og.png`.
+- **Link previews**: `index.html` carries Open Graph / Twitter card tags (absolute URLs on `https://minicaos.guille.tech`; change them if the domain moves) and the 1200x630 card `img/og.png`.
 - **Challenge links**: after a run, SHARE sends `<site>/?c=<score>&s=<stage>&f=<name>` (native share sheet on phones, clipboard otherwise). Whoever opens it gets "NAME CHALLENGES YOU" on the title screen and is dropped into that stage.
 - **OpenPanel** (self-hosted at openpanel.guille.tech): client id and API URL are set in the `<meta name="openpanel-*">` tags in `index.html` (the client id is public). Blank them to disable tracking. Events (all sent via `track()` in `js/analytics.js`): `app_loaded`, `stage_start`, `microgame_end`, `stage_clear`, `game_over`, `stage_quit`, `practice_start`, `share_click`, `share_result`, `challenge_accept`, `challenge_beaten`, `sign_in`, `leaderboard_view`, `profile_view`. Screen views are automatic.
 
@@ -101,7 +101,7 @@ Hooks (`pocketbase/pb_hooks/`):
 - `users` OAuth2 auth: Google only, optional email-domain allow-list, default username/colour on sign-up. `users` update: validates `stars` / `best`, username pattern and rename rate limit. On start: applies Google env credentials (see above).
 - Pure helpers are unit-tested: `node pocketbase/pb_hooks/lib.test.js`.
 
-Settings (migration): app name "Claude Ware"; built-in rate limits on (auth endpoints 20/min, creates 60/min, all API 600/min, per IP).
+Settings (migration): app name "MiniCaos"; built-in rate limits on (auth endpoints 20/min, creates 60/min, all API 600/min, per IP).
 
 DUO mode (live two-player microgames): `POST /api/party/sig` relays small input messages to the partner over PocketBase realtime (topic `rooms/<id>/sig`, nothing is stored) and has its own rate-limit rule of 1500/min per IP (migration `1790900800_party_sig_rate.js`, so players behind one NAT don't hit the generic 600/min). On an already-deployed instance just redeploy: the migration runs on start. The proxy must not buffer SSE (`/api/realtime`).
 

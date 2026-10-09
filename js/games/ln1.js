@@ -88,7 +88,7 @@ function mouth(x, y, w, kind, wd = 3.5) {    // smile / frown / open / flat
   else { X.moveTo(x - w / 2, y); X.lineTo(x + w / 2, y); }
   X.stroke();
 }
-/* blocky arms from claude()'s side stubs (drawn before claude(); origin = Claude's feet). 0 = straight up, - = out left */
+/* blocky arms from caos()'s side stubs (drawn before caos(); origin = Caos's feet). 0 = straight up, - = out left */
 function arms(u, la, ra, col) {
   const ol = Math.max(3, u * .5), L = 3.3 * u, aw = 1.2 * u, hs = 2 * u, gap = .35 * u;
   const one = (sx, an) => {
@@ -101,7 +101,7 @@ function arms(u, la, ra, col) {
   one(-1, la); one(1, ra);
 }
 const oT = g => g.result ? Math.max(0, now - (g._r0 == null ? (g._r0 = now) : g._r0)) : 0;
-/* Claude, dressed: shadow + arms + body. Waves on idle, hops with arms up on a win, slumps on a loss. */
+/* Caos, dressed: shadow + arms + body. Waves on idle, hops with arms up on a win, slumps on a loss. */
 function hero(g, x, y, u) {
   const o = oT(g); let dy = 0, la = -2.4, ra = 2.4;
   if (g.result === 'win') { dy = -Math.abs(Math.sin(o * 9)) * 12; la = -.5 + Math.sin(now * 14) * .2; ra = .5 - Math.sin(now * 14) * .2; }
@@ -109,7 +109,7 @@ function hero(g, x, y, u) {
   else { const k = Math.sin(now * 2) * .1; la = -2.4 + k; ra = 2.4 - k; }
   shadow(x, y + 2, u * 8 * (1 + dy / 80), u * 1.6, .3);
   X.save(); X.translate(x, y + dy); arms(u, la, ra, OR); X.restore();
-  claude(x, y + dy, u, { mood: lnMood(g) });
+  caos(x, y + dy, u, { mood: lnMood(g) });
 }
 /* Progress / fuel gauge: an inked pill that reads like part of the scene (label comes from the game, unchanged) */
 function meter(x, y, w, v, col, label) {
@@ -433,7 +433,7 @@ function lnRoad(sp) {
         X.restore();
       }
       if (!g.result && c > .3 && gapNow < 150 && Math.sin(now * 16) > 0) txt('!', Math.min(740, tool.x + 62), tool.y - 44, 44, AMB);
-      // paver, with Claude at the wheel
+      // paver, with Caos at the wheel
       { const k = sq ? ease(o / .22) : 0, bnc = win ? Math.abs(Math.sin(o * 9)) * 9 : 0;
         shadow(tool.x, tool.y + 28, 42, 9, .3);
         X.save(); X.translate(tool.x, tool.y + 26); X.scale(1 + k * .3, 1 - k * .8); X.translate(0, -26 - bnc);
@@ -443,7 +443,7 @@ function lnRoad(sp) {
         obj(R_(-40, -26, 80, 46, 10), AMB, '#d99a1a', 4); glint(-24, -19, 14, 4, .5);
         X.save(); rr(-40, -26, 80, 46, 10); X.clip(); X.fillStyle = INK; for (let i = 0; i < 8; i++) X.fillRect(-40 + i * 11, 8, 6, 12); X.restore();
         for (const sx of [-1, 1]) { X.beginPath(); X.arc(sx * 28, -4, 5, 0, TAU); ink('#fffbe0', 2.5); }
-        if (!sq) { claude(0, -12, 2.5, { mood: lnMood(g) }); X.beginPath(); X.arc(0, -35, 11, Math.PI, TAU); X.closePath(); ink('#ffc93c', 3); rr(-14, -36, 28, 5, 2); ink('#ffc93c', 2.5); }
+        if (!sq) { caos(0, -12, 2.5, { mood: lnMood(g) }); X.beginPath(); X.arc(0, -35, 11, Math.PI, TAU); X.closePath(); ink('#ffc93c', 3); rr(-14, -36, 28, 5, 2); ink('#ffc93c', 2.5); }
         X.restore();
         if (sq) {   // flattened: X eyes on the pancake and stars going round
           eye(tool.x - 10, tool.y + 14, 5, [0, 0], 'dead', now, 0); eye(tool.x + 10, tool.y + 14, 5, [0, 0], 'dead', now, 1);
@@ -678,7 +678,7 @@ function lnSign(sp) {
       }
       if (held && !g.result && nxt > 0 && nxt < N) { X.setLineDash([10, 12]); X.lineWidth = 5; X.strokeStyle = '#fff'; X.beginPath(); X.moveTo(pts[nxt - 1].x, pts[nxt - 1].y); X.lineTo(ptr.x, ptr.y); X.stroke(); X.setLineDash([]); }
       X.lineCap = 'butt';
-      // Claude on the hill with the telescope
+      // Caos on the hill with the telescope
       hero(g, 730, 534, 4.6);
       for (let i = 0; i < N; i++) {
         const p = pts[i], done = i < nxt, isNext = i === nxt && !g.result, k = isNext ? 1 + Math.sin(now * 7) * .1 : 1, py = p.y + fall(i);
@@ -1039,7 +1039,7 @@ function lnPlates(sp) {
       for (let i = 0; i < 16; i++) { const a = i * TAU / 16 + .1; X.beginPath(); X.arc(CX + Math.cos(a) * 224, CY + Math.sin(a) * 224, 3.4, 0, TAU); ink('#9aa7c4', 1.5); }
       X.beginPath(); X.moveTo(CX - 12, CY - 238); X.lineTo(CX + 12, CY - 238); X.lineTo(CX, CY - 214); X.closePath(); ink('#ff4d5e', 3.5);
       obj(C_(CX, CY, 38), '#e6edff', '#a8b4d8', 5, -4, -5);
-      claude(CX, CY + 14, 2.9, { mood: lnMood(g) });
+      caos(CX, CY + 14, 2.9, { mood: lnMood(g) });
       if (ok3 && !g.result) { X.strokeStyle = LIME; X.lineWidth = 4; X.beginPath(); X.arc(CX, CY, 44, 0, TAU); X.stroke(); }
       if (!g.result && c < 1.2 && Math.sin(now * 10) > 0) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(CX, CY, 128, 0, 7); ctx.stroke(); }
       if (win) for (let i = 0; i < 14; i++) {   // coins rain down both sides of the dial

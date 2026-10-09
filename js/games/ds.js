@@ -45,7 +45,7 @@ const DSK = (() => {
     txt(s, 0, 2, size, fg, 'center', w - 16); X.restore();
   };
   K.keyCap = (x, y, s) => { X.font = '700 15px Fredoka, Arial, sans-serif'; const w = Math.max(26, X.measureText(s).width + 14); K.rr(x - w / 2, y - 12, w, 24, 6); K.ink('#fff', 2.5); txt(s, x, y + 1, 15, INK, 'center', w - 6); };
-  /* blocky arms out of claude()'s side stubs (origin = Claude's feet); angle 0 = straight up, PI = down */
+  /* blocky arms out of caos()'s side stubs (origin = Caos's feet); angle 0 = straight up, PI = down */
   K.arms = (u, la, ra, col = OR) => {
     const ol = Math.max(3, u * .5), L = 3.3 * u, aw = 1.2 * u, hs = 2 * u, gap = .35 * u;
     const one = (sx, an) => {
@@ -57,11 +57,11 @@ const DSK = (() => {
     };
     if (la != null) one(-1, la); if (ra != null) one(1, ra);
   };
-  /* Claude with arms and a ground shadow; o = {mood, col, la, ra} */
+  /* Caos with arms and a ground shadow; o = {mood, col, la, ra} */
   K.hero = (x, y, u, o = {}) => {
     shadow(x, y + 3, u * 7, u * 1.4, .28);
     X.save(); X.translate(x, y); K.arms(u, o.la == null ? -2.7 : o.la, o.ra == null ? 2.7 : o.ra, o.col || OR); X.restore();
-    claude(x, y, u, { mood: o.mood, col: o.col });
+    caos(x, y, u, { mood: o.mood, col: o.col });
   };
   K.heart = (x, y, s, a = 1) => {
     X.save(); X.globalAlpha = a; X.translate(x, y); X.scale(s, s); X.beginPath(); X.moveTo(0, 8); X.bezierCurveTo(-18, -4, -12, -20, 0, -10); X.bezierCurveTo(12, -20, 18, -4, 0, 8); X.closePath();
@@ -215,7 +215,7 @@ function dsRamp(sp) {
       K.dot(cx, cy, 30, '#ff9f4d', 4); ctx.fillStyle = '#fff'; K.el(cx - 11, cy - 4, 8, 10); ctx.fill(); K.el(cx + 11, cy - 4, 8, 10); ctx.fill();
       ctx.fillStyle = INK; for (const s of [-1, 1]) { ctx.beginPath(); ctx.arc(cx + s * 11 + sw * 3, cy - 3, 4, 0, 7); ctx.fill(); }
       ctx.strokeStyle = INK; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(cx, cy + 8, 7, .2, Math.PI - .2); ctx.stroke();
-      // Claude the cook watches the tomato
+      // Caos the cook watches the tomato
       const ar = dsArms(g, t), cook = { x: 100, y: 540 };
       K.hero(cook.x, cook.y, 4.4, { mood: dsMood(g), la: ar[0], ra: ar[1] });
       ctx.save(); ctx.translate(cook.x, cook.y - 9 * 4.4 - 6); K.rr(-17, -6, 34, 12, 4); K.ink('#fff', 3); K.dot(-9, -16, 10, '#fff', 3); K.dot(9, -16, 10, '#fff', 3); K.dot(0, -20, 11, '#fff', 3); ctx.restore();
@@ -414,7 +414,7 @@ function dsCreep(sp) {
 }
 
 /* ── 3 ── SHORT FUSE: cut the wire named by the word (not the ink!)
-   Art: the bomb squad's garage. A pegboard of wires under a big round bomb, a hard-hatted Claude sweating, a rubber duck in a tiny helmet. Win: a flag pops out of the fuse. Lose: soot, debris and a black Claude. */
+   Art: the bomb squad's garage. A pegboard of wires under a big round bomb, a hard-hatted Caos sweating, a rubber duck in a tiny helmet. Win: a flag pops out of the fuse. Lose: soot, debris and a black Caos. */
 function dsFuse(sp) {
   const K = DSK, names = ['RED', 'BLUE', 'YELLOW'], cols = ['#ff4d4d', '#4DB8FF', '#ffd23f'];
   const slots = [180, 400, 620], perm = shuffle([0, 1, 2]), want = Math.random() * 3 | 0;
@@ -501,7 +501,7 @@ function dsFuse(sp) {
       K.rr(-22, -86, 44, 18, 4); K.ink('rgba(255,255,255,.7)', 2.5); txt('CUT THE', 0, -40, 28, INK);
       ctx.fillStyle = INK; ctx.fillRect(-70, -18, 140, 3);
       txt(names[want], 0, 22, 46, cols[inkI], 'center', 180); ctx.restore();
-      // Claude, hard-hat and sweat
+      // Caos, hard-hat and sweat
       const ar = dsArms(g, t), cx2 = 700, cy2 = 536, u = 6;
       K.hero(cx2, cy2, u, { mood: dsMood(g), col: boom ? '#3a3340' : OR, la: boom ? -2.4 : ar[0], ra: boom ? 2.4 : ar[1] });
       ctx.beginPath(); ctx.arc(cx2, cy2 - 9 * u + 3, 4.6 * u, Math.PI, 0); ctx.closePath(); K.ink('#ffd23f', 4); K.rr(cx2 - 5.6 * u, cy2 - 9 * u, 11.2 * u, 7, 3.5); K.ink('#e0b52a', 3);
@@ -649,7 +649,7 @@ function dsCage(sp) {
       // the hen crossing the yard
       const hx = ((t * 40) % (VW + 160)) - 80 - OX, hb = Math.abs(Math.sin(t * 9)) * 3;
       ctx.save(); ctx.translate(hx, GY + 34 - hb); const hb2 = K.elP(0, -12, 15, 12); K.cel(hb2, '#fff', '#d6dbe8', 3, 3, 3); K.dot(13, -22, 7, '#fff', 3); ctx.fillStyle = '#ff9f4d'; ctx.beginPath(); ctx.moveTo(19, -23); ctx.lineTo(26, -20); ctx.lineTo(19, -18); ctx.fill(); K.dot(16, -25, 1.8, INK, 0); K.rr(8, -34, 6, 6, 3); K.ink('#ff4d5e', 2); ctx.strokeStyle = INK; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(-3, 0); ctx.lineTo(-3, 6); ctx.moveTo(4, 0); ctx.lineTo(4, 6); ctx.stroke(); ctx.restore();
-      // Claude, foreground right, ready to cut
+      // Caos, foreground right, ready to cut
       const ar = dsArms(g, t), cl = { x: W + OX - 62, y: 546 };
       K.hero(cl.x, cl.y, 3.4, { mood: dsMood(g), la: g.result ? ar[0] : -2.7, ra: g.result ? ar[1] : (cut ? 2 : .7 + Math.sin(t * 6) * .12) });
       K.pill(cl.x, cl.y - 9 * 3.4 - 14, 'YOU', '#FFE14D');
@@ -695,7 +695,7 @@ function dsCage(sp) {
 }
 
 /* ── 6 ── TOUCHDOWN: use the cursor as a fan to steer the umbrella onto the pad
-   Art: a sunny airfield. Claude hangs under a polka-dot umbrella, the cursor is an electric fan, a windsock on the pad and a windmill turn with the wind. Lose: the umbrella flips and Claude is splatted dizzy. */
+   Art: a sunny airfield. Caos hangs under a polka-dot umbrella, the cursor is an electric fan, a windsock on the pad and a windmill turn with the wind. Lose: the umbrella flips and Caos is splatted dizzy. */
 function dsFan(sp) {
   const K = DSK, k = Math.sqrt(sp), GY = 500, padX = dsRnd(260, 540), R = 175;
   const side = padX > 400 ? -1 : 1;
@@ -756,7 +756,7 @@ function dsFan(sp) {
       K.rr(sx - 3, GY - 70, 6, 76, 3); K.ink('#cfd8e6', 2.5); ctx.save(); ctx.translate(sx, GY - 66); ctx.scale(sdir >= 0 ? 1 : -1, 1);
       for (let i = 0; i < 3; i++) { const dy = Math.sin(t * 6 + i) * 2 + (1 - Math.abs(sdir)) * i * 5; K.rr(i * 14 + 2, -7 + dy - i * .5, 15, 14 - i * 2, 3); K.ink(i % 2 ? '#fff' : '#ff7a2f', 2.5); } ctx.restore();
       shadow(ch.x, GY + 10, 40 * Math.max(.3, 1 - (GY - ch.y) / 450), 9, .25);
-      // character: umbrella + Claude
+      // character: umbrella + Caos
       const flat = lose && ch.y >= GY - 1 ? K.ease(ot / .2) : 0;
       ctx.save(); ctx.translate(ch.x, ch.y); ctx.rotate(spin * .5); ctx.scale(1 + flat * .3, 1 - flat * .3);
       K.line([[0, -48], [0, -4]], 3, '#ffd23f', 5);
@@ -766,7 +766,7 @@ function dsFan(sp) {
       ctx.fillStyle = INK; ctx.fillRect(-3, -150, 6, 8);
       const ar = win ? [-.5, .5] : lose ? [-2.3, 2.3] : [-.35 + Math.sin(t * 5) * .1, .35 - Math.sin(t * 5) * .1];
       ctx.save(); K.arms(5, ar[0], ar[1]); ctx.restore();
-      claude(0, 0, 5, { mood: dsMood(g) });
+      caos(0, 0, 5, { mood: dsMood(g) });
       ctx.restore();
       if (!g.result && ch.y > GY - 200) K.sweat(ch.x + 26, ch.y - 30, 1, (t * 1.3) % 1);
       if (lose && ch.y >= GY - 1) for (let i = 0; i < 3; i++) { const a = t * 6 + i * 2.1; star(ch.x + Math.cos(a) * 34, ch.y - 56 + Math.sin(a) * 9, 7, 3, 5, a, '#FFE14D', 2); }
@@ -787,7 +787,7 @@ function dsFan(sp) {
 }
 
 /* ── 7 ── DEAD SIMON SAYS: drag the skeleton's hands and feet to match the pose
-   Art: a haunted disco. The example plays on a TV, yours is on the stage, Claude spins records between them. Win: the skeleton gets a crown and the floor lights up. Lose: its skull falls off and rolls. */
+   Art: a haunted disco. The example plays on a TV, yours is on the stage, Caos spins records between them. Win: the skeleton gets a crown and the floor lights up. Lose: its skull falls off and rolls. */
 function dsPose(sp) {
   const K = DSK;
   const POSES = [
@@ -888,7 +888,7 @@ function dsPose(sp) {
       if (lose) { const e = Math.min(1, ot / .55), hx = MX + 90 * e, hy = Math.min(448, 148 + 1400 * ot * ot * .5); ctx.save(); ctx.translate(hx, hy); ctx.rotate(e * 5); ctx.translate(-hx, -hy); skull(hx, hy, 'dead', [0, 0], t, false); ctx.restore(); }
       ctx.restore();
       handles.forEach((h, i) => { const ok = match(i), hy = h.a[1] + (win ? -Math.abs(Math.sin(t * 9)) * 14 : 0); if (ok) { ctx.strokeStyle = '#5CFF7A'; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(MX + h.a[0], hy, 26 + Math.sin(t * 10) * 2, 0, 7); ctx.stroke(); } const hp = K.elP(MX + h.a[0], hy, 18 + (grab === i ? 4 : 0), 18 + (grab === i ? 4 : 0)); K.cel(hp, ok ? '#5CFF7A' : '#FFE14D', ok ? '#23a046' : '#c99512', 4, 4, 4); K.glint(hp, MX + h.a[0] - 6, hy - 7, 6, 3.5); });
-      // Claude spins the records
+      // Caos spins the records
       const ar = win ? [-.5 + Math.sin(t * 12) * .25, .5 - Math.sin(t * 12) * .25] : lose ? [-2.3, 2.3] : [-.7 + Math.sin(t * 7) * .3, .8 - Math.sin(t * 7 + 1) * .3];
       K.hero(400, 456, 3.2, { mood: dsMood(g), la: ar[0], ra: ar[1] });
       ctx.beginPath(); ctx.arc(400, 456 - 9 * 3.2 + 4, 6.6 * 3.2, Math.PI * 1.1, Math.PI * 1.9); ctx.lineWidth = 5; ctx.strokeStyle = INK; ctx.stroke(); K.dot(400 - 6.6 * 3.2 - 1, 456 - 9 * 3.2 + 20, 5, '#ff4d5e', 3); K.dot(400 + 6.6 * 3.2 + 1, 456 - 9 * 3.2 + 20, 5, '#ff4d5e', 3);
@@ -971,7 +971,7 @@ function dsSink(sp) {
         for (const [dx, h] of [[-30, 30], [-10, 36], [10, 36], [30, 28]]) { K.rr(gx + dx - 8, gy - h, 16, h + 6, 8); K.ink('#fff', 3.5); }
         for (const x of [330, 470]) { const y = by(x) + 34; ctx.strokeStyle = '#fff'; ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x, y + 26); ctx.lineTo(x, y); ctx.lineTo(x - 10, y + 10); ctx.moveTo(x, y); ctx.lineTo(x + 10, y + 10); ctx.stroke(); }
       }
-      // the convertible with Claude at the wheel
+      // the convertible with Caos at the wheel
       let y = by(cx) - 20 + (lose ? fall : 0);
       if (lose && y > 560) y = 560;
       if (!lose) shadow(cx, by(cx) + 4, 36, 6, .3);
@@ -979,7 +979,7 @@ function dsSink(sp) {
       ctx.save(); ctx.translate(cx, y + bounce); ctx.rotate(lose ? Math.min(.6, ot * 1.2) : 0);
       const body = K.rrP(-36, -24, 72, 24, 9); K.cel(body, '#4D7CFF', '#2f55c4', 0, 5, 4);
       const ar = dsArms(g, t);
-      claude(2, -12, 3.2, { mood: dsMood(g) });
+      caos(2, -12, 3.2, { mood: dsMood(g) });
       K.rr(-36, -16, 72, 16, 7); K.ink('#4D7CFF', 4); ctx.fillStyle = 'rgba(255,255,255,.4)'; ctx.fillRect(-28, -14, 36, 3);
       ctx.strokeStyle = INK; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(-20, -24); ctx.lineTo(-20, -34); ctx.lineTo(-12, -34); ctx.stroke();
       for (const wx of [-21, 21]) { K.dot(wx, 0, 9, '#333', 3); ctx.save(); ctx.translate(wx, 0); ctx.rotate(cx * .15); ctx.fillStyle = '#cfd8e6'; ctx.fillRect(-1.5, -6, 3, 12); ctx.fillRect(-6, -1.5, 12, 3); ctx.restore(); }
@@ -1002,7 +1002,7 @@ function dsSink(sp) {
 }
 
 /* ── 9 ── SCRATCH AND MATCH: scratch the foil, find the lucky symbols
-   Art: a ticket on a shop counter. Silver foil with a rainbow sheen, a coin for a stylus, a cat guarding the till and Claude the shopkeeper. Win: gold coins rain and the ticket glows. Lose: a rain cloud over Claude. */
+   Art: a ticket on a shop counter. Silver foil with a rainbow sheen, a coin for a stylus, a cat guarding the till and Caos the shopkeeper. Win: gold coins rain and the ticket glows. Lose: a rain cloud over Caos. */
 function dsScratch(sp) {
   const K = DSK, SY = 5, lucky = Math.random() * SY | 0, others = shuffle([...Array(SY).keys()].filter(i => i !== lucky));
   const syms = shuffle([lucky, lucky, ...others.slice(0, 4)]);
@@ -1085,9 +1085,9 @@ function dsScratch(sp) {
       else pos.forEach((p, i) => { if (!done[i]) circ(p[0], p[1], RAD, '#aab3c2', 0); });
       pos.forEach((p, i) => { if (!done[i]) { ctx.strokeStyle = INK; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(p[0], p[1], RAD, 0, 7); ctx.stroke(); ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(p[0], p[1], RAD - 5, 3.6, 4.7); ctx.stroke(); } });
       pos.forEach((p, i) => { if (done[i] && syms[i] === lucky) { ctx.strokeStyle = '#5CFF7A'; ctx.lineWidth = 8; ctx.beginPath(); ctx.arc(p[0], p[1], RAD + 7, 0, 7); ctx.stroke(); } });
-      // Claude the shopkeeper (left margin) and the cat guarding the till (right)
+      // Caos the shopkeeper (left margin) and the cat guarding the till (right)
       const ar = dsArms(g, t), cx = 40, cyy = 330;
-      if (lose) { // a fat storm cloud rains on Claude
+      if (lose) { // a fat storm cloud rains on Caos
         const cl = [[0, 0, 30], [34, -12, 36], [74, 0, 28], [36, 10, 30]], bx = cx - 10, by = cyy - 92;
         for (const [a, b, r] of cl) { ctx.beginPath(); ctx.arc(bx + a, by + b, r, 0, 7); K.ink(null, 3.5); }
         for (const [a, b, r] of cl) { ctx.beginPath(); ctx.arc(bx + a, by + b, r, 0, 7); ctx.fillStyle = '#7d869e'; ctx.fill(); }
@@ -1206,7 +1206,7 @@ function dsFaces(sp) {
       // the lever
       const lv = win ? Math.min(1, ot / .25) * 50 : 0; K.dot(764, 246 + lv, 12, '#ff4d5e', 3.5);
       txt('=', 400, SY + RH * 1.5, 50 + (allOk ? Math.sin(t * 12) * 4 : 0), '#fff');
-      // Claude between the pictures, eyes on the reels
+      // Caos between the pictures, eyes on the reels
       const ar = dsArms(g, t), jy = win ? Math.abs(Math.sin(t * 10)) * 14 : 0;
       K.hero(400, 538 - jy, 5.6, { mood: dsMood(g), la: ar[0], ra: ar[1] });
       K.pill(400, 538 - 9 * 5.6 - 22, 'YOU', '#FFE14D');
@@ -1219,7 +1219,7 @@ function dsFaces(sp) {
 }
 
 /* ── 11 ── CATCH A TUNE: drag the dial until the picture is clear
-   Art: a 1980s living room. A wooden TV with rabbit ears, a cat on top, a cooking-show Claude on the screen under the snow. Win: the picture clears and the cat purrs hearts. Lose: the CRT shrinks to a dot. */
+   Art: a 1980s living room. A wooden TV with rabbit ears, a cat on top, a cooking-show Caos on the screen under the snow. Win: the picture clears and the cat purrs hearts. Lose: the CRT shrinks to a dot. */
 function dsTune(sp) {
   const K = DSK, spot = dsRnd(.15, .85); let d = spot + (Math.random() < .5 ? -1 : 1) * dsRnd(.32, .48);
   d = Math.max(.02, Math.min(.98, d)); if (Math.abs(d - spot) < .3) d = spot < .5 ? .95 : .05;
@@ -1278,7 +1278,7 @@ function dsTune(sp) {
       ctx.fillStyle = INK; ctx.fillRect(SXs, SYs + 198, SWs, 4);
       const bfx = SXs + 300 + Math.sin(t * 1.3) * 60, bfy = SYs + 150 + Math.sin(t * 2.2) * 18; ctx.fillStyle = '#ff4d9e'; ctx.beginPath(); ctx.ellipse(bfx - 6, bfy, 8, 5 + Math.sin(t * 20) * 3, .5, 0, 7); ctx.ellipse(bfx + 6, bfy, 8, 5 + Math.sin(t * 20) * 3, -.5, 0, 7); ctx.fill();
       ctx.save(); ctx.translate(SXs + 220, SYs + 250); const hp = cl > .85 ? Math.abs(Math.sin(t * 8)) * 8 : 0; ctx.translate(0, -hp); ctx.translate(-(SXs + 220), -(SYs + 250));
-      claude(SXs + 220, SYs + 250, 11, { mood: cl > .85 ? 'happy' : null });
+      caos(SXs + 220, SYs + 250, 11, { mood: cl > .85 ? 'happy' : null });
       ctx.restore();
       const sd = Math.floor(now * 24);
       if (lose) { // CRT switch-off: the picture folds into a line, then a dot
@@ -1306,7 +1306,7 @@ function dsTune(sp) {
 }
 
 /* ── 12 ── HOT FLASH: flick every layer off before the thermometer pops
-   Art: a scorching beach. Claude on a towel is wrapped in winter clothes, the sun grins, an ice cream melts. Win: the sun puts on shades and it snows. Lose: the thermometer bursts. */
+   Art: a scorching beach. Caos on a towel is wrapped in winter clothes, the sun grins, an ice cream melts. Win: the sun puts on shades and it snows. Lose: the thermometer bursts. */
 function dsStrip(sp) {
   const K = DSK, durA = 4.8 / Math.sqrt(sp), X = 330, Y = 520, U = 17;
   const L = [
@@ -1335,7 +1335,7 @@ function dsStrip(sp) {
     const palm = [[590, 420], [598, 340], [590, 290]]; c.lineCap = 'round'; K.line(palm, 14, '#a5622c', 9);
     for (const a of [-2.6, -2.1, -.9, -.4, -1.5]) { c.save(); c.translate(590, 286); c.rotate(a); K.el(34, 0, 38, 11); K.ink('#3fbf5a', 3.5); c.restore(); }
     K.dot(580, 296, 8, '#8a5a34', 3); K.dot(598, 298, 8, '#8a5a34', 3);
-    // towel under Claude
+    // towel under Caos
     K.rr(X - 160, 508, 320, 30, 10); K.ink('#ff7a9a', 4.5); c.save(); K.rr(X - 160, 508, 320, 30, 10); c.clip(); c.fillStyle = '#fff'; for (let i = -8; i < 8; i++) c.fillRect(X + i * 40, 508, 20, 30); c.restore(); K.rr(X - 160, 508, 320, 30, 10); c.lineWidth = 9; c.strokeStyle = INK; c.stroke();
   };
   const hit = (p, l) => dsPtIn(p.x, p.y, { x: l.r.x - 12, y: l.r.y - 12, w: l.r.w + 24, h: l.r.h + 24 });
@@ -1345,7 +1345,7 @@ function dsStrip(sp) {
     if (!left) { g.result = 'win'; dsWin(X, 300, 36); }
   };
   const g = {
-    wide: true, cmd: 'STRIP!', hint: 'FLICK EVERY LAYER OFF THE CLAUDE', thint: 'SWIPE EVERY LAYER OFF', dur: 4.8,
+    wide: true, cmd: 'STRIP!', hint: 'FLICK EVERY LAYER OFF CAOS', thint: 'SWIPE EVERY LAYER OFF', dur: 4.8,
     down(p) { if (g.result) return; pr = true; lp = { x: p.x, y: p.y }; },
     move(p) {
       if (!pr || g.result) return;
@@ -1372,7 +1372,7 @@ function dsStrip(sp) {
       ctx.save(); ctx.translate(ix, iy - 50); ctx.scale(1, 1 - melt * .25); K.dot(0, -2, 22, '#ff9ac4', 4); K.dot(0, -26, 17, '#fff3c4', 4); ctx.restore();
       for (let i = 0; i < 3; i++) { const dl = (8 + melt * 34) * (.6 + .4 * Math.sin(i * 2)); K.rr(ix - 14 + i * 14, iy - 52, 8, dl, 4); K.ink('#ff9ac4', 3); }
       if (cool) { star(ix, iy - 86, 12, 5, 6, t, '#fff', 2.5); }
-      // Claude on the towel, wrapped in layers
+      // Caos on the towel, wrapped in layers
       const sweatN = Math.floor(1 + heat * 4);
       K.hero(X, Y, U, { col: heat > .55 && !cool ? '#e8452f' : OR, mood: cool ? 'happy' : null, la: cool ? -.5 : -2.7, ra: cool ? .5 : 2.7 });
       for (const l of L) if (l.on) drawL(l.id, 0, 0);

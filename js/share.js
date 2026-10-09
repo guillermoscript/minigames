@@ -51,7 +51,7 @@ async function scoreCard(o) {
     g.fillStyle = fill; g.fill();
     if (ink && fill === '#FFE14D') { g.save(); g.clip(); const sg = g.createLinearGradient(0, cy - R, 0, cy + R); sg.addColorStop(0, 'rgba(255,255,255,.7)'); sg.addColorStop(.55, 'rgba(255,255,255,0)'); sg.addColorStop(1, 'rgba(230,150,0,.45)'); g.fillStyle = sg; g.fillRect(cx - R, cy - R, R * 2, R * 2); g.restore(); }
   };
-  const mascot = (x, y, u, col, mood) => {          // same pixel Claude as in the game, drawn on this canvas, with a little shading
+  const mascot = (x, y, u, col, mood) => {          // same pixel Caos as in the game, drawn on this canvas, with a little shading
     const ol = Math.max(3, u * .45), up = mood === 'happy' ? -u : 0;
     const body = [x - 6 * u, y - 9 * u, 12 * u, 7 * u], arms = [[x - 8 * u, y - 6.5 * u + up, 2 * u, 2.4 * u], [x + 6 * u, y - 6.5 * u + up, 2 * u, 2.4 * u]],
       legs = [-5, -2.6, 1.4, 3.8].map(lx => [x + lx * u, y - 2 * u, 1.2 * u, 2 * u]), shapes = [body, ...arms, ...legs];
@@ -83,7 +83,7 @@ async function scoreCard(o) {
 
   /* logo */
   g.save(); g.translate(cx, 112); g.rotate(-.035); g.shadowColor = 'rgba(20,16,28,.4)'; g.shadowBlur = 24; g.shadowOffsetY = 14;
-  T('CLAUDE WARE!', 0, 0, 132, '#FFE14D', 'center', 900); g.restore();
+  T('MINICAOS!', 0, 0, 132, '#FFE14D', 'center', 900); g.restore();
 
   /* stage pill */
   const label = (t('STAGE {n}', { n: o.stage + 1 }) + ' · ' + t(S.name)).toUpperCase();
@@ -114,8 +114,8 @@ async function scoreCard(o) {
 async function shareText(text, url, blob) {
   if (navigator.share) {
     try {
-      const data = { title: 'Claude Ware', text, url };
-      if (blob) { const f = new File([blob], 'claude-ware-score.png', { type: 'image/png' }); if (navigator.canShare && navigator.canShare({ files: [f] })) data.files = [f]; }
+      const data = { title: 'MiniCaos', text, url };
+      if (blob) { const f = new File([blob], 'minicaos-score.png', { type: 'image/png' }); if (navigator.canShare && navigator.canShare({ files: [f] })) data.files = [f]; }
       await navigator.share(data); return 'shared';
     }
     catch (e) { if (e && e.name === 'AbortError') return 'cancelled'; }

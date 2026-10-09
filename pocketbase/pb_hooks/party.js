@@ -1,4 +1,4 @@
-/* Claude Ware PARTY mode (play with friends in a room): pure room logic + a thin PocketBase layer.
+/* MiniCaos PARTY mode (play with friends in a room): pure room logic + a thin PocketBase layer.
    A room is ONE record in the `rooms` collection. Clients never write it: every action goes through /api/party/* routes (see
    claudeware.pb.js) which run the pure functions below inside a DB transaction and save the record; PocketBase realtime then
    pushes the new record to everyone subscribed to it. Pure functions take `now` (ms) and `rand` so party.test.js can drive them. */
@@ -16,7 +16,7 @@ const preTurn = (room) => room.mode === "balloon" ? PRE_MS_BALLOON : room.mode =
 const betweenMs = (room) => room.mode === "balloon" ? (room.last && room.last.final ? BETWEEN_MS_BALLOON_FINAL : BETWEEN_MS_BALLOON) : BETWEEN_MS;
 const BETWEEN_MS = 4000;        // results screen minimum time before the next round may start
 const AWARD = [100, 70, 50, 30];
-const COLORS = ["#D97757", "#6EA8FE", "#7BD88F", "#F28CB1", "#B49CFF", "#FFD23F", "#FF6B4D", "#4DD0E1"];
+const COLORS = ["#FF6B3D", "#6EA8FE", "#7BD88F", "#F28CB1", "#B49CFF", "#FFD23F", "#FF6B4D", "#4DD0E1"];
 /* party microgames: id -> { dur (s, at speed 1), pts (ranked by `pts` instead of finish time) } - keep in sync with js/games/pt1.js */
 const GAMES = {
   pt_mash: { dur: 5, pts: true },

@@ -281,7 +281,7 @@
             const [x0, x1] = pen(c.side); c.walk = (c.walk || 0) + dt; c.vy += 900 * dt; c.x += c.vx * dt; c.y += c.vy * dt;
             if (c.x < x0 + 30 || c.x > x1 - 30) { c.vx *= -1; c.x = Math.max(x0 + 30, Math.min(x1 - 30, c.x)); }
             if (c.y > 520) { c.y = 520; c.vy = -260 - Math.random() * 260; c.vx += (Math.random() - .5) * 300; }
-          } else if (c.st === 'off') { c.walk += dt;                                    // ambles down, bonks Claude, wanders off sideways
+          } else if (c.st === 'off') { c.walk += dt;                                    // ambles down, bonks Caos, wanders off sideways
             if (!c.bump) { c.y += 300 * dt; c.s += .4 * dt; c.x += Math.sin(c.walk * 3) * 40 * dt; if (c.y > CY - 40) { c.bump = 1; knock = 60; sfx.thud(); shake(6, .2); } }
             else c.x += (c.kind === 'sheep' ? -1 : 1) * 260 * dt; }
         });
@@ -312,7 +312,7 @@
           critter({ kind: sd === 'L' ? 'sheep' : 'pig' }, bx - 58, 262, .46, {});
           txt(sd === 'L' ? 'SHEEP' : 'PIGS', bx + 28, 240, 28, sd === 'L' ? '#fff' : PINK, 'center', 120);
         }
-        // critters + Claude, back to front
+        // critters + Caos, back to front
         const items = [];
         crits.forEach((c, i) => { if (c.st === 'q' && i - f >= SLOTS.length) return;
           const [x, y, sc] = c.st === 'q' || c.st === 'wait' ? at(c.u) : [c.x, c.y, c.s]; items.push({ y, fn: () => {
@@ -332,12 +332,12 @@
             }
             if (c.st === 'off') { raw('♪', x + 40 * sc, y - 120 * sc + Math.sin(clk * 8) * 6, 30, '#fff'); }
           } }); });
-        items.push({ y: CY, fn: () => {                                                   // Claude the farmer, pointing the way
+        items.push({ y: CY, fn: () => {                                                   // Caos the farmer, pointing the way
           const cx = FX + knock + point * pointT * 30, cy = CY - (win ? Math.abs(Math.sin(clk * 10)) * 18 : hop > 0 ? Math.sin(hop / .25 * Math.PI) * 14 : 0), pa = pointT > 0 ? 1 : 0;
           K.shade(FX + knock, CY + 2, 34, 7, .3);
           ctx.save(); ctx.translate(cx, cy); ctx.transform(1, 0, -point * pointT * .9, 1, 0, 0);
           const la = win ? -.4 : pa && point < 0 ? -1.45 : -2.5, ra = win ? .4 : pa && point > 0 ? 1.45 : 2.5;
-          K.arms(4, la, ra, 1); claude(0, 0, 4, { mood: lose ? 'sad' : win || hop > 0 ? 'happy' : null }); hatU(4);
+          K.arms(4, la, ra, 1); caos(0, 0, 4, { mood: lose ? 'sad' : win || hop > 0 ? 'happy' : null }); hatU(4);
           if (lose) K.sweat(26, -40, .9, clk);
           ctx.restore();
           if (pointT > 0) drawArrow(FX + point * 74, CY - 30, point < 0 ? 3 : 1, 24 * (1 + pointT), '#FFE14D');

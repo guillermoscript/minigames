@@ -531,7 +531,7 @@ function storm(sp, D) {
     shipBody(sxx, y, tilt, T, {
       heel: sf.heel, bulge: bulgeV, flap, noSail: false,
       crew: () => drawCrew(T, mood, won, lost),
-      nest: () => { const m = mood(1); claude(0, 6, 1.55, { col: col(1), mood: m }); X.beginPath(); X.moveTo(5, -4); X.lineTo(15, -17); X.lineWidth = 8; X.strokeStyle = INK; X.stroke(); X.lineWidth = 4.5; X.strokeStyle = '#d9a441'; X.stroke(); },
+      nest: () => { const m = mood(1); caos(0, 6, 1.55, { col: col(1), mood: m }); X.beginPath(); X.moveTo(5, -4); X.lineTo(15, -17); X.lineWidth = 8; X.strokeStyle = INK; X.stroke(); X.lineWidth = 4.5; X.strokeStyle = '#d9a441'; X.stroke(); },
     });
     X.restore();
     if (lost && rk >= 0) { const k = ease(clamp(rk / .9, 0, 1)); X.save(); X.globalAlpha = .6 * k; el(sxx, y + 30, 92, 70); X.fillStyle = '#47c4ee'; X.fill(); X.globalAlpha = k; el(sxx, y + 30, 92, 70); X.lineWidth = 5; X.strokeStyle = '#fff'; X.stroke(); X.restore(); }
@@ -549,15 +549,15 @@ function storm(sp, D) {
     { const [cx, cy] = [0, 50], held = heldBy(0); X.save(); X.translate(cx, cy - 18); X.rotate(isHelm ? a * 1.2 : hdv() * 3.4);
       for (let i = 0; i < 6; i++) { X.rotate(TAU / 6); line([[0, 0], [0, -11]], 3, INK); line([[0, 0], [0, -11]], 1.5, '#c98443'); }
       X.beginPath(); X.arc(0, 0, 8, 0, TAU); X.lineWidth = 6; X.strokeStyle = INK; X.stroke(); X.lineWidth = 3; X.strokeStyle = '#c98443'; X.stroke(); X.restore();
-      claude(cx, cy + (held ? 2 : 0), 1.5, { col: col(0), mood: mood(0) }); if (held) bracePuff(cx, cy - 8, T); }
+      caos(cx, cy + (held ? 2 : 0), 1.5, { col: col(0), mood: mood(0) }); if (held) bracePuff(cx, cy - 8, T); }
     if (n === 4) {
       { const [cx, cy] = [20, 14], held = heldBy(2); const tt = trimV(), ty2 = cy + 4; line([[-4, 20], [cx - 6, ty2 - 2 + (tt - .5) * 12]], 3.4, INK); line([[-4, 20], [cx - 6, ty2 - 2 + (tt - .5) * 12]], 1.6, '#e6c58c');
-        claude(cx + (held ? 0 : Math.sin(T * 3) * .6), cy + (held ? 2 : 0), 1.5, { col: col(2), mood: mood(2) }); if (held) bracePuff(cx, cy - 8, T); }
-      { const [cx, cy] = [20, 38], held = heldBy(3), busy = g.c - bailAt < .18; claude(cx, cy + (held ? 2 : 0) - (busy ? 2 : 0), 1.5, { col: col(3), mood: mood(3) });
+        caos(cx + (held ? 0 : Math.sin(T * 3) * .6), cy + (held ? 2 : 0), 1.5, { col: col(2), mood: mood(2) }); if (held) bracePuff(cx, cy - 8, T); }
+      { const [cx, cy] = [20, 38], held = heldBy(3), busy = g.c - bailAt < .18; caos(cx, cy + (held ? 2 : 0) - (busy ? 2 : 0), 1.5, { col: col(3), mood: mood(3) });
         bucketMini(cx - 16, cy - 4, busy, wlV()); if (held) bracePuff(cx, cy - 8, T); }
     } else {
       { const [cx, cy] = [20, 22], held = heldBy(2), busy = g.c - bailAt < .18; line([[-4, 12], [cx - 6, cy - 2]], 3.4, INK); line([[-4, 12], [cx - 6, cy - 2]], 1.6, '#e6c58c');
-        claude(cx, cy + (held ? 2 : 0) - (busy ? 2 : 0), 1.5, { col: col(2), mood: mood(2) }); bucketMini(cx - 15, cy + 12, busy, wlV()); if (held) bracePuff(cx, cy - 8, T); }
+        caos(cx, cy + (held ? 2 : 0) - (busy ? 2 : 0), 1.5, { col: col(2), mood: mood(2) }); bucketMini(cx - 15, cy + 12, busy, wlV()); if (held) bracePuff(cx, cy - 8, T); }
     }
     // water sloshing on deck when the hold is full
     const wv = wlV(); if (wv > .45) { X.save(); X.globalAlpha = clamp((wv - .45) * 1.3, 0, .55); X.fillStyle = '#4fb7ff'; el(0, 24, 22, 28 * (wv)); X.fill(); X.restore(); }
@@ -592,7 +592,7 @@ function storm(sp, D) {
     // the ship sinks gently; the crew floats on barrels, the cook wears the pot
     const k = clamp((rk - .15) / .35, 0, 1); if (k <= 0) return;
     X.save(); X.translate(0, (1 - outBack(k)) * 30);
-    MY.forEach((r, i) => { const bx = sx - 90 + i * (180 / (MY.length - 1)), by = SHIPY - 10 + (i % 2) * 36; barrel(bx, by, T, i); claude(bx, by - 8, 1.7, { col: col(r), mood: 'sad' }); if (r === (n === 4 ? 3 : 2)) pot(bx, by - 30, 1.3); });
+    MY.forEach((r, i) => { const bx = sx - 90 + i * (180 / (MY.length - 1)), by = SHIPY - 10 + (i % 2) * 36; barrel(bx, by, T, i); caos(bx, by - 8, 1.7, { col: col(r), mood: 'sad' }); if (r === (n === 4 ? 3 : 2)) pot(bx, by - 30, 1.3); });
     X.restore();
     if (rk > .5) bubble('SQUAWK!', sx + 70, SHIPY - 100 + Math.sin(T * 3) * 4, 17, outBack((rk - .5) / .2));
     gull(sx + 70, SHIPY - 90 + Math.sin(T * 3) * 4, T, true, true);
@@ -704,8 +704,8 @@ function demoBg(t) {
 function demoShip(x, y, s, t, o) {
   X.save(); X.translate(x, y); X.scale(s, s); X.translate(-x, -y);
   shipBody(x, y, o.tilt || 0, t, { heel: o.heel || 0, bulge: o.bulge === undefined ? 30 : o.bulge, flap: o.flap || 0,
-    crew: () => { claude(0, 50, 1.5, { col: DEF[0], mood: o.mood }); claude(20, 14, 1.5, { col: DEF[2], mood: o.mood }); claude(20, 38, 1.5, { col: DEF[3], mood: o.mood }); },
-    nest: () => claude(0, 6, 1.55, { col: DEF[1], mood: o.mood }) });
+    crew: () => { caos(0, 50, 1.5, { col: DEF[0], mood: o.mood }); caos(20, 14, 1.5, { col: DEF[2], mood: o.mood }); caos(20, 38, 1.5, { col: DEF[3], mood: o.mood }); },
+    nest: () => caos(0, 6, 1.55, { col: DEF[1], mood: o.mood }) });
   X.restore();
 }
 function demoProp(kind, t, act) {

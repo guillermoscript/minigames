@@ -133,21 +133,21 @@ function handle(e, action) {
   return e.json(status, out);
 }
 
-const SITE = "https://claudeware.guille.tech";
+const SITE = "https://minicaos.guille.tech";
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 /* /r/<code>: invite landing page (link-preview tags for chat apps), then into the game with ?r=<code> */
 function invitePage(e) {
   const code = P.cleanCode(e.request.pathValue("code"));
   if (code.length !== 4) return e.redirect(302, "/");
-  const title = "Join my Claude Ware room: " + code, desc = "Room code " + code + " - play 5-second microgames with friends, live. Tap the link to join!";
+  const title = "Join my MiniCaos room: " + code, desc = "Room code " + code + " - play 5-second microgames with friends, live. Tap the link to join!";
   const q = "/?r=" + code, url = SITE + "/r/" + code, img = SITE + "/r/" + code + "/og.png";
   return e.html(200, '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>' + esc(title) + '</title>' +
     '<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="' + esc(desc) + '">' +
-    '<meta property="og:site_name" content="Claude Ware"><meta property="og:type" content="website"><meta property="og:url" content="' + esc(url) + '">' +
+    '<meta property="og:site_name" content="MiniCaos"><meta property="og:type" content="website"><meta property="og:url" content="' + esc(url) + '">' +
     '<meta property="og:title" content="' + esc(title) + '"><meta property="og:description" content="' + esc(desc) + '">' +
     '<meta property="og:image" content="' + img + '"><meta property="og:image:type" content="image/png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">' +
     '<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="' + esc(title) + '"><meta name="twitter:description" content="' + esc(desc) + '"><meta name="twitter:image" content="' + img + '">' +
-    '<meta http-equiv="refresh" content="0;url=' + esc(q) + '"></head><body style="background:#6a3de8;color:#fff;font:700 20px sans-serif;text-align:center;padding-top:20vh"><a style="color:#FFE14D" href="' + esc(q) + '">Opening Claude Ware...</a>' +
+    '<meta http-equiv="refresh" content="0;url=' + esc(q) + '"></head><body style="background:#6a3de8;color:#fff;font:700 20px sans-serif;text-align:center;padding-top:20vh"><a style="color:#FFE14D" href="' + esc(q) + '">Opening MiniCaos...</a>' +
     '<script>location.replace(' + JSON.stringify(q) + ')</script></body></html>');
 }
 

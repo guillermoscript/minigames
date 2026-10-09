@@ -452,12 +452,12 @@ function duJar(sp, D) {
         const sideX = JX - 70 * Math.cos(tilt * .26) + Math.sin(tilt * .26) * -30, sideY = by - 70;
         const lean = -tilt * 5;
         shadow(hx, hfy + 2, 46, 9, .22);
-        claude(hx + lean, hfy - hop, UU, { col: holder, mood: hmood });
+        caos(hx + lean, hfy - hop, UU, { col: holder, mood: hmood });
         // the twister (right) on a crate
         crate(tx, TT + 38, 86, 54);
         const eff = hold ? pwSee : pw, strain = clamp(eff * (1 - grip * .4) + (1 - grip) * .4, 0, 1);
         const lx = lp[0] + 54, ly = lp[1] + 2 + Math.sin(T * 16) * eff * 5;
-        claude(tx, tfy - hop, UU, { col: twister, mood: hmood });
+        caos(tx, tfy - hop, UU, { col: twister, mood: hmood });
         // faces react: sweat when the twisting is hard or the jar leans
         if (!g.result) { for (let i = 0; i < 2; i++) { if (eff > .5 + i * .2) sweat(tx - 28 + i * 12, tfy - 60, T, i * .5); if (Math.abs(tilt) > .5 + i * .2) sweat(hx - 34 + i * 7, hfy - 60, T, i * .4); } }
         // the jar

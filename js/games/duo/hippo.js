@@ -22,7 +22,7 @@ const SLOTX = 262, BELTY = 326, SPB = 78;            // the waiting bag sits at 
 const JX = 690, JY = 410, HS = .94;                  // the hippo's jaw hinge + its scale
 const MX = JX - 150 * HS, MY = JY - 52 * HS;         // where a bag ends its flight (between the lips)
 const SX = SLOTX, SY = BELTY - 30, FC = [356, 130];   // a lob: up and over the feeder's raised hands, down into the mouth (stays under the scoreboard)
-const CLX = 352, CLY = 338;                          // the feeder (Claude) stands on a crate at the end of the belt
+const CLX = 352, CLY = 338;                          // the feeder (Caos) stands on a crate at the end of the belt
 const WARN_B = [22, 446, 176, 96], TOSS_B = [214, 446, 176, 96], HOLD_B = [22, 446, 368, 96];
 const WATER = 458;
 const fpos = k => { const a = (1 - k) * (1 - k), b = 2 * (1 - k) * k, c = k * k; return [a * SX + b * FC[0] + c * MX, a * SY + b * FC[1] + c * MY]; };
@@ -388,7 +388,7 @@ function mouthIcon(x, y, k, bad) {                     // a little hippo snout t
   for (const tx of [-224, -182]) { X.save(); X.translate(tx, -6); inkP(P(TUSK), TOOTH, 4); X.restore(); }
   X.restore();
 }
-function goggles(u, T, fog, up) {                      // X-ray goggles on the feeder (unit u of claude()); fog: steamed up green, up: pushed up onto the forehead
+function goggles(u, T, fog, up) {                      // X-ray goggles on the feeder (unit u of caos()); fog: steamed up green, up: pushed up onto the forehead
   const ey = -6.2 * u - (up || 0) * 3.3 * u;
   X.lineWidth = 4; X.strokeStyle = INK; X.beginPath(); X.moveTo(-6 * u, ey); X.lineTo(6 * u, ey); X.stroke();
   for (const sx of [-1, 1]) {
@@ -401,7 +401,7 @@ function goggles(u, T, fog, up) {                      // X-ray goggles on the f
     X.fillStyle = '#fff'; el(lx - u * .6, ey - u * .6, u * .42, u * .32, -.6); X.fill();
   }
 }
-/* two thin blocky arms raised from claude()'s side stubs, each with a little square hand (drawn before claude(), so the body hides the shoulder).
+/* two thin blocky arms raised from caos()'s side stubs, each with a little square hand (drawn before caos(), so the body hides the shoulder).
    la / ra: arm angles (0 = straight up, + leans right), k: 0..1 how far they are raised */
 function arms(u, la, ra, k, col) {
   if (k <= .02) return; const ol = Math.max(3, u * .5), L = 3.3 * u * k, aw = 1.2 * u, hs = 2 * u, gap = .35 * u;
@@ -619,7 +619,7 @@ function duHippo(sp, D) {
       else if (recoil > 0) arms(5.4, .35, .7, recoil, ccol);
       else if (shrug > 0) arms(5.4, -.85, .85, shrug, ccol);
       else if (th >= 0 && th < 1) { const an = lerp(-.8, 1.0, ease(th / .5)); arms(5.4, an, an, th < .12 ? th / .12 : 1 - ease((th - .55) / .45), ccol); }
-      claude(0, 0, 5.4, { col: ccol, mood: won ? 'happy' : vom >= 0 ? 'sad' : hop > 0 ? 'happy' : null });
+      caos(0, 0, 5.4, { col: ccol, mood: won ? 'happy' : vom >= 0 ? 'sad' : hop > 0 ? 'happy' : null });
       goggles(5.4, T, recoil > .5, shrug);
       if (shrug > .5) { X.globalAlpha = shrug; el(26, -62 + ((T * 30) % 12), 5, 7); ink('#9fe3ff', 2.5); X.globalAlpha = 1; }
       X.restore();
@@ -895,7 +895,7 @@ function demo(role, t) {
   // the feeder on its crate
   const tk = (v - tossT) / .35, hop = tk > 0 && tk < 1 ? Math.sin(tk * Math.PI) : 0;
   X.save(); X.translate(178, 150 - hop * 5); const an = lerp(-.8, 1, ease(tk / .6)); if (tk > 0 && tk < 1.3) arms(2.6, an, an, tk < .15 ? tk / .15 : 1 - ease((tk - .7) / .6), feeder ? '#FFC93C' : '#6EA8FE');
-  claude(0, 0, 2.6, { col: feeder ? '#FFC93C' : '#6EA8FE', mood: hop > 0 || chew ? 'happy' : null }); goggles(2.6, t); X.restore();
+  caos(0, 0, 2.6, { col: feeder ? '#FFC93C' : '#6EA8FE', mood: hop > 0 || chew ? 'happy' : null }); goggles(2.6, t); X.restore();
   if (feeder) {
     const tapW = trash && v > warnT - .12 && v < warnT + .16, tapT = v > tossT - .12 && v < tossT + .16;
     miniBtn(DWARN, wk > 0 ? '#ff4d5e' : '#ff7a85', '#b8283a', tapW, 'WARN', (x, y) => skull(x, y, .95));

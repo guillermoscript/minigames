@@ -81,7 +81,7 @@ function check(x, y, s) {
   X.save(); X.translate(x, y); X.scale(s, s); X.lineCap = 'round'; X.lineJoin = 'round';
   X.beginPath(); X.moveTo(-9, 0); X.lineTo(-3, 7); X.lineTo(10, -8); X.lineWidth = 10; X.strokeStyle = INK; X.stroke(); X.lineWidth = 4.5; X.strokeStyle = '#5CFF7A'; X.stroke(); X.restore();
 }
-/* two thin blocky arms raised from claude()'s side stubs (drawn before claude(), so the body hides the shoulder) */
+/* two thin blocky arms raised from caos()'s side stubs (drawn before caos(), so the body hides the shoulder) */
 function arms(u, la, ra, k, col) {
   if (k <= .02) return; const ol = Math.max(3, u * .5), L = 3.3 * u * k, aw = 1.2 * u, hs = 2 * u, gap = .35 * u;
   const one = (sx, an) => {
@@ -92,7 +92,7 @@ function arms(u, la, ra, k, col) {
   };
   one(-1, la); one(1, ra);
 }
-/* a bobble beanie on top of claude() (unit u, origin = the feet) */
+/* a bobble beanie on top of caos() (unit u, origin = the feet) */
 function beanie(u, col) {
   const y = -9 * u;
   X.beginPath(); X.moveTo(-5.4 * u, y + .6 * u); X.bezierCurveTo(-5 * u, y - 4.6 * u, 5 * u, y - 4.6 * u, 5.4 * u, y + .6 * u); X.closePath(); ink(col, 3);
@@ -433,7 +433,7 @@ function duGuide(sp, D) {
         X.save(); X.translate(fx + shiver + bx + chat, fy + 22 - hop * 16 - jump); X.scale(big, big);
         shadow(0, 2 + hop * 16 + jump, 24, 5, .3);
         if (won) { const w = Math.sin(T * 14) * .3; arms(U, -.45 + w, .45 - w, ease(rk / .2), wCol()); }
-        claude(0, 0, U, { col: wCol(), mood: won ? 'happy' : lost ? 'sad' : null });
+        caos(0, 0, U, { col: wCol(), mood: won ? 'happy' : lost ? 'sad' : null });
         beanie(U, '#ff4d6d');
         if (lost) { iceBlock(U, outBack(rk / .3)); icicles(U, ease((rk - .25) / .3)); }
         X.restore();
@@ -449,7 +449,7 @@ function duGuide(sp, D) {
       X.save(); X.translate(TWX, TWY - (mk >= 0 && mk < 1 ? Math.sin(mk * Math.PI) * 6 : 0) - (won ? Math.abs(Math.sin(T * 9)) * 12 : 0));
       if (won) { const w = Math.sin(T * 14) * .3; arms(4.4, -.45 + w, .45 - w, ease(rk / .2), gCol()); }
       else if (lost) arms(4.4, -.85, .85, ease(rk / .3), gCol());
-      claude(0, 0, 4.4, { col: gCol(), mood: won ? 'happy' : lost ? 'sad' : null });
+      caos(0, 0, 4.4, { col: gCol(), mood: won ? 'happy' : lost ? 'sad' : null });
       beanie(4.4, '#4DB8FF');
       if (!g.result) megaphone(30, -26, -.42 + (mk >= 0 && mk < 1 ? -Math.sin(mk * Math.PI) * .12 : 0), 1);
       X.restore();
@@ -504,17 +504,17 @@ function duGuide(sp, D) {
     const [hx, hy] = [tcx(fallTile[0]), tcy(fallTile[1])], [px, py] = tilePos(sc, RW);
     if (k < .2) {
       const s = k / .2; X.save(); X.beginPath(); X.rect(hx - 40, hy - 80, 80, 80 + 6); X.clip();
-      X.translate(hx + Math.sin(T * 50) * 2, hy + 22 + s * 40); claude(0, 0, U, { col: wCol(), mood: 'sad' }); beanie(U, '#ff4d6d'); X.restore();
+      X.translate(hx + Math.sin(T * 50) * 2, hy + 22 + s * 40); caos(0, 0, U, { col: wCol(), mood: 'sad' }); beanie(U, '#ff4d6d'); X.restore();
       if (!fallTile.sp) { fallTile.sp = 1; splash(hx, hy, 10); }
     } else if (k < .32) {
       const s = (k - .2) / .12, h = Math.sin(s * Math.PI) * 50;
       X.beginPath(); X.moveTo(hx - 12, hy); X.quadraticCurveTo(hx - 6, hy - h, hx, hy - h - 8); X.quadraticCurveTo(hx + 6, hy - h, hx + 12, hy); X.closePath(); ink('#bfe9ff', 3);
     } else if (k < .88) {
       const s = (k - .32) / .56, x = lerp(hx, px, s), y = lerp(hy, py, s) - Math.sin(s * Math.PI) * 130 + 22;
-      X.save(); X.translate(x, y); X.rotate(s * TAU); X.translate(0, 10); claude(0, 0, U, { col: wCol(), mood: 'sad' }); beanie(U, '#ff4d6d'); iceBlock(U, 1); X.restore();
+      X.save(); X.translate(x, y); X.rotate(s * TAU); X.translate(0, 10); caos(0, 0, U, { col: wCol(), mood: 'sad' }); beanie(U, '#ff4d6d'); iceBlock(U, 1); X.restore();
       if (!fallTile.wh) { fallTile.wh = 1; sfx.boing(); }
     } else {
-      const s = (k - .88) / .12; X.save(); X.translate(px, py + 22); X.scale(1 + .18 * (1 - s), 1 - .18 * (1 - s)); claude(0, 0, U, { col: wCol(), mood: 'sad' }); beanie(U, '#ff4d6d'); X.restore();
+      const s = (k - .88) / .12; X.save(); X.translate(px, py + 22); X.scale(1 + .18 * (1 - s), 1 - .18 * (1 - s)); caos(0, 0, U, { col: wCol(), mood: 'sad' }); beanie(U, '#ff4d6d'); X.restore();
       if (!fallTile.ld) { fallTile.ld = 1; sfx.thud(); for (let i = 0; i < 8; i++) bit({ sh: 2, x: px + (cr() - .5) * 30, y: py, vx: (cr() - .5) * 300, vy: -(150 + cr() * 200), r: 5 + cr() * 4, vr: (cr() - .5) * 12, life: .5 }); pop('BRRR!', 30, '#5ec8ff', '#fff', 575, 92); }
     }
   }
@@ -575,10 +575,10 @@ function demo(role, t) {
   const [c0, r0] = pos[n], prev = pos[Math.max(0, n - 1)], hk = n ? clamp((u - stepT(n - 1)) / .14, 0, 1) : 1;
   const x = lerp(dx(prev[0]), dx(c0), ease(hk)), y = lerp(dy(prev[1]), dy(r0), ease(hk)) - Math.sin(hk * Math.PI) * 10, end = n === DSTEP.length;
   if (dark) { X.save(); X.beginPath(); X.rect(DGX - 12, DGY - 10, DC * DCS + 24, DR * DCS + 4); X.clip(); const gr = X.createRadialGradient(x, y, 16, x, y, 64); gr.addColorStop(0, 'rgba(8,10,34,0)'); gr.addColorStop(1, 'rgba(8,10,34,.82)'); X.fillStyle = gr; X.fillRect(DGX - 12, DGY - 10, DC * DCS + 24, DR * DCS + 4); X.restore(); }
-  X.save(); X.translate(x, y + 16 - (end ? Math.abs(Math.sin(t * 9)) * 8 : 0)); claude(0, 0, 2.3, { col: walker ? '#FFC93C' : '#6EA8FE', mood: end ? 'happy' : null }); beanie(2.3, '#ff4d6d'); X.restore();
+  X.save(); X.translate(x, y + 16 - (end ? Math.abs(Math.sin(t * 9)) * 8 : 0)); caos(0, 0, 2.3, { col: walker ? '#FFC93C' : '#6EA8FE', mood: end ? 'happy' : null }); beanie(2.3, '#ff4d6d'); X.restore();
   // the friend with the megaphone, and its shout bubble
   const sh = DSTEP.some((d, i) => u >= shoutT(i) && u < shoutT(i) + .3);
-  X.save(); X.translate(40, 104 - (sh ? 4 : 0)); claude(0, 0, 2.6, { col: walker ? '#6EA8FE' : '#FFC93C', mood: end ? 'happy' : null }); beanie(2.6, '#4DB8FF'); megaphone(18, -15, -.42, .62); X.restore();
+  X.save(); X.translate(40, 104 - (sh ? 4 : 0)); caos(0, 0, 2.6, { col: walker ? '#6EA8FE' : '#FFC93C', mood: end ? 'happy' : null }); beanie(2.6, '#4DB8FF'); megaphone(18, -15, -.42, .62); X.restore();
   // the bubble: the shouts not walked yet
   X.beginPath(); X.moveTo(84, 92); X.lineTo(62, 96); X.lineTo(84, 74); X.closePath(); ink('#fff', 3); rr(76, 16, 194, 100, 22); ink('#fff', 3); X.fillStyle = '#fff'; X.beginPath(); X.moveTo(88, 90); X.lineTo(66, 94); X.lineTo(88, 76); X.closePath(); X.fill();
   const q = []; for (let i = 0; i < DSTEP.length; i++) if (u >= shoutT(i) && u < stepT(i)) q.push(i);

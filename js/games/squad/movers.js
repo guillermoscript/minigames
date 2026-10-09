@@ -1,6 +1,6 @@
 'use strict';
 /* ═════════ SQUAD · SOFA MOVERS (sq_movers) ═════════
-   A building with no lift. 3-4 tiny Claudes carry one giant sofa down the hallway to the moving van, past low door frames
+   A building with no lift. 3-4 tiny Caoses carry one giant sofa down the hallway to the moving van, past low door frames
    (everybody must duck) and stair landings (everybody must lift), with a grumpy cat on the sofa and a plant on top.
    FOREMAN (role 0, the JUDGE) walks ahead and sets the pace: hold = walk, let go = stop (a green GO / red STOP paddle tells the team
    whether the road ahead is clear). FRONT / MIDDLE / BACK (roles 1..n-1; n = 3 has no MIDDLE) each own ONE handle of the sofa and its height
@@ -84,12 +84,12 @@ function sweat(x, y, k, s) {                          // a drop sliding down a f
 }
 
 /* ───────────── the characters ───────────── */
-/* brows over claude()'s two eyes: mood 'effort' (pushing), 'worry' (up and in), none otherwise. (x, y) = centre of the feet, u = unit */
+/* brows over caos()'s two eyes: mood 'effort' (pushing), 'worry' (up and in), none otherwise. (x, y) = centre of the feet, u = unit */
 function brows(x, y, u, mood) {
   if (!mood) return; const ey = y - 6.2 * u - 2 * u; X.strokeStyle = INK; X.lineWidth = Math.max(2.5, u * .75); X.lineCap = 'round';
   for (const sx of [-1, 1]) { const ex = x + sx * 2.8 * u; X.beginPath(); if (mood === 'effort') { X.moveTo(ex - sx * 1.6 * u, ey - .9 * u); X.lineTo(ex + sx * 1.3 * u, ey + .5 * u); } else { X.moveTo(ex - sx * 1.5 * u, ey + .5 * u); X.lineTo(ex + sx * 1.4 * u, ey - .9 * u); } X.stroke(); }
 }
-/* arms from a Claude's shoulders up to a grip point (gx, gy); drawn before the body so it hides the shoulder ends */
+/* arms from a Caos's shoulders up to a grip point (gx, gy); drawn before the body so it hides the shoulder ends */
 function reachArms(x, y, u, gx, gy, col) {
   for (const sx of [-1, 1]) {
     const px = x + sx * 7.2 * u, py = y - 5.4 * u, hx = gx + sx * 9, hy = gy + 3, w = Math.max(7, 1.15 * u * 2.3);
@@ -345,7 +345,7 @@ function duMovers(sp, D) {
         const sq =lost && rk >= 0 ? 1 - .42 * ease(clamp((rk - .1) / .15, 0, 1)) : 1, bob = (Math.abs(spd) > 20 && !lost ? Math.abs(Math.sin(walkPh * 3 + q.r)) * 3 : 0) + (won ? Math.abs(Math.sin(T * 9 + q.r)) * 10 : 0);
         X.save(); X.translate(q.gp.x, q.feet); X.scale(1, sq); X.translate(-q.gp.x, -q.feet);
         reachArms(q.gp.x, q.feet - bob, q.u, q.gp.x, (q.gy - q.feet + q.feet), colOf(q.r));
-        claude(q.gp.x, q.feet - bob, q.u, { col: colOf(q.r), mood: q.mood }); brows(q.gp.x, q.feet - bob, q.u, q.brow);
+        caos(q.gp.x, q.feet - bob, q.u, { col: colOf(q.r), mood: q.mood }); brows(q.gp.x, q.feet - bob, q.u, q.brow);
         if (q.brow === 'effort') sweat(q.gp.x + 12, q.feet - bob - 9 * q.u + 2, (T * 1.4 + q.r) % 1, 1);
         if (q.brow === 'worry') sweat(q.gp.x + 14, q.feet - bob - 9 * q.u, (T * 2.2 + q.r) % 1, 1.2);
         X.restore();
@@ -520,7 +520,7 @@ function duMovers(sp, D) {
     shadow(x, feet + 2, 28, 7, .25);
     if (!won && !lost) paddle(x + 40, feet - 4 - bob, go, T, 1);
     else if (won) { star(x + 36, feet - 60 - bob, 12, 5, 5, T * 2, '#FFE14D', 3); }
-    claude(x, feet - bob, u, { col, mood: face }); hardHat(x, feet - bob, u);
+    caos(x, feet - bob, u, { col, mood: face }); hardHat(x, feet - bob, u);
     if (!won && !lost) brows(x, feet - bob, u, st || !go ? 'worry' : null);
     if (st) for (let i = 0; i < 3; i++) { const a = T * 8 + i * TAU / 3; star(x + Math.cos(a) * 26, feet - 9 * u - 12 + Math.sin(a) * 6, 7, 3, 5, a, '#FFE14D', 2.5); }
     pill(x, feet + 26, nameOf(0), col, true);
@@ -591,10 +591,10 @@ function demo(n, role, t) {
   // sofa
   X.save(); X.translate(bx0, yB); X.rotate(ang); X.scale(sc, sc); sofaArt(); X.restore();
   X.save(); X.translate(bx0 + LL * .5, yM - 28); X.scale(.6, .6); cat(0, 0, 1, hx > frontX - 40 && hx < frontX + 30 ? 'worry' : 'calm', t, 0); X.restore();
-  for (const k of keys) { const r = k === 'F' ? 1 : k === 'M' ? 2 : n - 1, hl = myK === k; if (hl) { X.globalAlpha = .6; el(gx[k], FLY + 2, 30, 9); X.fillStyle = '#fff'; X.fill(); X.globalAlpha = 1; } X.save(); X.translate(gx[k], FLY); X.scale(.72, .72); reachArms(0, 0, 3.2, 0, (gy[k] - FLY) / .72 + 8, COLS[r]); claude(0, 0, 3.2, { col: COLS[r] }); X.restore(); }
+  for (const k of keys) { const r = k === 'F' ? 1 : k === 'M' ? 2 : n - 1, hl = myK === k; if (hl) { X.globalAlpha = .6; el(gx[k], FLY + 2, 30, 9); X.fillStyle = '#fff'; X.fill(); X.globalAlpha = 1; } X.save(); X.translate(gx[k], FLY); X.scale(.72, .72); reachArms(0, 0, 3.2, 0, (gy[k] - FLY) / .72 + 8, COLS[r]); caos(0, 0, 3.2, { col: COLS[r] }); X.restore(); }
   // the foreman ahead
   const fx = frontX + 60, sofaNear = hx > frontX - 20 && hx < frontX + 90 && near(0) < .6;
-  X.save(); X.translate(fx, FLY); X.scale(.72, .72); if (true) paddle(30, -2, !sofaNear, t, 1); claude(0, 0, 3.6, { col: COLS[0] }); hardHat(0, 0, 3.6); X.restore();
+  X.save(); X.translate(fx, FLY); X.scale(.72, .72); if (true) paddle(30, -2, !sofaNear, t, 1); caos(0, 0, 3.6, { col: COLS[0] }); hardHat(0, 0, 3.6); X.restore();
   if (role === 0) { const held = !sofaNear; demoFinger(fx, FLY + 26, held, held ? (t * 2) % 1 : 0); badge(held ? 'HOLD TO WALK' : 'LET GO!', 260, 34, 18, held ? '#22a447' : '#e8434f', '#fff', 1, -.03); }
   else {
     const gxx = gx[myK], dn = near(myK === 'F' ? 0 : myK === 'M' ? .5 : 1) > .4;                      // my handle goes down while the header is over my part of the sofa

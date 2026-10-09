@@ -45,7 +45,7 @@ const GCK = (() => {
     X.save(); X.globalAlpha = clamp(a, 0, 1); X.translate(x, y); X.scale(s, s); X.lineJoin = 'round'; X.lineCap = 'round';
     X.beginPath(); X.moveTo(-6, -7); X.lineTo(6, -7); X.lineTo(-6, 7); X.lineTo(6, 7); X.lineWidth = 9; X.strokeStyle = INK; X.stroke(); X.lineWidth = 4; X.strokeStyle = '#fff'; X.stroke(); X.restore();
   };
-  /* blocky Claude arms (hippo.js): call with the origin at Claude's feet, before claude() */
+  /* blocky Caos arms (hippo.js): call with the origin at Caos's feet, before caos() */
   K.arms = (u, la, ra, k, col = OR) => {
     if (k <= .02) return; const ol = Math.max(3, u * .5), L = 3.3 * u * k, aw = 1.2 * u, hs = 2 * u, gap = .35 * u;
     const one = (sx, an) => {
@@ -235,10 +235,10 @@ function gcSole(sp) {
         X.strokeStyle = flash ? '#fff' : 'rgba(255,255,255,.5)'; X.lineWidth = 3; K.el(s.x, s.y, 36, 20); X.stroke();
       }
       for (const r of rings) { X.strokeStyle = INK; X.lineWidth = 14; X.globalAlpha = Math.max(0, r.a); X.beginPath(); X.ellipse(r.x, r.y, r.r, r.r * .55, 0, 0, 7); X.stroke(); X.strokeStyle = '#fff'; X.lineWidth = 7; X.stroke(); X.globalAlpha = 1; }
-      // Claude
+      // Caos
       const hop = won ? Math.abs(Math.sin(oT * 9)) * 18 : 0, up = lost ? 0 : won ? .35 + Math.sin(oT * 14) * .4 : danger ? .5 + Math.sin(t * 40) * .15 : 2.6;
       shadow(me.x, me.y + 6, 30 * (1 + squash * .5), 9, .3);
-      X.save(); X.translate(me.x, me.y - hop); X.scale(1 + squash * .5, 1 - squash * .75); K.arms(4.5, -up, up, 1); claude(0, 0, 4.5, { mood: gcMood(g) }); X.restore();
+      X.save(); X.translate(me.x, me.y - hop); X.scale(1 + squash * .5, 1 - squash * .75); K.arms(4.5, -up, up, 1); caos(0, 0, 4.5, { mood: gcMood(g) }); X.restore();
       if (!g.result) K.tag(me.x, me.y - 72);
       if (won) for (let i = 0; i < 5; i++) { const q = ((oT - .1) * 1.2 + i * .2) % 1; if (oT > .1) K.heart(me.x + (i - 2) * 26, me.y - 70 - q * 90, 1.1 - q * .4, 1 - q * q); }
       // the giant sneaker + its sock
@@ -264,7 +264,7 @@ function gcSole(sp) {
         if (emood === 'idle') { X.strokeStyle = INK; X.lineWidth = 4; X.beginPath(); X.moveTo(-20, -57); X.lineTo(-1, -50); X.moveTo(34, -55); X.lineTo(15, -50); X.stroke(); }
         X.restore();
         if (s.thoom > 0) K.badge('THOOM!', s.x, s.y - 92, 36 + s.thoom * 14, '#FFE14D', INK, 1, -.06, Math.min(1, s.thoom * 3));
-        if (lost && s.hit && u < 1.95 && Math.hypot(s.x - me.x, s.y - me.y) < 90) {   // Claude's hands wave out from under the sole, stars orbit the shoe
+        if (lost && s.hit && u < 1.95 && Math.hypot(s.x - me.x, s.y - me.y) < 90) {   // Caos's hands wave out from under the sole, stars orbit the shoe
           for (const sx of [-1, 1]) { X.save(); X.translate(s.x + sx * 112, s.y + 22 + Math.sin(oT * 20 + sx) * 3); X.rotate(sx * .3 + Math.sin(oT * 22 + sx) * .35); X.fillStyle = INK; X.fillRect(-14, -14, 28, 28); X.fillStyle = OR; X.fillRect(-10, -10, 20, 20); X.fillStyle = 'rgba(255,255,255,.35)'; X.fillRect(-10, -10, 8, 7); X.restore(); }
           for (let j = 0; j < 4; j++) { const a = oT * 5 + j * 1.57; K.star(s.x + Math.cos(a) * 80, s.y - 100 + Math.sin(a) * 18, 11, 5, 5, a, '#FFE14D', 3); }
         }
@@ -397,7 +397,7 @@ function gcRhino(sp) {
       if (won) cy -= Math.abs(Math.sin(oT * 9)) * 22;
       X.save(); X.translate(cx, cy); X.rotate(rot);
       K.arms(7, -1.5 - Math.sin(sw * Math.PI) * .7, won ? .5 + Math.sin(oT * 14) * .3 : 2.5, 1);
-      claude(0, 0, 7, { mood: gcMood(g) });
+      caos(0, 0, 7, { mood: gcMood(g) });
       K.slab(-26, -82, 52, 20, 7, '#3b3550', '#1f1a2e', 3, 3); K.ball(0, -86, 7, '#ff4d5e', '#b8283a', 2.5);
       X.restore();
       if (!g.result && !fling) K.tag(cx, cy - 120);
@@ -559,11 +559,11 @@ function gcAlley(sp) {
       if (boom > 0) { K.star(boomX + 30, 300, 70, 30, 8, now * 3, '#FFE14D', 5); K.badge('BANG!', boomX, 236, 50, '#ff4d5e', '#fff', 1, -.08); }
       // a tumbleweed rolls along the porch
       { const tx = ((t * 70) % (VW + 200)) - OX - 100, ty = 492 + Math.abs(Math.sin(t * 5)) * -10; X.save(); X.translate(tx, ty); X.rotate(t * 5); X.beginPath(); X.arc(0, 0, 22, 0, K.TAU); K.ink('#c9a063', 3.5); X.strokeStyle = '#8a6a3a'; X.lineWidth = 2.5; X.beginPath(); for (let i = 0; i < 4; i++) { X.moveTo(-18, -10 + i * 7); X.quadraticCurveTo(0, -18 + i * 9, 18, -6 + i * 7); } X.stroke(); X.restore(); }
-      // sheriff Claude with a revolver aimed at the crosshair
+      // sheriff Caos with a revolver aimed at the crosshair
       const m = TOUCH ? null : mouse, mx = flashes.length ? flashes[flashes.length - 1].x : mouse.x, my = flashes.length ? flashes[flashes.length - 1].y : mouse.y, cp = m || { x: mx, y: my };
       const CLX = 400, CLY = 534, shx = CLX + 33, shy = CLY - 26, aim = lost ? -.6 : Math.atan2(cp.y - shy, cp.x - shx);
       shadow(CLX, CLY + 5, 36, 9, .3);
-      K.arms(5, 2.6, 0, 0); claude(CLX, CLY - (won ? Math.abs(Math.sin(oT * 9)) * 14 : 0), 5, { mood: gcMood(g) });
+      K.arms(5, 2.6, 0, 0); caos(CLX, CLY - (won ? Math.abs(Math.sin(oT * 9)) * 14 : 0), 5, { mood: gcMood(g) });
       X.save(); X.translate(shx, shy - (won ? Math.abs(Math.sin(oT * 9)) * 14 : 0)); X.rotate(won ? -1.2 + Math.sin(oT * 12) * .3 : aim);
       X.lineCap = 'round'; X.beginPath(); X.moveTo(0, 0); X.lineTo(26, 0); X.lineWidth = 15; X.strokeStyle = INK; X.stroke(); X.lineWidth = 8; X.strokeStyle = OR; X.stroke();
       K.slab(22, -10, 20, 20, 4, '#f5c9a0', '#d9a070', 3, 2); K.slab(40, -9, 40, 12, 5, '#7b7b8c', '#4a4a58', 3.5, 2); K.slab(40, -1, 12, 18, 4, '#9a6a3a', '#6f4118', 3.5, 2); X.restore();
@@ -694,9 +694,9 @@ function gcPinball(sp) {
         K.ball(f.px, f.py, 9, '#fff', '#c9ced6', 3);
       });
       for (const b of balls) if (b.alive) { shadow(b.x + 5, b.y + 9, b.r, b.r * .4, .3); K.ball(b.x, b.y, b.r, '#f0f4ff', '#9aa6bd', 3.5); }
-      // Claude stands on a crate beside the table and pounds the buttons
+      // Caos stands on a crate beside the table and pounds the buttons
       { const hop = won ? Math.abs(Math.sin(oT * 9)) * 16 : 0, cx = 64, cy = 372; K.slab(22, cy, 84, 52, 5, '#d9944f', '#a5622c', 4, 5); X.fillStyle = '#b06d33'; X.fillRect(30, cy + 18, 68, 6);
-        shadow(cx, cy + 3, 40, 8, .3); X.save(); X.translate(cx, cy - hop); K.arms(6, won ? -.3 - Math.sin(oT * 14) * .4 : -2.6 + (fl[0].on ? .5 : 0), won ? .3 + Math.sin(oT * 14) * .4 : 2.6 - (fl[1].on ? .5 : 0), 1); claude(0, 0, 6, { mood: gcMood(g) }); X.restore();
+        shadow(cx, cy + 3, 40, 8, .3); X.save(); X.translate(cx, cy - hop); K.arms(6, won ? -.3 - Math.sin(oT * 14) * .4 : -2.6 + (fl[0].on ? .5 : 0), won ? .3 + Math.sin(oT * 14) * .4 : 2.6 - (fl[1].on ? .5 : 0), 1); caos(0, 0, 6, { mood: gcMood(g) }); X.restore();
         if (!g.result) K.tag(cx, cy - 92); if (lost) K.sweat(cx + 36, cy - 62, 1.3, oT); if (won) for (let i = 0; i < 4; i++) { const q = ((oT - .1) * 1.2 + i * .25) % 1; if (oT > .1) K.heart(cx + (i - 1.5) * 24, cy - 80 - q * 90, 1.1 - q * .4, 1 - q * q); } }
       // LEFT / RIGHT pads (they sink when held) and the score LED
       for (const [i, px, lab, cap] of [[0, 20, 'LEFT', '←'], [1, 680, 'RIGHT', '→']]) {
@@ -800,7 +800,7 @@ function gcBatter(sp) {
       if (miss) K.pop(oT, 'STRIKE!', 400, 150, 52, '#ff4d5e', '#fff');
       // the batter
       shadow(250, 546, 60, 14, .3); const hopB = won ? Math.abs(Math.sin(oT * 9)) * 16 : 0;
-      claude(250, 540 - hopB, 8, { mood: gcMood(g) });
+      caos(250, 540 - hopB, 8, { mood: gcMood(g) });
       K.slab(206, 444 - hopB, 88, 28, 14, '#4DB8FF', '#2a7fc0', 4.5, 5); K.slab(262, 462 - hopB, 52, 9, 4, '#4DB8FF', '#2a7fc0', 3.5, 3); K.slab(200, 454 - hopB, 20, 30, 7, '#4DB8FF', '#2a7fc0', 3.5, 3);
       if (!g.result) K.tag(250, 404);
       if (lost) { K.sweat(214, 480, 1.4, oT); K.sweat(290, 470, 1.4, oT + .4); }
@@ -901,8 +901,8 @@ function gcSnap(sp) {
         for (let i = -2; i <= 2; i++) { X.beginPath(); X.arc(i * 21, 8, 4.5, 0, K.TAU); K.ink(Math.floor(now * 6 + i) % 2 ? '#ffd23f' : '#ff4d6d', 1.8); }
         X.restore();
       }
-      // Claude with the camera, bottom-left
-      { const cx = 84, cy = 534, pose = shot ? 1 : 0; shadow(cx, cy + 4, 34, 8, .3); X.save(); X.translate(cx, cy); K.arms(4.4, -.5 - pose * .2, .6 + pose * .2, 1); claude(0, 0, 4.4, { mood: gcMood(g) });
+      // Caos with the camera, bottom-left
+      { const cx = 84, cy = 534, pose = shot ? 1 : 0; shadow(cx, cy + 4, 34, 8, .3); X.save(); X.translate(cx, cy); K.arms(4.4, -.5 - pose * .2, .6 + pose * .2, 1); caos(0, 0, 4.4, { mood: gcMood(g) });
         K.slab(-8, -58, 44, 26, 6, '#3b3550', '#1f1a2e', 3.5, 3); K.ball(14, -45, 8, '#bfe9ff', '#6aa6c8', 3); K.slab(-4, -64, 14, 8, 3, '#e8434f', '#a8202c', 2.5, 2); X.restore(); if (!g.result) K.tag(cx, cy - 92); if (lost) K.sweat(cx + 34, cy - 40, 1.3, oT); if (won) for (let i = 0; i < 3; i++) { const q = ((oT - .1) * 1.2 + i * .33) % 1; if (oT > .1) K.heart(cx + (i - 1) * 24, cy - 80 - q * 80, 1.1 - q * .4, 1 - q * q); } }
       // viewfinder
       X.fillStyle = 'rgba(20,16,28,.28)';
@@ -1033,9 +1033,9 @@ function gcTrap(sp) {
         if (lost) K.pop(oT, 'HA!', m.x, FY - 100, 36, '#fff', INK, .15, .06);
         if (won) for (let i = 0; i < 4; i++) { const q = ((oT - .1) * 1.2 + i * .25) % 1; if (oT > .1) K.heart(tx + (i - 1.5) * 28, ty - 130 - q * 40, 1 - q * .3, 1 - q * q); }
       }
-      // Claude on the counter pulls the lever
+      // Caos on the counter pulls the lever
       { const cx = 70, cy = 440, pull = fall ? 1 : 0; K.slab(104, 424, 22, 16, 4, '#8f9cb3', '#5f6b86', 3.5, 2); X.save(); X.translate(115, 428); X.rotate(pull ? .7 : -.7); X.lineCap = 'round'; X.beginPath(); X.moveTo(0, 0); X.lineTo(0, -34); X.lineWidth = 11; X.strokeStyle = INK; X.stroke(); X.lineWidth = 5; X.strokeStyle = '#c9ced6'; X.stroke(); X.restore(); K.ball(115 + Math.sin(pull ? .7 : -.7) * 34, 428 - Math.cos(.7) * 34, 9, '#ff4d5e', '#b8283a', 3.5);
-        shadow(cx, cy + 3, 36, 8, .3); X.save(); X.translate(cx, cy - (won ? Math.abs(Math.sin(oT * 9)) * 14 : 0)); K.arms(5, -2.6, won ? .4 + Math.sin(oT * 14) * .4 : pull ? 1.2 : 2.2, 1); claude(0, 0, 5, { mood: gcMood(g) }); X.restore(); if (!g.result) K.tag(cx, cy - 76); if (lost) K.sweat(cx + 32, cy - 44, 1.3, oT);
+        shadow(cx, cy + 3, 36, 8, .3); X.save(); X.translate(cx, cy - (won ? Math.abs(Math.sin(oT * 9)) * 14 : 0)); K.arms(5, -2.6, won ? .4 + Math.sin(oT * 14) * .4 : pull ? 1.2 : 2.2, 1); caos(0, 0, 5, { mood: gcMood(g) }); X.restore(); if (!g.result) K.tag(cx, cy - 76); if (lost) K.sweat(cx + 32, cy - 44, 1.3, oT);
         for (let i = 0; i < 2; i++) { const q = (t * .7 + i * .5) % 1; K.puff(162 + Math.sin(q * 6) * 4, 410 - q * 40, 5 + q * 7, .8 * (1 - q)); } K.slab(150, 418, 26, 24, 6, '#c9ced6', '#8f9cb3', 3.5, 3); X.fillStyle = INK; X.fillRect(144, 426, 6, 4); }
     }
   };
@@ -1081,7 +1081,7 @@ function gcDouse(sp) {
   const tenant = (i, x, y, mood, T, k) => {
     const X = ctx, K = GCK; X.save(); X.translate(x, y);
     K.arms(4.2, mood === 'sad' ? -(.5 + Math.sin(T * 9 + i) * .35) : -2.6, mood === 'sad' ? (.5 + Math.sin(T * 9 + i + 1) * .35) : 2.6, 1);
-    claude(0, 0, 4.2, { mood });
+    caos(0, 0, 4.2, { mood });
     if (i === 0) { X.beginPath(); X.moveTo(-18, -38); X.quadraticCurveTo(-4, -78, 26, -58); X.lineTo(22, -38); X.closePath(); K.ink('#e8434f', 3); K.ball(26, -58, 5, '#fff', '#d8dfee', 2.5); }
     else if (i === 1) { for (let j = -1; j <= 1; j++) { K.slab(j * 13 - 5, -50, 10, 14, 5, '#ff9fcd', '#d9669f', 2.5, 2); } }
     else if (i === 2) { K.slab(-24, -52, 48, 18, 9, '#ffd23f', '#c99512', 3, 3); X.beginPath(); X.arc(0, -56, 12, Math.PI, 0); K.ink('#ffd23f', 3); }
@@ -1150,12 +1150,12 @@ function gcDouse(sp) {
         ['#ff4d5e', '#ff9f4d', '#ffe14d', '#5CFF7A', '#4DB8FF', '#b58cff'].forEach((col, i) => { X.strokeStyle = col; X.beginPath(); X.arc(400, 250, 330 - i * 11, Math.PI + .08, Math.PI * 2 - .08 - (1 - q) * 1.5); X.stroke(); }); X.restore();
         wins.forEach((w, i) => { for (let j = 0; j < 2; j++) { const qq = ((oT - .1) * 1.1 + j * .5 + i * .13) % 1; if (oT > .1) K.heart(w.x + (j - .5) * 40, w.y - 20 - qq * 80, 1.1 - qq * .4, 1 - qq * qq); } });
       }
-      // the hydrant (it shakes while it sprays) and Claude the firefighter next to it
+      // the hydrant (it shakes while it sprays) and Caos the firefighter next to it
       const sh = spray && !g.result ? Math.sin(now * 60) * 1.5 : 0;
       shadow(400, 546, 34, 8, .3); X.save(); X.translate(sh, 0);
       K.slab(380, 522, 40, 24, 5, '#e8434f', '#a8202c', 4, 3); K.slab(386, 504, 28, 22, 8, '#e8434f', '#a8202c', 4, 3); X.beginPath(); X.arc(400, 502, 14, Math.PI, 0); K.ink('#e8434f', 4); K.slab(366, 512, 14, 14, 4, '#c9ced6', '#8f9cb3', 3.5, 2); K.slab(420, 512, 14, 14, 4, '#c9ced6', '#8f9cb3', 3.5, 2); K.ball(400, 506, 6, '#ffd23f', '#c99512', 2.5); X.restore();
       { const cx = 326, cy = 534, aim = Math.atan2(gcClamp(mouse.y, 100, 450) - 500, gcClamp(mouse.x, 120 - OX, 700 + OX) - 380); shadow(cx, cy + 4, 34, 8, .3);
-        X.save(); X.translate(cx, cy - (won ? Math.abs(Math.sin(oT * 9)) * 14 : 0)); K.arms(5, -1.6, won ? .4 + Math.sin(oT * 14) * .4 : spray ? 1.3 : 2.4, 1); claude(0, 0, 5, { mood: gcMood(g) });
+        X.save(); X.translate(cx, cy - (won ? Math.abs(Math.sin(oT * 9)) * 14 : 0)); K.arms(5, -1.6, won ? .4 + Math.sin(oT * 14) * .4 : spray ? 1.3 : 2.4, 1); caos(0, 0, 5, { mood: gcMood(g) });
         K.slab(-32, -54, 64, 18, 8, '#ffd23f', '#c99512', 3.5, 3); K.slab(-18, -66, 36, 18, 8, '#ffd23f', '#c99512', 3.5, 3); K.star(0, -57, 6, 3, 5, 0, '#e8434f', 2); X.restore(); if (!g.result) K.tag(cx, cy - 96); }
       const cx = gcClamp(mouse.x, 120 - OX, 700 + OX), cy = gcClamp(mouse.y, 100, 450);
       X.strokeStyle = INK; X.lineWidth = 6; X.beginPath(); X.arc(cx, cy, 16, 0, 7); X.stroke(); X.strokeStyle = '#fff'; X.lineWidth = 3; X.stroke();
@@ -1258,10 +1258,10 @@ function gcPutt(sp) {
       if (ball.sunk && ball.sunk > .1) { const q = gcClamp((ball.sunk - .1) * 1.6, 0, 1); X.save(); X.translate(hole.x, hole.y - 24 - q * 70); X.scale(q * 1.7, q * 1.7); K.slab(-18, -6, 36, 10, 3, '#ffd23f', '#c99512', 3.5, 2); X.beginPath(); X.moveTo(-14, -6); X.quadraticCurveTo(-18, -38, -6, -44); X.lineTo(6, -44); X.quadraticCurveTo(18, -38, 14, -6); X.closePath(); K.ink('#ffd23f', 3.5); X.fillStyle = 'rgba(255,255,255,.5)'; K.el(-6, -30, 3, 9); X.fill(); X.restore(); for (let i = 0; i < 6; i++) { const a = oT * 4 + i * 1.05; K.star(hole.x + Math.cos(a) * 46, hole.y - 50 + Math.sin(a) * 18, 9, 4, 5, a, '#FFE14D', 2.5); } K.pop(oT, 'PLINK!', hole.x, hole.y - 130, 38, '#fff', INK); }
       // the power gauge lives on the boardwalk: a plate with a ball marker
       if (drag && !shot) { const [, , d] = pullVec(); K.slab(170, 523, 200, 26, 13, '#fff', '#d4d9e6', 4, 3); X.save(); K.rr(176, 529, 188, 14, 7); X.clip(); X.fillStyle = d > 160 ? '#ff4d4d' : '#FFE14D'; X.fillRect(176, 529, 188 * d / 200, 14); X.restore(); K.ball(176 + 188 * d / 200, 536, 8, '#fff', '#d4d9e6', 3); }
-      // Claude with a putter and a golf bag
+      // Caos with a putter and a golf bag
       { const cx = 70, cy = 534, age = shotAt >= 0 ? now - shotAt : 9, dsp = drag && !shot ? pullVec()[2] / 200 : 0, ang = .25 - dsp * .9 + (age < .3 ? Math.sin(age / .3 * Math.PI) * 1.1 : 0), hop = won ? Math.abs(Math.sin(oT * 9)) * 16 : 0;
         K.slab(116, 488, 30, 46, 8, '#4DB8FF', '#2a7fc0', 4, 4); for (let i = 0; i < 3; i++) { X.strokeStyle = INK; X.lineWidth = 8; X.beginPath(); X.moveTo(124 + i * 8, 490); X.lineTo(122 + i * 9, 470); X.stroke(); X.strokeStyle = ['#e8434f', '#ffd23f', '#c9ced6'][i]; X.lineWidth = 3.5; X.stroke(); }
-        shadow(cx, cy + 4, 34, 8, .3); X.save(); X.translate(cx, cy - hop); K.arms(4.6, -2.6, won ? .4 + Math.sin(oT * 14) * .4 : 1.1, 1); claude(0, 0, 4.6, { mood: gcMood(g) }); X.restore();
+        shadow(cx, cy + 4, 34, 8, .3); X.save(); X.translate(cx, cy - hop); K.arms(4.6, -2.6, won ? .4 + Math.sin(oT * 14) * .4 : 1.1, 1); caos(0, 0, 4.6, { mood: gcMood(g) }); X.restore();
         X.save(); X.translate(cx + 30, cy - hop - 24); X.rotate(ang); X.lineCap = 'round'; X.beginPath(); X.moveTo(0, 0); X.lineTo(0, 66); X.lineWidth = 8; X.strokeStyle = INK; X.stroke(); X.lineWidth = 3.5; X.strokeStyle = '#c9ced6'; X.stroke(); K.slab(-4, 60, 26, 10, 3, '#c9ced6', '#8f9cb3', 3.5, 2); X.restore();
         if (!g.result) K.tag(cx, cy - 86); if (lost) K.sweat(cx + 34, cy - 54, 1.3, oT); if (won) for (let i = 0; i < 4; i++) { const q = ((oT - .1) * 1.2 + i * .25) % 1; if (oT > .1) K.heart(cx + (i - 1.5) * 24, cy - 90 - q * 80, 1.1 - q * .4, 1 - q * q); } }
     }
@@ -1345,12 +1345,12 @@ function gcPark(sp) {
           if (near) { X.save(); X.translate(x, BT + 6); K.badge('BEEP!', 0, 0, 20, '#FFE14D', INK, 1, (i - 2) * .05); X.restore(); }
         }
       }
-      // our car: orange, with Claude through the sunroof
+      // our car: orange, with Caos through the sunroof
       X.save(); X.translate(car.x, car.y); X.rotate(car.a + Math.PI / 2); X.fillStyle = 'rgba(20,16,28,.28)'; K.rr(-HW + 6, -HL + 7, HW * 2, HL * 2, 14); X.fill();
       const bump = lost ? Math.sin(oT * 40) * 1.5 : 0; X.translate(bump, 0);
       carArt(lost ? '#a8303c' : OR, lost ? '#701c28' : '#b4553a', '#bfe9ff', false, 'idle', [0, 0], now);
       if (lost) { X.fillStyle = INK; X.beginPath(); X.moveTo(-18, -HL + 2); X.lineTo(-6, -HL + 14); X.lineTo(-2, -HL + 4); X.fill(); }
-      X.save(); X.translate(0, 8); X.scale(.9, .9); claude(0, 0, 1.9, { mood: gcMood(g) }); X.restore();
+      X.save(); X.translate(0, 8); X.scale(.9, .9); caos(0, 0, 1.9, { mood: gcMood(g) }); X.restore();
       if (won) { K.arms(1.9, -.5 - Math.sin(oT * 12) * .3, .5 + Math.sin(oT * 12) * .3, .8); }
       X.restore();
       if (lost) { for (let i = 0; i < 3; i++) { const q = (oT * 1.3 + i * .33) % 1; K.puff(car.x + (i - 1) * 10, car.y - 30 - q * 70, 8 + q * 12, 1 - q, '#7b7b8c'); } for (let j = 0; j < 4; j++) { const a = oT * 6 + j * 1.57; K.star(car.x + Math.cos(a) * 40, car.y - 52 + Math.sin(a) * 12, 10, 4, 5, a, '#FFE14D', 2.5); } }
@@ -1359,7 +1359,7 @@ function gcPark(sp) {
       // the attendant, with two glowing wands, and a cone
       { const cx = 70, cy = 534, wv = won ? 1.1 + Math.sin(oT * 14) * .5 : lost ? 2.4 : .7 + Math.sin(t * 3) * .25;
         shadow(cx, cy + 4, 34, 8, .3); X.beginPath(); X.moveTo(130, cy); X.lineTo(160, cy); X.lineTo(150, cy - 40); X.lineTo(140, cy - 40); X.closePath(); K.ink('#ff9f4d', 4); K.slab(128, cy - 6, 34, 8, 3, '#3b3550', '#14101c', 3, 2); X.fillStyle = '#fff'; X.fillRect(141, cy - 28, 8, 7);
-        X.save(); X.translate(cx, cy - (won ? Math.abs(Math.sin(oT * 9)) * 14 : 0)); K.arms(4.4, -wv, wv, 1); claude(0, 0, 4.4, { mood: gcMood(g) });
+        X.save(); X.translate(cx, cy - (won ? Math.abs(Math.sin(oT * 9)) * 14 : 0)); K.arms(4.4, -wv, wv, 1); caos(0, 0, 4.4, { mood: gcMood(g) });
         K.slab(-26, -44, 52, 12, 4, '#ff9f4d', '#c26a1f', 3, 2); X.fillStyle = '#fff'; X.fillRect(-26, -40, 52, 3); X.restore(); if (!g.result) K.tag(cx, cy - 92); }
     }
   };
@@ -1431,12 +1431,12 @@ function gcGoalie(sp) {
       // goal net ripples when a ball hits it
       X.save(); if (netRip > 0) { X.translate(Math.sin(tm * 50) * netRip * 3, 0); } X.fillStyle = 'rgba(255,77,77,' + netRip * .3 + ')'; X.fillRect(GL, 160, GR - GL, GYL - 160); X.restore();
       goalFrame();
-      // the goalie: Claude with two huge mitts
+      // the goalie: Caos with two huge mitts
       const lean = gcClamp((g.vx || 0) / 1400, -.5, .5), lastShot = shots.find(s => !s.res && c - s.s > .3), look = lastShot ? gcClamp((lastShot.tgt - gx) / 200, -1, 1) : 0;
       const up = won ? .5 + Math.sin(oT * 12) * .3 : lost ? 2.4 : .7 - look * .15;
       shadow(gx, GYL + 34, 44, 10, .3); X.save(); X.translate(gx, GYL + 30 - (won ? Math.abs(Math.sin(oT * 9)) * 18 : 0)); X.rotate(lean);
       K.arms(7, -(lost ? 2.4 : up), (lost ? 2.4 : up), 1);
-      claude(0, 0, 7, { mood: gcMood(g) });
+      caos(0, 0, 7, { mood: gcMood(g) });
       for (const sx of [-1, 1]) { const an = sx * (lost ? 2.4 : up), L = 3.3 * 7 + .35 * 7 + 7; K.ball(sx * 6.6 * 7 + Math.sin(an) * L, -5.2 * 7 - Math.cos(an) * L, 15, sx < 0 ? '#ff4d9e' : '#4DB8FF', sx < 0 ? '#c42a74' : '#2a7fc0', 4); }
       X.fillStyle = INK; K.rr(-36, -46, 72, 10, 3); X.fill(); X.fillStyle = '#FFE14D'; K.rr(-34, -44, 68, 6, 2); X.fill();
       X.restore();
@@ -1450,7 +1450,7 @@ function gcGoalie(sp) {
         let bx, by, r;
         if (u < .45) {
           const sw = u / .45, dr = s.tgt > 400 ? 1 : -1;
-          shadow(400, 536, 34, 8, .3); X.save(); X.translate(400, 534); K.arms(5, -2.4, 2.4, 1); claude(0, 0, 5, { col: '#4DB8FF' }); X.restore();
+          shadow(400, 536, 34, 8, .3); X.save(); X.translate(400, 534); K.arms(5, -2.4, 2.4, 1); caos(0, 0, 5, { col: '#4DB8FF' }); X.restore();
           X.beginPath(); X.moveTo(380, 520); X.lineTo(380 - 20 + sw * 50, 540 - Math.sin(sw * Math.PI) * 24); X.lineWidth = 12; X.lineCap = 'round'; X.strokeStyle = INK; X.stroke(); X.lineWidth = 6; X.strokeStyle = '#2a7fc0'; X.stroke(); X.lineCap = 'butt';
           bx = 400; by = 515; r = 20;
           X.beginPath(); X.moveTo(400 + dr * 54, 466); X.lineTo(400 + dr * 84, 490); X.lineTo(400 + dr * 54, 514); X.closePath(); K.ink('#ffd23f', 3.5);
@@ -1557,8 +1557,8 @@ function gcNail(sp) {
       if (ouch > 0) K.badge('AAAH!', tx, 168, 54, '#ff4d5e', '#fff', .8 + .2 * K.outBack(1 - ouch), -.05, Math.min(1, ouch * 3));
       // the nail rack: three nails turn gold as they go in
       K.slab(520, 66, 130, 40, 12, '#8a5a34', '#5a3a1a', 4, 4); for (let i = 0; i < 3; i++) { const x = 548 + i * 40, got = i < hits; X.beginPath(); X.moveTo(x, 78); X.lineTo(x, 100); X.lineWidth = 6; X.lineCap = 'round'; X.strokeStyle = INK; X.stroke(); X.lineWidth = 3; X.strokeStyle = got ? '#5CFF7A' : '#8f9cb3'; X.stroke(); K.rr(x - 9, 74, 18, 7, 3); K.ink(got ? '#5CFF7A' : '#c9ced6', 2.5); }
-      // Claude, in goggles, on the bench
-      { const cx = 110, cy = PY - 4, up = hT >= 0 ? 1 : 0; shadow(cx, cy + 4, 46, 10, .3); X.save(); X.translate(cx, cy - (won ? Math.abs(Math.sin(oT * 9)) * 18 : 0)); K.arms(6, -2.5 + up * 1.9, won ? .4 + Math.sin(oT * 14) * .4 : 2.5 - up * 1.9, 1); claude(0, 0, 6, { mood: gcMood(g) });
+      // Caos, in goggles, on the bench
+      { const cx = 110, cy = PY - 4, up = hT >= 0 ? 1 : 0; shadow(cx, cy + 4, 46, 10, .3); X.save(); X.translate(cx, cy - (won ? Math.abs(Math.sin(oT * 9)) * 18 : 0)); K.arms(6, -2.5 + up * 1.9, won ? .4 + Math.sin(oT * 14) * .4 : 2.5 - up * 1.9, 1); caos(0, 0, 6, { mood: gcMood(g) });
         K.slab(-34, -64, 68, 12, 5, '#4DB8FF', '#2a7fc0', 3.5, 3); K.slab(-22, -78, 44, 18, 8, '#ffd23f', '#c99512', 3.5, 3); X.restore(); if (!g.result) K.tag(cx, cy - 104); if (lost) K.sweat(cx + 40, cy - 50, 1.4, oT); }
     }
   };

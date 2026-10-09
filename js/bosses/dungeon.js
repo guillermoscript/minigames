@@ -38,7 +38,7 @@
   }
   const pell = (cx, cy, rx, ry, c) => { for (let y = -ry; y < ry; y += 6) { const hw = rx * Math.sqrt(1 - ((y + 3) / ry) ** 2); R(cx - hw, cy + y, hw * 2, 6, c); } };
   const frame = (x, y, w, h, fill) => { R(x - 6, y - 6, w + 12, h + 12, 0); R(x, y, w, h, fill); };
-  /* pixel Claude with a sword. pose: 0 sword up, 1 lunge */
+  /* pixel Caos with a sword. pose: 0 sword up, 1 lunge */
   function hero(x, y, c, mood, pose, hide) {
     if (hide) return;
     if (pose) { R(x + 8 * c, y - 6.5 * c, 10 * c, 2 * c, 0); R(x + 9 * c, y - 6 * c, 8.5 * c, c, 3); R(x + 8 * c, y - 8 * c, c, 5 * c, 0); }
@@ -143,7 +143,7 @@
         }
         if (slash > 0) { const k = Math.min(1, (1 - slash / .2) * 2.5), n = 16 * k | 0;       // chunky diagonal sword slash
           for (let j = 0; j < n; j++) { const x = MX + 130 - j * 17, y = MY - 215 + j * 13; R(x - 6, y - 6, 30, 22, 0); R(x, y, 18, 10, 3); } }
-        // Claude the hero
+        // Caos the hero
         const dash = atkT >= 0 && atkT < .6 ? (atkT < .2 ? 170 * (atkT / .2) : 170 * (1 - (atkT - .2) / .4)) : 0;
         const hy = HY - (g.result === 'win' ? Math.abs(Math.sin(clk * 10)) * 22 : dash > 0 ? Math.sin(Math.min(1, atkT / .2) * Math.PI) * 30 : 0);
         hero(HX + dash - knock, hy, 8, g.result === 'win' ? 'happy' : bit ? 'sad' : null, dash > 0 && atkT < .45 ? 1 : 0, bit && knock > 3 && (clk * 24 | 0) % 2);

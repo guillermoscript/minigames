@@ -59,7 +59,7 @@ function badge(s, x, y, size, bgc, fg, sc, rot) {
   X.restore();
 }
 function keyCap(x, y, s) { X.font = '700 15px Fredoka, Arial, sans-serif'; const w = Math.max(26, X.measureText(t(s)).width + 14); rr(x - w / 2, y - 12, w, 24, 6); ink('#fff', 2.5); txt(s, x, y + 1, 15, INK, 'center', w - 6); }
-/* two thin blocky arms from claude()'s side stubs (drawn before claude()); an = angle (0 = up, + = towards the right), k = 0..1 raised */
+/* two thin blocky arms from caos()'s side stubs (drawn before caos()); an = angle (0 = up, + = towards the right), k = 0..1 raised */
 function arm(u, sx, an, k, col) {
   if (k <= .02) return; const ol = Math.max(3, u * .5), L = 3.3 * u * k, aw = 1.2 * u, hs = 2 * u, gap = .35 * u;
   X.save(); X.translate(sx * 6.6 * u, -5.2 * u); X.rotate(an);
@@ -162,13 +162,13 @@ function jackProp(x, L, pump) {
   for (const wx of [-24, 24]) { X.beginPath(); X.arc(x + wx, CGY - 2, 6, 0, TAU); ink('#2b2838', 2.5); }
   line([[x - 14, CGY - 18], [XJ + 26, GY - 38 + pump * 8]], 14, INK); line([[x - 14, CGY - 18], [XJ + 26, GY - 38 + pump * 8]], 7, '#ff9a4d');
 }
-/* a crew member: claude() in the player's colour with a hard hat. hat colour tells the job */
+/* a crew member: caos() in the player's colour with a hard hat. hat colour tells the job */
 function crew(x, y, col, mood, hat, o = {}) {
   const u = 4.2; X.save(); X.translate(x, y);
   shadow(x, y + 1, 30, 7, .22);
   if (o.arms) { const [la, lk, ra, rk] = o.arms; arm(u, -1, la, lk, col); arm(u, 1, ra, rk, col); }
   X.restore();
-  X.save(); X.translate(x, y); claude(0, 0, u, { col, mood, run: o.run }); X.restore();
+  X.save(); X.translate(x, y); caos(0, 0, u, { col, mood, run: o.run }); X.restore();
   X.save(); X.translate(x, y);
   rr(-5.4 * u, -11.2 * u, 10.8 * u, 2.6 * u, 1.4 * u); ink(hat, 3); rr(-3.2 * u, -12.7 * u, 6.4 * u, 2 * u, u); ink(hat, 3);
   X.fillStyle = 'rgba(255,255,255,.5)'; X.fillRect(-4.4 * u, -10.6 * u, 3.6 * u, .6 * u);
@@ -284,7 +284,7 @@ function rivals(T, woke) {
   [[708, '#8a93b8'], [746, '#b8a2c9'], [782, '#92b8a6']].forEach(([x, col], i) => {
     const y = 288, ph = i * 1.3;
     rr(x - 19, y - 14, 38, 8, 3); ink('#ffa04d', 2.5); line([[x - 17, y - 8], [x - 22, y + 2]], 5, INK); line([[x + 17, y - 8], [x + 22, y + 2]], 5, INK);   // chair
-    X.save(); X.translate(x, y - 14); X.rotate(woke > 0 ? Math.sin(T * 30 + i) * .1 : 0); claude(0, 0, 2.5, { col, mood: null });
+    X.save(); X.translate(x, y - 14); X.rotate(woke > 0 ? Math.sin(T * 30 + i) * .1 : 0); caos(0, 0, 2.5, { col, mood: null });
     if (woke > .1) { el(-4, -14.5, 3, 3.4); X.fillStyle = '#fff'; X.fill(); X.lineWidth = 1.5; X.strokeStyle = INK; X.stroke(); el(4, -14.5, 3, 3.4); X.fill(); X.stroke(); X.fillStyle = INK; el(-4, -14.5, 1.1, 1.1); X.fill(); el(4, -14.5, 1.1, 1.1); X.fill(); }
     else { X.fillStyle = col; X.fillRect(-9, -17, 18, 4.5); X.strokeStyle = INK; X.lineWidth = 1.6; for (const sx of [-4.2, 4.2]) { X.beginPath(); X.arc(sx, -15, 1.9, .2, Math.PI - .2); X.stroke(); } }
     rr(-8, -26, 16, 4.5, 2); ink('#ffd23f', 2);

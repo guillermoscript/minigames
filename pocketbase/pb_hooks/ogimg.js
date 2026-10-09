@@ -41,13 +41,13 @@ const center = (c, s, y, sc, col, shadow) => text(c, s, Math.round((W - textW(s,
 function draw(code) {
   const c = canvas(); rect(c, 0, 0, W, H, BG);
   for (let i = 0; i < 6; i++) rect(c, 0, 20 + i * 110, W, 44, BAND);
-  center(c, "JOIN MY CLAUDE WARE ROOM", 44, 7, WHT, INK);
+  center(c, "JOIN MY MINICAOS ROOM", 44, 7, WHT, INK);
   // code plate
   rect(c, 158, 150, 884, 322, INK); rect(c, 170, 162, 860, 298, NAVY);
   const sc = 28, gap = 40, tw = 4 * 5 * sc + 3 * gap, x0 = Math.round((W - tw) / 2);
   for (let i = 0; i < 4; i++) text(c, code[i], x0 + i * (5 * sc + gap), 206, sc, YEL, INK);
   center(c, "TAP THE LINK TO JOIN!", 508, 7, GRN, INK);
-  center(c, "CLAUDEWARE.GUILLE.TECH", 576, 5, WHT, INK);
+  center(c, "MINICAOS.GUILLE.TECH", 576, 5, WHT, INK);
   return c.px;
 }
 

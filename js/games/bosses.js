@@ -3,8 +3,8 @@
    object with boss:true (dur is NOT scaled by speed for bosses). */
 
 /* ───────────── MEGA BUG art (stage 1 boss), in the DUO look (docs/ART-STYLE.md) ─────────────
-   A park picnic on a gingham blanket: a crowned ladybug the size of a sofa runs riot, Claude waits with a flyswatter,
-   ants on the horizon walk off with a slice of our cake. Win: the bug goes flat and its crown flies onto Claude's head.
+   A park picnic on a gingham blanket: a crowned ladybug the size of a sofa runs riot, Caos waits with a flyswatter,
+   ants on the horizon walk off with a slice of our cake. Win: the bug goes flat and its crown flies onto Caos's head.
    Lose: the bug strolls to the birthday cake and eats it, laughing. ART ONLY: no RNG calls (cosmetic noise is a hash). */
 const BUGART = (() => {
   const TAU = Math.PI * 2;
@@ -176,7 +176,7 @@ const BUGART = (() => {
     X.restore();
     if (bites) { X.fillStyle = '#ffb3c7'; for (let i = 0; i < bites * 3; i++) { el(x - 40 + hash(i + 9) * 80, y + 4 + hash(i + 19) * 10, 3, 2.2); X.fill(); } }
   }
-  /* Claude with a flyswatter: arms are claude()'s blocky stubs; the swatter rides on the right hand */
+  /* Caos with a flyswatter: arms are caos()'s blocky stubs; the swatter rides on the right hand */
   function hero(x, y, u, o) {
     const ol = Math.max(3, u * .5), L = 3.3 * u, aw = 1.2 * u, hs = 2 * u, gap = .35 * u;
     X.save(); X.translate(x, y);
@@ -197,7 +197,7 @@ const BUGART = (() => {
       X.restore();
     };
     arm(-1, o.la, false); arm(1, o.ra, true);
-    claude(0, 0, u, { mood: o.mood });
+    caos(0, 0, u, { mood: o.mood });
     if (o.crown) crown(0, -9 * u - 8, 1.1, -.12);
     if (o.sweat) sweat(-5 * u, -8 * u, 1.2, o.T);
     X.restore();
@@ -308,7 +308,7 @@ const BUGART = (() => {
     sun(T);
     for (const [sp, off, y, s] of [[7, 0, 112, .62], [5, 430, 138, .5], [9, 760, 96, .45]]) cloud(((T * sp + off) % (VW + 200)) - OX - 100, y, s);
     ants(T, tt, result === 'win');
-    // the cake + Claude live at the front corners
+    // the cake + Caos live at the front corners
     const CK = [712, 532], CL = [96, 578];
     const bites = result === 'lose' ? clamp(Math.floor((ec - .5) / .14) + 1, 0, 3) : 0;
     if (result !== 'lose') cake(CK[0], CK[1], bites, T);          // on a loss the cake is drawn after the bug, so the bites stay readable
@@ -327,7 +327,7 @@ const BUGART = (() => {
     if (win) {
       splat(b.x, b.y, ec, T);
       if (crownK < 1) { const k = ease(crownK), cx = lerp(b.x, CL[0], k), cy = lerp(b.y - 80, CL[1] + hop - 9 * 4.8 - 8, k) - Math.sin(k * Math.PI) * 170; crown(cx, cy, 1.25 - k * .15, (1 - k) * TAU * 2); }
-      // the NICE! stamp covers roughly y 180-420 in the middle: the badge sits below it, between Claude and the cake
+      // the NICE! stamp covers roughly y 180-420 in the middle: the badge sits below it, between Caos and the cake
       const bx = clamp(b.x, 300, 500), by = clamp(b.y + 130, 465, 545);
       badge('SPLAT!', bx, by, 34, '#ff4d5e', -.08 + Math.sin(T * 6) * .03);
     } else {
@@ -347,9 +347,9 @@ const BUGART = (() => {
 })();
 
 /* ───────────── STEAMROLLER BOSS art (stage 3 boss "stomp"), in the DUO look (docs/ART-STYLE.md) ─────────────
-   A roadworks street: a pigeon in a hard hat drives a steamroller after Claude, who hurdles striped barriers, cones and
+   A roadworks street: a pigeon in a hard hat drives a steamroller after Caos, who hurdles striped barriers, cones and
    concrete blocks. A crane in the background swings a rubber duck. Win: the roller wheezes, backs off with a white flag and a
-   dizzy pigeon. Lose: it rolls right over Claude, who is left flat as a pancake. ART ONLY: no RNG calls (noise is a hash). */
+   dizzy pigeon. Lose: it rolls right over Caos, who is left flat as a pancake. ART ONLY: no RNG calls (noise is a hash). */
 const STOMPART = (() => {
   const TAU = Math.PI * 2, GY = 452;                                  // GY: where the tyres touch the road
   let X = null;
@@ -577,7 +577,7 @@ const STOMPART = (() => {
     else if (result === 'win') { const q = clamp(outT / .6, 0, 1); f = 106 + 14 * ease(q); steam = true; flag = outT > .2; mood = 'dizzy'; bobR = Math.sin(now * 30) * 2 * (1 - q); }
     else if (dist >= goal - 2) mood = 'mad';
     for (const o of ob) obstacle(o, T);
-    // Claude
+    // Caos
     const lose = result === 'lose', win = result === 'win';
     let cy = 440 - me.y;
     if (lose) cy = 440 - me.y * Math.max(0, 1 - outT * 6);
@@ -585,7 +585,7 @@ const STOMPART = (() => {
     const stretch = !result && me.y > 0 ? 1 + clamp(Math.abs(me.vy) / 3000, 0, .12) : 1;
     X.fillStyle = 'rgba(20,16,28,.28)'; el(160, 453, (lose ? lerp(26, 38, flat) : 26 - me.y / 24), 6); X.fill();
     X.save(); X.translate(160, cy - jump); X.scale(lerp(1 / stretch, 1.5, flat), lerp(stretch, .16, flat)); X.translate(-160, -(cy - jump));
-    claude(160, cy - jump, 2.8, { mood: lose ? 'sad' : win ? 'happy' : null, run: result || me.y > 0 ? null : now * 2 });
+    caos(160, cy - jump, 2.8, { mood: lose ? 'sad' : win ? 'happy' : null, run: result || me.y > 0 ? null : now * 2 });
     X.restore();
     if (!result && me.y === 0) for (let i = 0; i < 3; i++) { const q = (now * 2.4 + i / 3) % 1; X.globalAlpha = (1 - q) * .55; X.fillStyle = '#e6e2f2'; el(150 - q * 46, 447 - q * 10, 3 + q * 5, 3 + q * 4); X.fill(); }
     X.globalAlpha = 1;
@@ -593,7 +593,7 @@ const STOMPART = (() => {
     if (danger) sweat(177, cy - 58, 1, now);
     if (win) for (let i = 0; i < 4; i++) { const q = (outT * 1.3 + i * .27) % 1; heart(210 + i * 34 + Math.sin(q * 6 + i) * 8, 380 - q * 150, 1.3 + (i % 2) * .4, i % 2 ? '#ff5c8a' : '#ff8fb1'); }
     if (lose) for (let i = 0; i < 3; i++) { const a = now * 5 + i * 2.1, sx = 160 + Math.cos(a) * 30 * flat, sy = 405 + Math.sin(a) * 7 * flat - 8; if (flat > .5) { X.save(); X.translate(sx, sy); X.rotate(a); X.beginPath(); for (let j = 0; j < 10; j++) { const r = j % 2 ? 3.4 : 8, an = j * Math.PI / 5; X.lineTo(Math.cos(an) * r, Math.sin(an) * r); } X.closePath(); ink('#FFE14D', 2.5); X.restore(); } }
-    // obstacles, then the steamroller on top (it only overlaps Claude at the squash)
+    // obstacles, then the steamroller on top (it only overlaps Caos at the squash)
     roller(f, bobR, sc / 40, T, mood, steam, flag);
     if (win && outT < .8) for (let i = 0; i < 5; i++) { const q = clamp((outT - i * .06) / .7, 0, 1); if (q > 0 && q < 1) puff(f - 30 - i * 14 + q * 20, 330 - q * 70 + (i & 1) * 12, 8 + q * 14, 1 - q); }
     if (!result) pill(Math.max(64, f - 56), 262, 'BOSS!', '#ff4d5e');
@@ -604,7 +604,7 @@ const STOMPART = (() => {
 })();
 
 /* ───────────── DISCO BALL BOSS art (stage 5 boss "simon"), in the DUO look (docs/ART-STYLE.md) ─────────────
-   A neon dance floor. A mirror ball in shades hangs from the ceiling and flashes a beam at the pad it wants you to copy; Claude stands on the
+   A neon dance floor. A mirror ball in shades hangs from the ceiling and flashes a beam at the pad it wants you to copy; Caos stands on the
    centre disc and pulls the same moves. Each right step puts another crack in the ball (it is also the health: 4 cracks = beaten) and lights
    a marquee bulb. Win: the ball splits in two and drops, shades flying. Lose: the floor goes dark under a laughing ball.
    ART ONLY: no RNG calls (noise is a hash). */
@@ -729,14 +729,14 @@ const SIMONART = (() => {
     if (litT > 0 && lit >= 0 && !res) { const [dx, dy] = PAD[lit], tx = CX + dx, ty = CY + dy; X.save(); X.globalCompositeOperation = 'lighter'; X.fillStyle = `rgba(255,255,255,${.16 + litT * .3})`; X.beginPath(); X.moveTo(BX - 8, BY + 30); X.lineTo(BX + 8, BY + 30); X.lineTo(tx + 52, ty + 30); X.lineTo(tx - 52, ty + 30); X.closePath(); X.fill(); X.fillStyle = COL[lit][0]; X.globalAlpha = .28; X.beginPath(); X.ellipse(tx, ty + 8, 70, 62, 0, 0, TAU); X.fill(); X.restore(); }
     speakers(s);
     floorPads(s);
-    // the centre disc and Claude
+    // the centre disc and Caos
     { X.fillStyle = 'rgba(20,16,28,.35)'; el(CX, CY + 24, 52, 14); X.fill(); X.beginPath(); X.ellipse(CX, CY + 18, 48, 16, 0, 0, TAU); ink('#7b5cff', 4); X.beginPath(); X.ellipse(CX, CY + 14, 48, 16, 0, 0, TAU); ink('#b49cff', 4); X.fillStyle = 'rgba(255,255,255,.45)'; el(CX - 14, CY + 10, 14, 3.4, -.1); X.fill();
       const u = 3.6, hop = won ? Math.abs(Math.sin(rT * 9)) * 24 : lost ? 0 : (litT > 0 || (ph === 'show' && lit >= 0) ? 0 : 0) + Math.abs(Math.sin(T * 7)) * 3;
       X.save(); X.translate(CX, CY + 12 - hop);
       let la = -.9 + Math.sin(T * 7) * .15, ra = .9 - Math.sin(T * 7) * .15; const d = litT > 0 ? lit : -1;
       if (d === 0) { la = -.3; ra = .3; } else if (d === 1) { la = -.3; ra = 1.6; } else if (d === 2) { la = -2.9; ra = 2.9; } else if (d === 3) { la = -1.6; ra = .3; }
       if (won) { la = -2.6 + Math.sin(T * 14) * .2; ra = 2.6 - Math.sin(T * 14) * .2; } else if (lost) { la = -.4; ra = .5; }
-      arms(u, la, ra, lost ? .8 : 1, OR); claude(0, 0, u, { mood: won ? 'happy' : lost ? 'sad' : null }); X.restore();
+      arms(u, la, ra, lost ? .8 : 1, OR); caos(0, 0, u, { mood: won ? 'happy' : lost ? 'sad' : null }); X.restore();
       if (lost) stars(CX, CY - 40, 22, T);
       if (!res) pill(CX, CY - 44, 'YOU', '#FFE14D'); }
     discoBall(BX, BY, s);
@@ -1004,11 +1004,11 @@ const RHYART = (() => {
     /* play UI: the target ring + closing rings */
     X.lineCap = 'round'; X.beginPath(); X.arc(400, 360, 60, 0, TAU); X.lineWidth = 15; X.strokeStyle = INK; X.stroke(); X.lineWidth = 8; X.strokeStyle = flash > 0 ? '#fff' : '#FFE14D'; X.stroke();
     for (const n of notes) { const d = n.t - clock; if (n.done || d > .9 || d < -.3) continue; const rr2 = 60 + Math.max(0, d) * 220; X.beginPath(); X.arc(400, 360, rr2, 0, TAU); X.lineWidth = 11; X.strokeStyle = INK; X.stroke(); X.lineWidth = 5.5; X.strokeStyle = 'rgba(255,255,255,.95)'; X.stroke(); }
-    /* Claude on the dance floor, disco pose */
+    /* Caos on the dance floor, disco pose */
     const cy = 522 + Math.sin(clock * Math.PI / beat * 2) * 0, jump = win ? Math.abs(Math.sin(T * 9)) * 18 : lose ? 0 : Math.abs(Math.sin(B * Math.PI)) * 6, cx = 400;
     X.save(); X.translate(cx, cy + 2); el(0, 0, 40, 9); X.fillStyle = 'rgba(20,16,28,.35)'; X.fill(); X.restore();
     if (!lose) tube(win ? [[cx + 28, cy - jump - 38], [cx + 40, cy - jump - 66], [cx + 34, cy - jump - 88]] : [[cx + 28, cy - jump - 38], [cx + 38, cy - jump - 66 - pulse * 4], [cx + 56, cy - jump - 86 - pulse * 6]], 9, OR);
-    claude(cx, cy - jump, 5, { mood: lose ? 'sad' : win ? 'happy' : null, run: g_run(S) });
+    caos(cx, cy - jump, 5, { mood: lose ? 'sad' : win ? 'happy' : null, run: g_run(S) });
     if (win) tube([[cx - 28, cy - jump - 38], [cx - 40, cy - jump - 66], [cx - 34, cy - jump - 88]], 9, OR);
     if (lose) sweat(cx + 32, cy - 54, 1.4, T);
     if (!win && !lose) { X.save(); X.translate(cx, cy - 66 - jump - Math.abs(Math.sin(T * 5)) * 4); X.beginPath(); X.moveTo(-9, -12); X.lineTo(9, -12); X.lineTo(0, 0); X.closePath(); ink('#FFE14D', 3); X.restore(); }

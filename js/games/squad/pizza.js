@@ -128,11 +128,11 @@ function toque(x, y, u, T, k) {                             // the chef's hat si
   X.fillStyle = 'rgba(200,205,225,.7)'; X.fillRect(-4 * u, -.3 * u, 8 * u, .45 * u);
   X.restore();
 }
-function chef(r, x, y, u, T, col, mood, bob, kind) {         // a Claude in an apron and a toque; mood: null | happy | sad
+function chef(r, x, y, u, T, col, mood, bob, kind) {         // a Caos in an apron and a toque; mood: null | happy | sad
   const dy = bob || 0;
   X.save(); X.translate(0, dy);
   shadow(x, y + 1, 5.5 * u, 1.2 * u, .25);
-  claude(x, y, u, { col, mood });
+  caos(x, y, u, { col, mood });
   rr(x - 4.6 * u, y - 4.6 * u, 9.2 * u, 3.7 * u, .8 * u); ink('#fff', 2.2); X.fillStyle = 'rgba(190,196,220,.8)'; X.fillRect(x - 4.2 * u, y - 1.7 * u, 8.4 * u, .5 * u);
   toque(x, y - 9 * u, u, T, r);
   X.restore();
@@ -150,7 +150,7 @@ function king(x, y, u, T, mood, spin) {
   X.save();
   poly([[x - 6.4 * u, y - 8.4 * u], [x + 6.4 * u, y - 8.4 * u], [x + 8 * u, y - 1 * u], [x - 8 * u, y - 1 * u]]); ink('#c9304a', 3);          // the cape behind
   poly([[x - 6.4 * u, y - 8.4 * u], [x + 6.4 * u, y - 8.4 * u], [x + 6.8 * u, y - 7 * u], [x - 6.8 * u, y - 7 * u]]); ink('#f6f4fb', 2.2);
-  claude(x, y, u, { col: '#b69cff', mood: happy ? 'happy' : rage ? 'sad' : null });
+  caos(x, y, u, { col: '#b69cff', mood: happy ? 'happy' : rage ? 'sad' : null });
   X.strokeStyle = INK; X.lineWidth = Math.max(2, u * .5); X.lineCap = 'round';                                                              // brows
   if (!happy) for (const sx of [-1, 1]) { const ex = x + sx * 2.8 * u, tilt = mood === 'wait' ? 0 : (mood === 'grump' ? .8 : 1.5) * -sx; X.beginPath(); X.moveTo(ex - 1.3 * u, y - 7.9 * u - tilt * .5 * u); X.lineTo(ex + 1.3 * u, y - 7.9 * u + tilt * .5 * u); X.stroke(); }
   X.beginPath(); X.moveTo(x - 2.2 * u, y - 4.6 * u); X.quadraticCurveTo(x - 1 * u, y - 3.5 * u, x, y - 4.4 * u); X.quadraticCurveTo(x + 1 * u, y - 3.5 * u, x + 2.2 * u, y - 4.6 * u); X.lineWidth = Math.max(3, u * .8); X.strokeStyle = '#4a3322'; X.stroke();   // moustache
@@ -670,7 +670,7 @@ function duPizza(sp, D) {
 }
 reg('sq_pizza', duPizza, 'PIZZA RUSH'); REGMAP.sq_pizza.duo = true; REGMAP.sq_pizza.squad = true;
 
-/* ───────────── intro card: what each role does, tiny Claudes in toques (520×240 frame, loops) ───────────── */
+/* ───────────── intro card: what each role does, tiny Caoses in toques (520×240 frame, loops) ───────────── */
 function demoBg(T) {
   X = ctx; let g = X.createLinearGradient(0, 0, 0, 240); g.addColorStop(0, '#ffe7b8'); g.addColorStop(1, '#ffd391'); X.fillStyle = g; X.fillRect(0, 0, 520, 240);
   X.fillStyle = '#fbf3e4'; X.fillRect(0, 100, 520, 140); X.strokeStyle = 'rgba(176,140,100,.4)'; X.lineWidth = 2;

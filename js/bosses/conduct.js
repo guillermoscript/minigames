@@ -179,7 +179,7 @@
           cel(() => { X.beginPath(); X.arc(cx, cy, r * U, 0, TAU); }, '#f6f2ea', '#cdc6dc', 3, 4, 3.5);
         });
         X.fillStyle = 'rgba(255,255,255,.8)'; el(CX - 3.6 * U, CF - 10.9 * U - droop * .5, 1.2 * U, .6 * U, -.5); X.fill();
-        claude(CX, CF, U, { mood: lose || sad > 0 ? 'sad' : win ? 'happy' : null, run: null });
+        caos(CX, CF, U, { mood: lose || sad > 0 ? 'sad' : win ? 'happy' : null, run: null });
         // cel shade + light on the body
         X.fillStyle = 'rgba(20,16,28,.17)'; X.fillRect(CX + 4.2 * U, CF - 9 * U, 1.8 * U, 7 * U); X.fillRect(CX - 6 * U, CF - 3.4 * U, 12 * U, 1.4 * U);
         X.fillStyle = 'rgba(255,255,255,.3)'; X.fillRect(CX - 5.2 * U, CF - 8.3 * U, 1.4 * U, 3.2 * U);
@@ -436,9 +436,9 @@
     }
   }
 
-  /* a musician at (0,0) = feet: Claudes in other colours, bugs on drum and cymbals */
-  function claudeShaded(col, mood) {
-    claude(0, 0, 4, { col, mood, run: null });
+  /* a musician at (0,0) = feet: Caoses in other colours, bugs on drum and cymbals */
+  function caosShaded(col, mood) {
+    caos(0, 0, 4, { col, mood, run: null });
     X.fillStyle = 'rgba(20,16,28,.16)'; X.fillRect(17, -36, 7, 28); X.fillRect(-24, -13.6, 48, 5.6);
     X.fillStyle = 'rgba(255,255,255,.3)'; X.fillRect(-20.8, -33.2, 5.6, 12);
   }
@@ -462,7 +462,7 @@
     }
     if (m.k === 'cello') { tube([[10, -6], [16, -66]], 4, '#5a3418'); X.beginPath(); X.arc(16, -68, 4.5, 0, TAU); ink('#5a3418', 2.5); }
     if (m.k === 'tuba') { X.save(); X.translate(-22, -48); X.rotate(-.5); brass(() => { X.beginPath(); X.moveTo(-6, 14); X.lineTo(-14, -12); X.lineTo(14, -12); X.lineTo(6, 14); X.closePath(); }, 4); X.fillStyle = 'rgba(255,255,255,.5)'; el(-8, -2, 2.4, 9, .3); X.fill(); X.restore(); }
-    claudeShaded(m.col, mood);
+    caosShaded(m.col, mood);
     if (m.k === 'violin') {
       cel(() => rr(-23, -33, 16, 6, 3), '#c0283f', '#8f1c32', 2, 2, 3); X.beginPath(); X.arc(-15, -41, 3, 0, TAU); ink('#c0283f', 2);   // beret
     } else if (m.k === 'trumpet') {

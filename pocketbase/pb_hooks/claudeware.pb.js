@@ -1,5 +1,5 @@
 /// <reference path="../pb_data/types.d.ts" />
-/* Claude Ware server-side rules. Handlers run in isolated scopes, so all logic lives in lib.js and is require()d inside each. */
+/* MiniCaos server-side rules. Handlers run in isolated scopes, so all logic lives in lib.js and is require()d inside each. */
 
 // scores: re-validate ints/ranges + per-user rate limit
 onRecordCreateRequest((e) => { require(`${__hooks}/lib.js`).checkScore(e.record, e.requestInfo().body); e.next(); }, "scores");

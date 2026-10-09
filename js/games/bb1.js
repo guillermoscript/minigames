@@ -50,7 +50,7 @@ const BBK = (() => {
     ink('#ff5c8a', 3); X.fillStyle = 'rgba(255,255,255,.6)'; el(-6, -9, 3, 2, -.6); X.fill(); X.restore();
   };
   K.sweat = (x, y, s, T) => { const k = (T * 2.2) % 1; X.save(); X.globalAlpha = 1 - k; X.translate(x + k * 6, y + k * 14); X.scale(s, s); X.beginPath(); X.moveTo(0, -8); X.quadraticCurveTo(6, 0, 0, 5); X.quadraticCurveTo(-6, 0, 0, -8); ink('#9fe3ff', 2); X.restore(); };
-  K.arms = (u, la, ra, k, col = OR) => {   // blocky Claude arms (hippo.js): origin at Claude's feet, drawn before claude()
+  K.arms = (u, la, ra, k, col = OR) => {   // blocky Caos arms (hippo.js): origin at Caos's feet, drawn before caos()
     if (k <= .02) return; const ol = Math.max(3, u * .5), L = 3.3 * u * k, aw = 1.2 * u, hs = 2 * u, gap = .35 * u;
     const one = (sx, an) => {
       X.save(); X.translate(sx * 6.6 * u, -5.2 * u); X.rotate(an);
@@ -130,7 +130,7 @@ const ri = (a, b) => Math.floor(rnd(a, b + 1));
 const pick = a => a[Math.floor(Math.random() * a.length)];
 const sum = a => a.reduce((s, v) => s + v, 0);
 
-/* ── shared art: the prompt as a plate in the world, Claude with a reaction, cards with a verdict badge ── */
+/* ── shared art: the prompt as a plate in the world, Caos with a reaction, cards with a verdict badge ── */
 function bbPrompt(s) {                    // a cream plate below the hint line (y 62-90)
   const X = ctx; s = window.t(s); X.font = '700 21px Fredoka, "Helvetica Neue", Arial, sans-serif';
   const w = Math.min(560, X.measureText(s).width + 56), h = 30, x = 400 - w / 2, y = 62;
@@ -138,13 +138,13 @@ function bbPrompt(s) {                    // a cream plate below the hint line (
   K.rr(x, y, w, h, 15); K.ink('#fff7e0', 3.5); X.fillStyle = 'rgba(255,255,255,.7)'; K.rr(x + 10, y + 4, w - 20, 6, 3); X.fill();
   X.fillStyle = INK; X.textAlign = 'center'; X.textBaseline = 'middle'; X.fillText(s, 400, y + h / 2 + 1, w - 28);
 }
-/* Claude with a name tag, arms that cheer / slump, a worried sweat in the last seconds and hearts on a win; ot = seconds since the verdict */
-function bbClaude(g, x, y, u, ot, tag = true) {
+/* Caos with a name tag, arms that cheer / slump, a worried sweat in the last seconds and hearts on a win; ot = seconds since the verdict */
+function bbCaos(g, x, y, u, ot, tag = true) {
   const R = g.result, up = R === 'win' ? .35 + Math.sin(now * 14) * .18 : R === 'lose' ? 2.9 : 2.35;
   K.shade(x, y + 1, 7 * u, 1.6 * u, .3);
   ctx.save(); ctx.translate(x, y); K.arms(u, -up, up, 1); ctx.restore();
-  claude(x, y, u, { mood: bbMood(g) });
-  if (tag) K.pill(x, y - 9 * u - 18, 'CLAUDE', YEL, true);
+  caos(x, y, u, { mood: bbMood(g) });
+  if (tag) K.pill(x, y - 9 * u - 18, 'CAOS', YEL, true);
   if (!R && g.dur - g.c < 1.6) K.sweat(x + 6 * u, y - 9 * u - 4, u * .28, now);
   if (R === 'win') for (let i = 0; i < 2; i++) { const k = (ot * 1.4 + i * .5) % 1; K.heart(x + (i ? 10 : -10) * u * .8 + Math.sin(k * 6 + i) * 6, y - 9 * u - 10 - k * 46, .7 + .25 * (1 - k), 1 - k); }
 }
@@ -270,7 +270,7 @@ function bbScale(sp) {
         if (g.result && s === chosen) K.badge(g.result === 'win' ? '✓' : '✗', px + (s ? 100 : -100), top - 118, 30, g.result === 'win' ? '#5CFF7A' : '#ff4d5e', '#fff', K.outBack(ot / .3));
       }
       if (!TOUCH) { K.keyCap('◀', 250, 122, 36); K.keyCap('▶', 550, 122, 36); }
-      bbClaude(g, 400, 540, 3.6, ot, false); vignette(.2);
+      bbCaos(g, 400, 540, 3.6, ot, false); vignette(.2);
     }
   };
   const choose = s => {
@@ -356,7 +356,7 @@ function bbBehind(sp) {
         X.strokeStyle = INK; X.lineWidth = 3; X.beginPath(); X.moveTo(r.x + 40, r.y + lift - 2); X.lineTo(r.x + r.w / 2, r.y + lift - 22); X.lineTo(r.x + r.w - 40, r.y + lift - 2); X.stroke();
         bbCritter(r.x + r.w / 2, r.y + r.h - 18 + lift, 1.15, 'back', opts[i].P);
       }
-      bbClaude(g, 150, 540, 3.8, ot); vignette(.2);
+      bbCaos(g, 150, 540, 3.8, ot); vignette(.2);
     }
   };
   bbInput(g, st, rects, 2, i => {
@@ -439,7 +439,7 @@ function bbFocus(sp) {
         const G = GRIDS[names[i]], s = 7, ox = r.x + (r.w - 12 * s) / 2, oy = r.y + (r.h - 12 * s) / 2 + lift;
         for (let y = 0; y < 12; y++) for (let x = 0; x < 12; x++) if (G[y][x]) { X.fillStyle = `rgb(${G[y][x][0]},${G[y][x][1]},${G[y][x][2]})`; X.fillRect(ox + x * s, oy + y * s, s, s); }
       }
-      bbClaude(g, 105, 424, 3.4, ot); vignette(.2);
+      bbCaos(g, 105, 424, 3.4, ot); vignette(.2);
     }
   };
   bbInput(g, st, rects, 4, i => {
@@ -513,7 +513,7 @@ function bbMutation(sp) {
         const bob = Math.sin(now * 3 + i * .5) * 2.5, rad = Math.min(r.w, r.h) * .27;
         bbMon(r.x + r.w / 2, r.y + r.h * .5 + lift + bob, rad, i === good ? M : base, i);
       }
-      bbClaude(g, 33, 538, 2.9, ot, false); vignette(.2);
+      bbCaos(g, 33, 538, 2.9, ot, false); vignette(.2);
     }
   };
   bbInput(g, st, rects, cols, i => {
@@ -611,9 +611,9 @@ function bbProfiler(sp) {
         X.beginPath(); X.arc(r.x + r.w / 2, r.y + 4 + lift, 7, 0, 7); K.ink('#ff4d5e', 2.5);       // the pin
         bbHead(r.x + r.w / 2, r.y + 108 + lift, 1.1, opts[i].P, false, Math.sin(now * .9 + i) * .5);
       }
-      // Claude the detective: standing on the board, hat and magnifying glass
+      // Caos the detective: standing on the board, hat and magnifying glass
       const cx = 150, cy = 322;
-      bbClaude(g, cx, cy, 3.8, ot, false); K.pill(cx, cy - 9 * 3.8 - 40, 'CLAUDE', YEL, true);
+      bbCaos(g, cx, cy, 3.8, ot, false); K.pill(cx, cy - 9 * 3.8 - 40, 'CAOS', YEL, true);
       K.celRR(cx - 6.4 * 3.8, cy - 9 * 3.8 - 6, 12.8 * 3.8, 8, 4, '#6b4423', 3, false); K.celRR(cx - 3.8 * 3.8, cy - 9 * 3.8 - 22, 7.6 * 3.8, 18, 5, '#8a5a2b', 3, false);
       X.beginPath(); X.arc(cx + 66, cy - 40, 15, 0, 7); K.ink('rgba(200,240,255,.7)', 3.5); K.line([[cx + 56, cy - 28], [cx + 38, cy - 8]], 5, '#8a5a34');
       vignette(.2);
@@ -693,8 +693,8 @@ function bbNumbers(sp) {
         }
         X.restore();
       });
-      // Claude with a pin
-      bbClaude(g, 40, 532, 2.9, ot, false); vignette(.2);
+      // Caos with a pin
+      bbCaos(g, 40, 532, 2.9, ot, false); vignette(.2);
     }
   };
   return g;
@@ -778,7 +778,7 @@ function bbStatues(sp) {
         if (!TOUCH) txt(String(i + 1), cxs[i], 460, 26, '#fff');
         if (!g.result && g.dur - g.c < 1.6) K.sweat(cxs[i] + 36, 330, .5, now + i * .3);
       }
-      bbClaude(g, 400, 534, 3, ot, false); vignette(.2);
+      bbCaos(g, 400, 534, 3, ot, false); vignette(.2);
     }
   };
   bbInput(g, st, rects, n, i => {
@@ -862,7 +862,7 @@ function bbButtons(sp) {
         if (!TOUCH) { X.beginPath(); X.arc(r.x + 16, r.y + 28, 12, 0, 7); K.ink('#fff', 2.5); X.fillStyle = INK; X.font = '700 15px Fredoka, Arial, sans-serif'; X.textAlign = 'center'; X.textBaseline = 'middle'; X.fillText(String(i + 1), r.x + 16, r.y + 29); }
         if (g.result && mark) { X.beginPath(); X.arc(r.x + r.w - 16, r.y + 28, 13, 0, 7); K.ink(mark === 'good' ? '#4fd06a' : '#ff4d5e', 3); txt(mark === 'good' ? '✓' : '✗', r.x + r.w - 16, r.y + 29, 16, '#fff'); }
       }
-      bbClaude(g, 108, 336, 3.6, ot); vignette(.2);
+      bbCaos(g, 108, 336, 3.6, ot); vignette(.2);
     }
   };
   bbInput(g, st, rects, 4, i => {

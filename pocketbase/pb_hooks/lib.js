@@ -1,8 +1,8 @@
-/* Shared constants/helpers for Claude Ware hooks. Keep STAGE_MAX / SCORE_MAX in sync with the migration. */
+/* Shared constants/helpers for MiniCaos hooks. Keep STAGE_MAX / SCORE_MAX in sync with the migration. */
 const STAGE_MAX = 29;         // highest stage index (30 stages of headroom; keep in sync with the migrations)
 const SCORE_MAX = 2000;       // per stage
 const WRITES_PER_MIN = 40;    // per-user score writes per minute
-const COLORS = ["#D97757", "#6EA8FE", "#7BD88F", "#F28CB1", "#B49CFF", "#FFD23F", "#FF6B4D", "#4DD0E1"];
+const COLORS = ["#FF6B3D", "#6EA8FE", "#7BD88F", "#F28CB1", "#B49CFF", "#FFD23F", "#FF6B4D", "#4DD0E1"];
 const isInt = (v, lo, hi) => typeof v === "number" && Number.isInteger(v) && v >= lo && v <= hi;
 
 function checkScore(record, body) {
@@ -132,7 +132,7 @@ function checkUser(record, isCreate) {
     for (const v of arr) if (!isInt(v, 0, hi)) throw new BadRequestError("Invalid " + f);
   }
 }
-const SITE = "https://claudeware.guille.tech";
+const SITE = "https://minicaos.guille.tech";
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 /* Challenge landing page: crawlers read the personalised og: tags, people get redirected into the game (/?c=&s=&f=). */
 function challengePage(e) {
@@ -140,17 +140,17 @@ function challengePage(e) {
   const name = (e.request.pathValue("name") || "").replace(/[^\w-]/g, "").slice(0, 16);
   if (!isInt(score, 1, SCORE_MAX) || !isInt(stage, 0, STAGE_MAX)) return e.redirect(302, "/");
   const who = name || "A friend";
-  const title = who + " scored " + score + " on Claude Ware. Can you beat it?";
+  const title = who + " scored " + score + " on MiniCaos. Can you beat it?";
   const desc = "Stage " + (stage + 1) + " challenge: 5-second microgames, bosses and global leaderboards. Play free in your browser.";
   const q = "/?c=" + score + "&s=" + stage + (name ? "&f=" + encodeURIComponent(name) : "");
   const url = SITE + e.request.url.path;
   return e.html(200, '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>' + esc(title) + '</title>' +
     '<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="' + esc(desc) + '">' +
-    '<meta property="og:site_name" content="Claude Ware"><meta property="og:type" content="website"><meta property="og:url" content="' + esc(url) + '">' +
+    '<meta property="og:site_name" content="MiniCaos"><meta property="og:type" content="website"><meta property="og:url" content="' + esc(url) + '">' +
     '<meta property="og:title" content="' + esc(title) + '"><meta property="og:description" content="' + esc(desc) + '">' +
     '<meta property="og:image" content="' + SITE + '/img/og.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">' +
     '<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="' + esc(title) + '"><meta name="twitter:description" content="' + esc(desc) + '"><meta name="twitter:image" content="' + SITE + '/img/og.png">' +
-    '<meta http-equiv="refresh" content="0;url=' + esc(q) + '"></head><body style="background:#6a3de8;color:#fff;font:700 20px sans-serif;text-align:center;padding-top:20vh"><a style="color:#FFE14D" href="' + esc(q) + '">Opening Claude Ware...</a>' +
+    '<meta http-equiv="refresh" content="0;url=' + esc(q) + '"></head><body style="background:#6a3de8;color:#fff;font:700 20px sans-serif;text-align:center;padding-top:20vh"><a style="color:#FFE14D" href="' + esc(q) + '">Opening MiniCaos...</a>' +
     '<script>location.replace(' + JSON.stringify(q) + ')</script></body></html>');
 }
 

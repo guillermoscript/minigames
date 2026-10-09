@@ -79,7 +79,7 @@ function eye(x, y, r, o = {}) {
 }
 function brow(x1, y1, x2, y2, w = 5) { X.lineCap = 'round'; X.strokeStyle = INK; X.lineWidth = w; X.beginPath(); X.moveTo(x1, y1); X.lineTo(x2, y2); X.stroke(); }
 
-/* ── Claude-shaped figure in 5 poses: 0 up, 1 crouch, 2 left, 3 right, 4 neutral ── */
+/* ── Caos-shaped figure in 5 poses: 0 up, 1 crouch, 2 left, 3 right, 4 neutral ── */
 const KEYPOSE = { ArrowUp: 0, KeyW: 0, ArrowDown: 1, KeyS: 1, ArrowLeft: 2, KeyA: 2, ArrowRight: 3, KeyD: 3 };
 const ARROW_DIR = [0, 2, 3, 1];           // pose index -> drawArrow dir (0 up, 1 right, 2 down, 3 left)
 const LEGS = [[-5, -2, 1.2, 2], [-2.6, -2, 1.2, 2], [1.4, -2, 1.2, 2], [3.8, -2, 1.2, 2]];
@@ -288,7 +288,7 @@ reg('mv_pose', sp => {
       // hot dogs riding the factory belt
       const sp2 = VW + 100;
       for (let i = 0; i < 4; i++) mvFoodie(-OX - 50 + ((i * sp2 / 4 + belt * 140) % sp2), 446, .42, BELT[i], t, win ? 2 : .7, { lx: 1, ly: 0 });
-      // claude
+      // caos
       const x = phase ? 500 + 160 * Math.min(1, c2 / PASS) : win ? 660 : SX + (500 - SX) * k;
       const bob = g.result ? 0 : Math.abs(Math.sin(belt * 14)) * 3, sq = snap > 0 ? 1 + snap * .5 : 1;
       const mood = win ? 'happy' : lose ? 'bonk' : danger ? 'panic' : cur === tgt ? 'eager' : 'idle';
@@ -507,7 +507,7 @@ reg('mv_beat', sp => {
       // metronome = the judgmental disco ball, swinging on the beat
       const sw = Math.sin((c - H0) / B * Math.PI) * .5, bx = 130 + sw * 260, by = 150 + Math.abs(sw) * -30 + (gasp ? 40 : 0);
       beams(bx, by, t, .1); ball(bx, by, 46, t, win ? 'wow' : lose ? 'sour' : 'idle', 1, .6);
-      // claude: eyes on the eyeball, jumps with arms up on every hit
+      // caos: eyes on the eyeball, jumps with arms up on every hit
       const jump = hop > 0 ? Math.sin(hop / .25 * Math.PI) * 30 : pulse > 0 ? 6 * pu : win ? Math.abs(Math.sin(oT * 9)) * 18 : 0;
       const cm = win ? 'happy' : lose ? 'bonk' : near ? 'eager' : 'idle';
       shadow(400, 532, 50 - jump * .4, 9, .3);
@@ -608,7 +608,7 @@ reg('mv_swim', sp => {
       if (win && oT < 1.2) duck(rx + oT * 90, dy - 330 * oT + 260 * oT * oT, 'bonk', oT * 12);
       else duck(rx, dy + (lose ? Math.sin(t * 14) * 4 : 0), lose ? 'happy' : 'smug', 0);
       if (lose) { const cw = new Path2D(); cw.moveTo(rx + 12, dy - 38); cw.lineTo(rx + 16, dy - 54); cw.lineTo(rx + 26, dy - 44); cw.lineTo(rx + 34, dy - 56); cw.lineTo(rx + 40, dy - 40); cw.closePath(); inkP(cw, GOLD, 3); }
-      // claude, goggles on, one arm over the head at a time
+      // caos, goggles on, one arm over the head at a time
       const sink = lose ? Math.min(1, oT * 1.5) * 22 : 0, cy = pyy + 8 + sink, mood = win ? 'happy' : lose ? 'bonk' : stumble > 0 ? 'panic' : 'eager';
       mvFig(px, cy, 6, 4, OR, { face: mood, lx: 1, ly: .1 });
       const ey2 = cy + (-9 + 7 * .42) * 6;
@@ -628,7 +628,7 @@ reg('mv_swim', sp => {
       ctx.stroke();
       // wake of bubbles
       for (let i = 1; i < 5; i++) { X.beginPath(); X.arc(px - 40 - i * 22, LY[1] + 6 - Math.sin(t * 10 + i) * 4, 6 / i + 2, 0, TAU); ink('rgba(234,255,184,.85)', 1.5); }
-      if (win) { // gold medal around Claude's neck
+      if (win) { // gold medal around Caos's neck
         X.beginPath(); X.moveTo(px - 10, cy - 46); X.lineTo(px, cy - 22); X.lineTo(px + 10, cy - 46); ink('#ff4d5e', 2.5);
         X.beginPath(); X.arc(px, cy - 20, 10, 0, TAU); ink(GOLD, 3); spark(px, cy - 20, 5, '#fff3a0');
         for (let h = 0; h < 3; h++) { const hy = cy - 60 - oT * 120 - h * 30; if (hy > 120) heart(px - 40 + h * 40 + Math.sin(oT * 6 + h) * 6, hy, 1.1); }
@@ -646,7 +646,7 @@ reg('mv_swim', sp => {
         X.fillStyle = 'rgba(255,255,255,.5)'; rr(bx + 14, 504 + off, bw - 28, 6, 3); X.fill();
         drawArrow(bx + bw / 2, 519 + off, s ? 1 : 3, 15, dn ? '#8f88a6' : on ? MAG : PUR);
       }
-      // race tracker: a wooden plank with a Claude marker and a duck marker
+      // race tracker: a wooden plank with a Caos marker and a duck marker
       const prog = Math.max(0, Math.min(1, (px - X0) / (X1 - X0))), dpr = Math.max(0, Math.min(1, (rx - X0) / (X1 - X0)));
       rr(250, 82, 300, 16, 8); ink('#fff', 3.5);
       X.save(); rr(250, 82, 300, 16, 8); X.clip(); X.fillStyle = OR; X.fillRect(250, 82, 300 * prog, 16); X.restore();

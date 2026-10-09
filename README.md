@@ -40,14 +40,14 @@ You get a few seconds per game and a one-word command: **SWAT!**, **JUMP!**, **T
 | Mouse Mayhem | Point, drag, scrub! |
 | Brain Break | Think fast! |
 | Mega Mix | Everything. At once. |
-| Wii Waggle | Smooth moves, Caos! |
-| Cube Party | Mega party game, mega fast! |
+| Shake It Up | Wave it. Shake it. Go! |
+| Block Party | Mega party game, mega fast! |
 | Touch Screen | Poke it. Draw it. Cut it. |
-| Get Together | Stay still. Pick. Run. Fry. |
+| All Together | Stay still. Pick. Run. Fry. |
 | 3D Dimension | Now with depth! |
-| Mega Microgame$ | Old-school. Four colours. Go! |
-| Twisted! | Tilt it. Spin it. Steer it! |
-| Move It! | Strike a pose. Hit the beat! |
+| Retro Blip | Old-school. Four colours. Go! |
+| Spin Cycle | Tilt it. Spin it. Steer it! |
+| Body Beat | Strike a pose. Hit the beat! |
 
 ### Play with friends (PARTY)
 

@@ -57,15 +57,7 @@
 ## Open questions for Guille
 1. Add `/privacy` and `/terms` pages to the game? Meta Live mode and TikTok review both need them.
 2. Deploy Postiz at `postiz.guille.tech`, including the Cloudflare DNS record? Is the existing `postiz` compose in Dokploy his?
-3. Rename the Nintendo-derived stage names? Proposed:
-   - WII WAGGLE → SHAKE IT UP
-   - CUBE PARTY → BLOCK PARTY
-   - MEGA MICROGAME$ → RETRO BLIP
-   - TWISTED! → SPIN CYCLE
-   - MOVE IT! → BODY BEAT
-   - GET TOGETHER → ALL TOGETHER
-
-   Spanish equivalents are in the session notes; most current ES names are already fine. Also drop the tagline "Smooth moves, Caos!".
+3. ~~Rename the Nintendo-derived stage names~~ **Done (2026-10-09):** SHAKE IT UP, BLOCK PARTY, ALL TOGETHER, RETRO BLIP, SPIN CYCLE, BODY BEAT; the tagline "Smooth moves, Caos!" is now "Wave it. Shake it. Go!". ES: AGITA Y GANA, FIESTA DE BLOQUES, TODOS JUNTOS, RETRO BIP, A GIRAR, CUERPO Y RITMO.
 4. Does he want a personal TikTok for his on-camera content, or IG + YouTube only?
 
 ## Stashed, not ours

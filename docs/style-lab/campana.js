@@ -69,7 +69,7 @@ if(document.fonts)document.fonts.load('700 20px Fredoka').catch(()=>{});
 const wrap=document.createElement('div');wrap.id='camp';view.before(wrap);wrap.append(view);
 const ov=document.createElement('canvas');ov.id='camp-ov';const DPR=Math.min(2,window.devicePixelRatio||1);ov.width=W*DPR;ov.height=H*DPR;wrap.append(ov);
 const X=ov.getContext('2d');
-document.title='MiniCaos · modo niveles';
+document.title=PUBLIC?'MiniCaos · Venezuela':'MiniCaos · modo niveles';
 
 /* ───────── sonido de la app (snd/noise/jingles/música de js/core.js) por el AudioContext del laboratorio ───────── */
 EGGS.use(()=>A());   /* los audios escondidos (js/eggs.js) suenan por el AudioContext del laboratorio */

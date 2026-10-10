@@ -10,11 +10,12 @@
    ?juego=baja | encaleta | agarrate | revisa | pique | paga | hueco | pendrive | duermete | saltale | amarrala | inscribe | tapala | tranca | alcabala | metro | arepa (los tres jefes)
    | trancalo | cava | cloche (carretera y playa) | acomoda | hielo | tequenos | soplalo | baile | rayita | marcalo | anuncio | trencito | torta (la rumba) | parada | chancla
    | llave | sopa | queso | hallaca | cucaracha (la casa)
+   | switch | nevera | zancudo | enchufa | voltea | llego | transformador (se fue la luz: la etapa que vino del mundo clásico)
    elige con cuál arrancar. */
 fetch('index.html',{cache:'no-store'}).then(r=>r.text()).then(h=>{
   const v=Date.now(); /* para que el navegador no sirva un juego-*.js viejo */
   document.open();
-  document.write(h.replace('</body>','<script src="juegos-bus.js?v='+v+'" data-juego="baja"><\/script>'+['revisa','pique','paga','hueco','pendrive','duermete','saltale','amarrala','inscribe','tapala','tranca','jefe-alcabala','jefe-metro','jefe-arepa','trancalo','cava','cloche','acomoda','hielo','tequenos','soplalo','baile','rayita','marcalo','anuncio','trencito','torta','llave','sopa','queso','hallaca','cucaracha'].map(k=>'<script src="juego-'+k+'.js?v='+v+'"><\/script>').join('')+'</body>'));
+  document.write(h.replace('</body>','<script src="juegos-bus.js?v='+v+'" data-juego="baja"><\/script>'+['revisa','pique','paga','hueco','pendrive','duermete','saltale','amarrala','inscribe','tapala','tranca','jefe-alcabala','jefe-metro','jefe-arepa','trancalo','cava','cloche','acomoda','hielo','tequenos','soplalo','baile','rayita','marcalo','anuncio','trencito','torta','llave','sopa','queso','hallaca','cucaracha','switch','nevera','zancudo','enchufa','voltea','llego','jefe-transformador'].map(k=>'<script src="juego-'+k+'.js?v='+v+'"><\/script>').join('')+'</body>'));
   document.close();
 }).catch(e=>{document.body.textContent='No pude cargar index.html: '+e;});
 </script></body></html>

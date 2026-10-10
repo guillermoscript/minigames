@@ -7,6 +7,9 @@
    El mundo clásico ES la app (../../index.html) corriendo en un iframe a pantalla completa, sin tocarle un archivo: se le
    quitan las etiquetas de analítica y el service worker (para que las pruebas no cuenten como jugadores), se abre directo
    en su selector de etapas y su botón INICIO pasa a ser MUNDOS (goTitle → vuelve aquí).
+   La etapa del apagón (POWER OUT! / SE FUE LA LUZ) se mudó de mundo: aquí es la etapa 4 de VENEZUELA, con sus seis juegos y
+   su jefe rehechos con las primitivas del laboratorio (juego-switch, -nevera, -zancudo, -enchufa, -voltea, -llego y
+   juego-jefe-transformador), y en el iframe del mundo clásico se quita de la lista (ver openClassic).
 
    Cómo se engancha, sin editar index.html ni los juegos:
    - Se carga DESPUÉS de index.html, juegos-bus.js y todos los juego-*.js, y reemplaza tick(), hud(), paintFrame() y frameWW().
@@ -17,13 +20,13 @@
      pasa mientras se juega (se corta en captura durante la tarjeta, el intermedio y los menús).
    Estilos permitidos: 16 bits, fieltro, wind waker, anime 90s, tinta, garabato (+ MEZCLA: uno distinto por microjuego).
    Teclas: 1-7 estilo · M música · ESC atrás · P práctica (menú) · R reinicia el juego (práctica).
-   ?mundo=venezuela|clasico · ?etapa=1..4 · ?juego=<id> · ?estilo=<estilo> arrancan directo. */
+   ?mundo=venezuela|clasico · ?etapa=1..5 · ?juego=<id> · ?estilo=<estilo> arrancan directo. */
 (function(){
 if(window.CAMP)return;
 
 /* ───────── estilos y etapas ───────── */
 const ESTILOS=[['snes','16 BITS'],['felt','FIELTRO'],['ww','WIND WAKER'],['anime','ANIME 90s'],['tinta','TINTA'],['garabato','GARABATO']];
-const JEFES={metro:'EL METRO EN HORA PICO',arepa:'EL DESAYUNO CRIOLLO SUPREMO',alcabala:'LA ALCABALA NOCTURNA'};
+const JEFES={metro:'EL METRO EN HORA PICO',arepa:'EL DESAYUNO CRIOLLO SUPREMO',alcabala:'LA ALCABALA NOCTURNA',transformador:'EL TRANSFORMADOR'};
 const TODOS=Object.keys(GAMES).filter(id=>!JEFES[id]);
 const ETAPAS=[
   {name:'LA CAMIONETICA',tag:'Súbete, que va saliendo.',col:'#FF6B3D',bg:['#F5B93C','#eaa926'],
@@ -32,8 +35,10 @@ const ETAPAS=[
     pool:['chancla','llave','sopa','queso','hallaca','cucaracha','inscribe','tapala','tranca'],n:8,sp0:1.1,jefes:['arepa']},
   {name:'LA RUMBA',tag:'Y de regreso… la alcabala.',col:'#B49CFF',bg:['#FF8FD0','#ff7cc6'],
     pool:['acomoda','hielo','tequenos','soplalo','baile','rayita','marcalo','anuncio','trencito','torta','cava','hueco','pique','trancalo','cloche'],n:10,sp0:1.2,jefes:['alcabala']},
+  {name:'¡SE FUE LA LUZ!',tag:'Se fue la luz. Otra vez.',col:'#FFCC00',bg:['#1F3FA8','#142B7A'],
+    pool:['switch','nevera','zancudo','enchufa','voltea','llego'],n:8,sp0:1.2,jefes:['transformador']},
   {name:'TODO EL CAOS',tag:'Todo. A la vez.',col:'#FFD23F',bg:['#FF9AA2','#ff8892'],
-    pool:null /* todos */,n:12,sp0:1.3,jefes:['metro','arepa','alcabala']}
+    pool:null /* todos */,n:12,sp0:1.3,jefes:['metro','arepa','alcabala','transformador']}
 ];
 for(const e of ETAPAS){e.pool=(e.pool||TODOS).filter(id=>GAMES[id]);e.jefes=e.jefes.filter(id=>GAMES[id]);}
 
@@ -41,6 +46,8 @@ const SAVE_KEY='minicaos-lab-niveles-v1';
 const save={stars:[],best:[],estilo:'snes',musica:true};
 try{Object.assign(save,JSON.parse(localStorage.getItem(SAVE_KEY))||{});}catch(e){}
 const persist=()=>{try{localStorage.setItem(SAVE_KEY,JSON.stringify(save));}catch(e){}};
+/* la etapa del apagón entró de cuarta: lo guardado de TODO EL CAOS (antes la 4) pasa a la 5 */
+if(!save.v2){if(save.stars[3]||save.best[3]){save.stars[4]=save.stars[3];save.best[4]=save.best[3];save.stars[3]=save.best[3]=0;}save.v2=1;persist();}
 
 /* ───────── página: fuera la botonera del laboratorio, canvas a pantalla completa y la capa de la app encima ───────── */
 const css=document.createElement('style');
@@ -184,14 +191,17 @@ function goMenu(){state='menu';st=0;mode='stage';parts.length=0;}
 /* ───────── mundos ───────── */
 const APP=new URL('../../',location.href).href;
 let appFr=null,appOn=false,appStages=19,appStars=0;
-fetch(APP+'js/stages.js').then(r=>r.text()).then(t=>{const n=(t.match(/\{\s*name:/g)||[]).length;if(n)appStages=n;}).catch(()=>{});
-function goWorlds(){state='worlds';st=0;mode='stage';parts.length=0;
-  try{appStars=((JSON.parse(localStorage.getItem('claudeware-save-v2'))||{}).stars||[]).reduce((a,b)=>a+(b||0),0);}catch(e){appStars=0;}}
+/* la etapa del apagón ya no es del mundo clásico: se quita de su lista (y sus juegos del MEGA MIX y de la práctica) antes de que
+   arranque js/main.js. Es la última de STAGES, así que los índices guardados de las demás no se mueven. */
+const SIN_APAGON="<script>{const i=STAGES.findIndex(s=>s.boss==='blackout');if(i>=0)STAGES.splice(i,1);for(let k=REG.length-1;k>=0;k--)if(REG[k].id.startsWith('ap_')){delete REGMAP[REG[k].id];REG.splice(k,1);}}</script>";
+const cuentaClasico=()=>{try{appStars=((JSON.parse(localStorage.getItem('claudeware-save-v2'))||{}).stars||[]).slice(0,appStages).reduce((a,b)=>a+(b||0),0);}catch(e){appStars=0;}};
+fetch(APP+'js/stages.js').then(r=>r.text()).then(t=>{const n=(t.match(/\{\s*name:/g)||[]).length;if(n){appStages=n-(/boss:\s*'blackout'/.test(t)?1:0);cuentaClasico();}}).catch(()=>{});
+function goWorlds(){state='worlds';st=0;mode='stage';parts.length=0;cuentaClasico();}
 function closeClassic(){if(appFr){appFr.remove();appFr=null;}appOn=false;goWorlds();try{window.focus();}catch(e){}}
 function openClassic(){if(appFr)return;
   const f=appFr=document.createElement('iframe');f.id='camp-app';f.allowFullscreen=true;f.style.visibility='hidden';document.body.append(f);
   fetch(APP+'index.html',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.text();}).then(h=>{if(appFr!==f)return;
-    h=h.replace(/<meta name="(openpanel-client-id|openpanel-api-url|meta-pixel-id)"[^>]*>/g,'').replace(/<script src="js\/pwa\.js[^"]*"><\/script>/,'').replace('<head>','<head><base href="'+APP+'">');
+    h=h.replace(/<meta name="(openpanel-client-id|openpanel-api-url|meta-pixel-id)"[^>]*>/g,'').replace(/<script src="js\/pwa\.js[^"]*"><\/script>/,'').replace(/(<script src="js\/stages\.js[^"]*"><\/script>)/,'$1'+SIN_APAGON).replace('<head>','<head><base href="'+APP+'">');
     const w=f.contentWindow,d=f.contentDocument;d.open();
     w.addEventListener('load',()=>{if(appFr!==f)return;
       if(typeof w.goMenu!=='function'){closeClassic();say('EL MUNDO CLÁSICO NO CARGÓ','#FF4D4D');return;}
@@ -297,26 +307,26 @@ function render(){
     rays('#2b2757','#322d66',now);
     T('ELIGE MUNDO',W/2,52,54,'#FFE14D');
     worldCard(0,30,104,360,396,{name:'VENEZUELA',bg:'#F5B93C',cols:ETAPAS.map(e=>e.col),l1:ETAPAS.length+' ETAPAS · '+TODOS.length+' JUEGOS · '+Object.keys(JEFES).length+' JEFES',
-      l2:'La camionetica, la casa, la rumba… y la alcabala de regreso.',stars:save.stars.reduce((a,b)=>a+(b||0),0)+' / '+ETAPAS.length*3},goMenu);
+      l2:'La camionetica, la casa, la rumba… y se fue la luz. Otra vez.',stars:save.stars.reduce((a,b)=>a+(b||0),0)+' / '+ETAPAS.length*3},goMenu);
     worldCard(1,410,104,360,396,{name:'CLÁSICO',bg:'#6EC6FF',cols:['#FF6B3D','#6EA8FE','#7BD88F','#F28CB1','#B49CFF'],l1:appStages+' ETAPAS · 100+ JUEGOS',
-      l2:'Las etapas de siempre: bichos, teclado, reflejos, 3D, apagón…',stars:appStars+' / '+appStages*3},openClassic);
+      l2:'Las etapas de siempre: bichos, teclado, reflejos, 3D, deportes…',stars:appStars+' / '+appStages*3},openClassic);
     if(appFr&&!appOn){X.fillStyle='rgba(20,16,28,.7)';X.fillRect(0,0,W,H);T('CARGANDO MUNDO CLÁSICO…',W/2,H/2,40,'#FFE14D','center',740);btns=[];}
     T('DENTRO DE CADA MUNDO, «MUNDOS» O ESC TE DEVUELVEN AQUÍ',W/2,548,16,'#fff','center',770);
   }else if(state==='menu'){
     rays('#2b2757','#322d66',now);
     button(14,14,132,38,'◄ MUNDOS',goWorlds,{size:16,depth:4,o:4});T('ELIGE ETAPA',W/2,36,40,'#FFE14D');T('MUNDO VENEZUELA',W-16,36,15,'#fff','right');
-    ETAPAS.forEach((s,i)=>{const x=14+(i%2)*392,y=68+(i/2|0)*130,w=380,h=114,pop=easeOut((st-i*.05)/.3);
+    ETAPAS.forEach((s,i)=>{const sola=i===ETAPAS.length-1&&i%2===0,x=sola?210:14+(i%2)*392,y=62+(i/2|0)*102,w=380,h=90,pop=easeOut((st-i*.05)/.3),dk=lum(s.bg[0])<.3?'#fff':INK;
       X.save();X.translate(0,(1-pop)*40);X.globalAlpha=pop;hoverBox(x,y,w,h,s.bg[0],5,7);
-      shadow(x+54,y+100,30,6,.25);caos(x+54,y+98-Math.abs(Math.sin(now*3+i))*6,4.6,{col:s.col});
-      T('ETAPA '+(i+1),x+108,y+18,15,'#fff','left');if(save.best[i])T('RÉCORD '+save.best[i],x+w-12,y+18,14,'#fff','right');
-      T(s.name,x+108,y+48,27,'#fff','left',258);
-      T(s.n+' JUEGOS + '+(s.jefes.length>1?s.jefes.length+' JEFES':'JEFE'),x+108,y+77,15,INK,'left',170);
-      T(s.jefes.length>1?'LOS TRES, SEGUIDOS':JEFES[s.jefes[0]]||'',x+108,y+97,13,INK,'left',170);
-      stars3(x+w-52,y+88,save.stars[i]||0,11,27);
+      shadow(x+50,y+80,26,5,.25);caos(x+50,y+78-Math.abs(Math.sin(now*3+i))*5,3.8,{col:s.col});
+      T('ETAPA '+(i+1),x+98,y+15,14,'#fff','left');if(save.best[i])T('RÉCORD '+save.best[i],x+w-12,y+15,13,'#fff','right');
+      T(s.name,x+98,y+39,25,'#fff','left',268);
+      T(s.n+' JUEGOS + '+(s.jefes.length>1?s.jefes.length+' JEFES':'JEFE'),x+98,y+62,14,dk,'left',170);
+      T(s.jefes.length>1?'LOS '+(['','','DOS','TRES','CUATRO','CINCO'][s.jefes.length]||s.jefes.length)+', SEGUIDOS':JEFES[s.jefes[0]]||'',x+98,y+79,12,dk,'left',170);
+      stars3(x+w-52,y+70,save.stars[i]||0,11,27);
       X.restore();X.restore();btns.push({x,y,w,h,fn:()=>startStage(i)});});
-    T('ESTILO DE DIBUJO',W/2,342,18,'#fff');chips(360,42);
-    button(60,428,320,66,'PRÁCTICA',goPractice,{fill:'#5CFF7A'});
-    button(420,428,320,66,save.musica?'MÚSICA: SÍ':'MÚSICA: NO',()=>{save.musica=!save.musica;persist();},{fill:'#fff'});
+    T('ESTILO DE DIBUJO',W/2,380,16,'#fff');chips(394,36);
+    button(60,446,320,56,'PRÁCTICA',goPractice,{fill:'#5CFF7A'});
+    button(420,446,320,56,save.musica?'MÚSICA: SÍ':'MÚSICA: NO',()=>{save.musica=!save.musica;persist();},{fill:'#fff'});
     T('4 VIDAS · SI PIERDES, REPITES ESE JUEGO · CADA 2 JUEGOS, MÁS RÁPIDO · TODAS LAS ETAPAS ABIERTAS',W/2,528,14,'#fff','center',770);
     T('1-7 ESTILO (TAMBIÉN JUGANDO) · P PRÁCTICA · M MÚSICA · ESC MUNDOS',W/2,562,16,'#fff','center',770);
   }else if(state==='practice'){

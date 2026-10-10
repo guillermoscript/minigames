@@ -292,7 +292,66 @@ function mkAgarrate(){
    card/num: nombre y número de carta para el estilo LOTERÍA (index.html todavía los tiene fijos para PARADA y CHANCLA). */
 const cs=document.currentScript,want=new URLSearchParams(location.search).get('juego')||(cs&&cs.dataset.juego);
 function add(id,def){GAMES[id]=def;MINE[id]=1;const b=document.createElement('button');b.textContent=def.name;b.dataset.k=id;b.onclick=()=>setGame(id);document.getElementById('games').append(b);if(want===id)setGame(id);}
-window.BUS={add,LV,CONF,TU,say,tag,phone,steer};
+/* ───────── SE FUE LA LUZ: lo que comparten los juegos del apagón (juego-switch, -nevera, -zancudo, -enchufa, -voltea, -llego
+   y juego-jefe-transformador). Las escenas se dibujan a todo color y la noche va ENCIMA, con oscuro(). ───────── */
+const oc=document.createElement('canvas');oc.width=W;oc.height=H;const ox=oc.getContext('2d');
+/* la oscuridad: una capa de noche (a = cuánta, 0..1) con huecos de luz. luces=[{x,y,r,c}]: r = radio del charco de luz,
+   c = color del resplandor (opcional). Va por un canvas aparte para que dos luces se puedan montar una sobre otra. */
+function oscuro(a,luces=[],col='#0a0820'){if(a<=.01)return;
+  ox.globalCompositeOperation='source-over';ox.globalAlpha=1;ox.fillStyle=col;ox.fillRect(0,0,W,H);ox.globalCompositeOperation='destination-out';
+  for(const[k,al]of[[1,.45],[.7,1]]){ox.globalAlpha=al;for(const l of luces)if(l.r>1){ox.beginPath();ox.arc(l.x,l.y,l.r*k,0,TAU);ox.fill();}}
+  ctx.save();
+  for(const l of luces)if(l.c&&l.r>1){ctx.globalAlpha=.16*a;ctx.fillStyle=l.c;ctx.beginPath();ctx.arc(l.x,l.y,l.r*.7,0,TAU);ctx.fill();}
+  ctx.globalAlpha=clamp(a,0,1);ctx.drawImage(oc,0,0);ctx.restore();}
+/* el bombillo que cuelga del techo: (x, y) = centro del vidrio, L = cuánto alumbra (0 apagado .. 1 prendido) */
+function bombillo(x,y,L=0){line([[x,0],[x,y-30]],4,'#3b3550');rr(x-9,y-32,18,16,3,'#8f8fa8',3);
+  if(L>.05){ctx.save();ctx.globalAlpha=.35*L;ell(x,y,54,54,'#fff3a8',0);ctx.restore();}
+  ell(x,y,20,24,L>.5?'#fff3a8':L>.05?'#e8d98a':'#6b6880',3.5);line([[x-6,y-4],[x,y+6],[x+6,y-4]],2.5,L>.5?'#ff9a3d':'#3b3550');}
+/* la vela en su platico: (x, y) = base */
+function vela(x,y,s=1){ctx.save();ctx.translate(x,y);ctx.scale(s,s);rr(-16,0,32,8,3,'#c4cad6',3);rr(-7,-34,14,36,3,'#fff6dc',3);
+  const f=1+Math.sin(now*17)*.12;ell(0,-46,7,12*f,'#ffb020',2.5);ell(0,-43,3,6*f,'#fff3a8',0);ctx.restore();}
+/* la sala de ¡CHANCLA!, sin luz: pared de listones, ventilador parado, ventana con cortinas (de noche), la Virgen con su
+   velita (la única luz que queda: BUS.AP.VIRGEN), el sofá, la tele apagada y el florero. Piso en y=470.
+   o.sin = lo que no se dibuja, p. ej. 'sofa tele florero virgen ventana' (para despejar la pared de un juego) */
+const VIRGEN={x:448,y:270};
+function sala(o={}){const sin=o.sin||'';
+  wash(0,0,800,480,'#ffd9a0','#ffe9c4');for(let i=0;i<10;i++)rr(i*90+8,0,44,480,0,'#f5c27a',0);
+  rr(0,470,800,130,0,'#b97a46',0);for(let i=0;i<9;i++)rr(i*95-20,470,3,130,0,'#8a5530',0);rr(0,462,800,14,0,'#f7e7c4',4);
+  if(!sin.includes('ventilador')){line([[400,0],[400,40]],6,'#8f8fa8');for(let i=0;i<4;i++){const a=.5+i*Math.PI/2;limb(400,54,400+Math.cos(a)*100,54+Math.sin(a)*14,18,'#c9ced6',3);}ell(400,54,13,13,'#5a5274',3);}
+  if(!sin.includes('ventana')){rr(300,120,110,130,6,'#7a5230',4.5);rr(310,130,90,110,4,'#232a52',3);ell(372,160,10,10,'#fff3c4',0);rr(300,120,26,130,6,'#ff5c8a',3.5);rr(384,120,26,130,6,'#ff5c8a',3.5);}
+  if(!sin.includes('virgen')){rr(450,300,100,12,3,'#fff',3.5);rr(466,200,68,100,8,'#3fa0ff',4);ell(500,230,13,13,'#f2b88c',2.5);poly([[480,244],[500,238],[520,244],[528,300],[472,300]],'#fff',3);ell(448,285,7,13,'#ffe14d',2.5);ell(448+Math.sin(now*9)*1.5,267,4,7,'#ff8a3d',0);}
+  if(!sin.includes('sofa')){rr(330,360,190,16,0,'#7a3b2a',0);rr(326,370,200,110,22,'#4fa66a',4.5);rr(342,328,168,60,18,'#5fbd7c',4.5);line([[372,392],[400,352]],5,'#fff');line([[420,392],[448,352]],5,'#fff');}
+  if(!sin.includes('tele')){rr(24,296,170,122,14,'#3b3550',5);rr(38,310,142,92,10,'#14101c',3.5);rr(14,418,190,16,4,'#8a5530',4);}
+  if(!sin.includes('florero')){rr(72,478,60,56,16,'#2f9fe3',4);rr(90,458,24,26,6,'#2f9fe3',4);ell(102,444,12,12,'#ff4d6d',3);ell(84,452,9,9,'#ffd23f',3);ell(120,450,9,9,'#ff8aa5',3);}}
+/* la cocina de la abuela (la del jefe de la arepa), de noche: baldosas, la ventana, la repisa con los potes y abajo el mesón
+   (borde en y=430). cocina(true) = con piso en vez de mesón (línea del piso en y=470), para lo que va parado en el suelo */
+function cocina(piso=false){
+  wash(0,0,800,piso?472:432,'#ffe9c4','#ffdcae');for(let i=1;i<8;i++)line([[i*100,96],[i*100,piso?470:430]],2,'#f2cf9c');for(let j=0;j<(piso?4:3);j++)line([[0,180+j*84],[800,180+j*84]],2,'#f2cf9c');
+  rr(516,118,154,134,10,'#8a6a4a',4.5);rr(526,128,134,114,5,'#232a52',0);ell(626,160,12,12,'#fff3c4',0);line([[593,128],[593,242]],4,'#8a6a4a');
+  rr(36,150,236,12,4,'#8a6a4a',3.5);[['#e8553d',70],['#3fb0ff',122],['#5cd06a',174],['#ffd23f',226]].forEach(([c,x])=>{rr(x-17,112,34,38,6,c,3.5);rr(x-19,105,38,11,4,'#fffdf2',3);});
+  if(piso){rr(0,470,800,130,0,'#b97a46',0);for(let i=0;i<9;i++)rr(i*95-20,470,3,130,0,'#8a5530',0);rr(0,462,800,14,0,'#f7e7c4',4);}
+  else{rr(-10,430,820,190,0,'#c98a5a',0);rr(-10,430,820,20,0,'#e0a878',0);line([[0,430],[800,430]],5,INK);}}
+/* la arepa de la abuela (la misma del jefe): vista de lado, (x, y) = centro de la cara de arriba. top/bot = AREPA.CRUDA|DORADA|QUEMADA (o cualquier color) */
+const AREPA={CRUDA:'#f6ecd0',DORADA:'#e8b04a',TOSTE:'#a8682a',QUEMADA:'#2a2018'};
+function arepa(x,y,top,bot,sy=1){const w=150,h=40*sy,g_=34;
+  ell(x,y+g_,w,h,bot,4.5);rr(x-w,y,w*2,g_,0,mix(top,bot,.5),0);line([[x-w,y],[x-w,y+g_]],4.5,INK);line([[x+w,y],[x+w,y+g_]],4.5,INK);ell(x,y,w,h,top,4.5);
+  if(top===AREPA.DORADA)for(let i=0;i<6;i++)ell(x-90+i*36,y+((i*7)%3-1)*h*.3,15,6*sy,AREPA.TOSTE,0);
+  if(top===AREPA.QUEMADA)for(let i=0;i<4;i++)ell(x-70+i*46,y+((i*5)%3-1)*h*.3,18,7*sy,'#14101c',0);}
+/* el barrio de noche: edificios con ventanas (lit = cuántas están prendidas, 0..1) y la calle (acera en y=478) */
+function barrio(lit=0){rr(0,0,800,8,0,'#1b1b4a',0);wash(0,5,800,595,'#1b1b4a','#3a2f6e');ell(700,70,26,26,'#fff3c4',0);
+  for(let i=0;i<14;i++)ell(hash(i,1,7)*800,20+hash(i,2,7)*170,2,2,'#ffffff',0);
+  [[0,250,130,'#8a4f6b'],[130,200,120,'#5a6fa8'],[250,270,110,'#b5654a'],[360,180,130,'#6b8a5a'],[490,240,120,'#a85a8a'],[610,210,110,'#5a8aa8'],[720,260,90,'#b58a4a']].forEach(([x,y,w,c],b)=>{rr(x,y,w,480-y,0,c,4);
+    for(let j=0;y+24+j*58<440;j++)for(let i=0;i<2;i++)rr(x+16+i*(w-62),y+22+j*58,30,34,3,hash(b,i,j)<lit?'#ffe14d':'#232a52',3);});
+  rr(0,478,800,122,0,'#4a4558',0);line([[0,478],[800,478]],4,INK);for(let i=0;i<5;i++)rr(40+i*170,532,70,8,0,'#8f8fa8',0);}
+/* el elenco del apagón es el del mundo Venezuela: TÚ (BUS.TU, el chamo de ¡CHANCLA!), mamá (la de ¡CHANCLA!, con sus rolos),
+   la abuela (la del desayuno criollo, con su delantal) y los vecinos de la camionetica. vecina = mamá (nombre viejo) */
+const MAMA={skin:'#d9a07a',shirt:'#ff7ab0',pat:'floral',sh2:'#fff0a0',hair:'rolos',hairCol:'#3b2a22',earring:1,brow:'thick',wrinkles:1,hw:44,hh:44,bw:54,teeth:1};
+const ABU={skin:'#c98a5a',shirt:'#ff7ab0',pat:'apron',sh2:'#fffdf2',hair:'bun',hairCol:'#e4e0e8',glasses:'round',wrinkles:1,cheeks:1,earring:1,bw:56,hw:42,hh:42};
+/* las piernas de cuerpo entero, como salen en su juego: mamá descalza con sus chanclas azules (¡CHANCLA!, th:130) y la abuela con
+   su falda morada (¡PARADA!, th:120) */
+const PIES={mama:['#d9a07a','#d9a07a',70,'#2f7fe0'],abuela:['#5a3a8a','#2b2b3a',74]};
+const AP={oscuro,bombillo,vela,sala,cocina,barrio,arepa,AREPA,VIRGEN,PIES,CAST:{mama:MAMA,vecina:MAMA,abuela:ABU,tio:FACES[6],chuo:FACES[11],pana:FACES[0]}};
+window.BUS={add,LV,CONF,TU,say,tag,phone,steer,AP};
 add('baja',{name:'¡BAJA!',mk:mkBaja,card:'LA PUERTA',num:'12'});
 add('encaleta',{name:'¡ENCALETA!',mk:mkEncaleta,card:'EL TELÉFONO',num:'31'});
 add('agarrate',{name:'¡AGÁRRATE!',mk:mkAgarrate,card:'EL PESCANTE',num:'45'});

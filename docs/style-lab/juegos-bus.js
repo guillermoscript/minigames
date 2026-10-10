@@ -321,7 +321,7 @@ function mkAgarrate(){
    (down/move/up con coordenadas 800x600, izquierda/derecha sostenido) y le pone su botón.
    card/num: nombre y número de carta para el estilo LOTERÍA (index.html todavía los tiene fijos para PARADA y CHANCLA). */
 const cs=document.currentScript,want=new URLSearchParams(location.search).get('juego')||(cs&&cs.dataset.juego);
-function add(id,def){GAMES[id]=def;MINE[id]=1;const b=document.createElement('button');b.textContent=def.name;b.dataset.k=id;b.onclick=()=>setGame(id);document.getElementById('games').append(b);if(want===id)setGame(id);}
+function add(id,def){GAMES[id]=def;MINE[id]=1;const menu=document.getElementById('games');if(menu){const b=document.createElement('button');b.textContent=def.name;b.dataset.k=id;b.onclick=()=>setGame(id);menu.append(b);if(want===id)setGame(id);}}
 /* ───────── SE FUE LA LUZ: lo que comparten los juegos del apagón (juego-switch, -nevera, -zancudo, -enchufa, -voltea, -llego
    y juego-jefe-transformador). Las escenas se dibujan a todo color y la noche va ENCIMA, con oscuro(). ───────── */
 const oc=document.createElement('canvas');oc.width=W;oc.height=H;const ox=oc.getContext('2d');

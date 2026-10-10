@@ -15,6 +15,13 @@ const assert = require('node:assert/strict');
  for(const viewport of [{width:1280,height:800},{width:390,height:844}]){
   const context=await browser.newContext({viewport,locale:'es-VE',serviceWorkers:'block',isMobile:viewport.width<640,hasTouch:viewport.width<640});
   const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
+  const resources=[];page.on('request',r=>resources.push(r.url()));
+  await page.addInitScript(()=>{
+    window.__labControlsSeen=false;
+    new MutationObserver(()=>{
+      if(document.querySelector('#games,#styles,#styles2,#help,.bar'))window.__labControlsSeen=true;
+    }).observe(document,{subtree:true,childList:true});
+  });
   await page.route('https://**/*',r=>r.abort());
   const tap = async(x,y)=>{
    await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
@@ -43,6 +50,8 @@ const assert = require('node:assert/strict');
   await page.keyboard.press('ArrowRight');await page.keyboard.press('Enter');
   await campState('menu');await page.waitForTimeout(400);
   assert.equal(await page.evaluate(()=>CAMP.ETAPAS.length),5);
+  assert.equal(await page.evaluate(()=>window.__labControlsSeen),false,'lab controls never enter the public DOM');
+  assert.equal(resources.some(url=>/\/(engine\.html|lab-ui\.js|jugar\.html)(?:[?]|$)/.test(url)),false,'public entry never loads laboratory HTML or controls');
   assert.equal(await page.locator('.world-menu').count(),0,'Venezuela uses original canvas UI');
   if(process.env.WORLD_SCREENSHOTS) await page.screenshot({path:`/tmp/minicaos-venezuela-${viewport.width}.png`});
   await tap(550,450);await campState('options');

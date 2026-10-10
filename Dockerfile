@@ -21,12 +21,12 @@ COPY css /pb/pb_public/css
 COPY img /pb/pb_public/img
 COPY js /pb/pb_public/js
 COPY audio /pb/pb_public/audio
-COPY docs/style-lab/*.js docs/style-lab/index.html docs/style-lab/jugar.html /tmp/style-lab-source/docs/style-lab/
+COPY docs/style-lab/*.js docs/style-lab/public.html /tmp/style-lab-source/docs/style-lab/
 COPY scripts/sync-world-assets.sh /tmp/sync-world-assets.sh
 RUN sh /tmp/sync-world-assets.sh /tmp/style-lab-source /pb/pb_public && rm -rf /tmp/style-lab-source /tmp/sync-world-assets.sh
 # Cache-bust every script/style URL (?v=...) with a hash of the shipped files, so each deploy gets fresh URLs no matter what the CDN/browser cached.
 RUN cd /pb/pb_public && V=$(find index.html sw.js manifest.webmanifest css js img audio worlds -type f | sort | xargs cat | md5sum | cut -c1-10) \
- && sed -i -E "s/\?v=[0-9a-zA-Z]+/?v=$V/g" index.html js/main.js && sed -i "s/claudeware-v4-dev/claudeware-v4-$V/" sw.js && echo "asset version $V"
+ && sed -i -E "s/\?v=[0-9a-zA-Z]+/?v=$V/g" index.html js/main.js worlds/venezuela/index.html && sed -i "s/claudeware-v4-dev/claudeware-v4-$V/" sw.js && echo "asset version $V"
 VOLUME /pb/pb_data
 EXPOSE 8090
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s CMD wget -qO- http://127.0.0.1:8090/api/health >/dev/null || exit 1

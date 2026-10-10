@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MiniCaos · laboratorio: juegos de camionetica</title>
+<style>body{margin:0;background:#0f0b1a;color:#fff;font:600 14px system-ui,sans-serif;padding:16px}</style></head>
+<body>cargando el laboratorio…
+<script>
+/* Abre el laboratorio de estilos (index.html, tal como esté en este momento) y le suma los juegos de camionetica
+   (juegos-bus.js + un archivo juego-*.js por juego nuevo), sin editar index.html.
+   ?juego=baja | encaleta | agarrate | revisa | pique | paga | hueco | pendrive | duermete | saltale | amarrala | inscribe | tapala | tranca | alcabala | metro | arepa (los tres jefes)
+   | trancalo | cava | cloche (carretera y playa) | acomoda | hielo | tequenos | soplalo | baile | rayita | marcalo | anuncio | trencito | torta (la rumba) | parada | chancla
+   | llave | sopa | queso | hallaca | cucaracha (la casa)
+   elige con cuál arrancar. */
+fetch('index.html',{cache:'no-store'}).then(r=>r.text()).then(h=>{
+  const v=Date.now(); /* para que el navegador no sirva un juego-*.js viejo */
+  document.open();
+  document.write(h.replace('</body>','<script src="juegos-bus.js?v='+v+'" data-juego="baja"><\/script>'+['revisa','pique','paga','hueco','pendrive','duermete','saltale','amarrala','inscribe','tapala','tranca','jefe-alcabala','jefe-metro','jefe-arepa','trancalo','cava','cloche','acomoda','hielo','tequenos','soplalo','baile','rayita','marcalo','anuncio','trencito','torta','llave','sopa','queso','hallaca','cucaracha'].map(k=>'<script src="juego-'+k+'.js?v='+v+'"><\/script>').join('')+'</body>'));
+  document.close();
+}).catch(e=>{document.body.textContent='No pude cargar index.html: '+e;});
+</script></body></html>

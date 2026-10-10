@@ -1,0 +1,346 @@
+{
+ "abuela_full": {
+  "w": 138,
+  "h": 157
+ },
+ "abuela_face_calm": {
+  "w": 84,
+  "h": 96
+ },
+ "abuela_face_shout": {
+  "w": 84,
+  "h": 95
+ },
+ "abuela_face_happy": {
+  "w": 82,
+  "h": 94
+ },
+ "abuela_face_worry": {
+  "w": 84,
+  "h": 95
+ },
+ "abuela_face_sleep": {
+  "w": 83,
+  "h": 93
+ },
+ "abuela_body": {
+  "w": 124,
+  "h": 121
+ },
+ "abuela_bag": {
+  "w": 61,
+  "h": 90
+ },
+ "abuela_part1": {
+  "w": 61,
+  "h": 105
+ },
+ "abuela_hair": {
+  "w": 60,
+  "h": 53
+ },
+ "abuela_arm1": {
+  "w": 36,
+  "h": 68
+ },
+ "abuela_arm2": {
+  "w": 34,
+  "h": 67
+ },
+ "abuela_bag2": {
+  "w": 48,
+  "h": 100
+ },
+ "colector_full": {
+  "w": 123,
+  "h": 158
+ },
+ "colector_face_calm": {
+  "w": 81,
+  "h": 95
+ },
+ "colector_face_shout": {
+  "w": 80,
+  "h": 96
+ },
+ "colector_face_happy": {
+  "w": 80,
+  "h": 93
+ },
+ "colector_face_worry": {
+  "w": 80,
+  "h": 95
+ },
+ "colector_face_sleep": {
+  "w": 85,
+  "h": 94
+ },
+ "colector_body": {
+  "w": 109,
+  "h": 136
+ },
+ "colector_cap": {
+  "w": 82,
+  "h": 52
+ },
+ "colector_arms_up": {
+  "w": 92,
+  "h": 112
+ },
+ "colector_arm": {
+  "w": 43,
+  "h": 75
+ },
+ "colector_bills": {
+  "w": 45,
+  "h": 61
+ },
+ "colector_chain": {
+  "w": 61,
+  "h": 59
+ },
+ "chofer_full": {
+  "w": 114,
+  "h": 147
+ },
+ "chofer_face_calm": {
+  "w": 79,
+  "h": 98
+ },
+ "chofer_face_shout": {
+  "w": 79,
+  "h": 96
+ },
+ "chofer_face_happy": {
+  "w": 78,
+  "h": 91
+ },
+ "chofer_face_worry": {
+  "w": 76,
+  "h": 93
+ },
+ "chofer_face_sleep": {
+  "w": 74,
+  "h": 89
+ },
+ "chofer_body": {
+  "w": 111,
+  "h": 134
+ },
+ "chofer_head": {
+  "w": 68,
+  "h": 89
+ },
+ "chofer_arms": {
+  "w": 100,
+  "h": 67
+ },
+ "chofer_wheel": {
+  "w": 72,
+  "h": 70
+ },
+ "chofer_fist": {
+  "w": 55,
+  "h": 64
+ },
+ "senora_full": {
+  "w": 113,
+  "h": 139
+ },
+ "senora_face_calm": {
+  "w": 73,
+  "h": 79
+ },
+ "senora_face_shout": {
+  "w": 73,
+  "h": 79
+ },
+ "senora_face_happy": {
+  "w": 71,
+  "h": 77
+ },
+ "senora_face_worry": {
+  "w": 71,
+  "h": 76
+ },
+ "senora_face_sleep": {
+  "w": 77,
+  "h": 75
+ },
+ "senora_body": {
+  "w": 100,
+  "h": 119
+ },
+ "senora_scarf": {
+  "w": 71,
+  "h": 61
+ },
+ "senora_arm": {
+  "w": 80,
+  "h": 99
+ },
+ "senora_arm2": {
+  "w": 59,
+  "h": 92
+ },
+ "senora_bag": {
+  "w": 82,
+  "h": 66
+ },
+ "tu_full": {
+  "w": 61,
+  "h": 137
+ },
+ "tu_face_calm": {
+  "w": 76,
+  "h": 90
+ },
+ "tu_face_shout": {
+  "w": 75,
+  "h": 89
+ },
+ "tu_face_happy": {
+  "w": 75,
+  "h": 87
+ },
+ "tu_face_worry": {
+  "w": 73,
+  "h": 88
+ },
+ "tu_face_sleep": {
+  "w": 73,
+  "h": 88
+ },
+ "tu_body": {
+  "w": 64,
+  "h": 139
+ },
+ "tu_head_back": {
+  "w": 60,
+  "h": 96
+ },
+ "tu_hoodie_back": {
+  "w": 83,
+  "h": 96
+ },
+ "tu_backpack": {
+  "w": 70,
+  "h": 76
+ },
+ "mama_full": {
+  "w": 100,
+  "h": 138
+ },
+ "mama_face_calm": {
+  "w": 75,
+  "h": 85
+ },
+ "mama_face_shout": {
+  "w": 75,
+  "h": 83
+ },
+ "mama_face_happy": {
+  "w": 73,
+  "h": 81
+ },
+ "mama_face_worry": {
+  "w": 74,
+  "h": 81
+ },
+ "mama_face_sleep": {
+  "w": 72,
+  "h": 80
+ },
+ "mama_body": {
+  "w": 83,
+  "h": 107
+ },
+ "mama_head": {
+  "w": 70,
+  "h": 79
+ },
+ "mama_arm_up": {
+  "w": 52,
+  "h": 98
+ },
+ "mama_arm_out": {
+  "w": 114,
+  "h": 59
+ },
+ "mama_hand": {
+  "w": 59,
+  "h": 53
+ },
+ "mama_chancla_hand": {
+  "w": 47,
+  "h": 63
+ },
+ "dog_stand": {
+  "w": 91,
+  "h": 84
+ },
+ "dog_sit": {
+  "w": 56,
+  "h": 83
+ },
+ "dog_trot": {
+  "w": 128,
+  "h": 84
+ },
+ "goat_stand": {
+  "w": 76,
+  "h": 93
+ },
+ "goat_sit": {
+  "w": 47,
+  "h": 76
+ },
+ "goat_walk": {
+  "w": 89,
+  "h": 89
+ },
+ "goat_walk2": {
+  "w": 98,
+  "h": 92
+ },
+ "chancla_side": {
+  "w": 54,
+  "h": 80
+ },
+ "chancla_angle": {
+  "w": 74,
+  "h": 66
+ },
+ "chancla_sole": {
+  "w": 50,
+  "h": 82
+ },
+ "tv": {
+  "w": 125,
+  "h": 100
+ },
+ "vase": {
+  "w": 57,
+  "h": 79
+ },
+ "picture": {
+  "w": 112,
+  "h": 82
+ },
+ "shard1": {
+  "w": 38,
+  "h": 34
+ },
+ "shards": {
+  "w": 148,
+  "h": 79
+ },
+ "shard2": {
+  "w": 42,
+  "h": 23
+ },
+ "shard3": {
+  "w": 45,
+  "h": 22
+ }
+}

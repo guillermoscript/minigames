@@ -75,8 +75,8 @@ function drawShareMenu() {
   button(130, 330, 540, 70, 'COPY LINK', shareCopy, { fill: '#B49CFF', size: 26 });
   button(250, 440, 300, 64, 'CLOSE', () => { sh.on = false; }, { size: 24 });
 }
-/* title tap / Enter: a room invite wins over a score challenge, which wins over the stage menu */
-function titleGo() { if (inviteOpen()) joinInvite(); else if (chOpen) acceptChallenge(); else goMenu(); }
+/* title tap / Enter: a room invite wins over a score challenge, which wins over world selection */
+function titleGo() { if (inviteOpen()) joinInvite(); else if (chOpen) acceptChallenge(); else goWorlds(); }
 function acceptChallenge() {
   const i = Math.min(CH.stage, save.unlocked - 1);          // locked stage? start from the furthest one you can play
   chOpen = false; track('challenge_accept', { from: CH.from, target: CH.score, stage: CH.stage + 1, played: i + 1 });
@@ -463,7 +463,9 @@ function render() {
   btns = []; I18N.scope = state === 'play' ? I18N.scopeOf(curId) : '';
   const col = mode === 'stage' ? stage.col : OR;
 
-  if (state === 'title') {
+  if (state === 'worlds') {
+    drawWorlds();
+  } else if (state === 'title') {
     bg('#7C4DFF', '#6a3de8', now);
     const SC = ['#FFE14D', '#5CFF7A', '#4DB8FF', '#FF4D9E'];
     for (let i = 0; i < 8; i++) { const a = now * .5 + i * Math.PI / 4; star(W / 2 + Math.cos(a) * 340, 300 + Math.sin(a) * 215, 9 + (i % 3) * 4, 4, 5, now * 2 + i, SC[i % 4], 3); }
@@ -516,7 +518,7 @@ function render() {
     profileBtn(14 - OX, 10, 170, 56);
     button(W + OX - 184, 10, 170, 56, 'RANKS', () => goBoard(), { size: 22, fill: '#FFE14D' });
     button(110, 455, 280, 74, 'PRACTICE', goPractice, { fill: '#5CFF7A' });
-    button(410, 455, 280, 74, 'TITLE', goTitle, { fill: '#fff' });
+    button(410, 455, 280, 74, worldText('◄ MUNDOS', '◄ WORLDS'), goWorlds, { fill: '#fff' });
     if (!TOUCH) txt('1-6 STAGE · ◄ ► PAGE · P PRACTICE · L RANKS · A PROFILE · ESC BACK', W / 2, 568, 18, '#fff');
   } else if (state === 'party') {
     drawParty();
@@ -847,11 +849,17 @@ addEventListener('keydown', e => {
     if (mode === 'party' && (state === 'play' || (state === 'party' && party.view !== 'menu' && party.view !== 'lobby'))) return;   // no accidental leaving mid-match
     if (state === 'party') { party.view === 'lobby' ? partyLeave('menu') : goTitle(); return; }
     if (state === 'play' || state === 'inter' || state === 'stagein') exitPlay();
-    else if (state === 'menu') goTitle(); else if (state === 'practice') goMenu();
+    else if (state === 'worlds') goTitle(); else if (state === 'menu') goWorlds(); else if (state === 'practice') goMenu();
     else if (state === 'profile' || state === 'board' || state === 'pview' || state === 'friends') back();
     return;
   }
-  if (state === 'title' && go) titleGo();
+  if (state === 'title' && go) { e.preventDefault(); titleGo(); }
+  else if (state === 'worlds') {
+    if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') worldChoice = 1 - worldChoice;
+    else if (e.code === 'Digit1') chooseClassic();
+    else if (e.code === 'Digit2') chooseVenezuela();
+    else if (go) { e.preventDefault(); worldChoice === 0 ? chooseClassic() : chooseVenezuela(); }
+  }
   else if (state === 'title' && e.code === 'KeyA') goProfile();
   else if (state === 'title' && e.code === 'KeyF') goParty('title');
   else if (state === 'title' && e.code === 'KeyG') I18N.next();
@@ -945,3 +953,5 @@ api.completeGoogleSignIn().then(r => {
   if (!r.ok) { from.profile = 'menu'; state = 'profile'; st = 0; checkSignIn(); }
   return finishGoogle(r);
 });
+
+initWorldMenu();

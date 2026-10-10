@@ -10,7 +10,8 @@ if [ -f "$ROOT/.env" ]; then set -a; . "$ROOT/.env"; set +a; fi
 sync_public() {
   rm -rf pb_public && mkdir -p pb_public
   cp "$ROOT/index.html" "$ROOT/sw.js" "$ROOT/manifest.webmanifest" pb_public/
-  cp -R "$ROOT/css" "$ROOT/img" "$ROOT/js" pb_public/
+  cp -R "$ROOT/css" "$ROOT/img" "$ROOT/js" "$ROOT/audio" pb_public/
+  sh "$ROOT/scripts/sync-world-assets.sh" "$ROOT" pb_public
 }
 sync_public
 [ "${1:-}" = "sync" ] && exit 0

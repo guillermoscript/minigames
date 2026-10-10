@@ -3,6 +3,9 @@
    Un microjuego en dos tiempos: ¡DOBLA! (deslizar: el billete mocho se dobla hasta que no se le ve lo mocho y sale volando
    a la mano del colector) y ¡CORRE! (machacar: llega a la puerta de atrás antes de que el colector termine de desdoblarlo;
    cada doblez es un desdoblez, y ese desdoblar ES el reloj).
+   Nivel 1: 2 dobleces y 10 pasos. Nivel 2: 3 dobleces y 13 pasos.
+   Nivel 3: 3 dobleces, 15 pasos y, mientras corres, el colector VOLTEA una vez (entre el paso 5 y el 9): avisa 0.4 s (sus ojos en el
+   retrovisor, «¿EH?» y «¡OJO!») y mira 0.6 s («¡QUIETO!»). Un toque mientras mira = ¡TE VIO! Mientras te mira no desdobla: el reloj se para.
    Se carga después de index.html y juegos-bus.js: dibuja con sus primitivas y se registra con BUS.add. */
 (function(){
 if(!window.BUS||GAMES.paga)return;
@@ -29,6 +32,8 @@ function mkPaga(){
   const BX=400,BY=400,X0=330,X1=644,FY=524,PY=FY-136,STEP=(X1-X0)/need,CX=150,CY=FY-170,CS=.8,SX=CX+CS*36,SY=CY+CS*6;
   const folds=[];let ph=1,nf=0,fa=null,w=BW,h=BH,ox=0,oy=0,hold=0,nud=0,sw0=null,swOn=false;
   let t2=0,tC=1e9,UI=1,open=0,caught=false,px=X0,taps=0,lunge=0,runA=0,scroll=0,flash=0,grabbed=false,yelled=false,out=false,late=false,got=false,kind='';
+  /* nivel 3: la volteada. mira: 0 todavía no, 1 avisa, 2 te está mirando, 3 ya pasó */
+  const KM=lv>2?5+Math.floor(Math.random()*5):1e9;let mira=0,mT=0;
   /* ── fase 1: doblar ── */
   function endFold(){if(fa.ax==='h'){ox+=fa.d*w/4;w/=2;}else{oy+=fa.d*h/4;h/=2;}folds.push(fa.ax);fa=null;}
   /* d = hacia dónde va el dedo: la mitad de atrás se monta sobre la de adelante. El primer doblez siempre tapa lo mocho. */
@@ -47,8 +52,10 @@ function mkPaga(){
     ctx.restore();}
   /* ── fase 2: correr ── */
   const dims=k=>{let a=BW,b=BH;for(let i=0;i<NF-k;i++)if(folds[i]==='h')a/=2;else b/=2;return[a,b];};
-  function startRun(){ph=2;t2=g.t;tC=t2+FL;UI=(g.dur-tC)/NF;flash=1;g.cmd='¡CORRE!';g.hint='TOCA RÁPIDO (o ESPACIO): corre a la puerta de atrás antes de que lo desdoble';sfx.whoosh();PT.length=0;say('¡AHÍ VA!',X0+10,PY-150,'#ffffff');}
-  function step(){if(g.result||ph!==2)return;taps++;lunge=1;px=Math.min(X1,px+STEP);snd(170+(taps%5)*26,.07,'square',.045);
+  function startRun(){ph=2;t2=g.t;tC=t2+FL;UI=(g.dur-tC)/NF;flash=1;g.cmd='¡CORRE!';g.hint=lv>2?'TOCA RÁPIDO (o ESPACIO) hasta la puerta... ¡y QUIETO si el colector voltea!':'TOCA RÁPIDO (o ESPACIO): corre a la puerta de atrás antes de que lo desdoble';sfx.whoosh();PT.length=0;say('¡AHÍ VA!',X0+10,PY-150,'#ffffff');}
+  function step(){if(g.result||ph!==2)return;
+    if(mira===2){g.result='lose';kind='visto';g.why='¡TE VIO!';lunge=1;snd(170,.07,'square',.045);sfx.thud();sfx.lose();return;}
+    taps++;lunge=1;px=Math.min(X1,px+STEP);snd(170+(taps%5)*26,.07,'square',.045);
     if(taps>=need){px=X1;g.result='win';g.why='¡CORONASTE!';sfx.win();spawn(724,330,20,'conf',CONF);}}
   /* el billete en la mano del colector: se va abriendo un doblez por tramo */
   const held=(hx,hy)=>{const full=open>=NF,u=clamp((g.t-tC)/UI,0,NF-.001),k=Math.floor(u),q=ease(clamp((u-k-.6)/.4,0,1)),a=dims(k),b=dims(k+1),S=full?.46:.4;
@@ -95,7 +102,7 @@ function mkPaga(){
   }
 
   function drawBus(){
-    const win=g.result==='win',lose=g.result==='lose',e=g.endT,mad=lose&&kind==='grab',rem=caught?clamp((g.t-tC)/(g.dur-tC),0,1):0;
+    const win=g.result==='win',lose=g.result==='lose',e=g.endT,visto=lose&&kind==='visto',mad=lose&&(kind==='grab'||visto),ojo=!g.result&&mira===1,ve=!g.result&&mira===2,rem=caught?clamp((g.t-tC)/(g.dur-tC),0,1):0;
     ctx.save();if(mad&&e<.35)ctx.translate(Math.sin(now*70)*4*(1-e/.35),0);
     wash(0,0,800,600,'#f6e3b4','#ecd29a');
     rr(0,92,800,36,0,'#d9dce6',0);line([[0,128],[800,128]],4,INK);txt('NO SE ACEPTAN BILLETES MOCHOS',440,110,13,INK,0,true);
@@ -125,24 +132,28 @@ function mkPaga(){
     rr(92,350,120,176,18,'#e8553d',4);rr(102,334,100,40,14,'#ff8a6b',3.5);
     const gk=mad?ease(clamp((e-.3)/.25,0,1)):0,pull=grabbed?48+Math.sin(now*26)*10:0,gx=px-42-pull,gy=PY+14,ax=lerp(SX+34,gx,gk),ay=lerp(SY+12,gy,gk);
     if(gk>0)limb(SX,SY,ax,ay,20,COL.shirt,4);
-    bust(Object.assign({},COL,{x:CX,y:CY+(mad?Math.sin(now*40)*2:0),s:CS,th:120,look:mad&&e>.22?1:-1,down:!mad&&caught?1:0,
-      mood:mad?(e>.22?'yell':'o'):caught?(rem>.66?'angry':'calm'):'grin',talk:mad?Math.abs(Math.sin(now*18)):0,vein:mad?1:0,
+    bust(Object.assign({},COL,{x:CX+(ojo?Math.sin(now*50)*2:0),y:CY+(mad?Math.sin(now*40)*2:0),s:CS,th:120,look:ve||visto||(mad&&e>.22)?1:-1,down:!mad&&caught&&!ojo&&!ve?1:0,
+      rot:ojo?.12*(1-mT/.4):0,mood:mad?(e>.22?'yell':'o'):ve?'angry':ojo?'o':caught?(rem>.66?'angry':'calm'):'grin',talk:mad?Math.abs(Math.sin(now*18)):0,vein:mad||ve?1:0,
       arms:mad?[{side:-1,a:-2.95,len:80,w:20,hand:held}]:caught?[{side:-1,a:-2.3+Math.sin(now*9)*.05,len:58,w:20,hand:held},{side:1,a:-.9,len:50,w:20,hand:wad}]
         :[{side:-1,a:-.5,len:50,w:20},{side:1,a:1.9+Math.sin(now*24)*.12,len:58,w:20}]}));
     rr(86,478,132,48,12,'#c4283a',4);
-    espejo(mad,mad?1+.4*ease(clamp(e/.15,0,1)):1);
+    espejo(mad||ojo||ve,mad?1+.4*ease(clamp(e/.15,0,1)):ojo?1.3+Math.sin(now*40)*.05:ve?1.2:1);
+    if(ojo){txt('¿EH?',CX+6,CY-150,30,'#ffe14d',-.08);txt('¡OJO!',300,168+Math.sin(now*40)*3,36,'#ffe14d',.06);}
     /* el billete doblado, por el aire */
     if(!caught){const u=clamp((g.t-t2)/FL,0,1);ctx.save();ctx.translate(lerp(X0-20,SX+50,u),lerp(PY-30,CY-20,u)-Math.sin(u*Math.PI)*110);ctx.rotate(u*11);ctx.scale(.36,.36);dorso(w,h,NF);ctx.restore();}
     /* tú */
     const hop=win?Math.abs(Math.sin(e*9))*30:0,sw=Math.cos(runA),fl=Math.sin(now*30)*.7;
     bust(Object.assign({},TU,{x:px+lunge*8,y:PY-lunge*8-hop+(grabbed?Math.sin(now*50)*3:0),s:.8,look:1,th:110,legs:['#2f3a7a','#ffffff',60],
-      mood:win?'happy':grabbed?'panic':lunge>.3?'yell':rem>.6?'panic':'worry',talk:grabbed?Math.abs(Math.sin(now*20)):lunge,sweat:win?0:rem>.4?2:1,rot:win?0:grabbed?.22:.1+lunge*.08,
-      arms:win?[{side:1,a:2.7,len:80,w:20},{side:-1,a:-2.7,len:80,w:20}]:grabbed?[{side:1,a:1.5+fl,len:74,w:20},{side:-1,a:1.2-fl,len:66,w:20}]
+      mood:win?'happy':grabbed?'panic':ve?'o':lunge>.3?'yell':rem>.6?'panic':'worry',talk:grabbed?Math.abs(Math.sin(now*20)):lunge,sweat:win?0:ve||rem>.4?2:1,rot:win||ve?0:grabbed?.22:.1+lunge*.08,
+      arms:ve?[{side:1,a:.25,len:66,w:20},{side:-1,a:-.25,len:66,w:20}]:win?[{side:1,a:2.7,len:80,w:20},{side:-1,a:-2.7,len:80,w:20}]:grabbed?[{side:1,a:1.5+fl,len:74,w:20},{side:-1,a:1.2-fl,len:66,w:20}]
         :!caught&&!taps?[{side:-1,a:-2.3,len:76,w:20},{side:1,a:.3,len:66,w:20}]:[{side:1,a:1.2+sw*.8,len:72,w:20},{side:-1,a:.5-sw*.8,len:66,w:20}]}));
     if(gk>0){if(grabbed)poly([[px-18,PY-8],[px-18,PY+52],[gx+8,gy+10],[gx+8,gy-10]],TU.shirt,3.5);hand(ax+8,ay,Math.PI/2,1.5,COL.skin);}
     tag(px,PY-114-hop);
+    /* te está mirando: la raya de la mirada hasta ti, tú silbando y el aviso bien grande */
+    if(ve){const ex=CX+34,ey=CY-78,tx=px-34,ty=PY-84;for(let i=0;i<6;i++){const a=(i+.15)/6,b=(i+.7)/6;line([[lerp(ex,tx,a),lerp(ey,ty,a)],[lerp(ex,tx,b),lerp(ey,ty,b)]],5,'#ff4d5e');}
+      txt('♪',px+44,PY-120+Math.sin(now*8)*5,24,'#ffffff',.2);txt('¡QUIETO!',430,250,48+Math.sin(now*24)*4,'#ff4d5e',-.05);txt('NO TOQUES',430,296,22,'#ffffff',-.05);}
     ctx.restore();
-    if(mad&&e>.3)bubble(440,222,'¡EPA, ESTO ESTÁ MOCHO!',22,CX+26,CY-84);
+    if(mad&&e>.3)bubble(440,222,visto?"¿PA' DÓNDE VAS TÚ?":'¡EPA, ESTO ESTÁ MOCHO!',22,CX+26,CY-84);
     if(flash>0){ctx.save();ctx.globalAlpha=clamp(flash*3,0,1);txt('¡CORRE!',520,250,40+16*(1-flash),'#ffe14d',-.05);ctx.restore();}
   }
 
@@ -173,13 +184,13 @@ function mkPaga(){
     if(e>.35)bubble(clamp(bx+420,196,560),150,'¡EPA, ESTO ESTÁ MOCHO!',22,Math.max(-30,bx+450),278);
   }
 
-  const g={lr:true,get impact(){return this.result?clamp(1-this.endT/.5,0,1):0;},probe:()=>({ph,nf,NF,w,h,px,taps,need,open,caught,t2,tC,T1,kind}),
+  const g={lr:true,get impact(){return this.result?clamp(1-this.endT/.5,0,1):0;},probe:()=>({ph,nf,NF,w,h,px,taps,need,open,caught,t2,tC,T1,kind,lv,mira,KM}),
     t:0,dur:DUR,result:null,why:'',endT:0,cmd:'¡DOBLA!',hint:'DESLIZA el dedo (o las FLECHAS): dobla el billete mocho bien chiquito',
     press(k){if(ph===2)step();else if(k==='left'||k==='right')fold('h',k==='left'?-1:1);else if(k==='up'||k==='down')fold('v',k==='up'?-1:1);else nudge();},
     down(p){if(ph===2)step();else if(!g.result){sw0=p;swOn=true;}},
     move(p){if(swOn&&ph===1)swipe(p);},
     up(p){if(swOn&&ph===1&&!swipe(p))nudge();swOn=false;},
-    update(dt){g.t+=dt;scroll+=dt*300;lunge=Math.max(0,lunge-dt*6);nud=Math.max(0,nud-dt);flash=Math.max(0,flash-dt*2.6);
+    update(dt){if(mira!==2||g.result)g.t+=dt;scroll+=dt*300;lunge=Math.max(0,lunge-dt*6);nud=Math.max(0,nud-dt);flash=Math.max(0,flash-dt*2.6);
       const u=Math.min(1,dt*12);ox+=-ox*u;oy+=-oy*u;runA+=(taps*Math.PI-runA)*Math.min(1,dt*22);
       if(fa&&(fa.u+=dt/FD)>=1)endFold();
       if(!g.result){
@@ -187,13 +198,16 @@ function mkPaga(){
           else if(g.t>=T1){g.result='lose';kind='lento';g.why='¡TE PILLÓ!';swOn=false;sfx.boing();sfx.lose();spawn(BX,BY+70,8,'bit',['#9fe3ff'],200,600,.6);}}
         else{if(!caught&&g.t>=tC){caught=true;snd(660,.07,'square',.05,200);say('¡DALE!',CX+20,CY-150,'#ffe14d');}
           const k=Math.min(NF-1,Math.floor((g.t-tC)/UI));if(k>open){open=k;paper();say('¡RAS!',64,246,'#ffffff');}
+          if(!mira&&caught&&taps>=KM){mira=1;mT=.4;snd(520,.12,'square',.06,500);snd(1040,.12,'square',.04,500);}
+          else if(mira===1&&(mT-=dt)<=0){mira=2;mT=.6;sfx.thud();snd(240,.2,'sawtooth',.05,-60);}
+          else if(mira===2&&(mT-=dt)<=0){mira=3;snd(880,.08,'square',.05,300);say('¡AHORA!',px,PY-150,'#5cff7a');}
           if(g.t>=g.dur){open=NF;g.result='lose';kind='grab';g.why='¡TE AGARRÓ!';paper();sfx.thud();sfx.lose();}}}
       else{g.endT+=dt;
         if(g.result==='win'){px=Math.min(790,px+420*dt);
           if(!out&&g.endT>=.32){out=true;sfx.thud();spawn(650,300,22,'conf',CONF);}
           if(!late&&g.endT>=.67){late=true;snd(240,.35,'sawtooth',.05,-90);}
           if(!got&&g.endT>=1.57){got=true;sfx.ding();spawn(530,296,5,'♥',['#ff4d6d'],120,-60,.9);}}
-        else if(kind==='grab'){if(!yelled&&g.endT>=.22){yelled=true;snd(240,.35,'sawtooth',.06,-90);}
+        else if(kind==='grab'||kind==='visto'){if(!yelled&&g.endT>=.22){yelled=true;snd(240,.35,'sawtooth',.06,-90);}
           if(!grabbed&&g.endT>=.55){grabbed=true;sfx.boing();say('¡AY!',px+60,PY-96,'#ffffff');}
           if(grabbed)px=Math.max(X0-30,px-45*dt);}}},
     draw(){if(ph===1)drawDobla();else if(g.result==='win'&&g.endT>=.32)drawCalle();else drawBus();drawP();}};

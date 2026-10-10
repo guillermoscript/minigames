@@ -459,7 +459,7 @@ function wiiDraw(sp) {
     key(e) { if (e.code === 'Space') fire(); }, down() { fire(); },
     update(dt) {
       tm += dt; if (g.result) { endT += dt; return; }
-      if (st === 0 && tm > delay) { st = 1; tg = 0; popAt = now; sfx.coin(); sfx.hit(); shake(3, .12); ring(W / 2, 170, '#FFE14D', 100, .35); }
+      if (st === 0 && tm > delay) { st = 1; tg = 0; popAt = now; sfx.coin(); sfx.hit(); if (typeof EGGS !== 'undefined') EGGS.play('alert'); shake(3, .12); ring(W / 2, 170, '#FFE14D', 100, .35); }
       if (st === 1) { tg += dt; if (tg > lim) { st = 3; g.result = 'lose'; wiiBang(170, 330); } }
     },
     draw(tt) {

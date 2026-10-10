@@ -10,6 +10,7 @@ while (save.stars.length < STAGES.length) save.stars.push(0);
 while (save.best.length < STAGES.length) save.best.push(0);
 if (typeof location !== 'undefined' && /[?&]unlock/.test(location.search)) save.unlocked = STAGES.length;
 const persist = () => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} };
+EGGS.use(() => audio(), () => muted);   // the hidden meme clips (js/eggs.js) play through the game's AudioContext and obey the mute key
 
 /* ───────────── online profile glue (all optional; see js/api.js) ───────────── */
 const progressOfSave = () => ({ unlocked: save.unlocked, stars: save.stars.slice(0, STAGES.length), best: save.best.slice(0, STAGES.length) });
@@ -271,9 +272,9 @@ function loadThree() {
   }));
 }
 
-function goTitle() { state = 'title'; st = 0; }
-function goMenu() { state = 'menu'; st = 0; mode = 'stage'; parts.length = 0; }
-function goPractice() { state = 'practice'; st = 0; mode = 'practice'; parts.length = 0; }
+function goTitle() { EGGS.stop(); state = 'title'; st = 0; }
+function goMenu() { EGGS.stop(); state = 'menu'; st = 0; mode = 'stage'; parts.length = 0; }
+function goPractice() { EGGS.stop(); state = 'practice'; st = 0; mode = 'practice'; parts.length = 0; }
 function startStage(i) {
   if (i > save.unlocked - 1) return;
   runRank = null; attempts[i] = (attempts[i] || 0) + 1;
@@ -301,10 +302,11 @@ function beginGame() {
     if (!recent.includes(id)) recent.push(id); if (recent.length > Math.min(6, pool.length - 2)) recent.shift();
     s = speed(); cur = REGMAP[id].fn(s); curId = id; isBoss = false; dur = cur.dur / Math.sqrt(s); I18N.scope = I18N.scopeOf(curId);
   }
+  EGGS.begin(curId);
   tt = 0; outcome = null; outT = 0; tickN = 0; preMax = mode === 'party' ? party.room.mode === 'duo' ? DUO_PRE : partyTurnMode(party.room) ? balloonPre(party.room) : PRE : PRE; pre = preMax; state = 'play';
 }
 function setOutcome(r) {
-  outcome = r; outT = 0;
+  outcome = r; outT = 0; EGGS.outcome(curId, r);
   track('microgame_end', { game: curId, result: r, mode, boss: isBoss, stage: mode === 'stage' ? stageIdx + 1 : undefined, speed: +(isBoss ? stage.sp0 : mode === 'practice' ? practiceSp : speed()).toFixed(2), secs: +tt.toFixed(2), lives_left: mode === 'stage' ? lives - (r === 'win' ? 0 : 1) : undefined });
   sfx.stamp();
   if (r === 'win') {
@@ -316,6 +318,7 @@ function setOutcome(r) {
   }
 }
 function clearStage() {
+  const first6 = stageIdx === 5 && !save.stars[5];   // level 6 cleared for the first time: its own easter egg
   stars = lives >= 3 ? 3 : lives >= 2 ? 2 : 1;
   save.stars[stageIdx] = Math.max(save.stars[stageIdx], stars);
   save.best[stageIdx] = Math.max(save.best[stageIdx], score);
@@ -323,7 +326,7 @@ function clearStage() {
   submitRun(stars);
   track('stage_clear', { stage: stageIdx + 1, stars, score, lives_left: lives, attempt: attempts[stageIdx] });
   const cl = challengeLine(); if (cl && score > CH.score) track('challenge_beaten', { from: CH.from, target: CH.score, score });
-  state = 'clear'; st = 0; shownStars = 0; jingleWin(); confetti(W / 2, 200, 60);
+  state = 'clear'; st = 0; shownStars = 0; jingleWin(); confetti(W / 2, 200, 60); EGGS.clear(first6);
 }
 function toOver() {
   track('game_over', { stage: stageIdx + 1, score, microgames: played, attempt: attempts[stageIdx] });
@@ -832,7 +835,7 @@ addEventListener('keydown', e => {
   }
   if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
   interacted = true;
-  if (e.code === 'KeyM') { muted = !muted; if (!muted) sfx.click(); return; }
+  if (e.code === 'KeyM') { muted = !muted; if (!muted) sfx.click(); else EGGS.stop(); return; }
   keys[e.code] = true;
   if (e.repeat) return;
   if (sh.on && e.code !== 'Escape') return;

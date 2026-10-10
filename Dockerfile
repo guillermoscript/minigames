@@ -20,8 +20,9 @@ COPY terms /pb/pb_public/terms
 COPY css /pb/pb_public/css
 COPY img /pb/pb_public/img
 COPY js /pb/pb_public/js
+COPY audio /pb/pb_public/audio
 # Cache-bust every script/style URL (?v=...) with a hash of the shipped files, so each deploy gets fresh URLs no matter what the CDN/browser cached.
-RUN cd /pb/pb_public && V=$(find index.html sw.js manifest.webmanifest css js img -type f | sort | xargs cat | md5sum | cut -c1-10) \
+RUN cd /pb/pb_public && V=$(find index.html sw.js manifest.webmanifest css js img audio -type f | sort | xargs cat | md5sum | cut -c1-10) \
  && sed -i -E "s/\?v=[0-9a-zA-Z]+/?v=$V/g" index.html js/main.js && sed -i "s/claudeware-v4-dev/claudeware-v4-$V/" sw.js && echo "asset version $V"
 VOLUME /pb/pb_data
 EXPOSE 8090

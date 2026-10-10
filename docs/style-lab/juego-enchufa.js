@@ -7,10 +7,15 @@
    Dura 5 s (entre raíz de la velocidad); la regleta se mece más rápido en cada velocidad, igual que el original (apBattery).
    Puntero: mientras aprietas, el enchufe sigue al dedo; al SOLTAR intenta enchufar ahí. La punta de las patas queda TIP px
    por encima del dedo. Teclado: flechas = mueven el enchufe 50 px, ESPACIO = enchufa.
+   Nivel 1: una toma, tolerancia de 38 px. El nivel sale de BUS.LV() (no de la velocidad).
+   Nivel 2: la toma perdona 25 % menos (29 px) y las flechas dan pasos de 36 px para que el teclado siga llegando.
+   Nivel 3: lo del 2, y la regleta trae DOS tomas: una está QUEMADA (tizne en estrella, grietas, los huecos torcidos y un hilito
+   de humo: se lee sin color) y enchufar ahí es corrientazo igualito que pelar. Además, una vez por partida alguien le da un
+   JALÓN al cable y la regleta brinca de lado (hacia el centro, ~110 px) y vuelve en medio segundo.
    Se carga DESPUÉS de index.html y juegos-bus.js: dibuja con las primitivas del laboratorio y se registra con BUS.add. */
 (function(){
 if(!window.BUS||GAMES.enchufa)return;
-const CONF=BUS.CONF,TU=BUS.TU,tag=BUS.tag,AP=BUS.AP,PI=Math.PI,TIP=26,RAD=38,PEN=.45,PH=[228,350],CABLE='#eef1f6',CHISPA='#7ae8ff';
+const CONF=BUS.CONF,TU=BUS.TU,tag=BUS.tag,AP=BUS.AP,PI=Math.PI,TIP=26,RAD=38,PEN=.45,PH=[228,350],CABLE='#eef1f6',CHISPA='#7ae8ff',OFF=46;
 
 /* el enchufe del cargador: (x, y) = centro; la punta de las patas queda en y-TIP. met = ya está metido (sin patas) */
 function enchufe(x,y,met){ctx.save();ctx.translate(x,y);
@@ -18,10 +23,19 @@ function enchufe(x,y,met){ctx.save();ctx.translate(x,y);
   rr(-5,30,10,12,3,CABLE,2.5);rr(-18,-6,36,40,8,'#ffffff',4);rr(-10,4,20,5,2,'#c9ced6',0);rr(-10,14,20,5,2,'#c9ced6',0);
   ctx.restore();}
 /* la regleta que cuelga: (x, y) = centro de la toma (ahí va la punta del enchufe) */
-function regleta(x,y,rot){
+/* la toma quemada (nivel 3), en las coordenadas de la regleta: tizne en estrella, huecos torcidos y grietas hasta el borde */
+function quemada(x){const p=[];for(let i=0;i<14;i++){const a=i/14*6.283,r=i%2?17:29+hash(i,5,2)*7;p.push([x+Math.cos(a)*r,-1+Math.sin(a)*r*.95]);}
+  poly(p,'#2b2018',3);
+  for(const sg of[-1,1]){ctx.save();ctx.translate(x+sg*9,-1);ctx.rotate(sg*.5);rr(-4.5,-12,9,24,2,'#000000',0);ctx.restore();}
+  line([[x-6,-30],[x-14,-18],[x-4,-12]],3,INK);line([[x+12,34],[x+4,22],[x+15,14]],3,INK);line([[x+20,-34],[x+26,-22]],3,INK);}
+function regleta(x,y,rot,mala){
   const x0=x*.45+220,cu=[];for(let i=0;i<=8;i++){const u=i/8;cu.push([lerp(x0,x,u)+Math.sin(u*PI)*(x-400)*.1,lerp(0,y-34,u)]);}
   line(cu,7,INK);line(cu,3,'#ff9a3d');
   ctx.save();ctx.translate(x,y);ctx.rotate(rot);
+  if(mala){rr(-86,-36,172,72,12,'#fff6dc',4.5);
+    for(const sd of[-1,1]){const tx=sd*OFF;rr(tx-28,-26,56,52,8,'#e8dcc0',2.5);
+      if(sd===mala)quemada(tx);else{for(const sg of[-1,1])rr(tx+sg*9-4.5,-15,9,28,2,'#14101c',0);ell(tx,20,3.5,3.5,'#14101c',0);}}
+    ctx.restore();return;}
   rr(-38,-36,76,72,12,'#fff6dc',4.5);rr(-28,-26,56,52,8,'#e8dcc0',2.5);
   for(const sg of[-1,1])rr(sg*9-4.5,-15,9,28,2,'#14101c',0);ell(0,20,3.5,3.5,'#14101c',0);
   ctx.restore();}
@@ -35,21 +49,30 @@ function pila(pct,n,rojo,rayo){const x=246,y=262,col=rojo?'#ff5c5c':'#5cff7a';
 /* ═════════ ¡ENCHUFA!: la toma se bambolea; suelta el enchufe cuando coincida ═════════ */
 function mkEnchufa(){
   const rs=Math.sqrt(SP),D=5/rs,ph=Math.random()*6.28,sx=1.5+(SP-1)*.6,sy=1.1+(SP-1)*.4;
-  let px=400,py=420,c=0,zap=0,cool=0,miss=0,plugged=false,ag=false;
-  /* dónde está la toma a los c segundos (c no lleva los castigos: la regleta no salta cuando pelas) */
-  const oAt=c=>({x:400+Math.sin(c*sx+ph)*220,y:250+Math.sin(c*sy*1.3+ph*2)*60});
+  const lv=BUS.LV(),R=lv>1?29:RAD,PASO=lv>1?36:50,mala=lv>2?(Math.random()<.5?-1:1):0;
+  /* el jalón del nivel 3: a los tj s la regleta brinca JAL px hacia el centro (sube en 0.08 s) y vuelve en 0.5 s */
+  const tj=lv>2?D*(.3+Math.random()*.3):-9,JAL=lv>2?(Math.sin(tj*sx+ph)>0?-110:110):0;
+  const jal=c=>{const k=c-tj;return k<=0||k>=.58?0:k<.08?k/.08:Math.pow(1-(k-.08)/.5,2);};
+  let px=400,py=420,c=0,zap=0,cool=0,miss=0,plugged=false,ag=false,jalo=false;
+  /* dónde está el centro de la regleta a los c segundos (c no lleva los castigos: la regleta no salta cuando pelas) */
+  const cAt=c=>({x:400+Math.sin(c*sx+ph)*220+JAL*jal(c),y:250+Math.sin(c*sy*1.3+ph*2)*60});
+  const rotAt=c=>Math.cos(c*sx+ph)*.16;
+  /* la toma del lado sd (0 = la única; ±1 = las dos del nivel 3, que giran con la regleta) */
+  const tAt=(c,sd)=>{const o=cAt(c),r=rotAt(c);return{x:o.x+Math.cos(r)*OFF*sd,y:o.y+Math.sin(r)*OFF*sd};};
+  const oAt=c=>tAt(c,-mala);                                                  /* la toma BUENA */
   const pon=p=>{px=clamp(p.x,0,800);py=clamp(p.y,120,548);};
   function enchufa(){if(g.result||cool>0)return;
-    const o=oAt(c),d=Math.hypot(px-o.x,py-TIP-o.y);
-    if(d<RAD){g.result='win';g.why='¡CARGANDO!';plugged=true;snd(1900,.05,'square',.08);snd(240,.12,'sine',.2,-80);setTimeout(()=>sfx.win(),140);spawn(o.x,o.y,24,'conf',CONF);}
-    else{zap=1;cool=.3;miss++;g.t+=PEN;nz(.25,.09);snd(60,.3,'sawtooth',.07);spawn(px,py-TIP,7,'bit',[CHISPA,'#ffffff'],190,400,.4);BUS.say('¡BZZT!',px,py-64,CHISPA);}}
+    const o=oAt(c),d=Math.hypot(px-o.x,py-TIP-o.y),m=mala?tAt(c,mala):null,qm=!!m&&Math.hypot(px-m.x,py-TIP-m.y)<R;
+    if(d<R){g.result='win';g.why='¡CARGANDO!';plugged=true;snd(1900,.05,'square',.08);snd(240,.12,'sine',.2,-80);setTimeout(()=>sfx.win(),140);spawn(o.x,o.y,24,'conf',CONF);}
+    else{zap=1;cool=.3;miss++;g.t+=PEN;nz(.25,.09);snd(60,.3,'sawtooth',.07);spawn(px,py-TIP,qm?16:7,'bit',[CHISPA,'#ffffff'],190,400,.4);BUS.say(qm?'¡ESA ESTÁ QUEMADA!':'¡BZZT!',clamp(px,150,650),py-64,CHISPA);}}
   const g={lr:true,get impact(){return this.result?clamp(1-this.endT/.5,0,1):zap*.5;},
-    /* x, y = la toma AHORA; tip = cuánto más abajo hay que soltar (el dedo va en y+tip); r = tolerancia; en(dt) = la toma dentro de dt s */
-    probe:()=>Object.assign(oAt(c),{tip:TIP,r:RAD,px,py,cool,miss,pen:PEN,paso:50,en:dt=>oAt(c+dt)}),
+    /* x, y = la toma AHORA; tip = cuánto más abajo hay que soltar (el dedo va en y+tip); r = tolerancia; en(dt) = la toma dentro de dt s
+       (en el nivel 3 x, y es la toma BUENA y mala = {x, y} de la quemada) */
+    probe:()=>Object.assign(oAt(c),{tip:TIP,r:R,px,py,cool,miss,pen:PEN,paso:PASO,lv,mala:mala?tAt(c,mala):null,jalon:jal(c)>0,en:dt=>oAt(c+dt)}),
     t:0,dur:D,result:null,why:'',endT:0,cmd:'¡ENCHUFA!',
-    hint:'ARRASTRA el enchufe y SUÉLTALO cuando coincida con la toma (o flechas y ESPACIO)',
+    hint:mala?'SUELTA el enchufe en la toma BUENA, ¡no en la QUEMADA! (o flechas y ESPACIO)':'ARRASTRA el enchufe y SUÉLTALO cuando coincida con la toma (o flechas y ESPACIO)',
     press(k){if(g.result)return;
-      const d={left:[-50,0],right:[50,0],up:[0,-50],down:[0,50]}[k];
+      const d={left:[-PASO,0],right:[PASO,0],up:[0,-PASO],down:[0,PASO]}[k];
       if(d)pon({x:px+d[0],y:py+d[1]});else enchufa();},
     down(p){if(g.result)return;ag=true;pon(p);},
     move(p){if(ag&&!g.result)pon(p);},
@@ -57,14 +80,16 @@ function mkEnchufa(){
     update(dt){zap=Math.max(0,zap-dt*3);cool=Math.max(0,cool-dt);
       if(g.result){g.endT+=dt;return;}
       g.t+=dt;c+=dt;
+      if(!jalo&&tj>0&&c>=tj){jalo=true;const o=cAt(c);snd(150,.14,'square',.06,-70);nz(.12,.06);BUS.say('¡JALÓN!',clamp(o.x,150,650),o.y-70,'#ffffff');}
       if(g.t>=g.dur){g.result='lose';g.why='¡0%!';ag=false;sfx.lose();}},
     draw(){
-      const win=g.result==='win',lose=g.result==='lose',e=g.endT,o=oAt(c),left=Math.max(0,g.dur-g.t);
+      const win=g.result==='win',lose=g.result==='lose',e=g.endT,rot=g.result?0:rotAt(c),left=Math.max(0,g.dur-g.t);
+      const ce=cAt(c),tm=sd=>({x:ce.x+Math.cos(rot)*OFF*sd,y:ce.y+Math.sin(rot)*OFF*sd}),o=tm(-mala),m=mala?tm(mala):null;
       const pct=win?3+(e>1.1?1:0):lose?0:Math.max(1,Math.ceil(left/g.dur*3)),rojo=!win&&pct<=1;
       const ptx=plugged?o.x:px,pty=plugged?o.y-8:py,muere=lose?clamp(e/.35,0,1):0;
       ctx.save();path([[0,0],[800,0],[800,576],[0,576]]);ctx.clip();
       AP.sala({sin:'ventilador tele florero'});AP.bombillo(612,140,0);   /* la sala de ¡CHANCLA!: sin el ventilador (ahí cuelga la regleta) ni la tele y el florero (ahí estás tú) */
-      regleta(o.x,o.y,g.result?0:Math.cos(c*sx+ph)*.16);
+      regleta(ce.x,ce.y,rot,mala);
       /* tú, con el teléfono en alto */
       bust(Object.assign({},TU,{x:130+(zap>0?Math.sin(now*60)*3*zap:0),y:386,s:.95,th:110,legs:['#2f3a7a','#ffffff',60],look:1,
         mood:win?'happy':lose?(e>.5?'frown':'yell'):zap>.3?'yell':rojo?'panic':'worry',talk:lose&&e<.5?1:0,sweat:win?0:rojo?2:1,
@@ -72,9 +97,11 @@ function mkEnchufa(){
       BUS.phone(PH[0],PH[1],.12,1.25);
       if(muere>0){ctx.save();ctx.translate(PH[0],PH[1]);ctx.rotate(.12);ctx.scale(1.25,1.25);ctx.globalAlpha=muere;rr(-10,-19,20,34,3,'#14101c',0);ctx.restore();}
       /* la noche: la velita de la Virgen, un charco azulado en la toma y uno verdoso en el teléfono (que se apaga con el 0%) */
-      AP.oscuro(.86,[{x:AP.VIRGEN.x,y:AP.VIRGEN.y,r:64,c:'#ffb020'},{x:o.x,y:o.y,r:220,c:'#78e6ff'},{x:PH[0],y:PH[1],r:150*(1-muere)+(win?40:0),c:'#8cffa0'}]);
+      AP.oscuro(.86,[{x:AP.VIRGEN.x,y:AP.VIRGEN.y,r:64,c:'#ffb020'},{x:ce.x,y:ce.y,r:220,c:'#78e6ff'},{x:PH[0],y:PH[1],r:150*(1-muere)+(win?40:0),c:'#8cffa0'}]);
       /* lo que se tiene que leer a oscuras: dónde va la punta, la pila, el cable y el enchufe */
-      if(!g.result){tag(130,262);ctx.save();ctx.globalAlpha=.5+.35*Math.sin(now*9);line(closeP(ellP(o.x,o.y,RAD+4,RAD+4,18)),3.5,'#ffe14d');ctx.restore();}
+      if(!g.result){tag(130,262);ctx.save();ctx.globalAlpha=.5+.35*Math.sin(now*9);line(closeP(ellP(o.x,o.y,R+4,R+4,18)),3.5,'#ffe14d');if(m)line(closeP(ellP(m.x,m.y,R+4,R+4,18)),3.5,'#ffe14d');ctx.restore();}
+      /* el hilito de humo de la quemada: bolitas con borde que suben (va después de la oscuridad para que se lea) */
+      if(m)for(let i=0;i<4;i++){const u=(now*.7+i/4)%1;ctx.save();ctx.globalAlpha=(1-u)*.85;ell(m.x+Math.sin(now*4+i*2)*7*u+u*8,m.y-34-u*66,5+u*9,4+u*7,'#8f8fa8',2.5);ctx.restore();}
       ctx.save();if(rojo&&!lose)ctx.globalAlpha=.6+.4*Math.sin(now*16);
       pila(pct,win?1+Math.floor(now*4)%3:pct,rojo,win);ctx.restore();
       const hx=PH[0]+3,hy=PH[1]+30,bx=ptx,by=pty+40,cab=[];

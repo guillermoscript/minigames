@@ -32,13 +32,14 @@ const EGGS = (() => {
   /* songs: the lab keeps its own stage music quiet while one plays, and they trail off instead of being cut */
   const SONGS = new Set(['bebecita', 'se-fue-la-luz', 'goku-drip', 'defy-gravity', 'carrera-de-buses', 'heavenly']);
   const raw = {}, buf = {}, coming = {};
-  let ac = () => null, off = () => false, asked = false, cur = null, game = 0;
+  let ac = () => null, off = () => false, asked = false, cur = null, game = 0, request = 0;
 
   function load() {
     if (asked || typeof fetch !== 'function' || typeof location === 'undefined' || location.protocol === 'file:') return; asked = true;
     for (const n of CLIPS) coming[n] = fetch(DIR + n + '.mp3').then(r => r.ok ? r.arrayBuffer() : null).then(b => { if (b) raw[n] = b; }).catch(() => {});
   }
   function stop(fade = .06) {
+    request++; // also cancel clips still downloading or decoding
     if (!cur) return;
     try { const t = ac().currentTime; cur.g.gain.setTargetAtTime(0, t, fade); cur.s.stop(t + fade * 5); } catch (e) {}
     cur = null;
@@ -47,9 +48,17 @@ const EGGS = (() => {
   function play(name, v = .9) {
     if (off() || !(buf[name] || raw[name])) return false;
     try {
-      const a = ac(), go = b => { stop(); const s = a.createBufferSource(), g = a.createGain(); g.gain.value = v; s.buffer = b; s.connect(g); g.connect(a.destination); s.start(); cur = { s, g, name }; s.onended = () => { if (cur && cur.s === s) cur = null; }; };
+      const a = ac(); if (!a) return false;
+      const ticket = ++request, go = b => {
+        if (ticket !== request || off()) return;
+        try {
+          stop(); const s = a.createBufferSource(), g = a.createGain();
+          g.gain.value = v; s.buffer = b; s.connect(g); g.connect(a.destination); s.start();
+          cur = { s, g, name }; s.onended = () => { if (cur && cur.s === s) cur = null; };
+        } catch (e) {} // optional audio must not interrupt gameplay, even after asynchronous decoding
+      };
       if (buf[name]) go(buf[name]);
-      else { const b = raw[name]; delete raw[name]; a.decodeAudioData(b, d => { buf[name] = d; go(d); }, () => {}); }
+      else { a.decodeAudioData(raw[name].slice(0), d => { buf[name] = d; delete raw[name]; go(d); }, () => {}); }
       return true;
     } catch (e) { return false; }
   }
@@ -58,7 +67,7 @@ const EGGS = (() => {
      (if that game is still the current one) */
   function opening(name, v) {
     if (play(name, v) || !coming[name]) return;
-    const g = game; coming[name].then(() => { if (g === game) play(name, v); });
+    const g = game, ticket = request; coming[name].then(() => { if (g === game && ticket === request) play(name, v); });
   }
   /* one of these, picked at random among the ones that exist */
   const any = (...l) => l.map(n => [Math.random(), n]).sort((a, b) => a[0] - b[0]).some(e => play(e[1]));

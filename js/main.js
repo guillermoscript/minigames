@@ -272,9 +272,9 @@ function loadThree() {
   }));
 }
 
-function goTitle() { state = 'title'; st = 0; }
-function goMenu() { state = 'menu'; st = 0; mode = 'stage'; parts.length = 0; }
-function goPractice() { state = 'practice'; st = 0; mode = 'practice'; parts.length = 0; }
+function goTitle() { EGGS.stop(); state = 'title'; st = 0; }
+function goMenu() { EGGS.stop(); state = 'menu'; st = 0; mode = 'stage'; parts.length = 0; }
+function goPractice() { EGGS.stop(); state = 'practice'; st = 0; mode = 'practice'; parts.length = 0; }
 function startStage(i) {
   if (i > save.unlocked - 1) return;
   runRank = null; attempts[i] = (attempts[i] || 0) + 1;

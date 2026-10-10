@@ -234,7 +234,7 @@ function estilo(k){save.estilo=k;persist();if(k!=='mezcla')setStyle(k);else if(!
 function mezcla(){const op=ESTILOS.map(e=>e[0]).filter(k=>k!==style);setStyle(op[Math.random()*op.length|0]);}
 const nombreEstilo=()=>(ESTILOS.find(e=>e[0]===style)||['',style])[1];
 
-function goMenu(){state='menu';st=0;mode='stage';parts.length=0;}
+function goMenu(){EGGS.stop();state='menu';st=0;mode='stage';parts.length=0;}
 
 /* ───────── mundos ───────── */
 const APP=new URL('../../',location.href).href;
@@ -244,7 +244,7 @@ let appFr=null,appOn=false,appStages=19,appStars=0;
 const SIN_APAGON="<script>{const i=STAGES.findIndex(s=>s.boss==='blackout');if(i>=0)STAGES.splice(i,1);for(let k=REG.length-1;k>=0;k--)if(REG[k].id.startsWith('ap_')){delete REGMAP[REG[k].id];REG.splice(k,1);}}</script>";
 const cuentaClasico=()=>{try{appStars=((JSON.parse(localStorage.getItem('claudeware-save-v2'))||{}).stars||[]).slice(0,appStages).reduce((a,b)=>a+(b||0),0);}catch(e){appStars=0;}};
 fetch(APP+'js/stages.js').then(r=>r.text()).then(t=>{const n=(t.match(/\{\s*name:/g)||[]).length;if(n){appStages=n-(/boss:\s*'blackout'/.test(t)?1:0);cuentaClasico();}}).catch(()=>{});
-function goWorlds(){state='worlds';st=0;mode='stage';parts.length=0;cuentaClasico();}
+function goWorlds(){EGGS.stop();state='worlds';st=0;mode='stage';parts.length=0;cuentaClasico();}
 function closeClassic(){if(appFr){appFr.remove();appFr=null;}appOn=false;goWorlds();try{window.focus();}catch(e){}}
 function openClassic(){if(appFr)return;
   const f=appFr=document.createElement('iframe');f.id='camp-app';f.allowFullscreen=true;f.style.visibility='hidden';document.body.append(f);
@@ -258,7 +258,7 @@ function openClassic(){if(appFr)return;
       f.style.visibility='';appOn=true;stopMusic();musKey=null;try{w.focus();}catch(e){}});
     d.write(h);d.close();
   }).catch(e=>{if(appFr===f){closeClassic();say('NO PUDE ABRIR EL MUNDO CLÁSICO: '+(e&&e.message||e),'#FF4D4D');}});}
-function goPractice(){state='practice';st=0;mode='practice';parts.length=0;}
+function goPractice(){EGGS.stop();state='practice';st=0;mode='practice';parts.length=0;}
 function startStage(i,nv){if(!ETAPAS[i])return;if(nv)nivel=nv;
   if(!abierto(i,nivel)){say('PRIMERO SUPERA '+ETAPAS[i].name+' EN NIVEL '+(nivel-1),'#FFE14D');if(state!=='menu')goMenu();return;}
   mode='stage';stageIdx=i;stage=ETAPAS[i];lives=4;played=0;score=0;lastOut=null;recent=[];retryId=null;bossK=0;

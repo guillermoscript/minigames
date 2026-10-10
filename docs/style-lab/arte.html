@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>MiniCaos · PARADA con arte IA</title>
+<style>
+  :root{color-scheme:dark}
+  body{margin:0;background:#0f0b1a;color:#fff;font:600 14px system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;gap:8px;padding:8px}
+  canvas{width:min(100%,800px);height:auto;aspect-ratio:4/3;background:#000;border-radius:10px;touch-action:none;display:block}
+  .row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+  button{font:inherit;border:0;border-radius:10px;padding:8px 14px;background:#2a2342;color:#fff;cursor:pointer}
+  button.on{background:#FFD23F;color:#14101c}
+  small{opacity:.7;max-width:800px;text-align:center}
+</style>
+</head>
+<body>
+<canvas id="c" width="800" height="600"></canvas>
+<div class="row">
+  <button id="again">▶ Otra vez</button>
+  <button id="mic">🎤 Micrófono: apagado</button>
+  <button id="spd">Velocidad 1×</button>
+  <button id="dbg">Zona: oculta</button>
+</div>
+<small>Toca, haz clic, ESPACIO o grita ¡PARADA! (activa el micrófono). Arte: bus y personajes generados con IA, cortados y animados como títeres.</small>
+
+<script>
+const BASE='assets/';
+const FACES=['calm','shout','happy','worry','sleep'];
+const NAMES=['bus/frame_800.png','bus/street_strip_800.png',
+  ...['abuela','colector','chofer','tu','mama'].flatMap(c=>c==='tu'?['chars/tu_body.png']:[`chars/${c}_body.png`,...FACES.map(f=>`chars/${c}_face_${f}.png`)]),
+  'chars/abuela_full.png','chars/colector_full.png','chars/chofer_full.png','chars/senora_full.png','chars/chofer_wheel.png',
+  'chars/dog_stand.png','chars/dog_sit.png','chars/dog_trot.png','chars/goat_stand.png','chars/goat_walk.png'];
+const IMG={};
+let loaded=0;
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+ctx.imageSmoothingQuality='high';
+const INK='#14101c';
+const rnd=(a,b)=>a+Math.random()*(b-a),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+/* ---- audio ---- */
+let AC=null;const A=()=>AC||(AC=new (window.AudioContext||window.webkitAudioContext)());
+function snd(f,d,type='square',v=.05,slide=0){try{const a=A(),o=a.createOscillator(),g=a.createGain();o.type=type;o.frequency.value=f;if(slide)o.frequency.linearRampToValueAtTime(f+slide,a.currentTime+d);g.gain.value=v;g.gain.linearRampToValueAtTime(0,a.currentTime+d);o.connect(g);g.connect(a.destination);o.start();o.stop(a.currentTime+d);}catch(e){}}
+const sfx={brake(){snd(300,.35,'sawtooth',.05,-260);},win(){[523,659,784,1047].forEach((f,i)=>setTimeout(()=>snd(f,.18,'square',.05),i*70));},lose(){snd(330,.3,'sawtooth',.06,-200);},cluck(){snd(700,.08,'square',.04,250);}};
+/* ---- state ---- */
+let SPD=1,showZone=false,G=null,last=performance.now();
+const ZX=382,ZHALF=72,FEET=262;
+function newGame(){
+  const X0=1318;
+  G={t:0,dur:5,scroll:0,v:260*SPD,state:'play',result:null,why:'',endT:0,brake:0,
+    stops:[{k:'dog',x:X0-620},{k:'goat',x:X0-310},{k:'abuela',x:X0}],
+    fx:[],shake:0,bubble:null,lean:0};
+}
+function press(){
+  if(!G||G.state!=='play')return;
+  const ab=G.stops[2];
+  const near=G.stops.find(s=>Math.abs(s.x-ZX)<=ZHALF);
+  G.state='end';G.braking=true;G.endT=0;sfx.brake();
+  if(near&&near.k==='abuela'){G.result='win';G.why='¡LLEGASTE!';setTimeout(()=>{sfx.win();sfx.cluck();},300);confetti(ZX,200,36);G.bubble={t:'¡CAMBIO, MI REINA!',x:590,y:118,c:'win'};}
+  else if(near){G.result='lose';G.why='¡NO ERA!';G.kind=near.k;setTimeout(()=>sfx.lose(),250);G.bubble={t:near.k==='dog'?'¡GUAU!':'¡MEEE!',x:590,y:118,c:'lose'};}
+  else{G.result='lose';G.why='¡NO HABÍA PARADA!';setTimeout(()=>sfx.lose(),250);G.bubble={t:'¿DÓNDE, MIJO?',x:590,y:118,c:'lose'};}
+}
+function confetti(x,y,n){for(let i=0;i<n;i++)G.fx.push({k:'c',x,y,vx:rnd(-260,260),vy:rnd(-420,-80),life:1.4,t:0,col:['#ffd23f','#ff5c8a','#5cff7a','#3fb0ff'][i%4],r:rnd(3,6)});}
+function note(x,y,ch){G.fx.push({k:'t',x,y,vx:rnd(-20,20),vy:-50,life:1.2,t:0,ch});}
+/* ---- puppet ---- */
+const CFG={ // faceS = face scale vs sheet size, ov = overlap into the body, fx = horizontal nudge of the face (px at scale 1)
+  abuela:{faceS:.62,ov:10,fx:-6},colector:{faceS:.6,ov:10,fx:0},chofer:{faceS:.62,ov:12,fx:0},mama:{faceS:.66,ov:10,fx:0}
+};
+function puppet(c,x,feet,s,face,o={}){
+  const b=IMG[c+'_body'],f=IMG[c+'_face_'+face],cf=CFG[c]||{faceS:.6,ov:10,fx:0};
+  if(!b)return;
+  ctx.save();ctx.translate(x,feet);ctx.rotate(o.rot||0);ctx.scale(o.flip?-1:1,1);
+  const bw=b.width*s,bh=b.height*s*(o.sy||1);
+  ctx.drawImage(b,-bw/2,-bh,bw,bh);
+  if(f){const fw=f.width*s*cf.faceS,fh=f.height*s*cf.faceS;ctx.drawImage(f,-fw/2+cf.fx*s,-bh-fh+cf.ov*s,fw,fh);}
+  ctx.restore();
+}
+function sprite(k,x,feet,s,o={}){
+  const im=IMG[k];if(!im)return;
+  ctx.save();ctx.translate(x,feet);ctx.rotate(o.rot||0);ctx.scale(o.flip?-1:1,o.sy||1);
+  ctx.drawImage(im,-im.width*s/2,-im.height*s,im.width*s,im.height*s);ctx.restore();
+}
+function rr(x,y,w,h,r){ctx.beginPath();ctx.roundRect(x,y,w,h,r);}
+function inkText(s,x,y,size,fill='#fff',lw=.2){ctx.font=`900 ${size}px system-ui,sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineJoin='round';ctx.lineWidth=size*lw;ctx.strokeStyle=INK;ctx.strokeText(s,x,y);ctx.fillStyle=fill;ctx.fillText(s,x,y);}
+function bubble(txt,x,y,w,good){
+  ctx.save();ctx.font='900 24px system-ui,sans-serif';const tw=Math.max(w||0,ctx.measureText(txt).width+36),h=54;
+  rr(x-tw/2,y-h/2,tw,h,18);ctx.fillStyle='#fff';ctx.fill();ctx.lineWidth=5;ctx.strokeStyle=INK;ctx.stroke();
+  ctx.beginPath();ctx.moveTo(x-30,y+h/2-2);ctx.lineTo(x-52,y+h/2+22);ctx.lineTo(x-6,y+h/2-2);ctx.closePath();ctx.fillStyle='#fff';ctx.fill();ctx.stroke();
+  ctx.fillStyle=good?'#1c8a3a':'#b4283a';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(txt,x,y+1);ctx.restore();
+}
+/* ---- draw ---- */
+function stopSign(sx,label){
+  const px=sx+46;
+  ctx.lineCap='round';ctx.lineWidth=9;ctx.strokeStyle=INK;ctx.beginPath();ctx.moveTo(px,168);ctx.lineTo(px,FEET);ctx.stroke();
+  ctx.lineWidth=4;ctx.strokeStyle='#cfd5e6';ctx.beginPath();ctx.moveTo(px,168);ctx.lineTo(px,FEET);ctx.stroke();
+  rr(px-32,134,64,36,8);ctx.fillStyle='#2f7fe0';ctx.fill();ctx.lineWidth=4;ctx.strokeStyle=INK;ctx.stroke();
+  inkText('PARADA',px,152,13,'#fff',.22);
+}
+function draw(){
+  const t=G.t;
+  ctx.clearRect(0,0,800,600);
+  ctx.fillStyle='#8fd0ff';ctx.fillRect(0,0,800,600);
+  /* 1. street */
+  const S=IMG['bus/street_strip_800.png'],sw=S.width;
+  const off=((G.scroll*.55)%sw+sw)%sw;
+  for(let k=-1;k<3;k++)ctx.drawImage(S,k*sw-off,123);
+  /* 2. stops + sprites that live outside the bus */
+  for(const s of G.stops){
+    if(s.x<-120||s.x>900)continue;
+    stopSign(s.x,'PARADA');
+    const hx=s.x-6;
+    if(s.k==='dog'){const gait=G.braking?'dog_sit':Math.floor(t*6)%2?'dog_trot':'dog_stand';sprite(G.braking&&G.result==='lose'&&G.kind==='dog'?'dog_sit':'dog_stand',hx,FEET+4,1.05,{flip:false});}
+    if(s.k==='goat'){sprite(Math.floor(t*5)%2&&!G.braking?'goat_walk':'goat_stand',hx,FEET+4,1.05);}
+    if(s.k==='abuela'){
+      const face=G.result==='win'?'happy':G.result==='lose'?'worry':(Math.abs(s.x-ZX)<ZHALF+120?'shout':'calm');
+      const hop=G.result==='win'?-Math.abs(Math.sin(G.endT*9))*14:0;
+      puppet('abuela',hx,FEET+10+hop,.72,face,{rot:Math.sin(t*4)*.02});
+    }
+  }
+  /* 3. frame */
+  ctx.drawImage(IMG['bus/frame_800.png'],0,0);
+  /* glare over the glass */
+  ctx.save();ctx.globalAlpha=.12;ctx.fillStyle='#fff';
+  for(const gx of [[40,0],[230,0],[640,0]]){ctx.beginPath();ctx.moveTo(gx[0]+10,125);ctx.lineTo(gx[0]+40,125);ctx.lineTo(gx[0]-30,280);ctx.lineTo(gx[0]-60,280);ctx.closePath();ctx.fill();}
+  ctx.restore();
+  /* 4. interior people (they sway with the road, lean forward when braking) */
+  const sway=Math.sin(t*5)*.015,lean=G.braking?Math.min(1,G.endT/.25)*(1-clamp((G.endT-.35)/.9,0,1)*.9)*.16:0;
+  const shake=Math.sin(t*23)*1.2;
+  /* colector, dancing */
+  const dance=Math.sin(t*9);
+  puppet('colector',130+dance*8,578+shake*.5-Math.abs(dance)*6,1.55,G.result==='win'?'happy':G.result==='lose'?'worry':'shout',{rot:dance*.07+lean});
+  /* señora dormida (full sprite, always asleep) */
+  sprite('senora_full',568+lean*120,458+shake*.4,1.25,{rot:Math.sin(t*1.6)*.04+lean*.8});
+  if(!G.result&&Math.random()<.02)note(568,300,'z');
+  /* chofer with an air steering wheel */
+  puppet('chofer',670+lean*80,590+shake,1.45,G.braking?'worry':'shout',{rot:sway*2+lean*.6});
+  sprite('chofer_wheel',650+lean*80,500+shake,1.25,{rot:Math.sin(t*6)*.18});
+  /* tú, de espaldas */
+  sprite('tu_body',400+lean*60,606+shake*.4,1.75,{rot:sway+lean});
+  /* 5. UI (engine layer) */
+  rr(250,8,300,50,16);ctx.fillStyle=G.result==='win'?'#5CFF7A':G.result==='lose'?'#ff4d5e':'#FFD23F';ctx.fill();ctx.lineWidth=5;ctx.strokeStyle=INK;ctx.stroke();
+  inkText('¡PARADA!',400,34,34,'#fff',.2);
+  for(let i=0;i<3;i++){ctx.font='900 30px system-ui';ctx.fillStyle=i<(G.result==='lose'?2:3)?'#ff3d5c':'rgba(255,255,255,.35)';ctx.textAlign='center';ctx.fillText('♥',34+i*36,36);}
+  const p=clamp(1-t/G.dur,0,1);
+  rr(584,18,200,26,13);ctx.fillStyle='rgba(20,16,28,.55)';ctx.fill();
+  rr(588,22,192*p,18,9);ctx.fillStyle=p>.35?'#ffb14a':'#ff4d5e';ctx.fill();
+  ctx.beginPath();ctx.arc(588+192*p,31,7,0,7);ctx.fillStyle='#fff7a0';ctx.fill();
+  /* hint */
+  if(G.state==='play'){rr(120,562,560,32,16);ctx.fillStyle='rgba(20,16,28,.7)';ctx.fill();inkText('GRITA ¡PARADA! (o toca / ESPACIO) cuando la abuela llegue a la puerta',400,578,15,'#fff',.1);}
+  /* zone debug */
+  if(showZone){ctx.save();ctx.setLineDash([8,6]);ctx.lineWidth=3;ctx.strokeStyle='#fff';ctx.strokeRect(ZX-ZHALF,125,ZHALF*2,380);ctx.restore();}
+  /* bubble + stamp */
+  if(G.bubble&&G.endT>.3)bubble(G.bubble.t,G.bubble.x,G.bubble.y,0,G.bubble.c==='win');
+  if(G.state==='end'&&G.endT>.15){
+    const k=clamp((G.endT-.15)/.2,0,1),pop=1+Math.sin(k*Math.PI)*.15;
+    ctx.save();ctx.translate(150,230);ctx.rotate(-.12);ctx.scale(pop*k,pop*k);
+    inkText(G.why,0,0,G.why.length>10?26:34,G.result==='win'?'#5CFF7A':'#ff5c6c',.25);ctx.restore();
+  }
+  /* fx */
+  for(const f of G.fx){const a=1-f.t/f.life;ctx.globalAlpha=clamp(a*2,0,1);
+    if(f.k==='c'){ctx.fillStyle=f.col;ctx.fillRect(f.x,f.y,f.r*2,f.r);}
+    else{ctx.font='900 24px system-ui';ctx.fillStyle='#fff';ctx.strokeStyle=INK;ctx.lineWidth=4;ctx.strokeText(f.ch,f.x,f.y);ctx.fillText(f.ch,f.x,f.y);}
+    ctx.globalAlpha=1;}
+  /* vignette */
+  const vg=ctx.createRadialGradient(400,300,260,400,300,520);vg.addColorStop(0,'rgba(20,16,28,0)');vg.addColorStop(1,'rgba(20,16,28,.22)');ctx.fillStyle=vg;ctx.fillRect(0,0,800,600);
+}
+function update(dt){
+  G.t+=dt;
+  if(G.state==='play'){
+    G.scroll+=G.v*dt;for(const s of G.stops)s.x-=G.v*dt;
+    if(G.stops[2].x<ZX-ZHALF-4){ // abuela left the zone: too late
+      G.state='end';G.endT=0;G.braking=true;G.result='lose';G.why='¡SE PASÓ!';sfx.brake();setTimeout(()=>sfx.lose(),200);G.bubble={t:'¡YA PASÓ, MI AMOR!',x:570,y:118,c:'lose'};
+    }
+    if(G.t>=G.dur&&G.state==='play'){G.state='end';G.endT=0;G.braking=true;G.result='lose';G.why='¡SE PASÓ!';G.bubble={t:'¡YA PASÓ, MI AMOR!',x:570,y:118,c:'lose'};}
+  }else{
+    G.endT+=dt;
+    if(G.braking)G.v=Math.max(0,G.v-G.v*dt*10); // quick stop
+    G.scroll+=G.v*dt;for(const s of G.stops)s.x-=G.v*dt;
+  }
+  for(const f of G.fx){f.t+=dt;f.x+=f.vx*dt;f.y+=f.vy*dt;if(f.k==='c')f.vy+=900*dt;}
+  G.fx=G.fx.filter(f=>f.t<f.life);
+}
+function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;if(G){update(dt);draw();}requestAnimationFrame(loop);}
+/* ---- input ---- */
+cv.addEventListener('pointerdown',e=>{e.preventDefault();A().resume?.();press();});
+addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();press();}});
+document.getElementById('again').onclick=()=>newGame();
+const dbg=document.getElementById('dbg');dbg.onclick=()=>{showZone=!showZone;dbg.textContent='Zona: '+(showZone?'visible':'oculta');};
+const spd=document.getElementById('spd');const SP=[1,1.3,1.7];let si=0;
+spd.onclick=()=>{si=(si+1)%SP.length;SPD=SP[si];spd.textContent='Velocidad '+SPD+'×';newGame();};
+/* microphone: a shout above the threshold for ~70 ms counts as PARADA */
+const micBtn=document.getElementById('mic');let micOn=false,micStream=null,an=null,buf=null,loud=0;
+micBtn.onclick=async()=>{
+  if(micOn){micStream.getTracks().forEach(t=>t.stop());micOn=false;micBtn.textContent='🎤 Micrófono: apagado';micBtn.classList.remove('on');return;}
+  try{micStream=await navigator.mediaDevices.getUserMedia({audio:true});const a=A(),src=a.createMediaStreamSource(micStream);an=a.createAnalyser();an.fftSize=512;src.connect(an);buf=new Uint8Array(an.fftSize);micOn=true;micBtn.textContent='🎤 Micrófono: ¡grita!';micBtn.classList.add('on');(function poll(){if(!micOn)return;an.getByteTimeDomainData(buf);let s=0;for(const v of buf){const x=(v-128)/128;s+=x*x;}const rms=Math.sqrt(s/buf.length);
+    if(rms>.22){loud++;if(loud>=4){press();loud=-30;}}else if(loud>0)loud=0;else if(loud<0)loud++;
+    setTimeout(poll,16);})();}
+  catch(e){micBtn.textContent='🎤 Sin permiso de micrófono';}
+};
+/* ---- load ---- */
+NAMES.forEach(n=>{const im=new Image();im.onload=()=>{IMG[n]=im;IMG[n.split('/').pop().replace('.png','')]=im;if(++loaded===NAMES.length){newGame();requestAnimationFrame(loop);}};im.onerror=()=>{console.warn('missing',n);if(++loaded===NAMES.length){newGame();requestAnimationFrame(loop);}};im.src=BASE+n;});
+</script>
+</body>
+</html>

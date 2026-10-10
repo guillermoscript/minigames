@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>MiniCaos · laboratorio: modo niveles</title>
+<style>body{margin:0;background:#0f0b1a;color:#fff;font:600 14px system-ui,sans-serif;padding:16px}</style></head>
+<body>cargando el juego…
+<script>
+/* MODO NIVELES: abre el laboratorio de estilos (index.html, tal como esté), le suma TODOS los microjuegos y los jefes
+   (juegos-bus.js + juego-*.js) y encima monta campana.js: etapas con vidas, intermedio con Caos, mecha de la bomba, jefe al final,
+   y un modo PRÁCTICA para probar cualquier juego suelto. No edita index.html ni los juegos.
+   Primero se elige MUNDO: VENEZUELA (estas etapas) o CLÁSICO (la app de siempre, ../../index.html, en un iframe).
+   ?mundo=venezuela|clasico · ?etapa=1..5 arranca directo en esa etapa · ?juego=<id> arranca ese juego en práctica · ?estilo=snes|felt|ww|anime|tinta|garabato|mezcla */
+fetch('index.html',{cache:'no-store'}).then(r=>r.text()).then(h=>{
+  const v=Date.now(); /* para que el navegador no sirva un archivo viejo */
+  document.open();
+  document.write(h.replace('</body>','<script src="juegos-bus.js?v='+v+'" data-juego="-"><\/script>'+['revisa','pique','paga','hueco','pendrive','duermete','saltale','amarrala','inscribe','tapala','tranca','jefe-alcabala','jefe-metro','jefe-arepa','trancalo','cava','cloche','acomoda','hielo','tequenos','soplalo','baile','rayita','marcalo','anuncio','trencito','torta','llave','sopa','queso','hallaca','cucaracha','switch','nevera','zancudo','enchufa','voltea','llego','jefe-transformador'].map(k=>'<script src="juego-'+k+'.js?v='+v+'"><\/script>').join('')+'<script src="campana.js?v='+v+'"><\/script></body>'));
+  document.close();
+}).catch(e=>{document.body.textContent='No pude cargar index.html: '+e;});
+</script></body></html>

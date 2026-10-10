@@ -65,19 +65,20 @@ const X=ov.getContext('2d');
 document.title='MiniCaos · modo niveles';
 
 /* ───────── sonido de la app (snd/noise/jingles/música de js/core.js) por el AudioContext del laboratorio ───────── */
-let MASTER=null,NB=null;
+EGGS.use(()=>A());   /* los audios escondidos (js/eggs.js) suenan por el AudioContext del laboratorio */
+let MASTER=null,NB=null,MUS=null,OUT=null;   /* OUT: a dónde van tone/hiss mientras se programa la música (si no, a MASTER) */
 function salida(){const a=A();
-  if(!MASTER){const comp=a.createDynamicsCompressor();comp.threshold.value=-14;comp.ratio.value=6;MASTER=a.createGain();MASTER.gain.value=.9;MASTER.connect(comp);comp.connect(a.destination);
+  if(!MASTER){const comp=a.createDynamicsCompressor();comp.threshold.value=-14;comp.ratio.value=6;MASTER=a.createGain();MASTER.gain.value=.9;MASTER.connect(comp);comp.connect(a.destination);MUS=a.createGain();MUS.connect(MASTER);
     NB=a.createBuffer(1,a.sampleRate,a.sampleRate);const d=NB.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}
   return a;}
 function tone(f,d=.1,type='square',v=.06,delay=0,f2){try{const a=salida(),os=a.createOscillator(),g=a.createGain(),t0=a.currentTime+delay;
   os.type=type;os.frequency.setValueAtTime(f,t0);if(f2)os.frequency.exponentialRampToValueAtTime(f2,t0+d);
   g.gain.setValueAtTime(.0001,t0);g.gain.linearRampToValueAtTime(v,t0+.006);g.gain.exponentialRampToValueAtTime(.0001,t0+d);
-  os.connect(g);g.connect(MASTER);os.start(t0);os.stop(t0+d+.03);}catch(e){}}
+  os.connect(g);g.connect(OUT||MASTER);os.start(t0);os.stop(t0+d+.03);}catch(e){}}
 function hiss(d=.12,v=.08,lo=800,hi=lo,type='bandpass',delay=0,q=1){try{const a=salida(),s=a.createBufferSource(),f=a.createBiquadFilter(),g=a.createGain(),t0=a.currentTime+delay;
   s.buffer=NB;s.loop=true;f.type=type;f.Q.value=q;f.frequency.setValueAtTime(lo,t0);if(hi!==lo)f.frequency.exponentialRampToValueAtTime(hi,t0+d);
   g.gain.setValueAtTime(.0001,t0);g.gain.linearRampToValueAtTime(v,t0+.005);g.gain.exponentialRampToValueAtTime(.0001,t0+d);
-  s.connect(f);f.connect(g);g.connect(MASTER);s.start(t0,Math.random());s.stop(t0+d+.03);}catch(e){}}
+  s.connect(f);f.connect(g);g.connect(OUT||MASTER);s.start(t0,Math.random());s.stop(t0+d+.03);}catch(e){}}
 const fx={
   click:()=>tone(900,.04,'square',.04,0,600),
   coin:()=>{tone(988,.07,'square',.05);tone(1319,.22,'square',.05,.07);},
@@ -88,19 +89,43 @@ const fx={
 };
 const jingleGo=()=>{[330,440,554,740].forEach((f,i)=>tone(f,.1,'triangle',.07,i*.06));hiss(.25,.04,400,3000,'bandpass');};
 const jingleWin=()=>{[523,659,784,1047].forEach((f,i)=>{tone(f,.16,'square',.045,i*.075);tone(f*2,.12,'triangle',.03,i*.075+.01);});[784,988,1319].forEach(f=>tone(f,.4,'triangle',.04,.32));fx.sparkle();};
-const SCALES=[[0,3,5,7,10],[0,2,4,7,9],[0,2,3,7,8],[0,4,5,7,11],[0,2,5,7,9]];
-const mus={on:false,step:0,next:0,bpm:132,mul:1,root:57,scale:SCALES[0],seed:1,timer:0,kind:'play'};
+/* la salsa de las etapas. Es ORIGINAL (no es ninguna canción real): clave 2-3, campana, maracas, conga, bajo en tumbao, montuno
+   de piano y, en la segunda mitad de la frase (o todo el rato con el jefe), los metales. Un ciclo de clave = 16 corcheas = 2 compases,
+   un acorde por compás, frase de 8 compases. Cada etapa tiene su tono: tónica (MIDI), compases [grado, 'm'|'M'] y pulso. */
+const TONOS=[
+  {root:57,bpm:184,prog:[[0,'m'],[5,'m'],[7,'M'],[5,'m']]},      /* La menor: i-iv-V-iv */
+  {root:60,bpm:176,prog:[[0,'M'],[5,'M'],[7,'M'],[5,'M']]},      /* Do mayor: I-IV-V-IV */
+  {root:62,bpm:192,prog:[[0,'m'],[-2,'M'],[-4,'M'],[-5,'M']]},   /* Re menor: i-VII-VI-V */
+  {root:55,bpm:168,prog:[[0,'m'],[0,'m'],[5,'m'],[7,'M']]},      /* Sol menor, más lenta: es de noche y no hay luz */
+  {root:59,bpm:196,prog:[[0,'m'],[5,'m'],[-2,'M'],[3,'M']]}];    /* Si menor: i-iv-VII-III */
+const CLAVE=[2,4,8,11,14],
+  MONT={0:0,2:'c',3:2,5:'c',7:1,9:'c',11:0,13:'c',14:2},         /* montuno: 0/1/2 = tónica/tercera/quinta en octavas, 'c' = el acorde */
+  METAL={2:[7,.9],3:[12,1.6],6:[1,1.4],8:[12,.9],11:[7,1.4],14:[1,2.6]};   /* metales: [nota (1 = la tercera de arriba), cuántas corcheas dura] */
+const SIN_SALSA=new Set(['pendrive','baile','anuncio','pique']);  /* juegos que ya traen su propia música o su audio: ahí se calla */
+const mus={on:false,step:0,next:0,mul:1,key:TONOS[0],kind:'play',vol:1,timer:0};
 const midi=n=>440*Math.pow(2,(n-69)/12);
 function musTick(){if(!mus.on)return;
-  try{const a=salida();if(mus.next<a.currentTime)mus.next=a.currentTime+.05;
-    while(mus.next<a.currentTime+.25){const s=mus.step,sd=mus.next-a.currentTime,st16=60/(mus.bpm*mus.mul)/4;
-      const bar=(s/16)|0,sc=mus.scale,root=mus.root+(bar%4===3?5:bar%4===2?3:0);
-      if(s%4===0){tone(midi(root-12+sc[(s/4+bar)%sc.length]%12),st16*3,'triangle',.07,sd);if(s%8===0)tone(150,.1,'sine',.12,sd,45);}
-      if(s%4===2)hiss(.04,.018,7000,7000,'highpass',sd);
-      if(s%2===0||mus.kind==='boss')tone(midi(root+12+sc[(s*7+bar*3+mus.seed)%sc.length]),st16*.8,'square',.018,sd);
-      mus.next+=st16;mus.step=(s+1)%64;}
-  }catch(e){}}
-function startMusic(i=0,mul=1,kind='play'){mus.scale=SCALES[i%SCALES.length];mus.root=[57,55,60,53,58][i%5];mus.seed=i+1;mus.mul=mul;mus.kind=kind;
+  try{const a=salida(),K=mus.key,jefe=mus.kind==='boss';if(mus.next<a.currentTime)mus.next=a.currentTime+.05;
+    MUS.gain.setTargetAtTime(mus.vol,a.currentTime,.12);OUT=MUS;
+    while(mus.next<a.currentTime+.25){const s=mus.step,sd=mus.next-a.currentTime,e8=30/(K.bpm*mus.mul),n=s%16,q=s%8,bar=(s>>3)%4,
+        [deg,ql]=K.prog[bar],r=K.root+deg,ter=ql==='m'?3:4,ac=[0,ter,7];
+      if(CLAVE.includes(n)){tone(2350,.035,'square',.04,sd);tone(1180,.03,'sine',.04,sd);}
+      if(q%2===0){const v=q%4?.014:.026;tone(800,.07,'square',v,sd);tone(540,.07,'square',v,sd);}
+      hiss(.035,q%2?.022:.012,6500,6500,'highpass',sd);
+      /* conga: seco en el 2, abiertos en el 4 y el 4-y */
+      if(q===2)hiss(.05,.05,900,500,'bandpass',sd,3);else if(q>=6)tone(q===6?196:175,.13,'sine',.08,sd,q===6?150:130);
+      /* bajo: la quinta en el 2-y; en el 4 se adelanta a la tónica del compás que viene */
+      const bj=q===3?r-5:q===6?K.root+K.prog[(bar+1)%4][0]:null;
+      if(bj!==null){tone(midi(bj-12),e8*2.6,'triangle',.12,sd);tone(midi(bj),e8*1.6,'square',.016,sd);}
+      const m=MONT[n];
+      if(m==='c'){tone(midi(r+12+ter),e8*.8,'triangle',.034,sd);tone(midi(r+19),e8*.8,'triangle',.034,sd);}
+      else if(m!==undefined){tone(midi(r+12+ac[m]),e8*.9,'triangle',.045,sd);tone(midi(r+24+ac[m]),e8*.9,'triangle',.03,sd);tone(midi(r+24+ac[m]),e8*.5,'square',.008,sd);}
+      const z=(jefe||s>=32)&&METAL[n];
+      if(z){const f=midi(r+12+(z[0]===1?12+ter:z[0])),d=e8*z[1];tone(f,d,'sawtooth',.02,sd);tone(f*1.007,d,'sawtooth',.015,sd);tone(midi(r+12+(z[0]===1?7:z[0]-5)),d,'sawtooth',.012,sd);}
+      mus.next+=e8;mus.step=(s+1)%64;}
+  }catch(e){}OUT=null;}
+/* vol: 1 en los intermedios, más bajita debajo del juego. La velocidad de la etapa la apura, pero solo un poco (si no, no se baila) */
+function startMusic(i=0,mul=1,kind='play',vol=1){mus.key=TONOS[i%TONOS.length];mus.mul=1+(mul-1)*.35+(kind==='boss'?.06:0);mus.kind=kind;mus.vol=vol;
   if(!mus.on){mus.on=true;mus.step=0;mus.next=0;mus.timer=setInterval(musTick,60);}}
 function stopMusic(){mus.on=false;clearInterval(mus.timer);}
 
@@ -223,9 +248,9 @@ function beginGame(){let id,s;
     if(!recent.includes(id))recent.push(id);if(recent.length>Math.min(6,pool.length-2))recent.shift();
     s=speed();isBoss=false;}
   if(save.estilo==='mezcla'&&id!==retryId)mezcla();
-  SP=s;gameId=curId=id;PT.length=0;G=GAMES[id].mk();
+  SP=s;gameId=curId=id;PT.length=0;G=GAMES[id].mk();EGGS.begin(id);
   outT=0;outcome=null;scored=false;tickN=0;fuseF=0;fuseLeft=9;lastCmd=G.cmd;cmdT=9;playT=0;pre=PRE;state='play';}
-function setOutcome(r){outcome=r;outT=0;fx.stamp();
+function setOutcome(r){outcome=r;outT=0;fx.stamp();EGGS.outcome(curId,r);
   if(r==='win'){if(mode==='stage'){const g=100+Math.round((1-fuseF)*50);score+=g;scorePop=1;floatText('+'+g,W-80,108,'#FFE14D',30);}}
   else{if(mode==='stage'){lives--;lifeT=0;ring(36+Math.max(0,lives)*40,52,'#FF4D4D',40,.5);}shake(12,.35);}}
 function next(){lastOut=outcome;const win=lastOut==='win';
@@ -233,7 +258,7 @@ function next(){lastOut=outcome;const win=lastOut==='win';
   else if(isBoss){if(win){bossK++;if(bossK>=stage.jefes.length)clearStage();else toInter();}else if(lives<=0)toOver();else toInter();}
   else{if(win){played++;retryId=null;}else retryId=curId;if(lives<=0)toOver();else toInter();}}   /* perder = repetir ese microjuego; solo ganar avanza */
 function clearStage(){stars=lives>=3?3:lives>=2?2:1;save.stars[stageIdx]=Math.max(save.stars[stageIdx]||0,stars);save.best[stageIdx]=Math.max(save.best[stageIdx]||0,score);persist();
-  state='clear';st=0;shownStars=0;jingleWin();confetti(W/2,200,60);}
+  state='clear';st=0;shownStars=0;jingleWin();confetti(W/2,200,60);EGGS.clear(false);}
 function toOver(){state='over';st=0;fx.thud();shake(14,.45);}
 function afterClear(){if(stageIdx<ETAPAS.length-1)startStage(stageIdx+1);else goMenu();}
 function exitPlay(){mode==='practice'?goPractice():goMenu();}
@@ -243,10 +268,13 @@ function fallo(e,donde){console.error('[campana] '+donde+' · '+curId,e);say('ER
   if(state!=='play')return;
   if(mode==='practice')goPractice();else{if(!isBoss)played++;else bossK++;retryId=null;if(isBoss&&bossK>=stage.jefes.length)clearStage();else toInter();}}
 
-function syncMusic(){let want=null,boss=false;
-  if(save.musica&&mode==='stage'&&(state==='stagein'||state==='inter'||(state==='play'&&pre>0))){boss=state!=='stagein'&&played>=stage.n;want=stageIdx+(boss?'b':'p')+speed();}
+function syncMusic(){let want=null,boss=false,bajo=false,i=stageIdx;const sp=mode==='practice'?practiceSp:speed();
+  if(save.musica&&(state==='play'||(mode==='stage'&&(state==='stagein'||state==='inter')))){
+    bajo=state==='play'&&pre<=0;
+    if(mode==='stage')boss=state!=='stagein'&&played>=stage.n;else{boss=isBoss;i=Math.max(0,TODOS.indexOf(curId));}   /* práctica: cada juego con uno de los tonos */
+    if(!(bajo&&SIN_SALSA.has(curId))&&!EGGS.song())want=i+(boss?'b':'p')+(bajo?'j':'')+sp;}
   if(want===musKey)return;musKey=want;
-  if(want)startMusic(stageIdx,Math.min(1.5,speed()),boss?'boss':'play');else stopMusic();}
+  if(want)startMusic(i,Math.min(1.5,sp),boss?'boss':'play',bajo?.5:1);else stopMusic();}
 
 function update(dt){
   st+=dt;lifeT+=dt;cmdT+=dt;scorePop=Math.max(0,scorePop-dt*3);if(shakeT>0)shakeT-=dt;if(toast){toast.t+=dt;if(toast.t>4)toast=null;}

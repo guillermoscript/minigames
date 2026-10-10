@@ -58,7 +58,7 @@ function corre(s,size,col,x0,x1,y,off){const w=tw(s,size);for(let x=x0-(off%w);x
 function mkPendrive(){
   const rs=Math.sqrt(SP),lv=LV(),n=lv-1,AMP=[.8,.9,.95][n],WS=[3.5,4.6,5.4][n],B=[0,.05,.08][n],TOL=[.34,.27,.22][n],RPOS=[56,46,38][n],J=[2.5,5,8][n];
   const PX=420,MY=388,HOME=[676,540],ph0=Math.random()*TAU,pas=[2,5,6,0].map((fi,i)=>({f:FACES[fi],x:350+i*96}));
-  let px=HOME[0],py=HOME[1],held=false,kb=false,used=false,a0=0,x0=0,y0=0,jT=.2,ji=0,si=0,adT=.45,adN=0,scroll=0,mq=0,inZ=false,hit=false,noteT=0;
+  let px=HOME[0],py=HOME[1],held=false,kb=false,used=false,a0=0,x0=0,y0=0,jT=.2,ji=0,si=0,adT=.45,adN=0,scroll=0,mq=0,inZ=false,hit=false,noteT=0,egg=false;
   /* el vaivén: un metrónomo (en los niveles 2 y 3, con un temblor encima) */
   const ang=()=>AMP*Math.sin(WS*g.t+ph0)+B*Math.sin(2.3*WS*g.t+1.3);
   const mouth=()=>g.result==='win'?[PX,MY]:[PX+Math.sin(g.t*41)*J+Math.sin(g.t*17.3)*J*.5,MY+Math.cos(g.t*33)*J*.6];
@@ -97,8 +97,8 @@ function mkPendrive(){
       g.endT+=dt;const e=g.endT;
       if(g.result==='win'){
         /* un tiempito de silencio ("LEYENDO USB...") y arranca la salsa */
-        if(!hit&&e>=T0){hit=true;nz(2,.014);spawn(PX,MY-60,26,'conf',CONF);}
-        if(hit){while(e>=T0+si*STEP)salsa(si++);
+        if(!hit&&e>=T0){hit=true;nz(2,.014);spawn(PX,MY-60,26,'conf',CONF);egg=typeof EGGS!=='undefined'&&EGGS.music();}   /* a veces el pendrive trae otra cosa (js/eggs.js) */
+        if(hit){while(e>=T0+si*STEP){if(!egg)salsa(si);si++;}
           if((noteT-=dt)<=0){noteT=.2;PT.push({x:240+Math.random()*500,y:276,vx:(Math.random()-.5)*80,vy:-90,g:0,t:0,life:.9,kind:Math.random()<.5?'♪':'♫',col:['#ffffff','#ffe14d','#5cff7a'][si%3],r:6,rot:(Math.random()-.5)*.6,vr:0});}}}
       else{/* la cuña, ahora a todo volumen */
         if((jT-=dt)<=0){jT=.11;const f=JING[ji++%JING.length];if(f){snd(f,.12,'square',.05);snd(f*1.5,.1,'sawtooth',.03);}}

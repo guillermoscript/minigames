@@ -46,7 +46,8 @@ function mkAnuncio(){
   let sk=CORN.br.slice(),hopped=false,hopK=0,cut=false,si=0,jT=0,ji=0,cdN=4,shown=false,flash=0,foc=0,said=0,ev=0,kind='',noteT=0,nag=0;
   cur={x:400,y:470,kb:false};const me=cur;
   const ad=()=>g.t>=T0,vis=()=>g.t>=T0+CD,items=()=>vis()?FK.concat([{x:sk[0],y:sk[1],w:BW,h:BH}]):FK;
-  function win(){g.result='win';g.why='¡WUUUU!';si=0;sfx.win();snd(300,.5,'sawtooth',.05,900);spawn(400,240,30,'conf',CONF,380);spawn(90,230,8,'conf',CONF);spawn(710,230,8,'conf',CONF);}
+  let egg=false;   /* a veces la laptop vuelve con otra canción (js/eggs.js) */
+  function win(){g.result='win';g.why='¡WUUUU!';si=0;egg=typeof EGGS!=='undefined'&&EGGS.music();sfx.win();snd(300,.5,'sawtooth',.05,900);spawn(400,240,30,'conf',CONF,380);spawn(90,230,8,'conf',CONF);spawn(710,230,8,'conf',CONF);}
   function fail(k){kind=k;g.result='lose';
     if(k==='clic'){g.why='¡ERA EL OTRO!';nz(.12,.2);[392,494,587,784].forEach((f,i)=>snd(f,.1+i*.03,'square',.06));}
     else{g.why='¡BUUUU!';sfx.lose();snd(150,.9,'sawtooth',.08,-50);snd(170,.8,'sawtooth',.06,-60);}}
@@ -130,7 +131,7 @@ function mkAnuncio(){
           if(said<3&&k>.85){said=3;say('¡BUUU...!',100,176,'#ff9ec7');snd(130,.3,'sawtooth',.05,-30);}
           if(g.t>=g.dur)fail('buu');}}
       else{g.endT+=dt;const e=g.endT;
-        if(g.result==='win'){while(e>=.1+si*STEP)salsa(si++,.04);
+        if(g.result==='win'){while(e>=.1+si*STEP){if(!egg)salsa(si,.04);si++;}
           if(ev<1&&e>=.15){ev=1;snd(700,.5,'sawtooth',.05,600);snd(900,.5,'square',.03,500);}
           if((noteT-=dt)<=0){noteT=.16;PT.push({x:180+Math.random()*440,y:400,vx:(Math.random()-.5)*80,vy:-110,g:0,t:0,life:.9,kind:Math.random()<.5?'♪':'♫',col:CONF[si%4],r:6,rot:(Math.random()-.5)*.6,vr:0});}}
         else if(kind==='clic'){

@@ -30,7 +30,7 @@ self.addEventListener('fetch', e => {
   if (u.origin !== ROOT.origin && !font) return;
   // Only cache game resources, never backend records, OAuth callbacks or admin pages.
   const shell = u.pathname === ROOT.pathname || u.pathname === new URL('index.html', ROOT).pathname;
-  const asset = ['js/', 'css/', 'img/'].some(dir => u.pathname.startsWith(new URL(dir, ROOT).pathname)) || u.pathname === new URL('manifest.webmanifest', ROOT).pathname;
+  const asset = ['js/', 'css/', 'img/', 'audio/'].some(dir => u.pathname.startsWith(new URL(dir, ROOT).pathname)) || u.pathname === new URL('manifest.webmanifest', ROOT).pathname;
   if (!font && !shell && !asset) return;
   const save = async res => {
     if (res && (res.ok || (font && res.type === 'opaque'))) {

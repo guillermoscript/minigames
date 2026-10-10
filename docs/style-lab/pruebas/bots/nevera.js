@@ -1,9 +1,16 @@
-/* Bot de ¡CIERRA LA NEVERA! (ver ../probar.js). P().o = cuánto se abrió la puerta (0..1); P().surge = le está dando el jalón. */
+/* Bot de ¡CIERRA LA NEVERA! (ver ../probar.js). P().o = cuánto se abrió la puerta (0..1); P().surge = le está dando el jalón;
+   P().jalones = cuántos jalones trae el nivel (2, o 3 desde el nivel 2); P().resbalon = el tío se está resbalando (nivel 3);
+   P().resbalo = ya se resbaló. */
 (function(){
 const machaca=(T,cada,tecla)=>{let n=0;while(!T.listo()&&n++<400){if(tecla)T.tecla('Space');else T.tap(300,380);T.S(cada);}};
 BOTS.nevera={
   /* toca parejo, sin parar */
-  gana(T){let n=0;while(!T.listo()&&n++<400){T.tap(300,380);T.S(.08);if(n===8)T.foto('empujando');if(T.P().surge&&!T.j){T.j=1;T.foto('jalon');}}},
+  gana(T){let n=0,j=0,r=0;const lv=BUS.LV(),q=T.P();
+    if(q.jalones!==(lv>1?3:2))throw new Error('nivel '+lv+' con '+q.jalones+' jalones');
+    while(!T.listo()&&n++<400){const a=T.P().o;T.tap(300,380);T.S(.08);if(n===8)T.foto('empujando');const p=T.P();
+      if(p.surge&&!j){j=1;T.foto('jalon');}
+      if(p.resbalon&&!r){r=1;if(p.o<a+.05)throw new Error('el resbalón no abrió la puerta ('+a.toFixed(2)+' → '+p.o.toFixed(2)+')');T.S(.2);T.foto('resbalon');}}
+    if((lv>2)!==!!T.P().resbalo)throw new Error('nivel '+lv+': resbaló = '+T.P().resbalo);},
   ganaTecla(T){machaca(T,.08,true);},
   /* solo cuando ya va por la mitad: aguanta igual */
   ganaAlFilo(T){let n=0;while(!T.listo()&&n++<2000){if(T.P().o>.5)T.tap(300,380);T.S(1/60);}},

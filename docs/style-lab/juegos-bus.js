@@ -4,10 +4,13 @@
    Se carga DESPUÉS del script de index.html y dibuja con sus primitivas (bust, rr, ell, line, txt...), así que cada juego
    sale en todos los estilos sin tocar nada. No modifica PARADA ni CHANCLA: solo agrega entradas a GAMES y sus propios
    listeners (puntero con coordenadas, izquierda/derecha sostenido, inclinación del teléfono).
-   Nivel = botón "vel": 1x nivel 1, 1.4x nivel 2, 1.8x nivel 3. */
+   Nivel = LV() (1/2/3): lo fija el modo niveles con window.NIVEL; sin eso sale del botón "vel" (1x / 1.4x / 1.8x).
+   La velocidad (SP) es otro eje: acelera todo, pero los giros de cada nivel (anotados encima de cada juego) no dependen de ella. */
 (function(){
 if(GAMES.baja)return;
-const LV=()=>SP>=1.7?3:SP>=1.3?2:1;
+/* el nivel ya no sale de la velocidad: el modo niveles (campana.js) fija window.NIVEL = 1/2/3 antes de cada mk().
+   Sin eso (bus.html, el banco de pruebas) sigue saliendo del botón "vel". */
+const LV=()=>window.NIVEL||(SP>=1.7?3:SP>=1.3?2:1);
 const CONF=['#ffd23f','#ff5c8a','#5cff7a','#3fb0ff'];
 const say=(s,x,y,col)=>PT.push({x,y,vx:0,vy:-60,g:0,t:0,life:.8,kind:s,col,r:-2,rot:(Math.random()-.5)*.16,vr:0});
 const TU={skin:'#e9a77c',shirt:'#3fb0ff',pat:'hoodie',hair:'curly',hairCol:'#2a1a14',cheeks:1,brow:'thin',bw:50,hw:38,hh:40,eyeR:10};
@@ -33,21 +36,25 @@ addEventListener('blur',()=>{heldK.l=heldK.r=0;});
 addEventListener('deviceorientation',e=>{const v=e.gamma==null?0:e.gamma;tilt=Math.abs(v)<4?0:clamp(v/22,-1,1);});
 
 /* ═════════ GAME 3: ¡BAJA! (pide permiso hasta la puerta antes de que cierre) ═════════ */
+/* Nivel 1: solo machacar. Nivel 2: además un vecino bravo (te espera con la mano de «pare») te devuelve DOS pasos de un empujón, una sola vez.
+   Nivel 3: el empujón + la gente más apretada + la señora de las dos tortas. */
 function mkBaja(){
   const rs=Math.sqrt(SP),lv=LV(),need=Math.round(11+(SP-1)*6),X0=92,X1=644,FY=524,STEP=(X1-X0)/need;
   const crowd=(lv>=3?[196,292,388,484]:[210,322,434,546]).map((x,i)=>({x,f:FACES[[4,6,9,1][i]],say:['¡EPA!','¡AY, MIJO!','¡ME PISASTE!','¡CONCHALE!'][i],push:0,said:false}));
   const torta=lv>=3?{x:584,on:true}:null;
-  let px=X0,lunge=0,taps=0,scroll=0,kEnd=0;
-  const g={get impact(){return this.result?clamp(1-this.endT/.5,0,1):0;},probe:()=>({px,taps,need}),t:0,dur:5/rs,result:null,why:'',endT:0,cmd:'¡BAJA!',
+  const emp=lv>=2?crowd[1+(Math.random()*2|0)]:null;      /* el que empuja: uno de los dos del medio */
+  let px=X0,lunge=0,taps=0,scroll=0,kEnd=0,kb=0,shv=0;
+  const g={get impact(){return this.result?clamp(1-this.endT/.5,0,1):0;},probe:()=>({px,taps,need,emp:emp?emp.x:0,did:!!(emp&&emp.did)}),t:0,dur:5/rs,result:null,why:'',endT:0,cmd:'¡BAJA!',
     hint:'TOCA RÁPIDO (o ESPACIO): pide permiso y llega a la puerta antes de que cierre',
     press(){if(g.result)return;taps++;lunge=1;snd(170+(taps%5)*26,.07,'square',.045);
       px=Math.min(X1,px+STEP*(torta&&torta.on&&px>torta.x-76?.5:1));
+      if(emp&&!emp.did&&px>=emp.x-58){emp.did=emp.said=true;shv=1;kb=Math.min(px-X0,2*STEP);px-=kb;sfx.thud();spawn(emp.x-56,FY-200,7,'★',['#ffe14d'],220,400,.7);say("¡PA' ATRÁS!",px+kb*.5,FY-300,'#ff4d5e');}
       if(taps%4===1)say('¡PERMISO!',px+10,FY-262,'#ffffff');
       for(const c of crowd)if(Math.abs(px-c.x)<58){c.push=1;if(!c.said){c.said=true;say(c.say,c.x,FY-286,'#ffe14d');}}
       if(torta&&torta.on&&px>=torta.x+14){torta.on=false;sfx.crash();spawn(torta.x-30,FY-170,18,'bit',['#ff9ec7','#ffffff','#ffd23f'],320,800,1);say('¡MI TORTA!',torta.x,FY-300,'#ff9ec7');}
       if(px>=X1){g.result='win';g.why='¡BAJASTE!';kEnd=clamp(g.t/g.dur,0,1);sfx.win();spawn(724,330,24,'conf',CONF);}},
     down(){g.press();},
-    update(dt){g.t+=dt;lunge=Math.max(0,lunge-dt*6);for(const c of crowd)c.push=Math.max(0,c.push-dt*2.2);
+    update(dt){g.t+=dt;lunge=Math.max(0,lunge-dt*6);kb*=Math.exp(-12*dt);shv=Math.max(0,shv-dt/.9);for(const c of crowd)c.push=Math.max(0,c.push-dt*2.2);
       if(!g.result){px=Math.max(X0,px-14*rs*dt);if(g.t>=g.dur){g.result='lose';g.why='¡TE PASASTE!';sfx.thud();sfx.lose();}}
       else{g.endT+=dt;if(g.result==='lose')scroll+=Math.min(560,g.endT*460)*dt;else px=Math.min(730,px+380*dt);}},
     draw(){
@@ -75,43 +82,59 @@ function mkBaja(){
       ctx.restore();
       rr(654,FY-6,146,14,4,'#ffd23f',3.5);rr(672,96,112,34,8,'#c4283a',3.5);txt('BAJADA',728,114,17,'#ffffff',0,true);
       /* la gente del pasillo */
-      const drawC=c=>{const q=c.push,dir=px<c.x?1:-1;
-        bust(Object.assign({},c.f,{x:c.x+dir*q*12,y:FY-146-q*10,s:.84,th:110,bw:50,legs:['#3b3550','#ffffff',64],rot:dir*q*.17+Math.sin(now*(lose?8:3)+c.x)*(lose?.06:.02),
-          mood:q>.3?'yell':lose?'calm':c.f.mood,talk:q,sweat:q>.3?1:0,look:q>.3?-dir:0,arms:[{side:-1,a:-.12,len:84,w:19},{side:1,a:.12,len:84,w:19}]}));};
+      /* el que empuja se lee por la pose: antes, la mano de «pare» hacia ti; en el empujón, los dos brazos estirados */
+      const drawC=c=>{const sh=c===emp&&shv>.45,wt=c===emp&&!c.did&&!g.result,q=sh?0:c.push,dir=px<c.x?1:-1;
+        bust(Object.assign({},c.f,{x:c.x+dir*q*12-(sh?26:0),y:FY-146-q*10,s:.84,th:110,bw:50,legs:['#3b3550','#ffffff',64],rot:sh?-.15:dir*q*.17+Math.sin(now*(lose?8:3)+c.x)*(lose?.06:.02),
+          mood:sh?'yell':wt?'angry':q>.3?'yell':lose?'calm':c.f.mood,talk:sh?1:q,sweat:q>.3?1:0,look:sh||wt?-1:q>.3?-dir:0,
+          arms:sh?[{side:-1,a:-1.45,len:100,w:19},{side:1,a:-1.3,len:100,w:19}]
+            :wt?[{side:-1,a:-1.35,len:60,w:19,hand:(hx,hy)=>hand(hx-4,hy-2,0,1.5,c.f.skin)},{side:1,a:.12,len:84,w:19}]
+            :[{side:-1,a:-.12,len:84,w:19},{side:1,a:.12,len:84,w:19}]}));};
       const drawT=()=>{const on=torta.on,wob=Math.sin(now*9)*(.05+lunge*.12);
         bust({x:torta.x,y:FY-150,s:.86,flip:true,skin:'#d9a07a',shirt:'#9b6bd1',pat:'floral',sh2:'#ffe08a',hair:'bun',hairCol:'#d8d8e0',glasses:'round',wrinkles:1,cheeks:1,th:112,bw:52,legs:['#d9a07a','#2b2b3a',62],
           mood:on?(px>torta.x-120?'angry':'calm'):'yell',talk:on?0:1,look:1,
           arms:on?[{side:1,a:1.15,len:62,w:20,hand:(x,y)=>{ctx.save();ctx.translate(x+6,y-6);ctx.rotate(wob);rr(-40,-34,84,34,5,'#ffffff',3.5);line([[2,-34],[2,0]],4,'#ff5ca8');rr(-34,-66,72,32,5,'#ff9ec7',3.5);line([[2,-66],[2,-34]],4,'#c4283a');ctx.restore();}},{side:-1,a:.9,len:50,w:20}]
             :[{side:1,a:2.6,len:70,w:20},{side:-1,a:-2.6,len:70,w:20}]});};
       const hop=win?Math.abs(Math.sin(g.endT*9))*26:0;
-      const me=()=>{bust(Object.assign({},TU,{x:px+lunge*8,y:FY-136-lunge*8-hop,s:.8,look:1,th:110,legs:['#2f3a7a','#ffffff',60],
-          mood:win?'happy':lose?'frown':lunge>.3?'yell':k>.7?'panic':'worry',talk:lunge,sweat:win?0:k>.5?2:1,lids:lose?1:0,rot:win?0:lose?-.04:.08+lunge*.1,
-          arms:win?[{side:1,a:2.7,len:80,w:20},{side:-1,a:-2.7,len:80,w:20}]:lose?[{side:1,a:.1,len:80,w:20},{side:-1,a:-.1,len:80,w:20}]:[{side:1,a:1.3+lunge*.3,len:76,w:20},{side:-1,a:1.1-lunge*.5,len:66,w:20}]}));};
+      const emj=shv>.45&&!g.result;
+      const me=()=>{bust(Object.assign({},TU,{x:px+kb+lunge*8,y:FY-136-lunge*8-hop,s:.8,look:1,th:110,legs:['#2f3a7a','#ffffff',60],
+          mood:win?'happy':lose?'frown':emj?'o':lunge>.3?'yell':k>.7?'panic':'worry',talk:lunge,sweat:win?0:k>.5?2:1,lids:lose?1:0,rot:win?0:lose?-.04:emj?-.22:.08+lunge*.1,
+          arms:win?[{side:1,a:2.7,len:80,w:20},{side:-1,a:-2.7,len:80,w:20}]:lose?[{side:1,a:.1,len:80,w:20},{side:-1,a:-.1,len:80,w:20}]
+            :emj?[{side:1,a:2.2,len:76,w:20},{side:-1,a:-2.2,len:76,w:20}]:[{side:1,a:1.3+lunge*.3,len:76,w:20},{side:-1,a:1.1-lunge*.5,len:66,w:20}]}));};
       for(const c of crowd)if(c.x<px)drawC(c);if(torta&&torta.x<px)drawT();
       me();
       for(const c of crowd)if(c.x>=px)drawC(c);if(torta&&torta.x>=px)drawT();
-      tag(px,FY-250-hop);
+      tag(px+kb,FY-250-hop);
       ctx.restore();
       if(lose&&g.endT>.5)bubble(470,170,'¡ÚLTIMA PARADA: NUEVO CIRCO!',22,772,250);
       if(win&&g.endT>.25)bubble(520,180,'¡GRACIAS, SEÑOR!',24,px-10,FY-270);
+      if(shv>0&&!g.result)bubble(clamp(emp.x-20,170,520),176,'¡NO EMPUJE, CHAMO!',22,emp.x-16,FY-262);
       drawP();
     }};
   return g;
 }
 
 /* ═════════ GAME 4: ¡ENCALETA! (se montan a robar el bus: esconde el teléfono antes de que lleguen a tu puesto; con el vendedor, quieto) ═════════ */
+/* Nivel 1: un teléfono; el vendedor de chupetas sale poco (.35). Nivel 2: el ladrón camina 15% más rápido y el vendedor sale casi siempre (.9).
+   Nivel 3: DOS cosas, el teléfono Y la cartera, cada una en un escondite distinto (en cada escondite cabe una sola); el ladrón tarda un pelo más
+   en llegar (2.1 en vez de 1.5) y el vendedor sale como antes (.8). El vendedor siempre camina a su paso de siempre (VSP). */
 function mkEncaleta(){
-  const rs=Math.sqrt(SP),lv=LV(),RE=1.5/rs,decoy=Math.random()<[.35,.6,.8][lv-1];
+  const rs=Math.sqrt(SP),lv=LV(),RE=[1.5,1.5/1.15,2.1][lv-1]/rs,decoy=Math.random()<[.35,.9,.8][lv-1];
   const tB=decoy?.45/rs:1e9;let tM=decoy?(2.25+Math.random()*.25)/rs:(.9+Math.random()*1.3)/rs;
-  const DX=748,SNX=440,SPD=(DX-SNX)/RE,AY=452,HOME=[350,300],PX=215,PY=318,PS=1.05;
+  const DX=748,SNX=440,SPD=(DX-SNX)/RE,VSP=(DX-SNX)*rs/1.5,AY=452,HOME=[350,300],HOME2=[84,306],PX=215,PY=318,PS=1.05;
   const SPOTS=[{x:150,y:540,n:'MEDIA'},{x:226,y:466,n:'PRETINA'},{x:430,y:548,n:'ASIENTO'}];
   const pas=[{x:640,f:FACES[7]},{x:536,f:FACES[6]}].map(p=>({...p,rob:false}));
-  const ph={x:HOME[0],y:HOME[1]};let drag=false,hid=null,hidT=0,cueB=false,cueM=false,snT=-1,note=0,scroll=0,loot=0,paid=false;
-  const vx=t0=>DX-(g.t-t0)*SPD;
+  /* lo que hay que esconder: w=0 teléfono (mano derecha), w=1 cartera (mano izquierda, solo nivel 3). drag = la cosa agarrada */
+  const its=[{x:HOME[0],y:HOME[1],h:HOME,hid:null,hidT:0,w:0}];if(lv>=3)its.push({x:HOME2[0],y:HOME2[1],h:HOME2,hid:null,hidT:0,w:1});
+  const ph=its[0],all=()=>its.every(i=>i.hid),libre=s=>!its.some(i=>i.hid===s),vic=()=>robI||its.find(i=>!i.hid)||ph;
+  let drag=null,robI=null,cueB=false,cueM=false,snT=-1,note=0,scroll=0,loot=0,paid=false;
+  const vx=(t0,sp=SPD)=>DX-(g.t-t0)*sp;
+  function wallet(x,y,rot=0,s=1){ctx.save();ctx.translate(x,y);ctx.rotate(rot);ctx.scale(s,s);rr(-15,-23,26,14,2,'#5cd06a',2.5);rr(-21,-14,42,28,6,'#8a5a2b',3.5);line([[-21,-2],[21,-2]],2.5,'#5a3716');ell(12,6,4,4,'#ffd23f',2.5);ctx.restore();}
   /* si ganas, el ladrón se queda un momento frente a ti antes de irse; si pierdes, sale corriendo con el saco */
   const robX=()=>{if(snT<0)return vx(tM);const u=g.t-snT;return g.result==='win'?SNX+700*Math.max(0,u-1.25)**2:SNX+120*u+320*u*u;};
-  function hide(s){if(g.result||hid)return;hid=s;hidT=0;drag=false;sfx.whoosh();
-    if(g.t<tM){g.result='lose';g.why='¡FALSA ALARMA!';g.kind=g.t>=tB&&vx(tB)>120?'pana':'nada';tM=1e9;sfx.lose();}}
+  function hide(it,s){if(g.result||!it||it.hid)return;
+    if(!libre(s)){if(drag===it)drag=null;snd(120,.12,'square',.05);say('¡AHÍ NO CABE!',s.x,s.y-74,'#ff4d5e');return;}
+    it.hid=s;it.hidT=0;if(drag===it)drag=null;sfx.whoosh();
+    if(g.t<tM){g.result='lose';g.why='¡FALSA ALARMA!';g.kind=g.t>=tB&&vx(tB,VSP)>120?'pana':'nada';tM=1e9;sfx.lose();}}
   /* el vendedor de chupetas: la falsa alarma */
   function vendedor(x){const sw=Math.sin(now*9);
     bust({x,y:AY-112-Math.abs(sw)*4,s:.66,flip:true,skin:'#8a5a3a',shirt:'#ffd23f',pat:'stripes',sh2:'#3aa86a',hair:'afro',hairCol:'#14101c',mood:g.kind==='pana'?'frown':'happy',cheeks:1,earring:1,look:1,th:110,bw:52,legs:['#2f7fe0','#ffffff',60],rot:sw*.04,
@@ -119,33 +142,33 @@ function mkEncaleta(){
   /* el que recoge los teléfonos: sin armas, solo el grito y el saco */
   function ladron(x,gr){const win=g.result==='win',robo=g.result==='lose'&&g.kind==='robo',S=.7,y=AY-119,u=snT<0?0:g.t-snT,walk=snT<0&&gr<=0?Math.sin(now*14):robo?Math.sin(now*22):0;
     let a=1+walk*.2,len=72;const k=snT>=0?(win?0:Math.max(0,1-u*3)):gr;
-    if(k>0){const lx=(x-HOME[0])/S-42,ly=(HOME[1]-y)/S-4;a=lerp(1,Math.atan2(lx,ly),k);len=lerp(72,clamp(Math.hypot(lx,ly),50,150),k);}
+    if(k>0){const V=vic().h,lx=(x-V[0])/S-42,ly=(V[1]-y)/S-4;a=lerp(1,Math.atan2(lx,ly),k);len=lerp(72,clamp(Math.hypot(lx,ly),50,150),k);}
     if(win&&u>.7&&u<1.1){a=2.1;len=84;}
     bust({x,y:y-Math.abs(walk)*4,s:S,flip:!(robo&&u>.12),skin:'#b87b50',shirt:'#2b2b3a',pat:'hoodie',cap:'#14101c',brow:'thick',stubble:1,gold:1,look:1,th:112,bw:54,legs:['#3b3550','#ffffff',60],rot:walk*.04,
       mood:snT<0?(gr>0?'grin':'yell'):win?(u<.7?'o':'frown'):'grin',talk:snT<0&&gr<=0?Math.abs(Math.sin(now*16)):0,
-      arms:[{side:1,a,len,w:21,hand:robo&&u<.25?(hx,hy)=>phone(hx,hy-10,.3,1.3):null},
+      arms:[{side:1,a,len,w:21,hand:robo&&u<.25?(hx,hy)=>(vic().w?wallet:phone)(hx,hy-10,.3,1.3):null},
         {side:-1,a:-.5,len:66,w:21,hand:(hx,hy)=>{const q=1+.14*loot;ell(hx,hy+26*q,24*q,28*q,'#a98a4a',4);line([[hx-10,hy+2],[hx+10,hy+2]],5,'#6b4f2a');}}]});}
-  const g={lr:true,get impact(){return this.result?clamp(1-this.endT/.5,0,1):0;},probe:()=>({tB,tM,RE,decoy,hid:!!hid,ph}),t:0,dur:5/rs,result:null,why:'',kind:'',endT:0,cmd:'¡ENCALETA!',
-    hint:'Si ROBAN: arrastra el teléfono a un escondite (o ESPACIO). Vendedor: ¡quieto!',
-    press(k){hide(SPOTS[k==='left'?0:k==='right'?2:1]);},
-    down(p){if(g.result||hid)return;if(Math.hypot(p.x-ph.x,p.y-ph.y)<100){drag=true;ph.x=p.x;ph.y=p.y;}},
-    move(p){if(drag){ph.x=clamp(p.x,20,780);ph.y=clamp(p.y,100,580);}},
-    up(){if(!drag)return;drag=false;let b=null,bd=110;for(const s of SPOTS){const d=Math.hypot(ph.x-s.x,ph.y-s.y);if(d<bd){bd=d;b=s;}}if(b)hide(b);},
+  const g={lr:true,get impact(){return this.result?clamp(1-this.endT/.5,0,1):0;},probe:()=>({tB,tM,RE,decoy,hid:all(),ph,its,SPOTS}),t:0,dur:5/rs,result:null,why:'',kind:'',endT:0,cmd:'¡ENCALETA!',
+    hint:lv>=3?'Si ROBAN: teléfono Y cartera, cada uno en SU escondite (o ← ESPACIO →). Vendedor: ¡quieto!':'Si ROBAN: arrastra el teléfono a un escondite (o ESPACIO). Vendedor: ¡quieto!',
+    press(k){hide(its.find(i=>!i.hid),SPOTS[k==='left'?0:k==='right'?2:1]);},
+    down(p){if(g.result)return;let b=null,bd=100;for(const i of its){if(i.hid)continue;const d=Math.hypot(p.x-i.x,p.y-i.y);if(d<bd){bd=d;b=i;}}if(b){drag=b;b.x=p.x;b.y=p.y;}},
+    move(p){if(drag){drag.x=clamp(p.x,20,780);drag.y=clamp(p.y,100,580);}},
+    up(){if(!drag)return;const it=drag;drag=null;let b=null,bd=110;for(const s of SPOTS){const d=Math.hypot(it.x-s.x,it.y-s.y);if(d<bd){bd=d;b=s;}}if(b)hide(it,b);},
     update(dt){g.t+=dt;scroll+=dt*150;
       if(!cueB&&g.t>=tB){cueB=true;sfx.ding();}
       if(!cueM&&g.t>=tM){cueM=true;sfx.thud();snd(140,.5,'sawtooth',.07,-70);}
       if(cueM&&snT<0){const rx=robX();for(const p of pas)if(!p.rob&&rx<=p.x+46){p.rob=true;loot++;snd(520,.08,'square',.05,300);say('¡AY!',p.x,AY-236,'#ffe14d');}}
-      if(hid){hidT+=dt;const u=Math.min(1,dt*22);ph.x=lerp(ph.x,hid.x,u);ph.y=lerp(ph.y,hid.y,u);}
-      else if(!drag){const u=Math.min(1,dt*14);ph.x=lerp(ph.x,HOME[0],u);ph.y=lerp(ph.y,HOME[1],u);}
+      for(const i of its){if(i.hid){i.hidT+=dt;const u=Math.min(1,dt*22);i.x=lerp(i.x,i.hid.x,u);i.y=lerp(i.y,i.hid.y,u);}
+        else if(drag!==i){const u=Math.min(1,dt*14);i.x=lerp(i.x,i.h[0],u);i.y=lerp(i.y,i.h[1],u);}}
       if(!g.result&&g.t>=tM+RE){snT=g.t;
-        if(hid){g.result='win';g.why='¡ENCALETADO!';sfx.win();spawn(PX,PY-60,22,'conf',CONF);}
-        else{g.result='lose';g.kind='robo';g.why='¡CHAO, TELÉFONO!';loot++;drag=false;sfx.whoosh();sfx.lose();setTimeout(()=>sfx.boing(),350);}}
+        if(all()){g.result='win';g.why='¡ENCALETADO!';sfx.win();spawn(PX,PY-60,22,'conf',CONF);}
+        else{robI=vic();g.result='lose';g.kind='robo';g.why=robI.w?'¡CHAO, CARTERA!':'¡CHAO, TELÉFONO!';loot++;drag=null;sfx.whoosh();sfx.lose();setTimeout(()=>sfx.boing(),350);}}
       if(g.result){g.endT+=dt;
         if(g.result==='win'&&!paid&&g.t-snT>.85){paid=true;sfx.ding();PT.push({x:SNX-70,y:AY-170,vx:-170,vy:-250,g:700,t:0,life:1.1,kind:'bill',col:'#5cd06a',r:9,rot:0,vr:7});}
         if(g.result==='win'&&(note-=dt)<=0){note=.35;PT.push({x:PX+56,y:PY-110,vx:30,vy:-70,g:0,t:0,life:1,kind:'♪',col:'#ffffff',r:4,rot:0,vr:0});}}},
     draw(){
-      const win=g.result==='win',lose=g.result==='lose',robo=lose&&g.kind==='robo',rx=cueM?robX():9999,bx=cueB?vx(tB):9999;
-      const alert=cueM&&!g.result&&!hid,gr=cueM&&snT<0?clamp((g.t-(tM+RE-.32))/.32,0,1):0,aboard=cueM&&rx<DX+70;
+      const win=g.result==='win',lose=g.result==='lose',robo=lose&&g.kind==='robo',rx=cueM?robX():9999,bx=cueB?vx(tB,VSP):9999;
+      const hid=all(),alert=cueM&&!g.result&&!hid,gr=cueM&&snT<0?clamp((g.t-(tM+RE-.32))/.32,0,1):0,aboard=cueM&&rx<DX+70;
       /* el bus por dentro: techo, pasamanos, ventanas, asientos del fondo */
       wash(0,0,800,600,'#f6e3b4','#ecd29a');
       rr(0,92,800,36,0,'#d9dce6',0);line([[0,128],[800,128]],4,INK);txt('CUIDE SUS PERTENENCIAS',170,110,13,INK,0,true);
@@ -172,18 +195,18 @@ function mkEncaleta(){
       if(aboard)ladron(rx,gr);
       if(cueB&&bx>300&&bx<DX-20){const p=g.kind==='pana';bubble(clamp(bx-40,480,590),196,p?'¿Y ESA DESCONFIANZA?':'¡BUENAS TARDES, SEÑORES PASAJEROS!',p?18:15,bx-6,AY-196);}
       if(cueM&&g.t-tM<.7)txt('¡QUIETOS!',640+Math.sin(now*60)*3,214,40,'#ff4d5e',-.06);
-      else if(cueM&&snT<0)bubble(clamp(rx-70,430,620),196,'¡LOS TELÉFONOS!',20,rx-10,AY-208);
+      else if(cueM&&snT<0)bubble(clamp(rx-70,430,620),196,lv>=3?'¡TELÉFONOS Y CARTERAS!':'¡LOS TELÉFONOS!',lv>=3?17:20,rx-10,AY-208);
       /* tu puesto */
       rr(40,300,290,200,26,'#3fa0ff',4.5);rr(130,282,170,48,16,'#6fbcff',3.5);
       rr(14,486,520,38,14,'#2f7fe0',4.5);rr(30,524,490,52,0,'#2d2640',0);rr(36,524,14,52,0,'#8f8fa8',3);rr(500,524,14,52,0,'#8f8fa8',3);
       line([[0,576],[800,576]],4,INK);
       /* tú: el brazo sigue al teléfono */
-      const tgt=robo?HOME:hid&&hidT>.45?null:[ph.x,ph.y];let aA=.22,aL=84;
-      if(tgt){const lx=(tgt[0]-PX)/PS-42,ly=(tgt[1]-PY)/PS-4;aA=Math.atan2(lx,ly);aL=clamp(Math.hypot(lx,ly),30,210);}
+      const arm=(it,sg)=>{const tg=robo&&!it.hid?it.h:it.hid&&it.hidT>.45?null:[it.x,it.y];if(!tg)return{side:sg,a:sg*.22,len:84,w:22};
+        const lx=(tg[0]-PX)/PS-sg*42,ly=(tg[1]-PY)/PS-4;return{side:sg,a:Math.atan2(lx,ly),len:clamp(Math.hypot(lx,ly),30,210),w:22};};
       const shrug=win&&g.endT<1.3;
       bust(Object.assign({},TU,{x:PX,y:PY+(alert?Math.sin(now*40)*2:0),s:PS,hw:40,hh:42,bw:54,th:170,
         mood:robo?'frown':win?(shrug?'smile':'grin'):lose?'worry':hid?'smile':alert?'panic':'calm',look:hid&&!win?-1:1,down:!cueM&&!cueB&&!g.result?1:0,sweat:alert?2:lose?1:0,
-        arms:shrug?[{side:1,a:1.9,len:70,w:22},{side:-1,a:-1.9,len:70,w:22}]:[{side:1,a:aA,len:aL,w:22},{side:-1,a:-.2,len:82,w:22}]}));
+        arms:shrug?[{side:1,a:1.9,len:70,w:22},{side:-1,a:-1.9,len:70,w:22}]:[arm(ph,1),its[1]?arm(its[1],-1):{side:-1,a:-.2,len:82,w:22}]}));
       if(robo&&g.endT>.35){const ny=PY+PS*(HY+9);for(const sg of[-1,1])ell(PX+sg*PS*52,PY+PS*(HY-14),22,24,sg<0?'#ff8a3d':'#3aa86a',4);ell(PX,ny,16,15,'#ff3b4e',3.5);ell(PX-5,ny-5,4,3,'#ffffff',0);}
       tag(PX,PY-PS*106-28);
       /* piernas: la media queda a la vista */
@@ -191,14 +214,17 @@ function mkEncaleta(){
       limb(153,540,151,556,24,'#ffffff',3);line([[141,545],[164,547]],3,'#e8553d');limb(291,540,293,556,24,'#ffffff',3);line([[280,547],[303,545]],3,'#e8553d');
       ell(142,570,30,12,'#e8553d',4);ell(302,570,30,12,'#e8553d',4);
       /* escondites */
-      for(const s of SPOTS){const on=(drag||alert)&&!hid,pz=on?1+Math.sin(now*12)*.08:1;
+      for(const s of SPOTS){const on=(drag||alert)&&!hid&&libre(s),pz=on?1+Math.sin(now*12)*.08:1;
         line(closeP(ellP(s.x,s.y,36*pz,26*pz,16)),on?5:3.5,on?'#ffe14d':'#fff3c4');
         rr(s.x-40,s.y-52,80,22,8,on?'#ffd23f':'#fff3c4',3);txt(s.n,s.x,s.y-40,12,INK,0,true);}
-      /* el teléfono */
-      if(hid&&hidT>.14){rr(hid.x-9,hid.y-18,18,24,5,'#14101c',3);const j=Math.sin(now*50)*2;for(const sg of[-1,1])line([[hid.x+sg*(24+j),hid.y-16],[hid.x+sg*(30+j),hid.y-8],[hid.x+sg*(24+j),hid.y]],3,'#ffe14d');}
-      else if(!robo)phone(ph.x,ph.y,drag?Math.sin(now*20)*.12:-.12,drag?1.3:1.1);
-      if(gr>.55)hand(HOME[0]+22,HOME[1]-4,-1.5,1.2,'#b87b50');
+      /* el teléfono (alto y negro) y la cartera (ancha, con el billete asomado): escondidos solo asoma la puntica */
+      for(const i of its){const s=i.hid,dg=drag===i;
+        if(s&&i.hidT>.14){if(i.w){rr(s.x-15,s.y-17,30,20,5,'#8a5a2b',3);line([[s.x-15,s.y-9],[s.x+15,s.y-9]],2.5,'#5a3716');}else rr(s.x-9,s.y-18,18,24,5,'#14101c',3);
+          const j=Math.sin(now*50)*2;for(const sg of[-1,1])line([[s.x+sg*(24+j),s.y-16],[s.x+sg*(30+j),s.y-8],[s.x+sg*(24+j),s.y]],3,'#ffe14d');}
+        else if(!robo)(i.w?wallet:phone)(i.x,i.y,dg?Math.sin(now*20)*.12:-.12,dg?1.3:1.1);}
+      if(gr>.55){const V=vic().h;hand(V[0]+22,V[1]-4,-1.5,1.2,'#b87b50');}
       if(alert)txt('¡!',PX-92,PY-118,44,'#ff4d5e',-.12);
+      if(alert&&its[1])txt(its.filter(i=>i.hid).length+'/2',PX-92,PY-74,24,'#ffe14d',-.12);
       if(win&&g.endT>.1&&rx<DX)bubble(540,196,g.endT<.85?'¿NI UN POTECITO?':"TOMA, PA' QUE TE AYUDES",g.endT<.85?22:19,clamp(rx-10,430,740),AY-208);
       if(robo&&g.endT>.15)bubble(560,196,'¡GRACIAS, MI PANA!',22,clamp(rx,460,760),AY-208);
       if(lose&&g.kind==='nada'&&g.endT>.2)bubble(540,200,'NO SE HA MONTADO NADIE...',20,PX+70,PY-70);
@@ -208,21 +234,24 @@ function mkEncaleta(){
 }
 
 /* ═════════ GAME 5: ¡AGÁRRATE! (de pescante en la curva: mantén el punto en el verde) ═════════ */
+/* Nivel 1: un frenazo (el perro) que achica el verde a .27. Nivel 2: lo achica más (.22). Nivel 3: más todavía (.18) y, apenas pasa el primero,
+   un SEGUNDO frenazo (el perro se devuelve) que te empuja para el lado contrario. */
 function mkAgarrate(){
   const rs=Math.sqrt(SP),lv=LV(),A0=1.5+(SP-1)*.8,B=3.4,ph1=Math.random()*TAU,ph2=Math.random()*TAU,w1=6.1*rs,w2=2.3*rs,dir=Math.random()<.5?-1:1,tF=(.5+Math.random()*.12)*5/rs;
   const tD=(2.2+Math.random()*.6)/rs,dD=1.05/rs,ZW=.36,ZMIN=[.27,.22,.18][lv-1],crash=Math.random()<.34?'retro':'poste',HX=548,HH=214,S=.8;
-  let d=0,v=0,grip=1,lean=0,zw=ZW,brk=0,jolt=false,fx=0,fy=0,frot=0,hit=false;
+  const tD2=lv>=3?tD+dD+.3/rs:1e9,dD2=.8/rs;
+  let d=0,v=0,grip=1,lean=0,zw=ZW,brk=0,jolt=0,j1=0,fx=0,fy=0,frot=0,hit=false;
   /* una curva en S: empuja parejo hacia un lado y a mitad de camino se voltea; quedarse quieto es caerse */
   const F=t=>clamp(t/.5,0,1)*A0*(dir*Math.tanh((tF-t)*5)*(.72+.2*Math.sin(w2*t+ph2))+.28*Math.sin(w1*t+ph1));
   /* el cuerpo cuelga de la mano: la mano queda fija en el tubo y el resto gira */
   const hang=()=>{const r=-(.2+d*.5)+(Math.abs(d)>zw?Math.sin(now*46)*.03:0),c=Math.cos(r),s=Math.sin(r),hx=-S*39,hy=-S*88;return{x:HX-(hx*c-hy*s),y:HH-(hx*s+hy*c),r};};
   const meO=Object.assign({},TU,{s:S,th:110,legs:['#2f3a7a','#ffffff',60]});
-  const g={get impact(){return this.result==='lose'?clamp(1-this.endT/.5,0,1):0;},probe:()=>({d,v,zw,grip,tD}),t:0,dur:5/rs,result:null,why:'',endT:0,cmd:'¡AGÁRRATE!',
+  const g={get impact(){return this.result==='lose'?clamp(1-this.endT/.5,0,1):0;},probe:()=>({d,v,zw,grip,tD,tD2,jolt}),t:0,dur:5/rs,result:null,why:'',endT:0,cmd:'¡AGÁRRATE!',
     hint:'← → (o mantén un lado de la pantalla / inclina el teléfono): el punto en el verde',
     press(){},
     update(dt){g.t+=dt;
-      const inD=!g.result&&g.t>=tD&&g.t<tD+dD;brk=inD?Math.min(1,brk+dt*8):Math.max(0,brk-dt*4);zw=lerp(ZW,ZMIN,brk);
-      if(inD&&!jolt){jolt=true;v+=(Math.random()<.5?-1:1)*.55;sfx.screech();}
+      const inD=!g.result&&(g.t>=tD&&g.t<tD+dD||g.t>=tD2&&g.t<tD2+dD2);brk=inD?Math.min(1,brk+dt*8):Math.max(0,brk-dt*4);zw=lerp(ZW,ZMIN,brk);
+      if(inD&&jolt<(g.t>=tD2?2:1)){if(!jolt)j1=Math.random()<.5?-1:1;jolt++;v+=(jolt>1?-j1:j1)*.55;sfx.screech();}
       if(!g.result){const f=F(g.t);lean+=(f/A0-lean)*Math.min(1,dt*6);v+=(f+steer()*B)*dt;v*=Math.exp(-2.4*dt);d+=v*dt;if(Math.abs(d)>1){d=Math.sign(d);v=0;}
         grip=clamp(grip+(Math.abs(d)>zw?-dt/.8:dt/2.5),0,1);
         if(grip<=0){const h=hang();fx=h.x;fy=h.y;frot=h.r;g.result='lose';g.why='¡TE CAÍSTE!';sfx.whoosh();sfx.lose();}
@@ -241,6 +270,7 @@ function mkAgarrate(){
       ctx.restore();
       /* el perro que cruza: frenazo */
       const dgx=-70+(g.t-tD)*150*rs;if(g.t>=tD&&dgx<126)dog(dgx,470,.85);
+      const otro=g.t>=tD2,dgx2=126-(g.t-tD2)*150*rs;if(otro&&dgx2>-80){ctx.save();ctx.translate(dgx2,470);ctx.scale(-1,1);dog(0,0,.85);ctx.restore();}
       /* bus visto desde atrás */
       ctx.save();ctx.translate(330,500-away*196);ctx.scale(bs,bs);ctx.rotate(lean*.085+(mv?Math.sin(now*31)*.004:0));ctx.translate(-330,-500+brk*12+(mv?Math.sin(now*34)*1.3:0));
       ell(226,118,36,20,'#e8d7a8',4);ell(300,110,40,24,'#e8d7a8',4);hen(408,110,.52,-.5);
@@ -271,7 +301,7 @@ function mkAgarrate(){
         bust(Object.assign({},meO,{x,y,rot:u<1?frot-u*7:T[2],sy:u>=1?.86:1,mood:u>=1?'dizzy':'yell',talk:1,arms:[{side:-1,a:-2.2,len:84,w:20},{side:1,a:2.2,len:84,w:20}]}));
         if(u>=1)for(let i=0;i<3;i++){const a=now*5+i*TAU/3;txt('★',x+Math.cos(a)*44,y-S*120+Math.sin(a)*10,22,'#ffe14d');}
         if(crash==='retro'&&e>.5)bubble(600,330,'¡MI RETROVISOR!',22,700,432);}
-      if(brk>.3&&!g.result)bubble(150,330,'¡UN PERRO!',24,Math.max(40,dgx),400);
+      if(brk>.3&&!g.result)bubble(150,330,otro?'¡SE DEVOLVIÓ!':'¡UN PERRO!',24,Math.max(40,otro?dgx2:dgx),400);
       if(win&&e>.2)bubble(350,150,'¡EL PASAJE, MI REY!',24,536,300);
       /* barra de equilibrio */
       if(!g.result){rr(118,500,564,70,22,'#2d2640',4);
@@ -280,7 +310,7 @@ function mkAgarrate(){
         const st=steer();txt('◀',140,538,24,st<-.2?'#ffe14d':'#8f8fa8',0,true);txt('▶',660,538,24,st>.2?'#ffe14d':'#8f8fa8',0,true);
         ell(gx(d),gy(d),15,15,out&&Math.sin(now*30)>0?'#ff4d5e':'#ffffff',4);
         rr(340,507,120,9,4,'#14101c',0);if(grip>.02)rr(342,509,116*grip,5,2,grip<.4?'#ff4d5e':'#ffd23f',0);
-        if(brk>.3)txt('¡FRENAZO!',400,478,26,'#ff4d5e');}
+        if(brk>.3)txt(otro?"¡OTRO FRENAZO: PA'L OTRO LADO!":'¡FRENAZO!',400,478,otro?22:26,'#ff4d5e');}
       drawP();
     }};
   return g;

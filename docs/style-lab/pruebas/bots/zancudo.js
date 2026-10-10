@@ -1,15 +1,20 @@
-/* Bot de ¡MATA EL ZANCUDO! (ver ../probar.js). El bicho está en P().x, P().y; la luz en P().px, P().py; P().cool = reposo tras pelar. */
+/* Bot de ¡MATA EL ZANCUDO! (ver ../probar.js). El bicho está en P().x, P().y (en el nivel 3 son dos: es el primero que queda vivo;
+   P().quedan = cuántos faltan, P().bichos = [{x, y, vivo}]); la luz en P().px, P().py (P().RL = su radio: 170, o 128 desde el nivel 2);
+   P().cool = reposo tras pelar. */
 (function(){
-const lejos=p=>[p.x<400?690:110,490];
+const lejos=p=>[p.x<400?690:110,560];   /* tan abajo no llega ningún bicho (vuelan hasta y = 450) */
+const revisa=T=>{const lv=BUS.LV(),p=T.P();if(p.bichos.length!==(lv>2?2:1)||p.RL!==(lv>1?128:170))throw new Error('nivel '+lv+': '+p.bichos.length+' bichos, luz de '+p.RL);};
 BOTS.zancudo={
   /* alumbra lejos (solo se ven los ojos), arrastra la luz hasta el bicho y suelta encima; si se le va, repite */
-  gana(T){T.S(.3);T.foto('inicio');const[lx,ly]=lejos(T.P());T.down(lx,ly);T.S(.25);T.foto('ojos');
-    let n=0;while(!T.listo()&&n++<12){let p=T.P();T.move(p.x,p.y);T.S(.05);if(n===1)T.foto('alumbrado');
-      p=T.P();T.move(p.x,p.y);T.up(p.x,p.y);if(T.listo())break;T.S(.36);p=T.P();T.down(p.x,p.y);}},
+  gana(T){revisa(T);T.S(.3);T.foto('inicio');const[lx,ly]=lejos(T.P());T.down(lx,ly);T.S(.25);T.foto('ojos');
+    let n=0;while(!T.listo()&&n++<12){let p=T.P();const q=p.quedan;T.move(p.x,p.y);T.S(.05);if(n===1)T.foto('alumbrado');
+      p=T.P();T.move(p.x,p.y);T.up(p.x,p.y);if(T.listo())break;
+      if(T.P().quedan<q){T.S(.15);T.foto('falta-uno');T.S(.21);}else T.S(.36);p=T.P();T.down(p.x,p.y);}},
   /* pela uno lejos, el toque dentro del reposo no cuenta, y después sí le da */
   ganaTrasPelar(T){T.S(.3);const[lx,ly]=lejos(T.P());T.tap(lx,ly);if(T.listo())throw new Error('un chancletazo lejos contó');
     T.S(.1);T.foto('pelaste');let p=T.P();T.tap(p.x,p.y);if(T.listo())throw new Error('el chancletazo dentro del reposo contó');
-    T.S(.3);p=T.P();T.tap(p.x,p.y);},
+    T.S(.3);p=T.P();T.tap(p.x,p.y);
+    let n=0;while(!T.listo()&&n++<6){T.S(.36);p=T.P();T.tap(p.x,p.y);}},   /* nivel 3: falta el otro */
   ganaTeclas(T){T.S(.2);let n=0;while(!T.listo()&&n++<200){const p=T.P(),dx=p.x-p.px,dy=p.y-p.py;
       if(Math.hypot(dx,dy)<p.R-6&&p.cool<=0)T.tecla('Space');
       else if(Math.abs(dx)>=Math.abs(dy))T.tecla(dx>0?'ArrowRight':'ArrowLeft');else T.tecla(dy>0?'ArrowDown':'ArrowUp');

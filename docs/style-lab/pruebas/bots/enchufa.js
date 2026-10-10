@@ -1,5 +1,6 @@
 /* Bot de ¡ENCHUFA! (ver ../probar.js). P() = {x, y} de la toma AHORA; el dedo se suelta en (x, y+tip) porque la punta del
-   enchufe queda tip px por encima; r = tolerancia; en(dt) = dónde estará la toma en dt s; paso = lo que mueve una flecha. */
+   enchufe queda tip px por encima; r = tolerancia; en(dt) = dónde estará la toma en dt s; paso = lo que mueve una flecha.
+   Nivel 3: x, y es la toma BUENA, mala = {x, y} de la quemada (null en los otros niveles) y jalon = la regleta va brincando. */
 (function(){
 const mete=T=>{const p=T.P();T.move(p.x,p.y+p.tip);T.up(p.x,p.y+p.tip);};
 BOTS.enchufa={
@@ -15,6 +16,11 @@ BOTS.enchufa={
     for(let i=0;i<Math.abs(nx);i++)T.tecla(nx<0?'ArrowLeft':'ArrowRight');for(let i=0;i<Math.abs(ny);i++)T.tecla(ny<0?'ArrowUp':'ArrowDown');T.tecla('Space');},
   /* enchufa donde no es, una y otra vez, hasta que el reloj se acaba */
   pierde(T){T.S(.3);let n=0;while(!T.listo()&&n++<40){T.tap(720,520);T.S(.36);if(n===2)T.foto('pelando');}},
+  /* nivel 3: enchufa en la toma QUEMADA una y otra vez (cada una cuenta como fallo); en los otros niveles pela lejos */
+  pierdeQuemada(T){T.S(.3);let n=0;while(!T.listo()&&n++<40){const p=T.P(),q=p.mala,m0=p.miss;if(q){T.down(q.x,q.y+p.tip);T.up(q.x,q.y+p.tip);if(!T.listo()&&T.P().miss!==m0+1)throw new Error('la toma quemada no dio corrientazo');}else T.tap(720,520);
+    T.S(.36);if(n===2)T.foto('quemada');}},
+  /* nivel 3: espera el jalón y enchufa en pleno brinco */
+  ganaEnElJalon(T){T.S(.2);T.down(400,430);T.hasta(()=>T.listo()||T.P().jalon||T.G.t>T.G.dur*.7,6);T.S(.04);T.foto('jalon');mete(T);},
   /* justo fuera de la tolerancia no entra */
   pierdePorPoco(T){let n=0;while(!T.listo()&&n++<40){T.S(.34);const p=T.P(),d=p.r+4;T.down(p.x,p.y+p.tip+d);T.up(p.x,p.y+p.tip+d);}},
   nada:'lose',

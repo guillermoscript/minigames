@@ -6,6 +6,10 @@
    y SOLTARLO justo cuando el enchufe pasa derecho. Soltarlo en el puerto con el enchufe torcido = ¡AL REVÉS! (chispas,
    la cuña más duro y el chofer te mira feo). Soltarlo lejos del puerto solo te lo devuelve a la mano.
    Nivel 1: vaivén lento y ventana ancha. Niveles 2 y 3: vaivén más rápido e irregular, ventana más angosta, el puerto tiembla más.
+   Nivel 3, además, el chiste de todo USB: la PRIMERA vez que lo metes derechito rebota («¡AL REVÉS!», sin perder). Hay que VOLTEARLO
+   (un toque corto sobre el muñeco, o FLECHA ARRIBA) y meterlo otra vez; del lado que rebotó no entra nunca. De frente se le ve la cara,
+   el 2GB y los dos huequitos del enchufe; de espaldas, el lomo, el rabito y el tridente del USB. El reloj da 7 s en vez de 5.
+   Meterlo torcido sigue siendo perder (en el nivel 3 el sello dice ¡TORCIDO! para no confundirlo con el rebote).
    Teclado: ESPACIO lo acerca al puerto y otro ESPACIO lo empuja con el ángulo que tenga.
    La salsa del final es ORIGINAL (clave 3-2, montuno propio sobre Do-Fa-Sol-Fa, campana): no es ninguna canción real.
    Se carga DESPUÉS de index.html y juegos-bus.js: dibuja con las primitivas del laboratorio y se registra con BUS.add. */
@@ -31,7 +35,13 @@ function salsa(i){const n=i%16,c=CHD[n>>2],q=n%4,v=.03,w=1+(Math.random()-.5)*.0
 
 /* el pendrive: un chigüire de goma con el enchufe en la cabeza. (x, y) = por donde lo pellizcas, abajo */
 function muneco(x,y,rot,o){const c='#a9713a',d='#7a4f2a',m=o.mood;
-  ctx.save();ctx.translate(x,y);ctx.rotate(rot);ctx.scale(S,S);
+  ctx.save();ctx.translate(x,y);ctx.rotate(rot);ctx.scale(S*(o.fx==null?1:o.fx),S);
+  /* de espaldas (nivel 3): el enchufe muestra el tridente del USB en vez de los huequitos, y el chigüire el lomo y el rabito */
+  if(o.back&&!o.bent){rr(-12,-LL,24,36,3,o.good?'#5cff7a':'#c9ced6',3.5);line([[0,-LL+6],[0,-LL+24]],2.5,'#5a5274');line([[0,-LL+18],[-6,-LL+12],[-6,-LL+9]],2.5,'#5a5274');line([[0,-LL+21],[6,-LL+15],[6,-LL+12]],2.5,'#5a5274');ell(0,-LL+25,2.6,2.6,'#5a5274',0);
+    for(const sg of[-1,1]){ell(sg*22,-79,8,8,d,3);ell(sg*31,-34,7,11,c,3);}
+    rr(-31,-82,62,82,21,c,4.5);line([[0,-74],[0,-30]],3,d);for(let i=0;i<3;i++)for(const sg of[-1,1])line([[sg*4,-64+i*14],[sg*15,-58+i*14]],3,d);
+    ell(0,-12,8,7,d,3);if(o.led)ell(18,-8,4.5,4.5,o.led,2);
+    ctx.restore();return;}
   if(o.bent)poly([[-12,-76],[-13,-90],[-3,-97],[-17,-106],[5,-112],[15,-99],[7,-91],[12,-76]],'#c9ced6',3.5);
   else{rr(-12,-LL,24,36,3,o.good?'#5cff7a':'#c9ced6',3.5);rr(-8,-LL+8,6,7,0,'#5a5274',0);rr(2,-LL+8,6,7,0,'#5a5274',0);}
   for(const sg of[-1,1]){ell(sg*22,-79,8,8,d,3);ell(sg*31,-34,7,11,c,3);}
@@ -56,35 +66,45 @@ function corre(s,size,col,x0,x1,y,off){const w=tw(s,size);for(let x=x0-(off%w);x
 
 /* ═════════ ¡PENDRIVE!: mete el chigüire USB derechito en el puerto ═════════ */
 function mkPendrive(){
-  const rs=Math.sqrt(SP),lv=LV(),n=lv-1,AMP=[.8,.9,.95][n],WS=[3.5,4.6,5.4][n],B=[0,.05,.08][n],TOL=[.34,.27,.22][n],RPOS=[56,46,38][n],J=[2.5,5,8][n];
+  const rs=Math.sqrt(SP),lv=LV(),n=lv-1,GAG=lv>2,AMP=[.8,.9,.95][n],WS=[3.5,4.6,5.4][n],B=[0,.05,.08][n],TOL=[.34,.27,.22][n],RPOS=[56,46,38][n],J=[2.5,5,8][n];
   const PX=420,MY=388,HOME=[676,540],ph0=Math.random()*TAU,pas=[2,5,6,0].map((fi,i)=>({f:FACES[fi],x:350+i*96}));
   let px=HOME[0],py=HOME[1],held=false,kb=false,used=false,a0=0,x0=0,y0=0,jT=.2,ji=0,si=0,adT=.45,adN=0,scroll=0,mq=0,inZ=false,hit=false,noteT=0,egg=false;
+  /* nivel 3: volt = está de espaldas; mal = el lado que ya rebotó (null: todavía no lo has metido); flT anima el volteo; dT/dP: dónde y cuándo bajó el dedo */
+  let volt=false,mal=null,reb=0,flT=0,rbT=0,dT=-9,dP=null;
   /* el vaivén: un metrónomo (en los niveles 2 y 3, con un temblor encima) */
   const ang=()=>AMP*Math.sin(WS*g.t+ph0)+B*Math.sin(2.3*WS*g.t+1.3);
   const mouth=()=>g.result==='win'?[PX,MY]:[PX+Math.sin(g.t*41)*J+Math.sin(g.t*17.3)*J*.5,MY+Math.cos(g.t*33)*J*.6];
   const dock=()=>{const m=mouth();return[m[0],m[1]+L+2];};
   const grita=(k,big)=>{adN++;const lado=adN%2;pop(GRITOS[adN%GRITOS.length],lado?236+Math.random()*90:620+Math.random()*120,(big?272:284)+Math.random()*22,lado?'#ffe14d':'#ff4d5e',-6+k*10+(big?8:0),.7);};
+  function voltea(){if(g.result)return;volt=!volt;flT=1;used=true;snd(700,.05,'square',.05,volt?500:-300);nz(.03,.1);}
   /* soltar: lejos del puerto vuelve a la mano; en el puerto, entra derecho o no entra */
   function suelta(){const d=dock(),m=mouth(),a=ang(),tx=px+Math.sin(a)*L,ty=py-Math.cos(a)*L;
     held=false;kb=false;
     if(Math.hypot(px-d[0],py-d[1])>RPOS&&Math.hypot(tx-m[0],ty-m[1])>RPOS){sfx.whoosh();return;}
     a0=a;x0=px;y0=py;
+    if(Math.abs(a)<TOL&&GAG&&(mal===null||volt===mal)){/* derechito, pero del lado que no es: rebota y vuelve a la mano */
+      if(mal===null)mal=volt;reb++;rbT=1.1;sfx.boing();snd(160,.12,'square',.07,-40);spawn(m[0],m[1],6,'★',['#ffe14d','#ffffff'],220,500,.5);pop('¡AL REVÉS!',PX+118,MY+44,'#ffe14d',10,.9);
+      g.hint="¡AL REVÉS! TOCA el pendrive (o FLECHA ARRIBA) pa' voltearlo y mételo otra vez";return;}
     if(Math.abs(a)<TOL){g.result='win';g.why='¡SALSA!';nz(.05,.25);snd(1320,.08,'square',.07);snd(180,.1,'sine',.2,-60);pop('¡CLAC!',PX+110,MY+50,'#5cff7a',6);}
-    else{g.result='lose';g.kind='rev';g.why='¡AL REVÉS!';sfx.crash();snd(120,.5,'sawtooth',.1,-50);sfx.lose();
+    else{g.result='lose';g.kind='rev';g.why=GAG?'¡TORCIDO!':'¡AL REVÉS!';sfx.crash();snd(120,.5,'sawtooth',.1,-50);sfx.lose();
       spawn(m[0],m[1],14,'★',['#ffe14d','#ffffff'],300,600,.7);spawn(m[0],m[1],8,'bit',['#ffd23f','#ff8a3d'],340,700,.6);pop('¡BZZT!',PX+112,MY+50,'#ffe14d',8);}}
   const set=p=>{px=clamp(p.x,30,770);py=clamp(p.y,330,566);};
   const g={get impact(){return this.result?clamp(1-this.endT/.5,0,1):0;},
-    probe:()=>{const d=dock(),m=mouth(),a=ang();return{a,tol:TOL,rpos:RPOS,amp:AMP,w:WS,good:Math.abs(a)<TOL,piv:{x:px,y:py},dock:{x:d[0],y:d[1]},mouth:{x:m[0],y:m[1]},home:{x:HOME[0],y:HOME[1]},held,kb,kind:g.kind};},
-    t:0,dur:5/rs,result:null,why:'',kind:'',endT:0,cmd:'¡EL PENDRIVE!',
+    probe:()=>{const d=dock(),m=mouth(),a=ang();return{a,tol:TOL,rpos:RPOS,amp:AMP,w:WS,good:Math.abs(a)<TOL,piv:{x:px,y:py},dock:{x:d[0],y:d[1]},mouth:{x:m[0],y:m[1]},home:{x:HOME[0],y:HOME[1]},held,kb,kind:g.kind,lv,volt,mal,reb};},
+    t:0,dur:(GAG?7:5)/rs,result:null,why:'',kind:'',endT:0,cmd:'¡EL PENDRIVE!',
     hint:'ARRASTRA al puerto y SUELTA con el enchufe en VERDE (o ESPACIO x2)',
     /* teclado: el primer toque lo acerca al puerto; el segundo lo empuja como esté */
-    press(){if(g.result||held)return;
+    press(k){if(g.result||held)return;
+      if(GAG&&(k==='up'||k==='down')){voltea();return;}
       if(!kb){kb=true;used=true;snd(520,.06,'square',.04,200);return;}
       const d=dock();if(Math.hypot(px-d[0],py-d[1])<RPOS*.6)suelta();},
-    down(p){if(g.result)return;if(Math.hypot(p.x-px,p.y-(py-60))<120){held=true;kb=false;used=true;set(p);snd(660,.05,'square',.04,200);}},
+    down(p){if(g.result)return;if(Math.hypot(p.x-px,p.y-(py-60))<120){held=true;kb=false;used=true;dT=g.t;dP=p;set(p);snd(660,.05,'square',.04,200);}},
     move(p){if(held&&!g.result)set(p);},
-    up(p){if(!held||g.result)return;if(p)set(p);suelta();},
-    update(dt){g.t+=dt;scroll+=dt*120;
+    up(p){if(!held||g.result)return;
+      /* nivel 3: un toque corto (sin arrastrar) lo voltea en vez de soltarlo */
+      if(GAG&&p&&dP&&g.t-dT<.25&&Math.hypot(p.x-dP.x,p.y-dP.y)<18){held=false;voltea();return;}
+      if(p)set(p);suelta();},
+    update(dt){g.t+=dt;scroll+=dt*120;flT=Math.max(0,flT-dt/.2);rbT=Math.max(0,rbT-dt);
       if(!g.result){const k=clamp(g.t/g.dur,0,1);mq+=dt*150*rs*(1+k*.6);
         if(kb){const d=dock(),u=Math.min(1,dt*12);px=lerp(px,d[0],u);py=lerp(py,d[1],u);}
         else if(!held){const u=Math.min(1,dt*12);px=lerp(px,HOME[0],u);py=lerp(py,HOME[1],u);}
@@ -150,7 +170,7 @@ function mkPendrive(){
       ctx.restore();
       ctx.restore();
       /* enchufado: el enchufe queda tapado por el puerto */
-      if(win){const u=ease(clamp(e/.12,0,1));muneco(lerp(x0,PX,u),lerp(y0,MY+L-24*S,u),lerp(a0,0,u)+sw*.07,{mood:'happy',led:dz&&Math.floor(beat)%2?'#5cff7a':'#ff3b4e'});}
+      if(win){const u=ease(clamp(e/.12,0,1));muneco(lerp(x0,PX,u),lerp(y0,MY+L-24*S,u),lerp(a0,0,u)+sw*.07,{mood:'happy',back:volt,led:dz&&Math.floor(beat)%2?'#5cff7a':'#ff3b4e'});}
       txt('USB',PX-84,MY-8,14,'#fffdf2',0,true);puerto(m[0],m[1],good||win);
       /* el chofer y su volante */
       const CX=98,CY=376,AW=[{side:-1,a:.12,len:92,w:23},{side:1,a:-.2,len:92,w:23}],late=k>.7,ch={x:CX,y:CY,s:1.05,look:1,arms:AW};
@@ -170,11 +190,15 @@ function mkPendrive(){
       /* tu mano y el pendrive */
       if(win){const u=ease(clamp((e-.14)/.3,0,1)),hx=lerp(x0,HOME[0],u),hy=lerp(y0,HOME[1],u)-hop*10;palma(hx,hy);for(let i=0;i<4;i++)ell(hx-16+i*15,hy+2-(i%3?6:0),10,19,TU.skin,3);ell(hx-32,hy+30,13,11,TU.skin,3);}
       else if(rev){const u=clamp((e-.07)/.55,0,1),lx=556,ly=534;palma(x0,y0);dedos(x0,y0);
-        muneco(lerp(x0,lx,u)+(u?0:Math.sin(now*90)*4),lerp(y0,ly,u)-Math.sin(u*PI)*120,lerp(a0,PI*2.5,ease(u)),{mood:'dizzy',bent:u>0});
+        muneco(lerp(x0,lx,u)+(u?0:Math.sin(now*90)*4),lerp(y0,ly,u)-Math.sin(u*PI)*120,lerp(a0,PI*2.5,ease(u)),{mood:'dizzy',bent:u>0,back:volt});
         if(u>=1)for(let i=0;i<3;i++){const q=now*5+i*TAU/3;txt('★',lx+96+Math.cos(q)*34,ly-58+Math.sin(q)*9,20,'#ffe14d');}}
-      else{palma(px,py);muneco(px,py,a,{mood:lose?'dizzy':held||kb?(good?'happy':'o'):'calm',good});dedos(px,py);
-        if(!used&&!g.result)tag(px+76,py+8);}
-      if(!g.result&&g.t>.15&&g.t<1.7/rs)bubble(158,150,'¡CAMBIA EL PENDRIVE!',17,CX+16,246);
+      else{palma(px,py);muneco(px,py,a,{mood:lose?'dizzy':held||kb?(good?'happy':'o'):'calm',good,back:flT>.5?!volt:volt,fx:Math.max(.08,Math.abs(1-2*flT))});dedos(px,py);
+        if(!used&&!g.result)tag(px+76,py+8);
+        /* rebotó y sigue del lado malo: que lo voltee */
+        if(GAG&&!g.result&&mal!==null&&volt===mal&&!held&&!kb&&rbT<.75){const b=Math.abs(Math.sin(now*7));txt('¡VOLTÉALO!',px+8,py-148-b*6,26,'#ffe14d',-.05);txt('TÓCALO',px+8,py-122-b*6,16,'#ffffff',-.05);
+          for(const sg of[-1,1])poly([[px+sg*(66+b*8),py-70],[px+sg*(50+b*8),py-82],[px+sg*(50+b*8),py-58]],'#ffe14d',3);}}
+      if(!g.result&&rbT>0)bubble(158,150,'¡ESTÁ AL REVÉS, CHICO!',16,CX+16,246);
+      else if(!g.result&&g.t>.15&&g.t<1.7/rs)bubble(158,150,'¡CAMBIA EL PENDRIVE!',17,CX+16,246);
       if(dz&&e>.55)bubble(160,150,'¡ESA SÍ ES MÚSICA!',19,CX+16,240);
       if(rev&&e>.3)bubble(170,150,"¡ERA PA'L OTRO LADO!",18,CX+60,232);
       if(lose&&!rev&&e>.3)bubble(160,150,'¡YA ME SÉ LA CUÑA!',19,CX+16,244);

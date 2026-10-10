@@ -2,9 +2,14 @@
 /* MiniCaos · laboratorio de estilos: ¡CIERRA LA NEVERA! (SE FUE LA LUZ, el apFridge de js/games/ap1.js).
    Se fue la luz y la puerta de la nevera se empeña en abrirse: se sale el frío y se daña la comida. El tío le recuesta todo
    el peso, pero el que empuja eres tú: TOCA RÁPIDO (o ESPACIO), cada toque la cierra un poquito (-0.13).
-   La puerta arranca en 0.3 y se abre sola (0.3 por segundo, más rápido con la velocidad); dos veces le da un jalón de medio
+   La puerta arranca en 0.3 y se abre sola (0.3 por segundo, más rápido con la velocidad); dos veces (tres desde el nivel 2) le da un jalón de medio
    segundo (x1.7: la puerta tiembla y sale «¡SE ABRE!»). Si llega a 1 = ¡SE DESCONGELÓ!; si aguantas hasta que se acabe
    el reloj (5 s / raíz de la velocidad) = ¡SALVADO!
+   El nivel sale de BUS.LV() (no de la velocidad: en el modo niveles el 3 corre casi a velocidad 1).
+   Nivel 1: DOS jalones, como hoy.
+   Nivel 2: TRES jalones (el último, casi al final).
+   Nivel 3: los tres jalones y además, una vez (después del primero), el tío SE RESBALA con el charco: se va de espaldas con los
+            brazos al aire, grita «¡ME RESBALÉ!» y la puerta pega un brinco de +0.2 (nunca pasa de 0.96: el brinco solo no te mata).
    El peligro se lee en la puerta misma (se ve la comida, sale el frío, crece el charco) y además hay una barrita «ABIERTA».
    Se carga DESPUÉS de index.html y juegos-bus.js: dibuja con las primitivas del laboratorio y se registra con BUS.add. */
 (function(){
@@ -37,19 +42,23 @@ function nevera(op,jit){
 
 /* ═════════ ¡CIERRA LA NEVERA!: toca rápido hasta que se acabe el reloj ═════════ */
 function mkNevera(){
-  const rs=Math.sqrt(SP),drift=.3+(SP-1)*.2,surges=[(Math.random()*1.2+.8)/rs,(Math.random()*1.2+2.4)/rs];
-  let o=.3,shove=0,taps=0,sg=false,fin=0,charco=0,gota=0;
+  const rs=Math.sqrt(SP),lv=BUS.LV(),drift=.3+(SP-1)*.2;
+  const surges=lv<2?[(Math.random()*1.2+.8)/rs,(Math.random()*1.2+2.4)/rs]:[(Math.random()*.6+.6)/rs,(Math.random()*.6+2)/rs,(Math.random()*.7+3.5)/rs];
+  const tRes=lv>2?(Math.random()*.3+1.55)/rs:99;   /* nivel 3: cuándo se resbala el tío */
+  let o=.3,shove=0,taps=0,sg=false,fin=0,charco=0,gota=0,res=0,resb=false;
   const surge=()=>surges.some(s=>g.t>s&&g.t<s+.5);
   function dale(){if(g.result)return;o=Math.max(0,o-.13);shove=1;taps++;sfx.thud();
     spawn(HR-W*(1-.8*o)+10,360,2,'bit',['#cfeaf0','#ffffff'],150,500,.35);}
   const g={get impact(){return this.result?clamp(1-fin/.5,0,1):sg?.25:0;},
-    probe:()=>({o,taps,surge:sg}),
+    probe:()=>({o,taps,surge:sg,jalones:surges.length,resbalon:res>0,resbalo:resb}),
     t:0,dur:5/rs,result:null,why:'',endT:0,cmd:'¡CIERRA LA NEVERA!',
     hint:'TOCA RÁPIDO (o ESPACIO): mantén la nevera cerrada hasta que se acabe el tiempo',
     press(){dale();},
     down(){dale();},
-    update(dt){g.t+=dt;shove=Math.max(0,shove-dt*6);
+    update(dt){g.t+=dt;shove=Math.max(0,shove-dt*6);res=Math.max(0,res-dt);
       if(!g.result){const was=sg;sg=surge();charco=clamp(g.t/g.dur,0,1);
+        if(!resb&&g.t>=tRes){resb=true;res=.65;o=Math.max(o,Math.min(.96,o+.2));sfx.whoosh();snd(700,.3,'sawtooth',.06,-500);nz(.12,.1);
+          spawn(HR-W*(1-.8*o)+96,548,10,'bit',['#9fdcff','#ffffff'],220,600,.5);}
         if(sg&&!was){snd(170,.35,'sawtooth',.05,140);nz(.2,.06);}
         if(o>.2&&(gota-=dt)<=0){gota=.5-.3*o;snd(1400,.04,'sine',.03,-500);}
         o+=drift*rs*(sg?1.7:1)*dt;
@@ -74,17 +83,20 @@ function mkNevera(){
       if(k>.15)for(let i=0;i<3;i++){const u=(now*1.3+i/3)%1;ell(FX+26+i*(gap-30)/3,lerp(BOT-4,544,u*u),3.5,6,'#9fdcff',2.5);}
       if(k>.12){ctx.save();for(let i=0;i<6;i++){const u=(now*.6+i/6)%1;ctx.globalAlpha=.5*k*(1-u*.6);ell(FX+gap*.5-u*90+i*7,BOT+8-i*15,24+u*40,9+u*13,'#e6faff',0);}ctx.restore();}
       /* el tío: todo el peso contra el borde de la puerta */
-      const S=1.05,bw=TIO.bw||54,X=e+118-(g.result?0:shove*9),Y=372+(win?-Math.abs(Math.sin(now*10))*12:lose?8:Math.sin(now*18)*(1+k*2)),rot=win?0:lose?.22:-.14-shove*.08+k*.08;
+      const rz=res>0&&!g.result?Math.sin(clamp(res/.65,0,1)*Math.PI):0;   /* el resbalón: 0 → 1 → 0, se va de espaldas y vuelve */
+      const S=1.05,bw=TIO.bw||54,X=e+118-(g.result?0:shove*9)+rz*30,Y=372+(win?-Math.abs(Math.sin(now*10))*12:lose?8:Math.sin(now*18)*(1+k*2))+rz*26,rot=win?0:lose?.22:-.14-shove*.08+k*.08+rz*.62;
       const brazo=(side,wx,wy)=>{const lx=(wx-X)/S,ly=(wy-Y)/S,cr=Math.cos(rot),sr=Math.sin(rot),dx=lx*cr+ly*sr-side*bw*.78,dy=-lx*sr+ly*cr-4;
         return{side,a:Math.atan2(dx,dy),len:clamp(Math.hypot(dx,dy),30,150),w:20,col:TIO.skin};};
       const arriba=sgn=>({side:sgn,a:sgn*(2.6+Math.sin(now*(win?12:26))*.22),len:76,w:20,col:TIO.skin});
       bust(Object.assign({},TIO,{x:X,y:Y,s:S,rot,th:110,legs:['#5a6fa8','#3b2a22',60],look:g.result?0:-1,
-        mood:win?'grin':lose?'yell':k>.66||sg?'panic':shove>.4?'angry':'worry',talk:lose?.6+.4*Math.sin(now*22):0,sweat:win?0:k>.5?2:1,
-        arms:g.result?[arriba(1),arriba(-1)]:[brazo(1,e+32,404),brazo(-1,e+22,322)]}));
+        mood:win?'grin':lose?'yell':rz>0?'yell':k>.66||sg?'panic':shove>.4?'angry':'worry',talk:lose||rz>0?.6+.4*Math.sin(now*22):0,sweat:win?0:k>.5?2:1,
+        arms:g.result||rz>0?[arriba(1),arriba(-1)]:[brazo(1,e+32,404),brazo(-1,e+22,322)]}));
       ctx.restore();
       /* la noche encima: la luz de la vela y el resplandor frío de la nevera abierta */
       AP.oscuro(.55,[{x:626,y:268,r:215,c:'#ffb060'},{x:FX+gap*.5,y:372,r:gap<6?0:50+gap*1.15,c:'#9fdcff'}]);
       /* lo que se lee a través de la oscuridad */
+      if(rz>0){txt('¡ME RESBALÉ!',clamp(X+30,150,650),Y-150,30,'#ffe14d',.1+Math.sin(now*30)*.03);
+        for(const sx of[-1,1])line([[X-10+sx*34,548],[X-10+sx*62,536-rz*8]],4,'#ffffff');}   /* las rayitas del patinazo */
       if(sg&&Math.sin(now*24)>-.3)txt('¡SE ABRE!',264,156,30,'#ff4d5e',-.08+Math.sin(now*30)*.03);
       if(!g.result){rr(548,506,236,52,14,'#2d2640',4);txt('ABIERTA',606,533,16,'#ffffff',0,true);
         rr(660,522,112,20,6,'#14101c',0);if(k>.02)rr(663,525,106*k,14,4,k>.66?(Math.sin(now*26)>0?'#ff4d5e':'#fff3a8'):'#ffd23f',0);

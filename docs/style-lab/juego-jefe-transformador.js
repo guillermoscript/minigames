@@ -8,6 +8,11 @@
    Ganas: ¡LLEGÓ! (todas las ventanas prendidas, el transformador queda mareado y todo el mundo brinca).
    Pierdes: se acaba el tiempo = ¡SIN LUZ!
    El estado no depende del color: la palanca SUBE, la barra se llena, el aviso es un «!» y la furia trae chispas y rayo.
+   Nivel 1: como siempre. El nivel sale de BUS.LV() (no de la velocidad, que aquí sigue topada en 1.3).
+   Nivel 2: la palanca se baja 10 % más rápido y el transformador se alebresta más seguido (la primera a los ~1.3–1.8 s
+   y después cada ~1.6 s de pausa en vez de ~2).
+   Nivel 3: lo del 2, y la PRIMERA vez que la palanca llega arriba chispea y se cae a la mitad («¡SE BAJÓ!», el breaker
+   queda con la tapa rajada y el letrero dice «¡OTRA VEZ!»): hay que subirla una segunda vez para ganar. Dura 10 s en vez de 8.
    Se carga DESPUÉS de index.html y juegos-bus.js: dibuja con las primitivas del laboratorio y se registra con BUS.add. */
 (function(){
 if(!window.BUS||GAMES.transformador)return;
@@ -40,33 +45,36 @@ function trafo(mood,hurt){const zap=mood==='zap',diz=mood==='dizzy';
   if(diz)for(let i=0;i<3;i++){const a=now*4+i*2.1;txt('★',Math.cos(a)*56,-104+Math.sin(a)*12,20,'#ffe14d');}
   ctx.restore();}
 /* el breaker: la caja en el poste y la palanca, que sube con k (0 abajo .. 1 arriba). Devuelve la punta, donde va amarrado el mecate */
-function breaker(x,k,on){rr(x-38,BY-46,76,140,8,'#5a6a7a',4.5);rr(x-10,BY-32,20,112,7,'#14101c',3);
+function breaker(x,k,on,raja){rr(x-38,BY-46,76,140,8,'#5a6a7a',4.5);rr(x-10,BY-32,20,112,7,'#14101c',3);
+  if(raja){line([[x-36,BY-8],[x-22,BY+2],[x-30,BY+16],[x-14,BY+30]],3.5,INK);line([[x+34,BY+40],[x+20,BY+52],[x+30,BY+66]],3.5,INK);}   /* la tapa rajada (nivel 3, ya se bajó una vez) */
   txt('ON',x-24,BY-24,12,'#ffffff',0,true);txt('OFF',x-24,BY+70,11,'#ffffff',0,true);ell(x+24,BY-30,7,7,on?'#5cff7a':'#3b3550',2.5);
   const hy=lerp(BY+68,BY-20,k);rr(x-7,hy-10,62,20,8,'#e8293f',4);ell(x+56,hy,13,13,'#ffd23f',3.5);return{x:x+56,y:hy};}
 
 /* ═════════ JEFE · EL TRANSFORMADOR: ¡sube el breaker entre todos! ═════════ */
 function mkTransformador(){
-  const sp=Math.min(SP,1.3);
-  let v=.28,flash=0,n=0,c=0,lit=0,hurt=0,nextRage=1.6+Math.random()*.6,rageT=-1;
-  const g={get impact(){return this.result?clamp(1-this.endT/.5,0,1):0;},probe:()=>({v,rageT,lit,n}),
-    t:0,dur:8,result:null,why:'',endT:0,cmd:'¡SUBE EL BREAKER!',
+  const sp=Math.min(SP,1.3),lv=BUS.LV(),BAJA=lv>1?1.1:1,CADA=lv>1?.8:1;   /* 1.25 pedía ~12 toques por segundo: nadie machaca así */
+  let v=.28,flash=0,n=0,c=0,lit=0,hurt=0,nextRage=(1.6+Math.random()*.6)*CADA,rageT=-1,bajo=false,bajoT=9;
+  const g={get impact(){return this.result?clamp(1-this.endT/.5,0,1):clamp(1-bajoT/.4,0,1)*.8;},probe:()=>({v,rageT,lit,n,lv,bajo}),
+    t:0,dur:lv>2?10:8,result:null,why:'',endT:0,cmd:'¡SUBE EL BREAKER!',
     hint:'TOCA RÁPIDO (o ESPACIO): entre todos suban el breaker antes de que se acabe el tiempo',
     press(){if(g.result)return;v=Math.min(1,v+.09);flash=.1;n++;hurt=.5;snd(300+(n%12)*45,.05,'square',.045);
+      if(v>=1&&lv>2&&!bajo){bajo=true;bajoT=0;v=.5;rageT=-1;nextRage=c+1;nz(.5,.14);snd(700,.3,'sawtooth',.07,-600);sfx.thud();
+        spawn(PX+56,BY-20,22,'bit',['#9fe8ff','#ffffff','#ffd23f'],320,500,.6);return;}                 /* nivel 3: chispea y se cae a la mitad */
       if(v>=1){g.result='win';g.why='¡LLEGÓ!';rageT=-1;sfx.win();nz(.45,.16);snd(90,.55,'sine',.25,-60);spawn(400,260,34,'conf',CONF);}},
     down(){g.press();},move(){},up(){},
-    update(dt){g.t+=dt;c+=dt;flash=Math.max(0,flash-dt);hurt=Math.max(0,hurt-dt*4);
+    update(dt){g.t+=dt;c+=dt;bajoT+=dt;flash=Math.max(0,flash-dt);hurt=Math.max(0,hurt-dt*4);
       lit+=((g.result==='win'?1:g.result?0:Math.pow(v,1.3)*.85)-lit)*Math.min(1,dt*6);
       if(g.result){g.endT+=dt;if(g.result==='lose')v=Math.max(0,v-dt*1.5);return;}
       if(rageT<0&&c>=nextRage){rageT=0;nz(.3,.08);snd(60,.35,'sawtooth',.06,-30);}
-      if(rageT>=0){rageT+=dt;if(rageT>1.05){rageT=-1;nextRage=c+1.3+Math.random()*.8;}}
-      v=Math.max(0,v-(.3+v*.25)*sp*(rageT>.45?2.6:1)*dt);
+      if(rageT>=0){rageT+=dt;if(rageT>1.05){rageT=-1;nextRage=c+(1.3+Math.random()*.8)*CADA;}}
+      v=Math.max(0,v-(.3+v*.25)*sp*BAJA*(rageT>.45?2.6:1)*dt);
       if(g.t>=g.dur){g.result='lose';g.why='¡SIN LUZ!';rageT=-1;sfx.thud();sfx.lose();}},
     draw(){
       const win=g.result==='win',lose=g.result==='lose',warn=rageT>=0&&rageT<=.45,rage=rageT>.45,k=clamp(win?1:v,0,1);
       ctx.save();path([[0,0],[800,0],[800,576],[0,576]]);ctx.clip();
       AP.barrio(lit);poste();
-      trafo(win?'dizzy':warn||rage?'zap':'angry',hurt);
-      const hp=breaker(PX+(rage?Math.sin(now*70)*3:0),k,win);
+      trafo(win?'dizzy':warn||rage||(bajoT<.6&&!g.result)?'zap':'angry',hurt);
+      const hp=breaker(PX+(rage||bajoT<.4?Math.sin(now*70)*3:0),k,win,bajo);
       /* mamá y la abuela mirando, con la vela entre las dos */
       const AX=162,AS=.72,AY=FY-160*AS,sube=i=>win?-2.6+Math.sin(now*11+i)*.2:-.15;
       [[C.mama,54,AP.PIES.mama,130],[C.abuela,AX,AP.PIES.abuela,120]].forEach(([f,x,pies,th],i)=>bust(Object.assign({},f,{x,y:AY-(pies[2]-60)*AS-(win?Math.abs(Math.sin(now*11+i*2))*12:0),s:AS,th,legs:pies,look:1,
@@ -90,8 +98,12 @@ function mkTransformador(){
         for(let i=1;i<=6;i++)b.push([lerp(PX+40,hp.x,i/6)+(i<6?(hash(i,fr,1)-.5)*44:0),lerp(TY-64,hp.y,i/6)+(i<6?(hash(i,fr,2)-.5)*30:0)]);
         line(b,10,'#ffffff');line(b,3.5,'#3fb0ff');}
       if(warn&&Math.sin(now*40)>0)txt('!',PX+108,256,72,'#ff4d5e');
+      /* nivel 3: se bajó. Chispas en la punta de la palanca y el letrero grande */
+      if(bajoT<1.1&&!g.result){const fr=Math.floor(now*18);
+        if(bajoT<.5)for(let i=0;i<5;i++){const a=hash(i,fr,3)*TAU,r=22+hash(i,fr,4)*26,x=hp.x+Math.cos(a)*r,y=hp.y+Math.sin(a)*r;line([[x,y],[x+8,y-9],[x-2,y-12],[x+7,y-22]],3.5,'#9fe8ff');}
+        const z=1+clamp(1-bajoT/.2,0,1)*.6;ctx.save();ctx.translate(400,220);ctx.scale(z,z);ctx.globalAlpha=clamp((1.1-bajoT)*4,0,1);txt('¡SE BAJÓ!',0,0,58,'#ffffff',-.05);ctx.restore();}
       /* la barra: cuánto falta para que llegue la luz */
-      const mx=250,my=114,mw=300;txt(win?'¡LLEGÓ!':'EL TRANSFORMADOR',400,100,20,win?'#ffd23f':'#ffffff');
+      const mx=250,my=114,mw=300;txt(win?'¡LLEGÓ!':bajo?'¡OTRA VEZ! ¡SÚBELO!':'EL TRANSFORMADOR',400,100,20,win?'#ffd23f':'#ffffff');
       rr(mx,my,mw,24,6,'#14101c',4);if(k>.03)rr(mx+3,my+3,(mw-6)*k,18,4,k>.8?'#ffd23f':k>.4?'#7bd88f':'#ff4d5e',0);
       line([[mx+mw-4,my-6],[mx+mw-4,my+30]],4,'#ffd23f');
       if(win&&g.endT>.25){bubble(128,280,'¡LLEGÓ!',24,150,332);bubble(566,258,'¡LLEGÓ!',26,578,322);}

@@ -2,12 +2,12 @@
 /* MiniCaos · laboratorio de estilos: JEFE «EL METRO EN HORA PICO».
    Seis de la tarde en Plaza Venezuela. Tres fases seguidas, cada una con su reloj:
    1. ¡AGUANTA! (el andén): la marea te empuja hacia la raya amarilla sin parar. Sale una flecha: marcarla (teclado o los
-      cuatro botones) es un codazo que te devuelve un paso; marcar otra te resbala. Aguanta hasta que el tren termine de llegar.
+      cuatro botones o deslizando el dedo) es un codazo que te devuelve un paso; marcar otra te resbala. Aguanta hasta que el tren termine de llegar.
       Pasarse de la raya no es caerse: se te va el zapato a la fosa y se lo lleva la rata.
    2. ¡MÉTETE! (la puerta, de frente): abre unos 3 segundos. Machacar (tocar o ESPACIO) te va metiendo entre la pared de
       gente, que empuja de vuelta. Las hojas de la puerta son el reloj.
-   3. ¡EQUILIBRIO! (adentro, 40 grados): frenazos avisados con flecha; ← → sostenido, un lado de la pantalla o INCLINAR el
-      teléfono para quedarte en el verde. Fuera del verde la mano se te resbala por el tubo; si llega abajo, pisas a alguien.
+   3. ¡EQUILIBRIO! (adentro, 40 grados): frenazos avisados con flecha; ← → sostenido o un lado de la pantalla
+      para quedarte en el verde. Fuera del verde la mano se te resbala por el tubo; si llega abajo, pisas a alguien.
    Niveles: más empuje, más toques, frenazos más fuertes y verde más angosto.
    Ganas: la marea te escupe intacto en tu estación y sales al aire libre. Pierdes en la puerta: te muerde el bolso por la
    mitad y te vas con medio cuerpo afuera por el túnel a oscuras.
@@ -41,15 +41,24 @@ function zapato(x,y,rot,s=1){ctx.save();ctx.translate(x,y);ctx.rotate(rot);ctx.s
 function mkMetro(){
   const lv=LV(),n=lv-1,rs=Math.sqrt(SP);
   const FASES=[
-    {cmd:'¡AGUANTA!',hint:'Marca la FLECHA que sale (teclado o los botones) para no pasarte de la raya amarilla',dur:6},
+    {cmd:'¡AGUANTA!',hint:'DESLIZA en la dirección de la FLECHA (o usa teclado / botones) para no pasarte de la raya amarilla',dur:6},
     {cmd:'¡MÉTETE!',hint:'¡MACHACA! (toca rápido o ESPACIO) antes de que cierre la puerta',dur:[3.2,3,2.8][n]},
-    {cmd:'¡EQUILIBRIO!',hint:'← → (o mantén un lado / INCLINA el teléfono): quédate en el verde',dur:[7,7.5,8][n]}];
+    {cmd:'¡EQUILIBRIO!',hint:'← → (o mantén un lado de la pantalla): quédate en el verde',dur:[7,7.5,8][n]}];
   let ph=0,pt=0,gap=0,fin=0,T=0,shake=0,lph=0,ev=0;
 
   /* ── fase 1: el andén ── */
   const EMP=[.16,.2,.24][n],PASO=.08,ph0=Math.random()*TAU,X0=230,X1=556,FY=470,PAD=[[250,538],[350,538],[450,538],[550,538]];
   const gente=[4,6,9,1,5].map((fi,i)=>({f:FACES[fi],i}));
   let px=.34,dir=DIRS[Math.random()*4|0],okT=0,malT=0,codo=0,grito=1.2,padT=[0,0,0,0];
+  let sw0=null;
+  function desliza(p){
+    if(!sw0||g.result||ph!==0||gap>.25)return false;
+    const r=view.getBoundingClientRect(),dx=(p.x-sw0.x)*r.width/W,dy=(p.y-sw0.y)*r.height/H;
+    if(Math.hypot(dx,dy)<24)return false;
+    sw0=null; // One arrow per gesture, even if the finger keeps moving.
+    marca(Math.abs(dx)>=Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up'));
+    return true;
+  }
   function marca(k){const i=DIRS.indexOf(k);if(i<0)return;padT[i]=1;
     if(k===dir){px=Math.max(.04,px-PASO);codo=1;okT=1;snd(520+Math.random()*120,.07,'square',.05);let d;do d=DIRS[Math.random()*4|0];while(d===dir);dir=d;}
     else{px+=.055;malT=1;shake=.5;snd(150,.14,'sawtooth',.06,-40);}}
@@ -66,8 +75,7 @@ function mkMetro(){
   const frena=t=>{let f=.5*Math.sin(2.1*t+ph0);for(const e of FR){const u=(t-e.t)/.55;if(u>0&&u<1)f+=e.dir*A0*Math.sin(u*PI);}return f;};
   const aviso=()=>FR.find(e=>pt>=e.t-.5&&pt<e.t+.3);
 
-  function sig(){ph++;pt=0;gap=GAP;if(ph===1){sfx.screech();sfx.ding();}else sfx.thud();
-    if(ph===2&&window.DeviceOrientationEvent&&DeviceOrientationEvent.requestPermission)DeviceOrientationEvent.requestPermission().catch(()=>{});}
+  function sig(){sw0=null;ph++;pt=0;gap=GAP;if(ph===1){sfx.screech();sfx.ding();}else sfx.thud();}
   function gana(){g.result='win';g.why='¡LLEGASTE!';sfx.ding();sfx.win();spawn(400,280,26,'conf',CONF);}
   function pierde(why){g.result='lose';g.why=why;lph=ph;shake=1;sfx.lose();}
 
@@ -226,9 +234,19 @@ function mkMetro(){
     get impact(){return this.result?clamp(1-fin/.5,0,1):shake*.6;},
     probe:()=>({ph,pt,gap,px,dir,m,need:NT,d,v,grip,ZW,FR,fin}),
     press(k){if(g.result||gap>.25)return;if(ph===0)marca(k);else if(ph===1)machaca();},
-    down(p){if(g.result||gap>.25)return;
-      if(ph===0){PAD.forEach(([bx,by],i)=>{if(Math.abs(p.x-bx)<48&&Math.abs(p.y-by)<40)marca(DIRS[i]);});}
+    down(p){sw0=null;if(g.result||gap>.25)return;
+      if(ph===0)sw0=p;
       else if(ph===1)machaca();},
+    move(p){desliza(p);},
+    up(p){
+      if(sw0&&!g.result&&ph===0&&gap<=.25&&!desliza(p)){
+        // A tap still activates a button; starting a swipe over it does not.
+        const start=sw0;
+        PAD.forEach(([bx,by],i)=>{if(Math.abs(start.x-bx)<48&&Math.abs(start.y-by)<40&&Math.abs(p.x-bx)<48&&Math.abs(p.y-by)<40)marca(DIRS[i]);});
+      }
+      sw0=null;
+    },
+    cancel(){sw0=null;},
     update(dt){T+=dt;shake=Math.max(0,shake-dt*3);okT=Math.max(0,okT-dt*5);malT=Math.max(0,malT-dt*3);codo=Math.max(0,codo-dt*5);lunge=Math.max(0,lunge-dt*6);
       for(let i=0;i<4;i++)padT[i]=Math.max(0,padT[i]-dt*6);
       if(g.result){fin+=dt;g.endT=sello(fin);

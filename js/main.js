@@ -277,13 +277,14 @@ function goMenu() { EGGS.stop(); state = 'menu'; st = 0; mode = 'stage'; parts.l
 function goPractice() { EGGS.stop(); state = 'practice'; st = 0; mode = 'practice'; parts.length = 0; }
 function startStage(i) {
   if (i > save.unlocked - 1) return;
+  EGGS.stage();
   runRank = null; attempts[i] = (attempts[i] || 0) + 1;
   track('stage_start', { stage: i + 1, stage_name: STAGES[i].name, attempt: attempts[i], unlocked: save.unlocked });
   if (poolOf(STAGES[i]).some(is3D)) loadThree();
   mode = 'stage'; stageIdx = i; stage = STAGES[i]; lives = 4; played = 0; score = 0; lastOut = null; recent = []; retryId = null; runLog = [];
   state = 'stagein'; st = 0; shownScore = 0; lifeT = 99; jingleGo();
 }
-function startPractice(id) { if (is3D(id)) loadThree(); track('practice_start', { game: id }); mode = 'practice'; practiceId = id; lastOut = null; stage = STAGES[0]; state = 'inter'; st = 0; }
+function startPractice(id) { EGGS.stage(); if (is3D(id)) loadThree(); track('practice_start', { game: id }); mode = 'practice'; practiceId = id; lastOut = null; stage = STAGES[0]; state = 'inter'; st = 0; }
 function toInter() { state = 'inter'; st = 0; if (mode !== 'practice') jingleGo(); }
 
 function beginGame() {
@@ -935,12 +936,14 @@ let lastTs = 0, lastDt = 0;
 function loop(ts) {
   const dt = Math.min(.05, (ts - lastTs) / 1000 || 0); lastTs = ts; now += dt; lastDt = dt;
   update(dt); updateFx(dt); syncMusic();
+  EGGS.update(dt);
   if (state !== lastState) {                              // screen-change whoosh (not on every microgame)
     if (['stagein', 'menu', 'practice', 'profile', 'board', 'pview', 'party', 'friends'].includes(state) || (state === 'inter' && mode === 'stage')) sfx.whoosh(true);
     lastState = state;
   }
   cv.style.cursor = state === 'play' && mouse.touch === false && cur && !cur.noHand && !cur.partyHelper && !cur.partyScene ? 'none' : '';
   ctx.setTransform(1, 0, 0, 1, OX, 0); ctx.save(); applyShake(dt); render(); drawFx(); if (sh.on) drawShareMenu(); ctx.restore();
+  EGGS.draw(ctx, W, I18N.lang === 'es');
   const hb = btns.find(b => hovered(b.x, b.y, b.w, b.h)), hk = hb ? hb.x + ',' + hb.y : '';
   if (hk !== hoverKey) { hoverKey = hk; if (hk && state !== 'play') sfx.tick(); }
   requestAnimationFrame(loop);

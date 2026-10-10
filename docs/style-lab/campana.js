@@ -61,6 +61,8 @@ const css=document.createElement('style');
 css.textContent='html,body{height:100%}body{padding:0!important;gap:0!important;justify-content:center;overflow:hidden;background:#0b0b14!important;user-select:none;-webkit-user-select:none}'+
   '.bar,#help{display:none!important}#camp{position:relative;width:min(100vw,133.333vh);aspect-ratio:4/3;flex:none}'+
   '@supports (height:100dvh){#camp{width:min(100vw,133.333dvh)}}'+
+  '@media (orientation:landscape) and (any-pointer:coarse){#camp{width:100vw;height:100vh;aspect-ratio:auto}'+
+  '@supports (height:100dvh){#camp{height:100dvh}}}'+
   '#camp canvas{position:absolute;left:0;top:0;width:100%!important;height:100%!important;border-radius:0!important}#camp-ov{pointer-events:none;background:transparent!important}'+
   '#camp-app{position:fixed;left:0;top:0;width:100%;height:100%;border:0;background:#0b0b14;z-index:5}';
 document.head.append(css);
@@ -262,9 +264,10 @@ function openClassic(){if(appFr)return;
 function goPractice(){EGGS.stop();state='practice';st=0;mode='practice';parts.length=0;}
 function startStage(i,nv){if(!ETAPAS[i])return;if(nv)nivel=nv;
   if(!abierto(i,nivel)){say('PRIMERO SUPERA '+ETAPAS[i].name+' EN NIVEL '+(nivel-1),'#FFE14D');if(state!=='menu')goMenu();return;}
+  EGGS.stage();
   mode='stage';stageIdx=i;stage=ETAPAS[i];lives=4;played=0;score=0;lastOut=null;recent=[];retryId=null;bossK=0;
   state='stagein';st=0;shownScore=0;lifeT=99;jingleGo();}
-function startPractice(id){if(!GAMES[id])return;mode='practice';practiceId=id;lastOut=null;state='inter';st=0;}
+function startPractice(id){if(!GAMES[id])return;EGGS.stage();mode='practice';practiceId=id;lastOut=null;state='inter';st=0;}
 function toInter(){state='inter';st=0;if(mode!=='practice')jingleGo();}
 function beginGame(){let id,s;
   if(mode==='practice'){id=practiceId;s=VPRACT[nivel-1];isBoss=!!JEFES[id];}
@@ -505,6 +508,7 @@ function render(){
   drawFx();
   if(!(state==='play'&&pre<=0))vignette(.35);
   if(toast){X.globalAlpha=clamp01(4-toast.t);X.fillStyle='rgba(20,16,28,.85)';X.fillRect(0,H-84,W,40);T(toast.s,W/2,H-64,18,toast.col,'center',770);X.globalAlpha=1;}
+  EGGS.draw(X,W,true);
   X.restore();
 }
 
@@ -522,12 +526,17 @@ paint=function(pts,f,o=4){
 wash=function(x,y,w,h,c1,c2,o){if(NIV[nivel-1].tinte&&w*h>=60000){c1=tinte(c1);if(c2)c2=tinte(c2);}aguadaLab(x,y,w,h,c1,c2,o);};
 const pintar=paintFrame;
 paintFrame=function(){if(state!=='play'||pre>0)return;try{pintar();}catch(e){fallo(e,'draw');}};
-tick=function(dt){now+=dt;if(appOn)return;try{update(dt);}catch(e){fallo(e,'update');}render();};   /* con el mundo clásico abierto, aquí no se mueve nada */
+tick=function(dt){now+=dt;if(appOn)return;EGGS.update(dt);try{update(dt);}catch(e){fallo(e,'update');}render();};   /* con el mundo clásico abierto, aquí no se mueve nada */
 
 /* ───────── entrada: en captura, antes que el laboratorio y los juegos ───────── */
 const pos=e=>{const r=view.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*H};};
 const despierta=()=>{try{const a=A();a.resume&&a.resume();}catch(e){}};
-addEventListener('pointerdown',e=>{if(e.target!==view)return;despierta();const p=pos(e);hp=p;pressing=true;
+function pantallaCompleta(){
+  if(!('ontouchstart' in window||navigator.maxTouchPoints>0)||document.fullscreenElement||document.webkitFullscreenElement)return;
+  const el=document.documentElement,rq=el.requestFullscreen||el.webkitRequestFullscreen;
+  if(rq)try{const p=rq.call(el,{navigationUI:'hide'});if(p&&p.catch)p.catch(()=>{});}catch(_){}
+}
+addEventListener('pointerdown',e=>{if(e.target!==view)return;despierta();pantallaCompleta();const p=pos(e);hp=p;pressing=true;
   const b=btns.find(b=>p.x>=b.x&&p.x<=b.x+b.w&&p.y>=b.y&&p.y<=b.y+b.h);
   if(b){e.stopImmediatePropagation();e.preventDefault();fx.click();b.fn();return;}
   if(!live())e.stopImmediatePropagation();},true);

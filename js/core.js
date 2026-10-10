@@ -3,17 +3,21 @@
 const W = 800, H = 600;
 const cv = document.getElementById('c');
 const ctx = cv.getContext('2d');
-/* Widescreen: the canvas widens to the screen's shape (up to ~2.4:1). Games still play in the 800×600 area in the
+/* Widescreen: the canvas widens to the screen's shape. Games still play in the 800×600 area in the
    middle; VW is the full logical width and OX how far that area sits from the left edge (so the screen spans -OX..W+OX). */
 let VW = W, OX = 0;
 function fitScreen() {
-  const a = Math.min(2.4, Math.max(W / H, innerWidth / innerHeight));
+  const a = Math.max(W / H, innerWidth / innerHeight);
   VW = Math.round(H * a); OX = (VW - W) / 2;
   if (cv.width !== VW) cv.width = VW;
   const k = Math.min(innerWidth / VW, innerHeight / H);
   cv.style.width = VW * k + 'px'; cv.style.height = H * k + 'px';
 }
-addEventListener('resize', fitScreen); fitScreen();
+addEventListener('resize', fitScreen);
+document.addEventListener('fullscreenchange', fitScreen);
+document.addEventListener('webkitfullscreenchange', fitScreen);
+window.visualViewport?.addEventListener('resize', fitScreen);
+fitScreen();
 const INK = '#14101c', OR = '#FF6B3D';
 let muted = false, now = 0;
 

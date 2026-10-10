@@ -18,22 +18,28 @@ const tag=(x,y)=>{rr(x-28,y-14,56,28,10,'#ffd23f',3.5);txt('TÚ',x,y,18,INK,0,tr
 function phone(x,y,rot=0,s=1){ctx.save();ctx.translate(x,y);ctx.rotate(rot);ctx.scale(s,s);rr(-14,-25,28,50,7,'#14101c',3.5);rr(-10,-19,20,34,3,'#7fe0d0',0);ell(0,20,2.5,2.5,'#8f8fa8',0);ctx.restore();}
 
 /* ───────── input propio ───────── */
-const MINE={},heldK={l:0,r:0},heldP={l:0,r:0};let tilt=0,tiltAsked=false,ptr=false,lastP={x:0,y:0};
-const steer=()=>clamp(heldK.r-heldK.l+heldP.r-heldP.l+tilt,-1,1);
+const MINE={},heldK={l:0,r:0},heldP={l:0,r:0};let ptr=false,lastP={x:0,y:0};
+const mobile=()=>('ontouchstart' in window||navigator.maxTouchPoints>0);
+// Touch is explicit: moving the phone must not add an accidental steering input.
+const steer=()=>clamp(heldK.r-heldK.l+heldP.r-heldP.l,-1,1);
+const pointSteer=p=>{
+  if(gameId==='agarrate'&&mobile()){
+    const u=clamp((p.x-W/2)/160,-1,1);
+    heldP.l=Math.max(0,-u);heldP.r=Math.max(0,u);
+  }else{heldP.l=+(p.x<W/2);heldP.r=+(p.x>=W/2);}
+};
 const cpos=e=>{const r=view.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*H};};
 view.addEventListener('pointerdown',e=>{if(!MINE[gameId]||!G)return;try{view.setPointerCapture(e.pointerId);}catch(_){}
-  const a=A();a.resume&&a.resume();const p=cpos(e);lastP=p;ptr=true;heldP.l=+(p.x<W/2);heldP.r=+(p.x>=W/2);if(G.down)G.down(p);
-  if(gameId==='agarrate'&&!tiltAsked&&window.DeviceOrientationEvent&&DeviceOrientationEvent.requestPermission){tiltAsked=true;DeviceOrientationEvent.requestPermission().catch(()=>{});}});
-view.addEventListener('pointermove',e=>{if(ptr&&MINE[gameId]&&G){lastP=cpos(e);if(G.move)G.move(lastP);}});
+  const a=A();a.resume&&a.resume();const p=cpos(e);lastP=p;ptr=true;pointSteer(p);if(G.down)G.down(p);});
+view.addEventListener('pointermove',e=>{if(ptr&&MINE[gameId]&&G){lastP=cpos(e);if(gameId==='agarrate')pointSteer(lastP);if(G.move)G.move(lastP);}});
 /* en captura: estos juegos no usan el "soltar = presionar" del laboratorio.
    Un pointercancel cuenta como soltar donde estaba el dedo, para que nada se quede "agarrado". */
-const end=e=>{heldP.l=heldP.r=0;if(!ptr)return;ptr=false;if(MINE[gameId]&&G){if(G.up)G.up(e.type==='pointerup'?cpos(e):lastP);pdown=null;e.stopImmediatePropagation();}};
+const end=e=>{heldP.l=heldP.r=0;if(!ptr)return;ptr=false;if(MINE[gameId]&&G){if(e.type==='pointercancel'&&G.cancel)G.cancel();else if(G.up)G.up(e.type==='pointerup'?cpos(e):lastP);pdown=null;e.stopImmediatePropagation();}};
 addEventListener('pointerup',end,true);addEventListener('pointercancel',end,true);
 addEventListener('keydown',e=>{const L=e.code==='ArrowLeft'||e.code==='KeyA',R=e.code==='ArrowRight'||e.code==='KeyD';if(!L&&!R)return;
   if(MINE[gameId])e.preventDefault();if(e.repeat)return;if(L)heldK.l=1;else heldK.r=1;if(MINE[gameId]&&G&&G.lr)G.press(L?'left':'right');});
 addEventListener('keyup',e=>{if(e.code==='ArrowLeft'||e.code==='KeyA')heldK.l=0;else if(e.code==='ArrowRight'||e.code==='KeyD')heldK.r=0;});
-addEventListener('blur',()=>{heldK.l=heldK.r=0;});
-addEventListener('deviceorientation',e=>{const v=e.gamma==null?0:e.gamma;tilt=Math.abs(v)<4?0:clamp(v/22,-1,1);});
+addEventListener('blur',()=>{heldK.l=heldK.r=heldP.l=heldP.r=0;ptr=false;});
 
 /* ═════════ GAME 3: ¡BAJA! (pide permiso hasta la puerta antes de que cierre) ═════════ */
 /* Nivel 1: solo machacar. Nivel 2: además un vecino bravo (te espera con la mano de «pare») te devuelve DOS pasos de un empujón, una sola vez.
@@ -237,8 +243,9 @@ function mkEncaleta(){
 /* Nivel 1: un frenazo (el perro) que achica el verde a .27. Nivel 2: lo achica más (.22). Nivel 3: más todavía (.18) y, apenas pasa el primero,
    un SEGUNDO frenazo (el perro se devuelve) que te empuja para el lado contrario. */
 function mkAgarrate(){
+  const touch=mobile();
   const rs=Math.sqrt(SP),lv=LV(),A0=1.5+(SP-1)*.8,B=3.4,ph1=Math.random()*TAU,ph2=Math.random()*TAU,w1=6.1*rs,w2=2.3*rs,dir=Math.random()<.5?-1:1,tF=(.5+Math.random()*.12)*5/rs;
-  const tD=(2.2+Math.random()*.6)/rs,dD=1.05/rs,ZW=.36,ZMIN=[.27,.22,.18][lv-1],crash=Math.random()<.34?'retro':'poste',HX=548,HH=214,S=.8;
+  const tD=(2.2+Math.random()*.6)/rs,dD=1.05/rs,ZW=touch?.48:.36,ZMIN=(touch?[.38,.33,.29]:[.27,.22,.18])[lv-1],crash=Math.random()<.34?'retro':'poste',HX=548,HH=214,S=.8;
   const tD2=lv>=3?tD+dD+.3/rs:1e9,dD2=.8/rs;
   let d=0,v=0,grip=1,lean=0,zw=ZW,brk=0,jolt=0,j1=0,fx=0,fy=0,frot=0,hit=false;
   /* una curva en S: empuja parejo hacia un lado y a mitad de camino se voltea; quedarse quieto es caerse */
@@ -247,13 +254,13 @@ function mkAgarrate(){
   const hang=()=>{const r=-(.2+d*.5)+(Math.abs(d)>zw?Math.sin(now*46)*.03:0),c=Math.cos(r),s=Math.sin(r),hx=-S*39,hy=-S*88;return{x:HX-(hx*c-hy*s),y:HH-(hx*s+hy*c),r};};
   const meO=Object.assign({},TU,{s:S,th:110,legs:['#2f3a7a','#ffffff',60]});
   const g={get impact(){return this.result==='lose'?clamp(1-this.endT/.5,0,1):0;},probe:()=>({d,v,zw,grip,tD,tD2,jolt}),t:0,dur:5/rs,result:null,why:'',endT:0,cmd:'¡AGÁRRATE!',
-    hint:'← → (o mantén un lado de la pantalla / inclina el teléfono): el punto en el verde',
+    hint:touch?'MANTÉN Y DESLIZA: izquierda / derecha; centro para soltar. Punto en el verde':'← → (o mantén un lado de la pantalla): el punto en el verde',
     press(){},
     update(dt){g.t+=dt;
       const inD=!g.result&&(g.t>=tD&&g.t<tD+dD||g.t>=tD2&&g.t<tD2+dD2);brk=inD?Math.min(1,brk+dt*8):Math.max(0,brk-dt*4);zw=lerp(ZW,ZMIN,brk);
-      if(inD&&jolt<(g.t>=tD2?2:1)){if(!jolt)j1=Math.random()<.5?-1:1;jolt++;v+=(jolt>1?-j1:j1)*.55;sfx.screech();}
-      if(!g.result){const f=F(g.t);lean+=(f/A0-lean)*Math.min(1,dt*6);v+=(f+steer()*B)*dt;v*=Math.exp(-2.4*dt);d+=v*dt;if(Math.abs(d)>1){d=Math.sign(d);v=0;}
-        grip=clamp(grip+(Math.abs(d)>zw?-dt/.8:dt/2.5),0,1);
+      if(inD&&jolt<(g.t>=tD2?2:1)){if(!jolt)j1=Math.random()<.5?-1:1;jolt++;v+=(jolt>1?-j1:j1)*(touch?.36:.55);sfx.screech();}
+      if(!g.result){const f=F(g.t);lean+=(f/A0-lean)*Math.min(1,dt*6);v+=(f*(touch?.8:1)+steer()*B)*dt;v*=Math.exp(-(touch?3.2:2.4)*dt);d+=v*dt;if(Math.abs(d)>1){d=Math.sign(d);v=0;}
+        grip=clamp(grip+(Math.abs(d)>zw?-dt/(touch?1.15:.8):dt/(touch?1.6:2.5)),0,1);
         if(grip<=0){const h=hang();fx=h.x;fy=h.y;frot=h.r;g.result='lose';g.why='¡TE CAÍSTE!';sfx.whoosh();sfx.lose();}
         else if(g.t>=g.dur){g.result='win';g.why='¡AGUANTASTE!';sfx.win();spawn(600,300,24,'conf',CONF);}}
       else{g.endT+=dt;lean*=Math.exp(-4*dt);

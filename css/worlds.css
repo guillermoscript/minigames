@@ -1,0 +1,48 @@
+/* Shared, accessible menus; game canvases retain their original layout. */
+.world-menu[hidden] { display: none !important; }
+.world-menu { position: fixed; inset: 0; z-index: 8; box-sizing: border-box; overflow-y: auto; overscroll-behavior: contain; padding: max(24px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(32px, env(safe-area-inset-bottom)); background: radial-gradient(ellipse at top, #42317d, #211b42 75%); color: #fff; font: 600 16px/1.45 Fredoka, system-ui, sans-serif; user-select: auto; }
+.world-menu * { box-sizing: border-box; }
+.world-menu .menu-inner { max-width: 980px; margin: auto; }
+.world-menu .menu-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 28px; }
+.world-menu .brand { font-size: 25px; color: #FFE14D; }
+.world-menu h1 { font-size: clamp(32px, 6vw, 52px); line-height: 1.1; margin: 0 0 12px; color: #FFE14D; }
+.world-menu .world-name { font-size: 28px; margin: 8px 0; line-height: 1.1; }
+.world-menu p { margin: 0 0 24px; color: #dfd8f5; }
+.world-menu button, .world-menu a { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.world-menu button { font: inherit; cursor: pointer; min-height: 48px; }
+.world-menu button:focus-visible, .world-menu a:focus-visible, .world-menu select:focus-visible, .world-menu summary:focus-visible { outline: 4px solid #FFE14D; outline-offset: 6px; }
+.world-menu .menu-back, .world-menu .menu-action { border: 3px solid #14101c; border-radius: 12px; padding: 10px 18px; background: #fff; color: #14101c; box-shadow: 3px 4px 0 #14101c; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
+.world-menu .world-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin: 32px 0; }
+.world-menu .world-card { display: flex; flex-direction: column; align-items: flex-start; text-align: left; min-height: 300px; padding: 28px; border: 4px solid #14101c; border-radius: 24px; box-shadow: 7px 8px 0 #14101c; color: #14101c; background: var(--card-color, #6EC6FF); transition: transform .15s; }
+.world-menu .world-card:hover { transform: translateY(-4px); }
+.world-menu .world-art { font-size: 62px; line-height: 1.2; margin: 8px 0 24px; }
+.world-menu .world-card .description { line-height: 1.5; max-width: 30ch; margin: 8px 0 26px; }
+.world-menu .world-card .enter { margin-top: auto; padding: 10px 18px; background: #14101c; color: #fff; border-radius: 10px; }
+.world-menu .badge { font-size: 13px; letter-spacing: .05em; text-transform: uppercase; }
+.world-menu .stage-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin: 24px 0; }
+.world-menu .stage-card { display: flex; flex-direction: column; align-items: flex-start; text-align: left; padding: 20px; border: 3px solid #14101c; border-radius: 16px; box-shadow: 4px 5px 0 #14101c; background: var(--card-color, #6EC6FF); color: var(--card-ink, #14101c); gap: 10px; }
+.world-menu .stage-card strong { font-size: 21px; }
+.world-menu .stage-card:disabled { cursor: default; background: #55516b; color: #ddd; box-shadow: none; }
+.world-menu .stage-card small { font-size: 14px; }
+.world-menu .start-first { background: #5CFF7A; font-size: 18px; }
+.world-menu .menu-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+.world-menu details { margin: 24px 0; border: 2px solid #776798; border-radius: 12px; padding: 16px; }
+.world-menu summary { cursor: pointer; min-height: 32px; }
+.world-menu label { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 16px; }
+.world-menu select { font: inherit; min-height: 44px; padding: 8px; border-radius: 8px; max-width: 100%; }
+body.menu-open #rot, body.menu-open #pwa-install { display: none !important; }
+@media (max-width: 640px) {
+  .world-menu { padding: max(20px, env(safe-area-inset-top)) 18px max(28px, env(safe-area-inset-bottom)); }
+  .world-menu .world-grid { grid-template-columns: 1fr; gap: 20px; margin-top: 24px; }
+  .world-menu .world-card { min-height: 200px; padding: 18px; }
+  .world-menu h1 { font-size: 30px; }
+  .world-menu .world-name { font-size: 24px; }
+  .world-menu .world-card .description { margin: 4px 0 14px; }
+  .world-menu .world-card .enter { padding: 8px 14px; }
+  .world-menu .world-art { font-size: 32px; margin: 0 0 4px; }
+  .world-menu .stage-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .world-menu .stage-card { padding: 16px; }
+  .world-menu .stage-card strong { font-size: 18px; }
+  .world-menu .menu-top { margin-bottom: 24px; }
+}
+@media (prefers-reduced-motion: reduce) { .world-menu .world-card { transition: none; } }

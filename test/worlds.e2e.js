@@ -1,0 +1,57 @@
+// Local browser smoke: WORLD_BASE_URL=http://127.0.0.1:8766 node test/worlds.e2e.js
+const fs=require('node:fs'),path=require('node:path'),os=require('node:os');
+const npmCache=path.join(os.homedir(),'.npm/_npx');
+const playwright=process.env.PLAYWRIGHT_MODULE || fs.readdirSync(npmCache).map(d=>path.join(npmCache,d,'node_modules/playwright')).find(p=>fs.existsSync(p));
+const {chromium}=require(playwright);
+const shellCache=path.join(os.homedir(),'Library/Caches/ms-playwright');
+const shellVersion=fs.readdirSync(shellCache).filter(d=>d.startsWith('chromium_headless_shell-')).sort().pop();
+const shellFolder=path.join(shellCache,shellVersion);
+const executable=process.env.CHROMIUM_EXECUTABLE || path.join(shellFolder,fs.readdirSync(shellFolder).find(d=>d.startsWith('chrome')),'chrome-headless-shell');
+const base=process.env.WORLD_BASE_URL || 'http://127.0.0.1:8766';
+const assert = require('node:assert/strict');
+(async()=>{
+ const browser=await chromium.launch({headless:true,executablePath:executable});
+ const errors=[];
+ for(const viewport of [{width:1280,height:800},{width:390,height:844}]){
+  const context=await browser.newContext({viewport,locale:'es-VE',serviceWorkers:'block'});
+  const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
+  await page.route('https://**/*',r=>r.abort());
+  await page.goto(base+'/?lang=es');
+  await page.keyboard.press('Enter');
+  await page.getByRole('button',{name:/Entrar a Clásico/}).waitFor();
+  assert(await page.locator('.world-menu').evaluate(el=>el.scrollWidth<=el.clientWidth),'world menu fits viewport');
+  if(process.env.WORLD_SCREENSHOTS) await page.screenshot({path:`/tmp/minicaos-worlds-${viewport.width}.png`});
+  await page.getByRole('button',{name:/Entrar a Clásico/}).click();
+  const stages=await page.evaluate(()=>STAGES.length);
+  assert.equal(await page.locator('.stage-card').count(),stages);
+  assert.equal(await page.locator('.stage-card:disabled').count(),stages-1);
+  await page.getByRole('button',{name:/Empezar por la etapa 1/}).click();
+  await page.waitForFunction(()=>state==='stagein'||state==='inter'||state==='play');
+  assert.equal(await page.locator('.world-menu').isVisible(),false);
+  await page.evaluate(()=>goMenu());
+  await page.getByRole('button',{name:/Cambiar mundo/}).click();
+  await page.getByRole('button',{name:/Entrar a Venezuela/}).click();
+  await page.waitForFunction(()=>window.CAMP?.state==='menu');
+  await page.getByRole('heading',{name:'Mundo Venezuela'}).waitFor();
+  assert.equal(await page.locator('.stage-card').count(),5);
+  assert(await page.locator('.world-menu').evaluate(el=>el.scrollWidth<=el.clientWidth),'Venezuela menu fits viewport');
+  if(process.env.WORLD_SCREENSHOTS) await page.screenshot({path:`/tmp/minicaos-venezuela-${viewport.width}.png`});
+  await page.locator('summary').click();
+  await page.locator('#venezuela-level').selectOption('2');
+  assert.equal(await page.evaluate(()=>CAMP.info.nivel),2);
+  await page.locator('#venezuela-style').selectOption('felt');
+  assert.equal(await page.evaluate(()=>CAMP.info.style),'felt');
+  await page.locator('#venezuela-style').selectOption('mezcla');
+  assert.equal(await page.evaluate(()=>CAMP.info.selectedStyle),'mezcla');
+  await page.getByRole('button',{name:/Empezar por La Camionetica/}).click();
+  await page.waitForFunction(()=>CAMP.state==='play',{timeout:15000});
+  assert.equal(await page.locator('.world-menu').isVisible(),false);
+  assert.equal(await page.evaluate(()=>CAMP.info.stage),0);
+  await page.evaluate(()=>CAMP.goMenu());
+  await page.getByRole('button',{name:/Cambiar mundo/}).click();
+  await page.getByRole('heading',{name:'¿Dónde empieza el caos?'}).waitFor();
+  console.log(`OK ${viewport.width}: worlds, classic stage 1, Venezuela settings and gameplay, return to worlds`);
+  await context.close();
+ }
+ assert.deepEqual(errors,[]);await browser.close();
+})().catch(e=>{console.error(e);process.exit(1)});

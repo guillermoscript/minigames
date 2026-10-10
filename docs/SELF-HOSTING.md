@@ -12,6 +12,14 @@ pocketbase/dev.sh          local dev launcher
 Dockerfile                 production image
 ```
 
+## Public world selection
+
+The home screen opens a responsive selector for Classic and Venezuela. Classic keeps its existing saved progress, stages, practice, profiles and leaderboards. Venezuela is served at `/worlds/venezuela/` with its five stages and a responsive menu; difficulty and visual styles are under game options. Venezuela progress remains local to that browser.
+
+`scripts/sync-world-assets.sh` packages the campaign loader, engine and runtime scripts from `docs/style-lab` for Docker and local PocketBase. Lab backups, bot fixtures and design documents are excluded from the public directory. The full lab is still available in the source tree.
+
+Browser smoke check against a running server: `WORLD_BASE_URL=http://127.0.0.1:8090 node test/worlds.e2e.js`. The test uses the existing Playwright cache; `PLAYWRIGHT_MODULE` and `CHROMIUM_EXECUTABLE` can point to other local installations.
+
 ## Languages (i18n)
 
 English is the source language and the English text is the key: `txt('SPLAT!')`, `t('SCORE {n}', { n })`. `txt()`/`floatText()` translate automatically, so game code needs no changes for static strings. Languages: English, Spanish.

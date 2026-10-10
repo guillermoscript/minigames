@@ -29,6 +29,7 @@
    ?mundo=venezuela|clasico · ?etapa=1..5 · ?nivel=1..3 · ?juego=<id> · ?estilo=<estilo> arrancan directo. */
 (function(){
 if(window.CAMP)return;
+const PUBLIC=location.pathname.startsWith('/worlds/venezuela/');
 
 /* ───────── estilos y etapas ───────── */
 const ESTILOS=[['snes','16 BITS'],['felt','FIELTRO'],['ww','WIND WAKER'],['anime','ANIME 90s'],['tinta','TINTA'],['garabato','GARABATO']];
@@ -244,7 +245,7 @@ let appFr=null,appOn=false,appStages=19,appStars=0;
 const SIN_APAGON="<script>{const i=STAGES.findIndex(s=>s.boss==='blackout');if(i>=0)STAGES.splice(i,1);for(let k=REG.length-1;k>=0;k--)if(REG[k].id.startsWith('ap_')){delete REGMAP[REG[k].id];REG.splice(k,1);}}</script>";
 const cuentaClasico=()=>{try{appStars=((JSON.parse(localStorage.getItem('claudeware-save-v2'))||{}).stars||[]).slice(0,appStages).reduce((a,b)=>a+(b||0),0);}catch(e){appStars=0;}};
 fetch(APP+'js/stages.js').then(r=>r.text()).then(t=>{const n=(t.match(/\{\s*name:/g)||[]).length;if(n){appStages=n-(/boss:\s*'blackout'/.test(t)?1:0);cuentaClasico();}}).catch(()=>{});
-function goWorlds(){EGGS.stop();state='worlds';st=0;mode='stage';parts.length=0;cuentaClasico();}
+function goWorlds(){if(PUBLIC&&window.CAMP){EGGS.stop();location.assign('../../?worlds=1&lang='+(new URLSearchParams(location.search).get('lang')==='en'?'en':'es'));return;}EGGS.stop();state='worlds';st=0;mode='stage';parts.length=0;cuentaClasico();}
 function closeClassic(){if(appFr){appFr.remove();appFr=null;}appOn=false;goWorlds();try{window.focus();}catch(e){}}
 function openClassic(){if(appFr)return;
   const f=appFr=document.createElement('iframe');f.id='camp-app';f.allowFullscreen=true;f.style.visibility='hidden';document.body.append(f);
@@ -521,7 +522,7 @@ addEventListener('pointermove',e=>{if(e.target!==view)return;hp=pos(e);if(!live(
 const suelta=e=>{pressing=false;if(e.pointerType==='touch')hp={x:-999,y:-999};};
 addEventListener('pointerup',suelta,true);addEventListener('pointercancel',suelta,true);
 addEventListener('contextmenu',e=>{if(e.target===view)e.preventDefault();});
-addEventListener('keydown',e=>{despierta();const k=e.code,go=k==='Enter'||k==='Space';
+addEventListener('keydown',e=>{if(e.target.closest&&e.target.closest('#venezuela-menu')&&e.code!=='Escape'){e.stopImmediatePropagation();return;}despierta();const k=e.code,go=k==='Enter'||k==='Space';
   if(/^Digit[1-9]$/.test(k)){e.stopImmediatePropagation();const i=+k.slice(5)-1;if(!e.repeat&&i<=ESTILOS.length)estilo(i<ESTILOS.length?ESTILOS[i][0]:'mezcla');return;}
   if(k==='KeyM'){e.stopImmediatePropagation();if(!e.repeat){save.musica=!save.musica;persist();say(save.musica?'MÚSICA: SÍ':'MÚSICA: NO','#FFE14D');}return;}
   if(k==='Escape'){e.stopImmediatePropagation();if(state==='play'||state==='inter'||state==='stagein')exitPlay();else if(state==='practice'||state==='over'||state==='clear')goMenu();else if(!appFr)goWorlds();return;}
@@ -538,7 +539,7 @@ estilo(qe&&(qe==='mezcla'||ESTILOS.some(e=>e[0]===qe))?qe:(save.estilo==='mezcla
 if(+q.get('nivel')>=1&&+q.get('nivel')<=3)nivel=+q.get('nivel');
 goWorlds();
 if(q.get('juego')&&GAMES[q.get('juego')])startPractice(q.get('juego'));else if(ETAPAS[+q.get('etapa')-1])startStage(+q.get('etapa')-1);
-else if(q.get('mundo')==='venezuela')goMenu();else if(q.get('mundo')==='clasico')openClassic();
-window.CAMP={get state(){return state;},get info(){return{state,mode,stage:stageIdx,nivel,played,lives,score,pre,curId,isBoss,bossK,style,SP,result:G&&G.result,endT:G&&G.endT};},
+else if(PUBLIC||q.get('mundo')==='venezuela')goMenu();else if(q.get('mundo')==='clasico')openClassic();
+window.CAMP={get state(){return state;},get info(){return{state,mode,stage:stageIdx,nivel,played,lives,score,pre,curId,isBoss,bossK,style,selectedStyle:save.estilo,SP,result:G&&G.result,endT:G&&G.endT};},
   ETAPAS,JEFES,TODOS,startStage,startPractice,goMenu,goPractice,goWorlds,openClassic,closeClassic,get app(){return appFr&&appFr.contentWindow;},estilo,set lives(n){lives=n;},set played(n){played=n;},set nivel(n){nivel=Math.max(1,Math.min(3,n|0));}};
 })();

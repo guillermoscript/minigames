@@ -75,8 +75,8 @@ function drawShareMenu() {
   button(130, 330, 540, 70, 'COPY LINK', shareCopy, { fill: '#B49CFF', size: 26 });
   button(250, 440, 300, 64, 'CLOSE', () => { sh.on = false; }, { size: 24 });
 }
-/* title tap / Enter: a room invite wins over a score challenge, which wins over the stage menu */
-function titleGo() { if (inviteOpen()) joinInvite(); else if (chOpen) acceptChallenge(); else goMenu(); }
+/* title tap / Enter: a room invite wins over a score challenge, which wins over world selection */
+function titleGo() { if (inviteOpen()) joinInvite(); else if (chOpen) acceptChallenge(); else goWorlds(); }
 function acceptChallenge() {
   const i = Math.min(CH.stage, save.unlocked - 1);          // locked stage? start from the furthest one you can play
   chOpen = false; track('challenge_accept', { from: CH.from, target: CH.score, stage: CH.stage + 1, played: i + 1 });
@@ -460,10 +460,13 @@ function fuse() {
 
 /* ───────────── render ───────────── */
 function render() {
+  syncWorldMenu();
   btns = []; I18N.scope = state === 'play' ? I18N.scopeOf(curId) : '';
   const col = mode === 'stage' ? stage.col : OR;
 
-  if (state === 'title') {
+  if (state === 'worlds') {
+    bg('#2b2757', '#322d66', now);
+  } else if (state === 'title') {
     bg('#7C4DFF', '#6a3de8', now);
     const SC = ['#FFE14D', '#5CFF7A', '#4DB8FF', '#FF4D9E'];
     for (let i = 0; i < 8; i++) { const a = now * .5 + i * Math.PI / 4; star(W / 2 + Math.cos(a) * 340, 300 + Math.sin(a) * 215, 9 + (i % 3) * 4, 4, 5, now * 2 + i, SC[i % 4], 3); }
@@ -826,6 +829,7 @@ function render() {
 
 /* ───────────── input events ───────────── */
 addEventListener('keydown', e => {
+  if (e.target.closest && e.target.closest('.world-menu') && e.code !== 'Escape') return;
   if (e.target && e.target.tagName === 'INPUT') { // typing in a profile field: don't leak keys into the game
     if (e.target.id === 'in-code') { if (e.code === 'Enter') { e.preventDefault(); joinTyped(); } else if (e.code === 'Escape') e.target.blur(); return; }
     if (e.target.id === 'in-friend') { if (e.code === 'Enter') { e.preventDefault(); doAddFriend(); } else if (e.code === 'Escape') closeAddFriend(); return; }
@@ -847,11 +851,11 @@ addEventListener('keydown', e => {
     if (mode === 'party' && (state === 'play' || (state === 'party' && party.view !== 'menu' && party.view !== 'lobby'))) return;   // no accidental leaving mid-match
     if (state === 'party') { party.view === 'lobby' ? partyLeave('menu') : goTitle(); return; }
     if (state === 'play' || state === 'inter' || state === 'stagein') exitPlay();
-    else if (state === 'menu') goTitle(); else if (state === 'practice') goMenu();
+    else if (state === 'worlds') goTitle(); else if (state === 'menu') goWorlds(); else if (state === 'practice') goMenu();
     else if (state === 'profile' || state === 'board' || state === 'pview' || state === 'friends') back();
     return;
   }
-  if (state === 'title' && go) titleGo();
+  if (state === 'title' && go) { e.preventDefault(); titleGo(); }
   else if (state === 'title' && e.code === 'KeyA') goProfile();
   else if (state === 'title' && e.code === 'KeyF') goParty('title');
   else if (state === 'title' && e.code === 'KeyG') I18N.next();
@@ -945,3 +949,5 @@ api.completeGoogleSignIn().then(r => {
   if (!r.ok) { from.profile = 'menu'; state = 'profile'; st = 0; checkSignIn(); }
   return finishGoogle(r);
 });
+
+initWorldMenu();

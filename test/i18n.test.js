@@ -7,7 +7,7 @@
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const root = path.join(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-const scripts = [...html.matchAll(/<script src="([^"]+)"/g)].map(m => m[1].replace(/\?.*$/, '')).filter(s => !/vendor|analytics|api\.js|share\.js|party\.js|main\.js|pwa\.js/.test(s));
+const scripts = [...html.matchAll(/<script src="([^"]+)"/g)].map(m => m[1].replace(/\?.*$/, '')).filter(s => !/vendor|analytics|api\.js|share\.js|party\.js|main\.js|worlds\.js|pwa\.js/.test(s));
 
 const stub = () => new Proxy(function () {}, { get: (t, k) => k === Symbol.toPrimitive ? () => 0 : k === 'length' ? 0 : stub(), apply: () => stub(), construct: () => stub(), set: () => true });
 const sandbox = { console, Math, Date, JSON, Array, Object, String, Number, Set, Map, Promise, setTimeout, clearTimeout, setInterval() {}, clearInterval() {}, requestAnimationFrame() {}, addEventListener() {}, performance: { now: () => 0 },

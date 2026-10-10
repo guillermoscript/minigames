@@ -13,7 +13,7 @@
 fetch('index.html',{cache:'no-store'}).then(r=>r.text()).then(h=>{
   const v=Date.now(); /* para que el navegador no sirva un archivo viejo */
   document.open();
-  document.write(h.replace('</body>','<script src="juegos-bus.js?v='+v+'" data-juego="-"><\/script>'+['revisa','pique','paga','hueco','pendrive','duermete','saltale','amarrala','inscribe','tapala','tranca','jefe-alcabala','jefe-metro','jefe-arepa','trancalo','cava','cloche','acomoda','hielo','tequenos','soplalo','baile','rayita','marcalo','anuncio','trencito','torta','llave','sopa','queso','hallaca','cucaracha','mango','tendedero','switch','nevera','zancudo','enchufa','voltea','llego','jefe-transformador'].map(k=>'<script src="juego-'+k+'.js?v='+v+'"><\/script>').join('')+'<script src="../../js/eggs.js?v='+v+'"><\/script><script src="campana.js?v='+v+'"><\/script><script src="public-ui.js?v='+v+'"><\/script></body>'));
+  document.write(h.replace('</body>','<script src="juegos-bus.js?v='+v+'" data-juego="-"><\/script>'+['revisa','pique','paga','hueco','pendrive','duermete','saltale','amarrala','inscribe','tapala','tranca','jefe-alcabala','jefe-metro','jefe-arepa','trancalo','cava','cloche','acomoda','hielo','tequenos','soplalo','baile','rayita','marcalo','anuncio','trencito','torta','llave','sopa','queso','hallaca','cucaracha','mango','tendedero','switch','nevera','zancudo','enchufa','voltea','llego','jefe-transformador'].map(k=>'<script src="juego-'+k+'.js?v='+v+'"><\/script>').join('')+'<script src="../../js/eggs.js?v='+v+'"><\/script><script src="campana.js?v='+v+'"><\/script></body>'));
   document.close();
 }).catch(e=>{document.body.textContent='No pude cargar index.html: '+e;});
 </script></body></html>

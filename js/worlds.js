@@ -1,53 +1,44 @@
 'use strict';
-// Native controls make world and stage selection readable on small portrait screens.
-const worldsPanel = document.createElement('section');
-worldsPanel.className = 'world-menu'; worldsPanel.hidden = true;
-worldsPanel.setAttribute('aria-label', 'MiniCaos');
-document.body.append(worldsPanel);
-let worldsView = '';
+// World selection uses the same canvas, cast and controls as the stage menu.
+let worldChoice = 0;
 function worldText(es, en) { return I18N.lang === 'es' ? es : en; }
-function worldEscape(value) { return String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function worldInk(hex) { const rgb = hex.slice(1).match(/../g).map(c => parseInt(c, 16)); return rgb[0] * .299 + rgb[1] * .587 + rgb[2] * .114 < 115 ? '#fff' : '#14101c'; }
-function goWorlds() { if (window.frameElement?.id === 'camp-app' && parent.CAMP) { parent.CAMP.closeClassic(); return; } EGGS.stop(); state = 'worlds'; st = 0; mode = 'stage'; parts.length = 0; syncWorldMenu(); }
-function chooseClassic() { menuPage = 0; track('world_select', { world: 'classic' }); goMenu(); syncWorldMenu(); }
+function goWorlds() {
+  if (window.frameElement?.id === 'camp-app' && parent.CAMP) { parent.CAMP.closeClassic(); return; }
+  EGGS.stop(); state = 'worlds'; st = 0; mode = 'stage'; parts.length = 0; worldChoice = 0;
+}
+function chooseClassic() { menuPage = 0; track('world_select', { world: 'classic' }); goMenu(); }
 function chooseVenezuela() {
   EGGS.stop(); track('world_select', { world: 'venezuela' });
   location.assign('worlds/venezuela/?lang=' + encodeURIComponent(I18N.lang));
 }
-function syncWorldMenu() {
-  const visible = state === 'worlds' || state === 'menu';
-  const changed = worldsPanel.hidden === visible;
-  worldsPanel.hidden = !visible; document.body.classList.toggle('menu-open', visible);
-  if (!visible) { worldsView = ''; return; }
-  const key = [state, I18N.lang, save.unlocked, save.stars.join(',')].join('|');
-  if (key !== worldsView) {
-    worldsView = key;
-    const tr = worldText, esc = worldEscape;
-    const header = `<div class="menu-top"><span class="brand">MINICAOS!</span><button class="menu-back" data-action="${state === 'worlds' ? 'title' : 'worlds'}">← ${tr(state === 'worlds' ? 'Inicio' : 'Cambiar mundo', state === 'worlds' ? 'Home' : 'Change world')}</button></div>`;
-    if (state === 'worlds') {
-      worldsPanel.innerHTML = `<div class="menu-inner">${header}<h1>${tr('¿Dónde empieza el caos?', 'Where does the chaos begin?')}</h1><p>${tr('Elige un mundo. Juega desde la primera etapa o explora sus juegos.', 'Choose a world. Start at stage one or explore its games.')}</p><div class="world-grid">
-      <button class="world-card" data-action="classic" style="--card-color:#6EC6FF"><span class="badge">${tr('Los de siempre', 'The originals')}</span><span class="world-art" aria-hidden="true">🐸 ⌨️ ⚡</span><strong class="world-name">${tr('Clásico', 'Classic')}</strong><span class="description">${tr('Bichos, reflejos y retos rápidos. Empieza por Caza Bichos.', 'Bugs, reflexes and quick challenges. Start with Bug Hunt.')}</span><span class="enter">${tr('Entrar a Clásico', 'Enter Classic')} →</span></button>
-      <button class="world-card" data-action="venezuela" style="--card-color:#F5B93C"><span class="badge">${tr('Nuevos juegos', 'New games')}</span><span class="world-art" aria-hidden="true">🚌 🫓 🥭</span><strong class="world-name">Venezuela</strong><span class="description">${tr('La camionetica, la casa y la rumba. El caos de todos los días.', 'The bus, the house and the party. Everyday chaos.')}</span><span class="enter">${tr('Entrar a Venezuela', 'Enter Venezuela')} →</span></button></div><p>${tr('Partidas cortas. Puedes cambiar de mundo cuando quieras.', 'Short rounds. You can change worlds whenever you like.')}</p></div>`;
-    } else {
-      worldsPanel.innerHTML = `<div class="menu-inner">${header}<h1>${tr('Mundo Clásico', 'Classic World')}</h1><p>${tr('Los juegos de siempre. Elige una etapa para jugar.', 'The original games. Choose a stage to play.')}</p><button class="menu-action start-first" data-stage="0">▶ ${tr('Empezar por la etapa 1', 'Start at stage 1')} · ${esc(t(STAGES[0].name))}</button><div class="stage-grid">${STAGES.map((s, i) => {
-        const locked = i >= save.unlocked;
-        return `<button class="stage-card" data-stage="${i}" style="--card-color:${s.bg[0]};--card-ink:${worldInk(s.bg[0])}" ${locked ? 'disabled' : ''}><span class="badge">${tr('Etapa', 'Stage')} ${i + 1}${i === 0 ? ' · ' + tr('Empieza aquí', 'Start here') : ''}</span><strong>${esc(t(s.name))}</strong><small>${locked ? tr('Supera la etapa anterior', 'Clear the previous stage') : esc(t(s.tag))}</small><span>${locked ? '🔒' : '★'.repeat(save.stars[i] || 0) + '☆'.repeat(3 - (save.stars[i] || 0))}</span></button>`;
-      }).join('')}</div><div class="menu-actions"><button class="menu-action" data-action="practice">${tr('Practicar juegos', 'Practice games')}</button><button class="menu-action" data-action="ranks">${tr('Clasificación', 'Leaderboards')}</button><button class="menu-action" data-action="profile">${tr('Mi perfil', 'My profile')}</button></div></div>`;
-    }
-  }
-  if (changed) { const button = worldsPanel.querySelector(state === 'worlds' ? '[data-action=classic]' : '[data-stage="0"]'); if (button) button.focus({ preventScroll: true }); worldsPanel.scrollTop = 0; }
+function drawWorlds() {
+  bg('#2b2757', '#322d66', now);
+  txt(worldText('ELIGE MUNDO', 'CHOOSE WORLD'), W / 2, 55, 48, '#FFE14D');
+  const worlds = [
+    { name: worldText('CLÁSICO', 'CLASSIC'), hint: worldText('LOS JUEGOS DE SIEMPRE', 'THE ORIGINAL GAMES'), fill: '#DDF3FF', fn: chooseClassic },
+    { name: 'VENEZUELA', hint: worldText('CAMIONETICA, CASA Y RUMBA', 'BUS, HOME & PARTY'), fill: '#FFE9A8', fn: chooseVenezuela }
+  ];
+  worlds.forEach((world, i) => {
+    const x = 60 + i * 380, y = 130, w = 300, h = 340, cx = x + w / 2;
+    const hoveredCard = hoverBox(x, y, w, h, world.fill, 5, 7);
+    const bob = Math.abs(Math.sin(now * 3 + i)) * 6;
+    shadow(cx, y + 174, 50, 10, .2);
+    if (i === 0) CAST.host('sapito', cx, y + 170 - bob, 10, { mood: hoveredCard ? 'happy' : null });
+    else AP.person(AP.CAST.chamo, { mouth: 'smile', bob: -bob, la: [.2, .1], ra: [-.2, .1] }, cx, y + 174, .65);
+    txt(world.name, cx, y + 213, 34, '#fff', 'center', w - 24);
+    txt(world.hint, cx, y + 249, 15, INK, 'center', w - 24);
+    ctx.restore();
+    button(x + 28, y + 270, w - 56, 52, worldText('JUGAR ►', 'PLAY ►'), world.fn, { fill: i === 0 ? '#4DB8FF' : '#FFE14D', size: 24 });
+    btns.push({ x, y, w, h, fn: world.fn });
+    if (worldChoice === i && !TOUCH) { ctx.strokeStyle = '#FFE14D'; ctx.lineWidth = 3; ctx.strokeRect(x - 10, y - 10, w + 20, h + 20); }
+  });
+  button(260, 510, 280, 60, worldText('◄ INICIO', '◄ HOME'), goTitle, { size: 24 });
+  if (!TOUCH) txt(worldText('◄ ► ELEGIR · ENTER JUGAR', '◄ ► CHOOSE · ENTER PLAY'), W / 2, 488, 17, '#fff');
 }
-worldsPanel.addEventListener('click', e => {
-  const button = e.target.closest('button'); if (!button || button.disabled) return;
-  interacted = true; sfx.click();
-  if (button.dataset.stage !== undefined) startStage(Number(button.dataset.stage));
-  else ({ title: goTitle, worlds: goWorlds, classic: chooseClassic, venezuela: chooseVenezuela, practice: goPractice, ranks: goBoard, profile: goProfile })[button.dataset.action]?.();
-  syncWorldMenu();
-});
 function initWorldMenu() {
-const worldQuery = new URLSearchParams(location.search);
-if (!inviteOpen() && !chOpen) {
-  if (worldQuery.get('world') === 'classic') chooseClassic();
-  else if (worldQuery.has('worlds')) goWorlds();
-}
+  const query = new URLSearchParams(location.search);
+  if (!inviteOpen() && !chOpen) {
+    if (query.get('world') === 'classic') chooseClassic();
+    else if (query.has('worlds')) goWorlds();
+  }
 }

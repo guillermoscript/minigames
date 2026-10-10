@@ -460,12 +460,11 @@ function fuse() {
 
 /* ───────────── render ───────────── */
 function render() {
-  syncWorldMenu();
   btns = []; I18N.scope = state === 'play' ? I18N.scopeOf(curId) : '';
   const col = mode === 'stage' ? stage.col : OR;
 
   if (state === 'worlds') {
-    bg('#2b2757', '#322d66', now);
+    drawWorlds();
   } else if (state === 'title') {
     bg('#7C4DFF', '#6a3de8', now);
     const SC = ['#FFE14D', '#5CFF7A', '#4DB8FF', '#FF4D9E'];
@@ -519,7 +518,7 @@ function render() {
     profileBtn(14 - OX, 10, 170, 56);
     button(W + OX - 184, 10, 170, 56, 'RANKS', () => goBoard(), { size: 22, fill: '#FFE14D' });
     button(110, 455, 280, 74, 'PRACTICE', goPractice, { fill: '#5CFF7A' });
-    button(410, 455, 280, 74, 'TITLE', goTitle, { fill: '#fff' });
+    button(410, 455, 280, 74, worldText('◄ MUNDOS', '◄ WORLDS'), goWorlds, { fill: '#fff' });
     if (!TOUCH) txt('1-6 STAGE · ◄ ► PAGE · P PRACTICE · L RANKS · A PROFILE · ESC BACK', W / 2, 568, 18, '#fff');
   } else if (state === 'party') {
     drawParty();
@@ -829,7 +828,6 @@ function render() {
 
 /* ───────────── input events ───────────── */
 addEventListener('keydown', e => {
-  if (e.target.closest && e.target.closest('.world-menu') && e.code !== 'Escape') return;
   if (e.target && e.target.tagName === 'INPUT') { // typing in a profile field: don't leak keys into the game
     if (e.target.id === 'in-code') { if (e.code === 'Enter') { e.preventDefault(); joinTyped(); } else if (e.code === 'Escape') e.target.blur(); return; }
     if (e.target.id === 'in-friend') { if (e.code === 'Enter') { e.preventDefault(); doAddFriend(); } else if (e.code === 'Escape') closeAddFriend(); return; }
@@ -856,6 +854,12 @@ addEventListener('keydown', e => {
     return;
   }
   if (state === 'title' && go) { e.preventDefault(); titleGo(); }
+  else if (state === 'worlds') {
+    if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') worldChoice = 1 - worldChoice;
+    else if (e.code === 'Digit1') chooseClassic();
+    else if (e.code === 'Digit2') chooseVenezuela();
+    else if (go) { e.preventDefault(); worldChoice === 0 ? chooseClassic() : chooseVenezuela(); }
+  }
   else if (state === 'title' && e.code === 'KeyA') goProfile();
   else if (state === 'title' && e.code === 'KeyF') goParty('title');
   else if (state === 'title' && e.code === 'KeyG') I18N.next();

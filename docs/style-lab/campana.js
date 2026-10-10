@@ -390,7 +390,7 @@ function render(){
     T('DENTRO DE CADA MUNDO, «MUNDOS» O ESC TE DEVUELVEN AQUÍ',W/2,548,16,'#fff','center',770);
   }else if(state==='menu'){
     fondoNivel(NIV[nivel-1].menu[0],NIV[nivel-1].menu[1]);
-    button(14,14,132,38,'◄ MUNDOS',goWorlds,{size:16,depth:4,o:4});T('ELIGE ETAPA',W/2-36,36,40,'#FFE14D','center',330);tabsNivel(W-14-228,14,38);
+    button(14,14,132,38,'◄ MUNDOS',goWorlds,{size:16,depth:4,o:4});T(PUBLIC?'VENEZUELA':'ELIGE ETAPA',W/2,36,40,'#FFE14D','center',330);if(!PUBLIC)tabsNivel(W-14-228,14,38);
     ETAPAS.forEach((s,i)=>{const sola=i===ETAPAS.length-1&&i%2===0,x=sola?210:14+(i%2)*392,y=62+(i/2|0)*102,w=380,h=90,pop=easeOut((st-i*.05)/.3),cf=tinte(s.bg[0]),dk=lum(cf)<.3?'#fff':INK,ok=abierto(i,nivel),E=estrellas(nivel),R=records(nivel);
       X.save();X.translate(0,(1-pop)*40);X.globalAlpha=pop;hoverBox(x,y,w,h,cf,5,7);
       shadow(x+50,y+80,26,5,.25);caos(x+50,y+78-Math.abs(Math.sin(now*3+i))*5,3.8,{col:s.col});
@@ -401,11 +401,24 @@ function render(){
       stars3(x+w-52,y+70,E[i]||0,11,27);
       if(!ok){X.fillStyle='rgba(20,16,28,.62)';X.fillRect(x,y,w,h);T('SUPERA EL NIVEL '+(nivel-1),x+w/2,y+h/2,24,'#FFE14D','center',w-30);}
       X.restore();X.restore();btns.push({x,y,w,h,fn:()=>startStage(i)});});
+    if(PUBLIC){
+      button(110,420,280,64,'PRÁCTICA',goPractice,{fill:'#5CFF7A'});
+      button(410,420,280,64,'OPCIONES',()=>{state='options';st=0;},{fill:'#fff'});
+      T('ELIGE UNA ETAPA PARA JUGAR',W/2,540,20,'#fff');
+    }else{
     T('ESTILO DE DIBUJO',W/2,380,16,'#fff');chips(394,36);
     button(60,446,320,56,'PRÁCTICA',goPractice,{fill:'#5CFF7A'});
     button(420,446,320,56,save.musica?'MÚSICA: SÍ':'MÚSICA: NO',()=>{save.musica=!save.musica;persist();},{fill:'#fff'});
     T('NIVEL '+nivel+' · '+NIV[nivel-1].n+(nivel>1?': LOS MISMOS JUEGOS, CON MÁS MALDAD':': 4 VIDAS · SI PIERDES, REPITES ESE JUEGO · CADA 2 JUEGOS, MÁS RÁPIDO'),W/2,528,14,'#fff','center',770);
     T('1-7 ESTILO (TAMBIÉN JUGANDO) · P PRÁCTICA · M MÚSICA · ESC MUNDOS',W/2,562,16,'#fff','center',770);
+    }
+  }else if(state==='options'){
+    rays('#2b2757','#322d66',now);
+    button(14,14,150,44,'◄ ETAPAS',goMenu,{size:18});T('OPCIONES',W/2,52,44,'#FFE14D');
+    T('DIFICULTAD',W/2,154,26,'#fff');tabsNivel((W-228)/2,190,48);
+    T(NIV[nivel-1].n,W/2,265,22,'#FFE14D');
+    T('ESTILO DE DIBUJO',W/2,340,26,'#fff');chips(380,44);
+    button(220,475,360,60,save.musica?'MÚSICA: SÍ':'MÚSICA: NO',()=>{save.musica=!save.musica;persist();},{fill:'#fff'});
   }else if(state==='practice'){
     rays('#1f2a44','#26335a',now);
     button(14,10,150,40,'◄ ETAPAS',goMenu,{size:17,depth:4,o:4});T('PRÁCTICA',W/2,31,34,'#FFE14D');
@@ -522,10 +535,10 @@ addEventListener('pointermove',e=>{if(e.target!==view)return;hp=pos(e);if(!live(
 const suelta=e=>{pressing=false;if(e.pointerType==='touch')hp={x:-999,y:-999};};
 addEventListener('pointerup',suelta,true);addEventListener('pointercancel',suelta,true);
 addEventListener('contextmenu',e=>{if(e.target===view)e.preventDefault();});
-addEventListener('keydown',e=>{if(e.target.closest&&e.target.closest('#venezuela-menu')&&e.code!=='Escape'){e.stopImmediatePropagation();return;}despierta();const k=e.code,go=k==='Enter'||k==='Space';
+addEventListener('keydown',e=>{despierta();const k=e.code,go=k==='Enter'||k==='Space';
   if(/^Digit[1-9]$/.test(k)){e.stopImmediatePropagation();const i=+k.slice(5)-1;if(!e.repeat&&i<=ESTILOS.length)estilo(i<ESTILOS.length?ESTILOS[i][0]:'mezcla');return;}
   if(k==='KeyM'){e.stopImmediatePropagation();if(!e.repeat){save.musica=!save.musica;persist();say(save.musica?'MÚSICA: SÍ':'MÚSICA: NO','#FFE14D');}return;}
-  if(k==='Escape'){e.stopImmediatePropagation();if(state==='play'||state==='inter'||state==='stagein')exitPlay();else if(state==='practice'||state==='over'||state==='clear')goMenu();else if(!appFr)goWorlds();return;}
+  if(k==='Escape'){e.stopImmediatePropagation();if(state==='play'||state==='inter'||state==='stagein')exitPlay();else if(state==='practice'||state==='options'||state==='over'||state==='clear')goMenu();else if(!appFr)goWorlds();return;}
   if(k==='KeyR'&&mode==='practice'&&state==='play'){e.stopImmediatePropagation();if(!e.repeat)beginGame();return;}
   if(live())return;                                                       /* jugando: la tecla es del juego */
   e.stopImmediatePropagation();if(go||k.startsWith('Arrow'))e.preventDefault();if(e.repeat)return;

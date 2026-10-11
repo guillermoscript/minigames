@@ -7,6 +7,8 @@
 <style>
 html,body{margin:0;height:100%;overflow:hidden;background:#0b0b14;display:flex;align-items:center;justify-content:center;user-select:none;-webkit-user-select:none}
 canvas{display:block;width:min(100vw,133.333vh);height:auto;aspect-ratio:4/3;touch-action:none}
+@media (orientation:landscape){canvas{width:100vw;height:100vh;aspect-ratio:auto}}
+@supports (height:100dvh){@media (orientation:landscape){canvas{height:100dvh}}}
 </style>
 </head>
 <body>

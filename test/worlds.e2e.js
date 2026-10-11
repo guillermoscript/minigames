@@ -12,7 +12,7 @@ const assert = require('node:assert/strict');
 (async()=>{
  const browser=await chromium.launch({headless:true,executablePath:executable});
  const errors=[];
- for(const viewport of [{width:1280,height:800},{width:390,height:844}]){
+ for(const viewport of [{width:1280,height:800},{width:844,height:390},{width:390,height:844}]){
   const context=await browser.newContext({viewport,locale:'es-VE',serviceWorkers:'block',isMobile:viewport.width<640,hasTouch:viewport.width<640});
   const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
   const resources=[];page.on('request',r=>resources.push(r.url()));
@@ -34,6 +34,15 @@ const assert = require('node:assert/strict');
   };
   const rootState=expected=>page.waitForFunction(expected=>typeof state!=='undefined'&&state===expected,expected);
   const campState=expected=>page.waitForFunction(expected=>window.CAMP?.state===expected,expected);
+  const checkLandscape=async()=>{
+   if(page.viewportSize().width<=page.viewportSize().height)return;
+   for(const selector of ['#c','#camp-ov']){
+    const box=await page.locator(selector).boundingBox(),size=page.viewportSize();
+    for(const [actual,expected] of [[box.x,0],[box.y,0],[box.width,size.width],[box.height,size.height]]){
+     assert.ok(Math.abs(actual-expected)<2,`${selector} fills landscape: ${JSON.stringify({box,size})}`);
+    }
+   }
+  };
   await page.goto(base+'/?lang=es');
   await page.keyboard.press('Enter');await rootState('worlds');
   await page.waitForTimeout(400);
@@ -53,6 +62,12 @@ const assert = require('node:assert/strict');
   assert.equal(await page.evaluate(()=>window.__labControlsSeen),false,'lab controls never enter the public DOM');
   assert.equal(resources.some(url=>/\/(engine\.html|lab-ui\.js|jugar\.html)(?:[?]|$)/.test(url)),false,'public entry never loads laboratory HTML or controls');
   assert.equal(await page.locator('.world-menu').count(),0,'Venezuela uses original canvas UI');
+  await checkLandscape();
+  if(viewport.width<viewport.height){
+   await page.setViewportSize({width:844,height:390});
+   await checkLandscape();
+   await page.setViewportSize(viewport);
+  }
   if(process.env.WORLD_SCREENSHOTS) await page.screenshot({path:`/tmp/minicaos-venezuela-${viewport.width}.png`});
   await tap(550,450);await campState('options');
   await tap(400,210);assert.equal(await page.evaluate(()=>CAMP.info.nivel),2);
@@ -61,6 +76,7 @@ const assert = require('node:assert/strict');
   await page.keyboard.press('Escape');await campState('menu');
   await page.waitForTimeout(400);await tap(160,110);
   await campState('play');assert.equal(await page.evaluate(()=>CAMP.info.stage),0);
+  await checkLandscape();
   await page.keyboard.press('Escape');await campState('menu');
   await tap(80,32);await rootState('worlds');
   console.log(`OK ${viewport.width}: native worlds and classic UI, Venezuela settings/gameplay, return to worlds`);

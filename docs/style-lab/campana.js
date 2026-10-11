@@ -61,6 +61,8 @@ const css=document.createElement('style');
 css.textContent='html,body{height:100%}body{padding:0!important;gap:0!important;justify-content:center;overflow:hidden;background:#0b0b14!important;user-select:none;-webkit-user-select:none}'+
   '.bar,#help{display:none!important}#camp{position:relative;width:min(100vw,133.333vh);aspect-ratio:4/3;flex:none}'+
   '@supports (height:100dvh){#camp{width:min(100vw,133.333dvh)}}'+
+  '@media (orientation:landscape){#camp{width:100vw;height:100vh;aspect-ratio:auto}'+
+  '@supports (height:100dvh){#camp{height:100dvh}}}'+
   '#camp canvas{position:absolute;left:0;top:0;width:100%!important;height:100%!important;border-radius:0!important}#camp-ov{pointer-events:none;background:transparent!important}'+
   '#camp-app{position:fixed;left:0;top:0;width:100%;height:100%;border:0;background:#0b0b14;z-index:5}';
 document.head.append(css);

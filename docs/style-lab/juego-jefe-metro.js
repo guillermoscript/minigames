@@ -47,8 +47,8 @@ function mkMetro(){
   let ph=0,pt=0,gap=0,fin=0,T=0,shake=0,lph=0,ev=0;
 
   /* ── fase 1: el andén ── */
-  const EMP=[.16,.2,.24][n],PASO=.08,ph0=Math.random()*TAU,X0=230,X1=556,FY=470,PAD=[[250,538],[350,538],[450,538],[550,538]];
-  const gente=[4,6,9,1,5].map((fi,i)=>({f:FACES[fi],i}));
+  const EMP=[.16,.2,.24][n],PASO=.08,ph0=Math.random()*TAU,X0=gameLeft()+230,X1=gameRight()-244,FY=470,PAD=[[250,538],[350,538],[450,538],[550,538]].map(([x,y])=>[fieldX(x),y]);
+  const gente=Array.from({length:Math.ceil(GAME_VIEW.width/160)},(_,i)=>({f:FACES[[4,6,9,1,5][i%5]],i}));
   let px=.34,dir=DIRS[Math.random()*4|0],okT=0,malT=0,codo=0,grito=1.2,padT=[0,0,0,0];
   function marca(k){const i=DIRS.indexOf(k);if(i<0)return;padT[i]=1;
     if(k===dir){px=Math.max(.04,px-PASO);codo=1;okT=1;snd(520+Math.random()*120,.07,'square',.05);let d;do d=DIRS[Math.random()*4|0];while(d===dir);dir=d;}
@@ -73,12 +73,12 @@ function mkMetro(){
 
   /* ── dibujo: fase 1 (el andén, de lado; la fosa a la derecha y el tren viene de frente) ── */
   function d1(){const k=clamp(pt/FASES[0].dur,0,1),lose=g.result==='lose',X=lerp(X0,X1,px)+(lose?Math.min(26,fin*90):0),S=.74,Y=FY-170*S;
-    wash(0,0,800,600,'#e8dcc0','#d8c9a8');for(let i=0;i<9;i++)line([[i*100,96],[i*100,FY]],2,'#cdbd98');line([[0,300],[620,300]],2,'#cdbd98');
+    wash(gameLeft(),0,GAME_VIEW.width,600,'#e8dcc0','#d8c9a8');for(let x=gameLeft();x<gameRight();x+=100)line([[x,96],[x,FY]],2,'#cdbd98');line([[0,300],[620,300]],2,'#cdbd98');
     rr(20,102,236,34,8,'#2f5fa8',4);txt('PLAZA VENEZUELA',138,119,18,'#ffffff',0,true);
     rr(424,102,160,54,8,'#14101c',4);txt('6:00 PM',504,119,17,'#ff8a3d',0,true);txt('RETRASO: 45 MIN',504,141,11,'#ff4d5e',0,true);
     ell(350,122,15,15,'#8f8fa8',3.5);ell(350,122,7,7,'#14101c',0);
     /* la fosa y el tren que llega de frente */
-    rr(596,96,214,520,0,'#1a1626',0);
+    ctx.save();ctx.translate(GAME_VIEW.offsetX,0);rr(596,96,214,520,0,'#1a1626',0);
     const tk=k*k,tw_=30+tk*176,th=46+tk*300,tx=700,ty=250+tk*110;
     velo(.25+.2*k,()=>ell(tx,ty,tw_*.9,th*.7,'#fff6c8',0));
     rr(tx-tw_/2,ty-th/2,tw_,th,14*tk+3,'#e4e6ee',Math.max(2,4.5*tk));rr(tx-tw_*.4,ty-th*.36,tw_*.8,th*.3,6,'#5a4a78',Math.max(1.5,3.5*tk));rr(tx-tw_/2,ty+th*.12,tw_,th*.1,0,'#ff7a1a',0);
@@ -86,10 +86,10 @@ function mkMetro(){
     if(tk>.3)txt('LÍNEA 1',tx,ty-th*.43,6+tk*12,INK,0,true);
     for(const sg of[-1,1])line([[tx+sg*60,600],[tx+sg*(20+tk*6),ty+th/2]],5,'#8f8fa8');
     rr(596,532,214,80,0,'#2d2640',0);
-    if(!lose)rata(650+Math.sin(now*1.3)*26,566,.7,()=>{ell(48,-22,14,9,'#f4d9a0',3);});
+    if(!lose)rata(650+Math.sin(now*1.3)*26,566,.7,()=>{ell(48,-22,14,9,'#f4d9a0',3);});ctx.restore();
     /* el andén y su raya amarilla */
-    rr(-10,FY,606,140,0,'#b8b2a4',0);line([[0,FY],[596,FY]],5,INK);rr(536,FY-2,60,18,0,'#ffd23f',3.5);for(let i=0;i<5;i++)ell(546+i*10,FY+7,2.5,2.5,'#c9a51a',0);
-    rr(590,FY-2,8,140,0,'#8f8fa8',3);
+    rr(gameLeft()-10,FY,GAME_VIEW.width-194,140,0,'#b8b2a4',0);line([[gameLeft(),FY],[gameRight()-204,FY]],5,INK);rr(gameRight()-264,FY-2,60,18,0,'#ffd23f',3.5);for(let i=0;i<5;i++)ell(gameRight()-254+i*10,FY+7,2.5,2.5,'#c9a51a',0);
+    rr(gameRight()-210,FY-2,8,140,0,'#8f8fa8',3);
     /* la marea: todos empujan */
     const empuje=Math.sin(now*9)*.5+.5;
     for(const p of gente.slice().reverse()){const gx=X-64*(p.i+1)-8+Math.sin(now*7+p.i*2)*5,sy=Y+(p.i%2)*8;
@@ -116,10 +116,11 @@ function mkMetro(){
   /* ── dibujo: fase 2 (la puerta del vagón, de frente; tú de espaldas) ── */
   function d2(){const k=clamp(pt/FASES[1].dur,0,1),lose=g.result==='lose',osc=lose?clamp((fin-1)/.5,0,1):0;
     const lw=lose?116:152*ease(k),mm=ease(m),ys=lerp(476,404,mm),ss=lerp(1.1,.8,mm),ap=18+mm*46;
-    wash(0,0,800,600,'#d8d2c4','#c9c2b0');
-    rr(-20,100,840,432,0,'#e4e6ee',0);line([[0,100],[800,100]],5,INK);rr(-20,404,840,40,0,'#ff7a1a',0);rr(-20,444,840,12,0,'#c4283a',0);
+    wash(gameLeft(),0,GAME_VIEW.width,600,'#d8d2c4','#c9c2b0');
+    rr(gameLeft()-20,100,GAME_VIEW.width+40,432,0,'#e4e6ee',0);line([[gameLeft(),100],[gameRight(),100]],5,INK);rr(gameLeft()-20,404,GAME_VIEW.width+40,40,0,'#ff7a1a',0);rr(gameLeft()-20,444,GAME_VIEW.width+40,12,0,'#c4283a',0);
     txt('CAP. 180 PERSONAS',116,372,13,INK,0,true);txt('(HOY: 400)',116,390,12,'#c4283a',0,true);
-    for(const[wx,fa,fb]of[[36,2,7],[604,8,10]]){rr(wx,170,160,150,16,'#5a4a78',4.5);ctx.save();path(rrP(wx+7,177,146,136,10));ctx.clip();wash(wx,170,160,150,'#fff3c4','#ffe9a8');
+    const windows=[[36,2,7],[604,8,10]];for(let x=-172;x+160>gameLeft();x-=208)windows.push([x,2,7]);for(let x=812;x<gameRight();x+=208)windows.push([x,8,10]);
+    for(const[wx,fa,fb]of windows){rr(wx,170,160,150,16,'#5a4a78',4.5);ctx.save();path(rrP(wx+7,177,146,136,10));ctx.clip();wash(wx,170,160,150,'#fff3c4','#ffe9a8');
       bust(Object.assign({},FACES[fa],{x:wx+52,y:300,s:.7,sy:.9,th:60,mood:'o',rot:-.12}));bust(Object.assign({},FACES[fb],{x:wx+112,y:306,s:.7,sy:.9,th:60,mood:lose?'yell':'worry',rot:.14,sweat:1}));ctx.restore();}
     /* el hueco de la puerta y la pared de gente */
     rr(236,140,328,392,12,'#2d2640',4.5);ctx.save();path(rrP(248,152,304,378,6));ctx.clip();wash(248,152,304,378,'#fff3c4','#ffe9a8');
@@ -134,8 +135,8 @@ function mkMetro(){
     for(const sg of[-1,1]){const x=sg<0?248:552-lw;if(lw>3){rr(x,152,lw,378,0,'#c9ced6',4);if(lw>40)rr(x+10,190,lw-20,120,8,'#bfe9ff',3);if(lw>70)for(let i=0;i<3;i++)rr(x+14+i*((lw-40)/3+2),470,(lw-40)/3,12,2,i%2?INK:'#ffd23f',0);}}
     rr(264,104,272,30,8,'#14101c',3.5);txt(lose?'CERRANDO PUERTAS':k>.6?'¡CERRANDO PUERTAS!':'LÍNEA 1 · HORA PICO',400,120,14,k>.6?'#ff4d5e':'#ffd23f',0,true);
     /* el andén */
-    if(!lose||fin<1){rr(0,530,800,70,0,'#b8b2a4',0);rr(0,530,800,16,0,'#ffd23f',3);}
-    else{rr(0,530,800,70,0,'#1a1626',0);for(let i=0;i<6;i++)rr(((i*210-(fin-1)*1500)%1260+1260)%1260-200,548,120,8,4,'#ffe9a0',0);}
+    if(!lose||fin<1){rr(gameLeft(),530,GAME_VIEW.width,70,0,'#b8b2a4',0);rr(gameLeft(),530,GAME_VIEW.width,16,0,'#ffd23f',3);}
+    else{rr(gameLeft(),530,GAME_VIEW.width,70,0,'#1a1626',0);for(let i=0;i<6;i++)rr(((i*210-(fin-1)*1500)%1260+1260)%1260-200,548,120,8,4,'#ffe9a0',0);}
     if(lose){/* atrapado: solo se ve lo que queda entre las hojas, y las piernas pataleando sobre el andén */ctx.save();ctx.beginPath();ctx.rect(364,150,72,382);ctx.rect(270,532,260,68);ctx.clip();yo();ctx.restore();}
     else if(mm<.5)yo();
     if(!g.result){rr(250,548,300,26,13,'#14101c',3.5);if(m>.01)rr(253,551,294*m,20,10,m>.7?'#5cff7a':'#ffd23f',0);txt('¡EMPUJA!',400,561,13,m>.5?INK:'#ffffff',0,true);tag(400,ys+ss*150>560?ys-ss*150:ys-ss*138);}
@@ -143,7 +144,7 @@ function mkMetro(){
       /* medio bolso se queda en el andén (y luego en el túnel, tú con las piernas afuera) */
       if(fin<1){const u=clamp(fin/.4,0,1);ctx.save();ctx.scale(-1,1);bolso(-lerp(400,300,u),lerp(ys,566,u*u)-Math.sin(u*PI)*50,u*3,1,true);ctx.restore();
         if(u>=1){ell(350,572,12,8,'#f4d9a0',3);rr(232,566,26,16,3,'#3fb0ff',3);}}
-      velo(osc*.62,()=>rr(0,0,800,600,0,'#05040c',0));
+      velo(osc*.62,()=>rr(gameLeft(),0,GAME_VIEW.width,600,0,'#05040c',0));
       if(osc>0)for(let i=0;i<4;i++){const x=((i*330-(fin-1)*1700)%1320+1320)%1320-260;velo(.5,()=>poly([[x,100],[x+70,100],[x+10,530],[x-60,530]],'#ffe9a0',0));}
       if(fin>.35)bubble(400,196,fin>1.6?'MMFF... ¿ALGUIEN ME HALA?':'¡MI BOLSO!',fin>1.6?19:24,400,ys-ss*110);
       if(fin>2)bubble(610,330,'PERMISO, VOY SALIENDO',15,520,400);}}
@@ -197,7 +198,7 @@ function mkMetro(){
     if(win&&fin>.25)bubble(430,214,'¡PERMISO, PERMISO, PERMISO!',19,560,330);
     ctx.restore();
     /* el calor */
-    velo(.08+.05*Math.sin(now*3),()=>rr(0,96,800,424,0,'#ff8a3d',0));
+    velo(.08+.05*Math.sin(now*3),()=>rr(gameLeft(),96,GAME_VIEW.width,424,0,'#ff8a3d',0));
     if(!g.result){
       /* la barra de equilibrio */
       rr(118,530,564,44,20,'#2d2640',4);const gx=u=>400+240*u;
@@ -209,9 +210,9 @@ function mkMetro(){
 
   /* ── el final bueno: al aire libre ── */
   function dFuera(u){
-    wash(0,0,800,600,'#8fd8ff','#e8f8ff');ell(660,150,44,44,'#ffe14d',0);for(let i=0;i<8;i++){const a=i*TAU/8+now*.4;line([[660+Math.cos(a)*56,150+Math.sin(a)*56],[660+Math.cos(a)*74,150+Math.sin(a)*74]],5,'#ffe14d');}
+    wash(gameLeft(),0,GAME_VIEW.width,600,'#8fd8ff','#e8f8ff');ell(660,150,44,44,'#ffe14d',0);for(let i=0;i<8;i++){const a=i*TAU/8+now*.4;line([[660+Math.cos(a)*56,150+Math.sin(a)*56],[660+Math.cos(a)*74,150+Math.sin(a)*74]],5,'#ffe14d');}
     [[-20,250,150,230,'#ffb36b'],[120,300,120,180,'#a9a0ff'],[560,270,140,210,'#ff9ec7'],[690,230,140,250,'#6ecf8f']].forEach(([x,y,w,h,c])=>{rr(x,y,w,h,6,c,3.5);for(let i=0;i<2;i++)rr(x+16+i*(w/2.2),y+22,w/4,26,4,'#ffffff',2.5);});
-    rr(0,480,800,120,0,'#d8d2c4',0);line([[0,480],[800,480]],4,INK);
+    rr(gameLeft(),480,GAME_VIEW.width,120,0,'#d8d2c4',0);line([[gameLeft(),480],[gameRight(),480]],4,INK);
     /* la boca del metro */
     rr(60,400,210,90,8,'#5a5274',4.5);rr(76,414,178,76,4,'#14101c',3);for(let i=0;i<4;i++)rr(84+i*8,474-i*14,162-i*16,12,0,'#3b3550',0);rr(96,352,138,40,8,'#2f5fa8',4);txt('SALIDA',165,372,20,'#ffffff',0,true);
     const sale=ease(clamp(u/.35,0,1)),hop=Math.abs(Math.sin(u*8))*18*Math.max(0,1-u*.5);
@@ -255,7 +256,7 @@ function mkMetro(){
       if(g.result==='win'&&fin>.95)dFuera(fin-.95);else[d1,d2,d3][ph]();
       ctx.restore();
       if(!g.result){for(let i=0;i<3;i++)ell(574+i*22,76,7,7,i<ph?'#5cff7a':i===ph?'#ffd23f':'#fff3c4',3);
-        if(gap>0){velo(gap/GAP*1.6,()=>{rr(0,250,800,96,0,'#14101c',0);txt('FASE '+(ph+1)+' DE 3',400,298,44,'#ffd23f');});}}
+        if(gap>0){velo(gap/GAP*1.6,()=>{rr(gameLeft(),250,GAME_VIEW.width,96,0,'#14101c',0);txt('FASE '+(ph+1)+' DE 3',400,298,44,'#ffd23f');});}}
       drawP();
     }};
   return g;

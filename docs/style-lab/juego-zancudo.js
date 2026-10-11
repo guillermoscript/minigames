@@ -40,7 +40,7 @@ function zancudo(x,y,s,rot,o){ctx.save();ctx.translate(x,y);ctx.rotate(rot);ctx.
 function mkZancudo(){
   const rs=Math.sqrt(SP),lv=BUS.LV(),seed=Math.random()*100,spd=.55+(SP-1)*.22,AB=AP.CAST.mama,RL=lv>1?128:170;   /* mamá, la de la chancla; RL = radio de la linterna */
   /* los bichos: {x, y, a (hacia dónde mira), sd (fase del vuelo), vivo; vy y r = la caída del muerto} */
-  const Ms=(lv>2?[0,1]:[0]).map(i=>({x:400+i*150,y:280-i*70,a:0,sd:seed+i*PI,vivo:true,vy:0,r:0}));
+  const Ms=(lv>2?[0,1]:[0]).map(i=>({x:fieldX(400+i*150),y:280-i*70,a:0,sd:seed+i*PI,vivo:true,vy:0,r:0}));
   const vivos=()=>Ms.filter(m=>m.vivo);
   let px=400,py=330,swing=0,cool=0,sx=px,sy=py,misses=[],bz=0,fin=0,ult=Ms[0];   /* ult = el último que cayó */
   function dale(x,y){px=x;py=y;if(g.result||cool>0)return;
@@ -51,7 +51,7 @@ function mkZancudo(){
       if(!vivos().length){g.result='win';g.why='¡PLAF!';sfx.win();}
       else{snd(700,.12,'square',.05,300);say('¡FALTA UNO!',x,y<150?y+96:y-70,'#ffe14d');}}
     else{misses.push({x,y,t:.5});nz(.06,.12);}}
-  const luz=p=>{px=clamp(p.x,0,800);py=clamp(p.y,50,566);};
+  const luz=p=>{px=clamp(p.x,gameLeft(),gameRight());py=clamp(p.y,50,566);};
   const g={lr:true,get impact(){return this.result?clamp(1-fin/.5,0,1):0;},
     /* x, y = el primer bicho que queda vivo (o el último que cayó) */
     probe:()=>{const m=vivos()[0]||ult;return{x:m.x,y:m.y,px,py,cool,R:RH,RL,quedan:vivos().length,bichos:Ms.map(b=>({x:b.x,y:b.y,vivo:b.vivo}))};},
@@ -67,7 +67,7 @@ function mkZancudo(){
       for(const m of Ms)if(!m.vivo){m.vy+=1100*dt;m.y+=m.vy*dt;m.r+=dt*7;if(m.y>536){m.y=536;m.vy=0;m.r=PI;}}   /* el muerto cae al piso, patas arriba */
       if(!g.result){const c=g.t*spd*rs;
         for(const m of vivos()){
-          const tx=470+Math.sin(c*2.1+m.sd)*220+Math.sin(c*5.3)*35,   /* vuela a la derecha de mamá, no sobre su cara */ty=290+Math.cos(c*1.7+m.sd*1.3)*130+Math.sin(c*6.1)*30;
+          const tx=fieldX(470+Math.sin(c*2.1+m.sd)*220+Math.sin(c*5.3)*35),   /* vuela a la derecha de mamá, no sobre su cara */ty=290+Math.cos(c*1.7+m.sd*1.3)*130+Math.sin(c*6.1)*30;
           const vx=(tx-m.x)*9,vy=(ty-m.y)*9;m.x+=vx*dt;m.y+=vy*dt;m.a=Math.atan2(vx,-vy)*.5;}
         if((bz-=dt)<=0){bz=.1;const v=clamp(1-Math.min(...vivos().map(m=>Math.hypot(m.x-px,m.y-py)))/360,0,1);snd(480+v*220,.09,'sawtooth',.014+.03*v,-50+v*40);}   /* el zumbido */
         if(g.t>=g.dur){g.result='lose';g.why='¡TE PICÓ!';sfx.lose();snd(900,.5,'sawtooth',.06,500);}
@@ -75,7 +75,7 @@ function mkZancudo(){
       fin+=dt;g.endT=sello(fin);},
     draw(){
       const win=g.result==='win',lose=g.result==='lose',e=fin,V=vivos(),ref=V[0]||ult;
-      ctx.save();path([[0,0],[800,0],[800,576],[0,576]]);ctx.clip();
+      ctx.save();path([[gameLeft(),0],[gameRight(),0],[gameRight(),576],[gameLeft(),576]]);ctx.clip();
       /* la sala a todo color: el bombillo apagado, la mesita con la vela y mamá, que no le quita los ojos de encima */
       AP.sala();AP.bombillo(400,150,0);
       rr(222,400,84,12,4,'#7a3b2e',3.5);rr(232,412,10,56,2,'#7a3b2e',3);rr(286,412,10,56,2,'#7a3b2e',3);AP.vela(264,400,1);
@@ -104,7 +104,7 @@ function mkZancudo(){
       if(lose){const u=ease(clamp(e/.45,0,1));V.forEach((m,i)=>zancudo(lerp(m.x,400+(i-(V.length-1)/2)*250,u)+Math.sin(now*40+i)*3,lerp(m.y,330,u),1.8+u*(V.length>1?3.2:5),lerp(m.a,0,u),{}));
         for(let i=0;i<3;i++){const z=(now*1.5+i/3)%1;ctx.save();ctx.globalAlpha=1-z;txt('¡ZZZZ!',200+i*200,150-z*40+(i%2)*36,26+z*12,'#ffffff',(i-1)*.12);ctx.restore();}
         if(e>.5)bubble(300,470,'¡AY, MIJO, TE PICÓ!',20,170,330);}
-      ctx.restore();line([[0,576],[800,576]],4,INK);
+      ctx.restore();line([[gameLeft(),576],[gameRight(),576]],4,INK);
       drawP();
     }};
   return g;

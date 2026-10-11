@@ -38,16 +38,17 @@ const PIEZA={mue:mueble,nev:nevera,ven:venti};
 function bolsa(x,y,s){ell(x,y,46*s,34*s,'#2d2640',4);poly([[x-8*s,y-30*s],[x+8*s,y-30*s],[x+14*s,y-48*s],[x,y-40*s],[x-14*s,y-48*s]],'#2d2640',3.5);line([[x-18*s,y-6*s],[x-6*s,y+8*s]],3,'#5a5274');}
 
 function mkTrencito(){
+  const X0=gameLeft()+130,X1=gameRight()-130,L=gameLeft(),R=gameRight();
   const lv=LV(),rs=Math.sqrt(SP),n=[3,4,5][lv-1],V=250*rs,dur=5/rs,GW=[0,190,165][lv-1],LEAD=GAPY/V;
   /* ── los estorbos: centro, un lado, el otro (así no hay sitio donde quedarse quieto), y en 2 y 3 un pasillo y uno suelto ── */
   const lado=Math.random()<.5?-1:1,tipo=()=>Math.random()<.5?'mue':'nv';
-  let ws=[{ox:400+(Math.random()-.5)*30,k:tipo()}];const resto=[{ox:400+lado*185,k:tipo()},{ox:400-lado*185,k:tipo()}];
-  if(lv>=2)resto.push({ox:300+Math.random()*200,gap:true});
-  if(lv>=3)resto.push({ox:240+Math.random()*320,k:Math.random()<.5?'nev':'ven'});
+  let ws=[{ox:400+(Math.random()-.5)*30,k:tipo()}];const resto=[{ox:fieldX(400+lado*185),k:tipo()},{ox:fieldX(400-lado*185),k:tipo()}];
+  if(lv>=2)resto.push({ox:fieldX(300+Math.random()*200),gap:true});
+  if(lv>=3)resto.push({ox:fieldX(240+Math.random()*320),k:Math.random()<.5?'nev':'ven'});
   while(resto.length)ws.push(resto.splice(Math.random()*resto.length|0,1)[0]);
   const t0=1.5,t1=5-.35;let prev=400;
   ws.forEach((w,i)=>{w.t=(t0+i*(t1-t0)/(n-1))/rs;w.parts=[];
-    if(w.gap){w.G=GW;for(const sg of[-1,1]){let e=w.ox+sg*GW/2,j=sg<0?0:1;while(sg<0?e>70:e<730){const k=['mue','nev','ven'][j++%3],h=HWK[k];w.parts.push({k,x:e+sg*h});e+=sg*(2*h+4);}}w.sx=w.ox;}
+    if(w.gap){w.G=GW;for(const sg of[-1,1]){let e=w.ox+sg*GW/2,j=sg<0?0:1;while(sg<0?e>L+70:e<R-70){const k=['mue','nev','ven'][j++%3],h=HWK[k];w.parts.push({k,x:e+sg*h});e+=sg*(2*h+4);}}w.sx=w.ox;}
     else{if(w.k==='nv'){w.hw=92;w.parts.push({k:'nev',x:w.ox-46},{k:'ven',x:w.ox+50});}else{w.hw=HWK[w.k]+2;w.parts.push({k:w.k,x:w.ox});}
       const m=w.hw+80;if(Math.abs(prev-w.ox)>=m)w.sx=prev;else{const a=w.ox-m,b=w.ox+m,okA=a>=X0,okB=b<=X1;w.sx=okA&&okB?(Math.abs(prev-w.ox)<8?(Math.random()<.5?a:b):prev<w.ox?a:b):okA?a:b;}}
     prev=w.sx;});
@@ -64,7 +65,7 @@ function mkTrencito(){
   const cintura=(X,Y,ax,ay,bw)=>[1,-1].map(sd=>{const lx=(ax+sd*26-X)/S-sd*bw*.78,ly=(ay+32-Y)/S-4;return{side:sd,a:Math.atan2(lx,ly),len:clamp(Math.hypot(lx,ly),30,170),w:19};});
   let px=400,tx=400,pH=false,was=false,grabbed=false,loose=0,sc=0,beat=0,nb=0,ev=0,kind='',cw=null,q1=400,q2=400,px0=400,lx0=400,pitoT=.4,sg0=1;
   const g={lr:true,get impact(){return this.result==='lose'&&kind==='choque'?clamp(1-this.endT/.5,0,1):0;},
-    probe:()=>{const w=ws.find(w=>!w.done)||ws[n-1];return{px,tx,safe:w.sx,next:w.t,hold:pH||!!kG,loose,kind,n,danger:hits(w,px)};},
+    probe:()=>{const w=ws.find(w=>!w.done)||ws[n-1];return{px,tx,X0,X1,safe:w.sx,next:w.t,hold:pH||!!kG,loose,kind,n,danger:hits(w,px)};},
     t:0,dur,result:null,why:'',endT:0,cmd:'¡AGARRA LA CINTURA!',hint:'MANTÉN apretado y ARRASTRA a los lados (teclado: ← →): ¡no choques!',
     press(){},
     down(p){pH=true;tx=clamp(p.x,X0,X1);},
@@ -73,7 +74,7 @@ function mkTrencito(){
     update(dt){g.t+=dt;
       if(!g.result){sc+=V*dt;
         if(kL||kR||kS)kG=1;const hold=pH||!!kG;
-        if(kL||kR)tx=clamp(tx+(kR-kL)*620*rs*dt,X0,X1);
+        if(kL||kR)tx=clamp(tx+(kR-kL)*620*rs*fieldScale()*dt,X0,X1);
         if(hold&&!was){snd(660,.05,'square',.04,200);if(!grabbed)say('¡AGARRADO!',px,PY-96,'#5cff7a');grabbed=true;}if(!hold&&was)snd(300,.12,'sine',.05,-150);was=hold;
         if(hold){loose=0;px+=(tx-px)*Math.min(1,dt*16);}else if(grabbed)loose+=dt;
         q1+=(px-q1)*Math.min(1,dt*9);q2+=(q1-q2)*Math.min(1,dt*9);
@@ -97,14 +98,14 @@ function mkTrencito(){
       const nx=ws.find(w=>!w.done),danger=!g.result&&nx&&nx.t-g.t<.7&&hits(nx,px);
       ctx.save();if(choque&&e<.4)ctx.translate(Math.sin(now*70)*5*(1-e/.4),0);
       /* ── el piso de la casa (o la grama del patio), que corre hacia abajo ── */
-      if(win){wash(0,0,800,600,'#8fdc9a','#62c47a');
+      if(win){wash(gameLeft(),0,GAME_VIEW.width,600,'#8fdc9a','#62c47a');
         for(let i=0;i<9;i++){const y=((i*83+sc)%680)-40,x=60+(i*197)%700;ell(x,y,7,7,LEI[i%4],2.5);ell(x,y,3,3,'#ffffff',0);}
-        const yd=470+e*260;rr(0,yd,800,150,0,'#f1dcb0',0);rr(0,yd,800,22,0,'#c98a5a',3.5);txt('PATIO',400,yd+50,22,'#c98a5a',0,true);}
-      else{wash(0,0,800,600,'#f4e2ba','#e9cf98');
-        for(let x=170;x<740;x+=100)line([[x,0],[x,600]],3,'#dcc086');for(let i=0;i<6;i++){const y=(i*100+sc)%600;line([[70,y],[730,y]],3,'#dcc086');}
-        rr(0,0,70,600,0,'#8fd0c0',0);rr(730,0,70,600,0,'#8fd0c0',0);line([[70,0],[70,600]],5,INK);line([[730,0],[730,600]],5,INK);
+        const yd=470+e*260;rr(gameLeft(),yd,GAME_VIEW.width,150,0,'#f1dcb0',0);rr(gameLeft(),yd,GAME_VIEW.width,22,0,'#c98a5a',3.5);txt('PATIO',400,yd+50,22,'#c98a5a',0,true);}
+      else{wash(gameLeft(),0,GAME_VIEW.width,600,'#f4e2ba','#e9cf98');
+        for(let x=L+170;x<R-60;x+=100)line([[x,0],[x,600]],3,'#dcc086');for(let i=0;i<6;i++){const y=(i*100+sc)%600;line([[L+70,y],[R-70,y]],3,'#dcc086');}
+        rr(L,0,70,600,0,'#8fd0c0',0);rr(R-70,0,70,600,0,'#8fd0c0',0);line([[L+70,0],[L+70,600]],5,INK);line([[R-70,0],[R-70,600]],5,INK);
         /* bombas pegadas en la pared */
-        for(let i=0;i<4;i++){const y=((i*230+sc)%920)-80,x=i%2?764:36;line([[x,y+22],[x+4,y+52]],2.5,INK);ell(x,y,20,24,LEI[i%4],3.5);ell(x-6,y-8,5,7,'#ffffff',0);}
+        for(let i=0;i<4;i++){const y=((i*230+sc)%920)-80,x=i%2?R-36:L+36;line([[x,y+22],[x+4,y+52]],2.5,INK);ell(x,y,20,24,LEI[i%4],3.5);ell(x-6,y-8,5,7,'#ffffff',0);}
         /* gags de fondo: la gallina con gorrito y el tío rendido en la silla */
         const hy=((sc*1+380)%1500)-150;hen(34,hy,.5,1);poly([[44,hy-36],[64,hy-36],[55,hy-64]],'#ff5c8a',3);ell(55,hy-66,5,5,'#ffd23f',2.5);
         const ty=((sc+1050)%1500)-150;rr(742,ty-6,46,74,8,'#ffffff',3.5);bust(Object.assign({},FACES[6],{x:765,y:ty,s:.36,th:110,mood:'sleep',rot:.12}));txt('Zz',748,ty-48-Math.sin(now*3)*5,18,'#ffffff',-.2);}

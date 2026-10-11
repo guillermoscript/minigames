@@ -64,7 +64,7 @@ function mkRayita(){
       const win=g.result==='win',lose=g.result==='lose',bota=lose&&g.kind==='bota',e=g.endT,pour=pk>.5,zona=h>=LO,casi=h>LO-.14;
       const jy=jolt*6,pega=bota&&e>.7,sh=pega?Math.sin(now*40)*7*Math.max(0,1-(e-.7)*.6):0,cx=CX+sh;
       /* la fiesta: pared, banderines, mesa */
-      wash(0,0,800,600,'#ffe9b8','#ffd28a');
+      wash(gameLeft(),0,GAME_VIEW.width,600,'#ffe9b8','#ffd28a');
       line([[0,100],[400,134],[800,100]],3,'#3b3550');
       for(let i=0;i<9;i++){const x=46+i*88,y=104+30*(1-Math.abs(i-4)/4);poly([[x-24,y],[x+24,y],[x,y+44]],CONF[i%4],3);}
       txt('FELIS CUMPLEAÑO, ABUELA',400,172,20,'#c4283a',0,true);
@@ -74,7 +74,7 @@ function mkRayita(){
         talk:bota&&e<.7||h>.95&&!g.result?Math.abs(Math.sin(now*18)):0,sweat:!g.result&&casi&&pour?2:0,rot:lose&&!bota?-.06:0,
         arms:[{side:-1,a:win?-1.5:-.75,len:win?lerp(60,128,ease(clamp(e/.35,0,1))):60,w:22,hand:(hx,hy)=>vasito(hx-4,hy-16,1,win?-.3:0)},
           bota&&e<.7?{side:1,a:2.6,len:80,w:22}:{side:1,a:.2,len:84,w:22}]}));
-      rr(-10,496,820,120,0,'#a86a3c',0);line([[0,496],[800,496]],5,INK);rr(-10,540,820,70,0,'#8a5230',0);
+      rr(gameLeft()-10,496,GAME_VIEW.width+20,120,0,'#a86a3c',0);line([[gameLeft(),496],[gameRight(),496]],5,INK);rr(gameLeft()-10,540,GAME_VIEW.width+20,70,0,'#8a5230',0);
       /* chiste de fondo: la gallina con gorrito picoteando la bolsa de hielo */
       rr(704,424,84,82,10,'#bfe9ff',4);txt('HIELO',746,466,17,'#2f7fe0',0,true);
       {const pk2=Math.max(0,Math.sin(now*5))*8,hx=476+(win&&e>.9?Math.sin(now*20)*3:0);hen(hx,474+pk2*.3,.6,1);poly([[hx+15,474-30],[hx+33,474-30],[hx+25,474-58]],'#ff5c8a',3);ell(hx+25,474-60,4,4,'#ffd23f',2);}

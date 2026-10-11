@@ -127,11 +127,11 @@ function mkPendrive(){
       const win=g.result==='win',lose=g.result==='lose',rev=lose&&g.kind==='rev',e=g.endT,k=win?0:lose?1:clamp(g.t/g.dur,0,1),a=ang(),good=!g.result&&Math.abs(a)<TOL,m=mouth(),d=dock();
       const dz=win&&hit,beat=dz?(e-T0)/STEP:0,sw=dz?Math.sin(beat*PI/2):0,hop=dz?Math.abs(Math.cos(beat*PI/2)):0,vib=lose?2.4:win?.4:1+k*1.2;
       /* todo vibra con el diésel (la franja de abajo queda libre para la ayuda) */
-      ctx.save();path([[0,0],[800,0],[800,576],[0,576]]);ctx.clip();ctx.translate(Math.sin(now*38)*.7*vib,Math.cos(now*31)*.9*vib);
+      ctx.save();path([[gameLeft(),0],[gameRight(),0],[gameRight(),576],[gameLeft(),576]]);ctx.clip();ctx.translate(Math.sin(now*38)*.7*vib,Math.cos(now*31)*.9*vib);
       /* parabrisas: la calle, la visera y los flecos */
-      wash(0,0,800,252,'#8fd8ff','#e8f8ff');
+      wash(gameLeft(),0,GAME_VIEW.width,252,'#8fd8ff','#e8f8ff');
       for(let j=0;j<6;j++){const bx=((j*190-scroll)%1140+1140)%1140-170,by=140+(j%3)*20;rr(bx,by,150,130,5,['#ffb36b','#a9a0ff','#ff9ec7','#6ecf8f','#ffd23f','#8aa0ff'][j],3.5);for(let i=0;i<2;i++)rr(bx+18+i*64,by+20,40,26,4,'#ffffff',2.5);}
-      rr(0,0,800,88,0,'#5a4a78',0);rr(0,84,800,10,0,'#c4283a',0);line([[0,94],[800,94]],4,INK);
+      rr(gameLeft(),0,GAME_VIEW.width,88,0,'#5a4a78',0);rr(gameLeft(),84,GAME_VIEW.width,10,0,'#c4283a',0);line([[gameLeft(),94],[gameRight(),94]],4,INK);
       for(let i=0;i<8;i++){const x=16+i*36,s=Math.sin(now*9+i)*2.5*vib+sw*6;line([[x,94],[x+s,110]],3,'#c4283a');ell(x+s,115,6,6,i%2?'#ffd23f':'#ff5ca8',2.5);}
       /* el retrovisor: los pasajeros sufriendo (y después bailando) */
       rr(530,84,16,16,3,'#2d2640',3);rr(288,96,496,130,26,'#2d2640',4.5);
@@ -202,7 +202,7 @@ function mkPendrive(){
       if(dz&&e>.55)bubble(160,150,'¡ESA SÍ ES MÚSICA!',19,CX+16,240);
       if(rev&&e>.3)bubble(170,150,"¡ERA PA'L OTRO LADO!",18,CX+60,232);
       if(lose&&!rev&&e>.3)bubble(160,150,'¡YA ME SÉ LA CUÑA!',19,CX+16,244);
-      ctx.restore();line([[0,576],[800,576]],4,INK);
+      ctx.restore();line([[gameLeft(),576],[gameRight(),576]],4,INK);
       drawP();
     }};
   return g;

@@ -68,25 +68,27 @@ if(document.fonts)document.fonts.load('700 20px Fredoka').catch(()=>{});
 const wrap=document.createElement('div');wrap.id='camp';view.before(wrap);wrap.append(view);
 const ov=document.createElement('canvas');ov.id='camp-ov';const DPR=Math.min(2,window.devicePixelRatio||1);wrap.append(ov);
 const X=ov.getContext('2d');
-/* Style buffers, geometry and hitboxes stay native; only the final projection
-   scales them, equally on both axes. Widescreen adds space around the game. */
+/* The scene itself fills the viewport. Style buffers use the same aspect ratio;
+   characters, props and pointer coordinates share a uniform logical scale. */
 const gameFrame=document.createElement('canvas');gameFrame.width=W;gameFrame.height=H;
 const screen=view.getContext('2d');vctx=gameFrame.getContext('2d');
 let VW=W,OX=0;
 function presentGame(){
   screen.setTransform(view.width/VW,0,0,view.height/H,OX*view.width/VW,0);
   screen.clearRect(-OX,0,VW,H);
-  screen.imageSmoothingEnabled=style!=='snes';screen.drawImage(gameFrame,0,0,W,H);
+  screen.imageSmoothingEnabled=style!=='snes';screen.drawImage(gameFrame,gameLeft(),0,VW,H);
 }
 function fitScreen(){
-  VW=H*Math.max(W/H,innerWidth/innerHeight);OX=(VW-W)/2;
+  const previousWidth=VW;VW=H*Math.max(W/H,innerWidth/innerHeight);OX=(VW-W)/2;
   GAME_VIEW.width=VW;GAME_VIEW.offsetX=OX;
+  resizeGameBuffers();
   const k=Math.min(innerWidth/VW,innerHeight/H);
   wrap.style.width=VW*k+'px';wrap.style.height=H*k+'px';
   for(const c of [view,ov]){
     const w=Math.round(VW*DPR),h=Math.round(H*DPR);
     if(c.width!==w)c.width=w;if(c.height!==h)c.height=h;
   }
+  if(window.CAMP&&Math.abs(previousWidth-VW)>.01)CAMP.resize();
   presentGame();if(window.CAMP)render();
 }
 addEventListener('resize',fitScreen);
@@ -488,14 +490,6 @@ function render(){
       TW(G.hint,W/2,H/2+50,28,'#fff',700,3);
     }else{
       ambiente();
-      if(OX>0){
-        /* Classic's fixed game viewport: the stage fills the extra space, while
-           every game's drawing and hitboxes remain inside 0..800 × 0..600. */
-        X.save();X.beginPath();X.rect(-OX,0,OX,H);X.rect(W,0,OX,H);X.clip();
-        const sceneStage=mode==='stage'?stage:ETAPAS.find(e=>e.pool.includes(curId)||e.jefes.includes(curId))||stage;
-        if(isBoss)rays('#3b0d14','#5b1d2b',now);else fondoNivel(tinte(sceneStage.bg[0]),tinte(sceneStage.bg[1]));
-        X.restore();X.strokeStyle=INK;X.lineWidth=6;X.strokeRect(-3,-3,W+6,H+6);
-      }
       if(!G.result){
         TW(G.hint,W/2,24,17,'#fff',430,2);                    /* entre la placa de vidas y la de puntos */
         if(cmdT<1.2){const k=easeBack(cmdT/.25);X.save();X.translate(W/2,130);X.scale(k,k);X.rotate(Math.sin(now*12)*.03);X.globalAlpha=clamp01((1.2-cmdT)/.2);T(G.cmd,0,0,84,'#FF4D4D','center',720);X.restore();}
@@ -587,5 +581,8 @@ goWorlds();
 if(q.get('juego')&&GAMES[q.get('juego')])startPractice(q.get('juego'));else if(ETAPAS[+q.get('etapa')-1])startStage(+q.get('etapa')-1);
 else if(PUBLIC||q.get('mundo')==='venezuela')goMenu();else if(q.get('mundo')==='clasico')openClassic();
 window.CAMP={get state(){return state;},get info(){return{state,mode,stage:stageIdx,nivel,played,lives,score,pre,curId,isBoss,bossK,style,selectedStyle:save.estilo,SP,result:G&&G.result,endT:G&&G.endT};},
+  // A rotation starts the current round again with its new play field, without
+  // advancing the stage or taking a life. Factory bounds must match the scene.
+  resize(){if(state==='play'&&!outcome){PT.length=0;G=GAMES[curId].mk();playT=0;pre=PRE;fuseF=0;fuseLeft=9;lastCmd=G.cmd;cmdT=9;}},
   ETAPAS,JEFES,TODOS,startStage,startPractice,goMenu,goPractice,goWorlds,openClassic,closeClassic,get app(){return appFr&&appFr.contentWindow;},estilo,set lives(n){lives=n;},set played(n){played=n;},set nivel(n){nivel=Math.max(1,Math.min(3,n|0));}};
 })();

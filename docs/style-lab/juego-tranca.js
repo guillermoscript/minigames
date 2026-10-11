@@ -119,8 +119,8 @@ function mkTranca(){
       const sdir=ch.dx>0?0:PI;
       ctx.save();if(shake>0)ctx.translate(Math.sin(now*91)*9*shake,Math.cos(now*77)*7*shake);
       /* el patio: cemento, la cava y la gallina de siempre */
-      wash(0,0,800,600,'#e2c7a0','#cfa97c');
-      for(let i=1;i<6;i++)line([[i*134,88],[i*134,600]],2,'#c09a6c');for(let j=0;j<4;j++)line([[0,150+j*130],[800,150+j*130]],2,'#c09a6c');
+      wash(gameLeft(),0,GAME_VIEW.width,600,'#e2c7a0','#cfa97c');
+      for(let i=1;i<6;i++)line([[i*134,88],[i*134,600]],2,'#c09a6c');for(let j=0;j<4;j++)line([[gameLeft(),150+j*130],[gameRight(),150+j*130]],2,'#c09a6c');
       rr(14,96,86,60,10,'#e8553d',4);rr(22,104,70,44,6,'#bfe9ff',3);for(const[x,y]of[[30,110],[62,126],[40,132]])rr(x,y,13,11,3,'#ffffff',2);
       ell(54,116,9,9,AMB,3);ell(54,116,3.5,3.5,'#3a2410',0);ell(78,136,9,9,AMB,3);ell(78,136,3.5,3.5,'#3a2410',0);
       {const hj=henJ<.6?Math.sin(PI*henJ/.6)*46:0,pk=hj?0:Math.max(0,Math.sin(now*5))*.3;ctx.save();ctx.translate(mx(724),552-hj);ctx.scale(-sg,1);ctx.rotate(pk+(hj?Math.sin(now*40)*.2:0));hen(0,0,.62,1);ctx.restore();}

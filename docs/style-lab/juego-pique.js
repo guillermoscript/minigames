@@ -103,14 +103,14 @@ function mkPique(){
       const sh=lose&&e>.3&&e<1?1:grind>.4?.5:0;
       ctx.save();if(sh)ctx.translate(Math.sin(now*61)*3*sh,Math.cos(now*53)*2*sh);
       /* cielo, edificios y calle */
-      wash(0,0,800,270,'#8fd8ff','#e8f8ff');ell(716,118,24,24,'#ffe14d',0);
+      wash(gameLeft(),0,GAME_VIEW.width,270,'#8fd8ff','#e8f8ff');ell(716,118,24,24,'#ffe14d',0);
       const bo=-(scroll*.12%900);
       for(let k=0;k<2;k++)[[0,150,120,'#ffb36b'],[130,118,110,'#a9a0ff'],[250,168,150,'#ff9ec7'],[410,134,120,'#6ecf8f'],[540,176,140,'#ffd23f'],[690,144,200,'#8aa0ff']].forEach(([x,y,w,c])=>{const bx=bo+k*900+x;if(bx>800||bx+w<0)return;
         rr(bx,y,w,264-y,6,c,3.5);for(let i=0;i<3;i++)rr(bx+12+i*(w/3.4),y+16,w/5,20,4,'#ffffff',2.5);});
       /* la gallina con capa, que los pasa a los dos */
       const hx=-70+g.t/g.dur*1150,hy=106+Math.sin(now*7)*5,fl=Math.sin(now*24)*7;
       poly([[hx-6,hy-10],[hx-52,hy-16+fl],[hx-46,hy+8+fl]],'#c4283a',3);hen(hx,hy,.5,1);
-      rr(0,264,800,170,0,'#4d4a6e',0);rr(0,256,800,10,0,'#d8d2c4',0);
+      rr(gameLeft(),264,GAME_VIEW.width,170,0,'#4d4a6e',0);rr(gameLeft(),256,GAME_VIEW.width,10,0,'#d8d2c4',0);
       for(let i=0;i<6;i++)rr(((i*170-scroll)%1020+1020)%1020-90,338,80,7,3,'#ffe14d',0);
       for(let i=0;i<5;i++)rr(((i*190-scroll*2.2)%950+950)%950-80,[282,300,362,380,410][i],60,4,2,'#6f6790',0);
       /* los dos buses */
@@ -130,7 +130,7 @@ function mkPique(){
       for(const s of smk){const r=s.r+s.gr*s.t;ctx.save();ctx.globalAlpha=clamp((1-s.t/s.life)*1.5,0,.88);ell(s.x,s.y,r,r*.85,SOOT,0);ctx.restore();}
       ctx.restore();
       /* tablero: el pie con la chancleta, el tacómetro y la palanca */
-      rr(0,434,800,142,0,'#2d2640',0);line([[0,434],[800,434]],5,INK);line([[0,576],[800,576]],4,INK);
+      rr(gameLeft(),434,GAME_VIEW.width,142,0,'#2d2640',0);line([[gameLeft(),434],[gameRight(),434]],5,INK);line([[gameLeft(),576],[gameRight(),576]],4,INK);
       const lift=Math.sin(stomp*PI)*24,dip=g.result?0:(v-S0)*8;
       ctx.save();path([[0,437],[800,437],[800,574],[0,574]]);ctx.clip();
       ctx.save();ctx.translate(104,522+dip);ctx.rotate(-.5);ctx.scale(1.3,1.3);limb(34,22,52,52,10,'#5a5274',3);rr(-4,16,66,11,4,'#8f8fa8',3.5);ctx.restore();

@@ -60,7 +60,7 @@ function mkTorta(){
       const win=g.result==='win',lose=g.result==='lose',e=g.endT,k=clamp(g.t/dur,0,1),sc=k*420,chX=MX+420-sc,dng=Math.abs(cp)/PL;
       const sit=win?ease(clamp(e/.25,0,1))*26:0,bob=g.result?0:Math.sin(g.t*12*rs)*4,py=250+sit+bob;
       /* patio: pared, banderines, globos */
-      wash(0,0,800,600,'#ffd9a0','#ffc27a');rr(0,FY,800,80,0,'#c98a5a',0);line([[0,FY],[800,FY]],5,INK);
+      wash(gameLeft(),0,GAME_VIEW.width,600,'#ffd9a0','#ffc27a');rr(gameLeft(),FY,GAME_VIEW.width,80,0,'#c98a5a',0);line([[gameLeft(),FY],[gameRight(),FY]],5,INK);
       for(let i=0;i<7;i++)line([[i*140-(sc*.8)%140,FY+26],[i*140+60-(sc*.8)%140,FY+26]],4,'#a86f44');
       line([[0,104],[200,128],[400,108],[600,130],[800,104]],3,INK);
       for(let i=0;i<10;i++){const bx=30+i*82,by=106+Math.sin(i*1.6)*11;poly([[bx-15,by],[bx+15,by],[bx,by+30]],CONF[i%4],3);}

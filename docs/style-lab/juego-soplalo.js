@@ -51,7 +51,7 @@ function mkSoplalo(){
     draw(){
       const win=g.result==='win',lose=g.result==='lose',e=g.endT,hot=clamp(temp,0,1),qc=mix(FRIO,LAVA,hot),shk=!g.result&&burn>.7?Math.sin(now*44)*2.5:0;
       /* la fiesta: pared, banderines, el cartel y el mostrador con la gallina (y el último vaso de agua) */
-      wash(0,0,800,600,'#ffe9b8','#ffd28a');
+      wash(gameLeft(),0,GAME_VIEW.width,600,'#ffe9b8','#ffd28a');
       line([[230,128],[470,146],[700,128]],3,INK);for(let i=0;i<8;i++){const u=i/7,x=250+u*430,y=130+Math.sin(u*PI)*15;poly([[x-13,y],[x+13,y],[x,y+26]],CONF[i%4],3);}
       rr(16,128,204,58,8,'#c4283a',4);txt('TEQUEÑOS «LA LAVA»',118,146,15,'#ffffff',0,true);txt('AGUA: SE ACABÓ',118,169,14,'#ffe14d',0,true);
       rr(0,268,214,18,6,'#8a5a3a',4);rr(10,286,16,290,0,'#6b4f2a',3);

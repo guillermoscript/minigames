@@ -33,11 +33,11 @@ function reloj(x,y,min,ring){ctx.save();ctx.translate(x+(ring?Math.sin(now*60)*4
   ctx.restore();if(ring)txt('¡RIIING!',x-40,y-78,24,'#ff4d5e',-.1);}
 /* la cocina de la abuela: pared de baldosas, la ventana amaneciendo, el despertador, la repisa y el mesón */
 function cocina(min,ring){
-  wash(0,0,800,432,'#ffe9c4','#ffdcae');for(let i=1;i<8;i++)line([[i*100,96],[i*100,430]],2,'#f2cf9c');for(let j=0;j<3;j++)line([[0,180+j*84],[800,180+j*84]],2,'#f2cf9c');
+  wash(gameLeft(),0,GAME_VIEW.width,432,'#ffe9c4','#ffdcae');for(let i=1;i<8;i++)line([[i*100,96],[i*100,430]],2,'#f2cf9c');for(let j=0;j<3;j++)line([[gameLeft(),180+j*84],[gameRight(),180+j*84]],2,'#f2cf9c');
   rr(516,118,154,134,10,'#8a6a4a',4.5);ctx.save();path(rrP(526,128,134,114,5));ctx.clip();wash(526,128,134,114,'#ff9e6b','#ffe08a');ell(593,244,36,36,'#fff3a8',0);ctx.restore();line([[593,128],[593,242]],4,'#8a6a4a');
   reloj(730,176,min,ring);
   rr(36,150,236,12,4,'#8a6a4a',3.5);[['#e8553d',70],['#3fb0ff',122],['#5cd06a',174],['#ffd23f',226]].forEach(([c,x])=>{rr(x-17,112,34,38,6,c,3.5);rr(x-19,105,38,11,4,'#fffdf2',3);});
-  rr(-10,430,820,190,0,'#c98a5a',0);rr(-10,430,820,20,0,'#e0a878',0);line([[0,430],[800,430]],5,INK);}
+  rr(gameLeft()-10,430,GAME_VIEW.width+20,190,0,'#c98a5a',0);rr(gameLeft()-10,430,GAME_VIEW.width+20,20,0,'#e0a878',0);line([[gameLeft(),430],[gameRight(),430]],5,INK);}
 function harina(x,y){rr(x-36,y-62,72,112,8,'#ffd23f',4);rr(x-36,y-30,72,40,0,'#c4283a',0);txt('HARINA',x,y-18,14,'#ffffff',0,true);txt('DE MAÍZ',x,y,11,'#ffffff',0,true);ell(x,y+30,18,10,DORADA,3);rr(x-36,y-70,72,14,5,'#fff3a8',3.5);}
 /* la arepa de lado, sobre el budare o el plato: (x, y) = centro de la cara de arriba */
 function arepa(x,y,top,bot,sy=1){const w=150,h=40*sy,g_=34;
@@ -194,7 +194,7 @@ function mkArepa(){
 
   /* ── el final malo: el arepazo ── */
   function dMal(u){
-    cocina(60,true);rr(0,548,800,52,0,'#e8dcc0',0);line([[0,548],[800,548]],4,INK);
+    cocina(60,true);rr(gameLeft(),548,GAME_VIEW.width,52,0,'#e8dcc0',0);line([[gameLeft(),548],[gameRight(),548]],4,INK);
     ell(400,440,170,36,'#fffdf2',4.5);
     for(let i=0;i<4;i++){const q=(now*.5+i/4)%1;velo((1-q)*.6,()=>ell(360+i*30+Math.sin(now*2+i)*14,380-q*170,16+q*26,14+q*20,'#3b3550',0));}
     abierta(400,402,.5,{burnt:true,crack:true,wob:Math.sin(now*4)*.03});
@@ -246,7 +246,7 @@ function mkArepa(){
       if(g.result==='win')dBien(fin);else if(g.result==='lose'&&fin>.8)dMal(fin-.8);else[d1,d2,d3,d4][ph]();
       ctx.restore();
       if(!g.result){for(let i=0;i<4;i++)ell(572+i*20,76,6.5,6.5,i<ph?'#5cff7a':i===ph?'#ffd23f':'#fff3c4',3);
-        if(gap>0){velo(gap/GAP*1.6,()=>{rr(0,250,800,96,0,'#14101c',0);txt('FASE '+(ph+1)+' DE 4',400,298,44,'#ffd23f');});}}
+        if(gap>0){velo(gap/GAP*1.6,()=>{rr(gameLeft(),250,GAME_VIEW.width,96,0,'#14101c',0);txt('FASE '+(ph+1)+' DE 4',400,298,44,'#ffd23f');});}}
       drawP();
     }};
   spawn(CX-40,150,12,'bit',['#fffdf2'],70,900,.8);spawn(CX+50,150,8,'bit',['#8fd0ff'],60,900,.8);

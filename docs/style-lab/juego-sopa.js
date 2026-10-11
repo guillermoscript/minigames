@@ -78,13 +78,13 @@ function mkSopa(){
         if(e>1.25&&e<2.1&&(glu-=dt)<=0){glu=.2;snd(220+Math.random()*60,.09,'sine',.1,-90);pop('¡GLU!',X+100+Math.random()*70,MY-10,'#9fe3ff',2,.5);}}},
     draw(){
       const win=g.result==='win',lose=g.result==='lose',e=fin,k=win?kEnd:lose?1:clamp(g.t/g.dur,0,1);
-      ctx.save();path([[0,0],[800,0],[800,576],[0,576]]);ctx.clip();
+      ctx.save();path([[gameLeft(),0],[gameRight(),0],[gameRight(),576],[gameLeft(),576]]);ctx.clip();
       /* la pared, el techo de zinc que quema y el reloj en la una */
-      wash(0,0,800,600,'#f6d9a0','#f0c078');
-      rr(0,86,800,42,0,'#aeb4c2',0);for(let i=0;i<27;i++)line([[i*30+8,88],[i*30+8,126]],3,'#7f8698');line([[0,128],[800,128]],4,INK);
+      wash(gameLeft(),0,GAME_VIEW.width,600,'#f6d9a0','#f0c078');
+      rr(gameLeft(),86,GAME_VIEW.width,42,0,'#aeb4c2',0);for(let i=0;i<27;i++)line([[i*30+8,88],[i*30+8,126]],3,'#7f8698');line([[gameLeft(),128],[gameRight(),128]],4,INK);
       for(let i=0;i<5;i++){const x=160+i*112,p=now*3+i;ctx.save();ctx.globalAlpha=.25+.35*k;line([0,1,2,3,4].map(j=>[x+Math.sin(p+j*1.3)*7,134+j*10]),3,'#ff8a3d');ctx.restore();}
       ell(566,186,30,30,'#fffdf2',4.5);line([[566,186],[566,164]],3.5,INK);line([[566,186],[575,172]],5,INK);txt('1:00 PM',566,230,13,INK,0,true);
-      if(win&&e>1.05){chinchorro(e-1.05);if(e>1.45)bubble(520,520,'¡BARRIGA LLENA, CORAZÓN CONTENTO!',15,792,566);ctx.restore();line([[0,576],[800,576]],4,INK);drawP();return;}
+      if(win&&e>1.05){chinchorro(e-1.05);if(e>1.45)bubble(520,520,'¡BARRIGA LLENA, CORAZÓN CONTENTO!',15,792,566);ctx.restore();line([[gameLeft(),576],[gameRight(),576]],4,INK);drawP();return;}
       /* la abuela con su cucharón */
       const dice=!g.result&&g.t>.15&&g.t<1.5/rs,rega=lose&&e>.5;
       bust(Object.assign({},ABU,{x:112,y:330,s:.84,look:1,mood:win?'happy':rega||dice?'yell':lose?'o':'smile',talk:dice||rega?Math.abs(Math.sin(now*12)):0,
@@ -112,7 +112,7 @@ function mkSopa(){
       if(agua){const dr=clamp((e-1.25)/.8,0,1);ctx.save();ctx.translate(X+6,MY+4);ctx.rotate(-1.15-dr*.9);
         rr(-27,0,54,90,8,'#dff4ff',3.5);rr(-21,5,42,78*(1-dr),4,'#7fc8ff',0);for(const[ix,iy]of[[-12,8],[4,20],[-6,36]])if(iy<74*(1-dr))rr(ix,iy,18,18,3,'#ffffff',2.5);ctx.restore();}
       /* la mesa con su mantel de cuadros y el plato */
-      rr(0,430,800,150,0,'#c4283a',0);for(let r=0;r<4;r++)for(let c=0;c<10;c++)rr(c*80+(r%2)*40,430+r*38,40,38,0,'#fff3c4',0);line([[0,430],[800,430]],5,INK);
+      rr(gameLeft(),430,GAME_VIEW.width,150,0,'#c4283a',0);for(let r=0;r<4;r++)for(let c=0;c<10;c++)rr(c*80+(r%2)*40,430+r*38,40,38,0,'#fff3c4',0);line([[gameLeft(),430],[gameRight(),430]],5,INK);
       plato(400,470,g.result?.3:1);
       if(!g.result){rr(262,524,276,24,10,'#2d2640',3.5);rr(266,528,Math.max(4,268*hot),16,6,mix('#ffd23f','#ff3b1e',hot),0);txt(hot>.66?'HIRVIENDO':hot>.33?'CALIENTE':'TIBIECITA',400,537,13,'#ffffff',0,true);
         boton(BT[0][0],BT[0][1],-1,last!==-1,pr[0],mal>0&&malS<0);boton(BT[1][0],BT[1][1],1,last!==1,pr[1],mal>0&&malS>0);
@@ -120,7 +120,7 @@ function mkSopa(){
       if(dice)bubble(196,170,'¡CALIENTICA ES QUE ALIMENTA!',15,134,246);
       if(rega)bubble(190,170,'¡TE DIJE QUE SOPLARAS!',17,134,246);
       if(win&&e>.5)bubble(180,170,'¡ASÍ ME GUSTA!',20,134,246);
-      ctx.restore();line([[0,576],[800,576]],4,INK);
+      ctx.restore();line([[gameLeft(),576],[gameRight(),576]],4,INK);
       drawP();
     }};
   return g;

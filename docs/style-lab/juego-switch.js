@@ -60,7 +60,7 @@ function mkSwitch(){
     draw(){
       const win=g.result==='win',lose=g.result==='lose',e=fin,am=flash>0,apag=!vela&&!win;
       const L=clamp(lit+(am?(Math.sin(now*38)>-.2?.95:.35):0),0,1),sl=(slump>0&&!am&&!win)||lose,brinco=win?Math.abs(Math.sin(now*12))*12:0;
-      ctx.save();path([[0,0],[800,0],[800,576],[0,576]]);ctx.clip();
+      ctx.save();path([[gameLeft(),0],[gameRight(),0],[gameRight(),576],[gameLeft(),576]]);ctx.clip();
       AP.sala({sin:'sofa ventana virgen'});   /* la pared del switch, despejada */
       interruptor(SX,SY,on,hit);
       AP.bombillo(BX,BY,L);
@@ -89,7 +89,7 @@ function mkSwitch(){
       if(am)txt('¿LLEGÓ?',SX+6,SY-160,26,'#ffe14d',-.05);
       if(win&&e>.5)bubble(186,244,'¡BENDITO SEA DIOS!',18,180,304);
       if(lose&&e>.4)bubble(186,244,'¡OTRA NOCHE CON VELA!',17,180,304);
-      ctx.restore();line([[0,576],[800,576]],4,INK);
+      ctx.restore();line([[gameLeft(),576],[gameRight(),576]],4,INK);
       drawP();
     }};
   return g;

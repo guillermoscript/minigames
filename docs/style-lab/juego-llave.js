@@ -87,14 +87,14 @@ function mkLlave(){
         else line(closeP(ellP(keys[lead].x,keys[lead].y+33,20,20,14)),4.5,'#ffd23f');
         for(const q of keys)if(q.i!==lead)llave(q.x,q.y,q.r,q,lose&&q.i===good);
         if(lead>=0){const m=keys[lead];ctx.save();ctx.translate(m.x,m.y);ctx.scale(1-.7*ab,1);llave(0,0,m.r,m,false);ctx.restore();}};
-      ctx.save();path([[0,0],[800,0],[800,576],[0,576]]);ctx.clip();
+      ctx.save();path([[gameLeft(),0],[gameRight(),0],[gameRight(),576],[gameLeft(),576]]);ctx.clip();
       /* de noche: la luna se va tapando */
-      wash(0,0,800,600,'#232a52','#3a3f6e');ell(716,50,24,24,'#fff3c4',0);
+      wash(gameLeft(),0,GAME_VIEW.width,600,'#232a52','#3a3f6e');ell(716,50,24,24,'#fff3c4',0);
       for(let i=0;i<3;i++)ell(lerp(930,690,nub)+i*44,46+(i%2)*14,46,22,'#4a4f7a',0);
       /* la casa: fachada, alero, la puerta y el bombillo del porche */
-      rr(0,112,800,360,0,'#b5654a',0);
+      rr(gameLeft(),112,GAME_VIEW.width,360,0,'#b5654a',0);
       for(let i=0;i<7;i++)rr(30+i*118,150+(i*67)%250,56,14,3,'#a3573f',0);
-      rr(-10,92,820,26,6,'#7a3b2e',4);
+      rr(gameLeft()-10,92,GAME_VIEW.width+20,26,6,'#7a3b2e',4);
       rr(336,196,128,280,6,'#6b4226',4.5);rr(352,214,96,100,4,'#7d5030',3);ell(448,350,6,6,'#ffd23f',2.5);
       ctx.save();ctx.globalAlpha=.3;ell(232,170,54,44,'#ffe9a8',0);ctx.restore();rr(226,126,12,20,2,'#5a5274',2.5);ell(232,160,11,13,'#fff3a8',3);
       /* la ventana de mamá: ella fue la del esmalte */
@@ -104,7 +104,7 @@ function mkLlave(){
       rr(580,178,20,124,0,'#ff9ec7',2.5);rr(720,178,20,124,0,'#ff9ec7',2.5);
       ctx.restore();
       /* la acera y los charcos */
-      rr(0,462,800,140,0,'#5a5274',0);line([[0,462],[800,462]],4,INK);
+      rr(gameLeft(),462,GAME_VIEW.width,140,0,'#5a5274',0);line([[gameLeft(),462],[gameRight(),462]],4,INK);
       if(nub>.15)for(const[x,y,w]of[[170,548,70],[620,532,90],[430,560,56]])ell(x,y,w*nub,w*.22*nub,'#7f8fc0',0);
       /* ya adentro, sequito */
       if(dentro)yo(lerp(112,400,run),374-Math.abs(Math.sin(now*9))*10,lerp(.95,.84,run),{mood:'happy',arms:[{side:1,a:2.6+Math.sin(now*11)*.25,len:78,w:20},{side:-1,a:-2.6+Math.sin(now*11)*.25,len:78,w:20}]});
@@ -133,11 +133,11 @@ function mkLlave(){
         if(kb&&!g.result){const q=keys[sel];txt('▼',q.x+Math.sin(q.r)*(L+24),q.y-Math.cos(q.r)*(L+24)+Math.sin(now*10)*4,26,'#ffe14d');}}
       lluvia(Math.round(10+k*34+pour*70),pour>.5);
       if(pour>.5)for(let i=0;i<10;i++){const u=(now*2.2+hash(i,5,5))%1;ctx.save();ctx.globalAlpha=1-u;line(closeP(ellP(hash(i,6,6)*800,476+hash(i,7,7)*90,4+u*16,2+u*5,10)),2,'#cfeaff');ctx.restore();}
-      if(pour>0&&pour<1){ctx.save();ctx.globalAlpha=.5*(1-pour);rr(0,0,800,576,0,'#ffffff',0);ctx.restore();}   /* el relámpago */
+      if(pour>0&&pour<1){ctx.save();ctx.globalAlpha=.5*(1-pour);rr(gameLeft(),0,GAME_VIEW.width,576,0,'#ffffff',0);ctx.restore();}   /* el relámpago */
       if(lose&&e>.4)bubble(wr?540:560,146,wr?'¡LA DEL ESMALTE ROJO, MIJO!':'¡MIJO, TE VAS A RESFRIAR!',17,650,202);
       if(win&&e>1.05)bubble(292,214,'¡SEQUITO!',22,376,282);
       if(win&&e>1.25)bubble(600,146,'¡Y PÁSALE LLAVE!',19,650,202);
-      ctx.restore();line([[0,576],[800,576]],4,INK);
+      ctx.restore();line([[gameLeft(),576],[gameRight(),576]],4,INK);
       drawP();
     }};
   return g;

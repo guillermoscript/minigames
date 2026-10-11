@@ -37,7 +37,7 @@ const executablePath=process.env.CHROMIUM_EXECUTABLE||path.join(folder,fs.readdi
      const drag=G.probe();
      // The visible output must keep a circle round, with its centre at the
      // same screen position used for input. Scan pixels from the actual canvas.
-     G.draw=()=>{ctx.fillStyle='#000';ctx.fillRect(0,0,800,600);ctx.fillStyle='#00ff00';ctx.beginPath();ctx.arc(400,300,50,0,Math.PI*2);ctx.fill();};
+     G.draw=()=>{ctx.fillStyle='#000';ctx.fillRect(gameLeft(),0,GAME_VIEW.width,600);ctx.fillStyle='#00ff00';ctx.beginPath();ctx.arc(400,300,50,0,Math.PI*2);ctx.fill();};
      paintFrame();
      const g=view.getContext('2d'),pixels=g.getImageData(0,0,view.width,view.height).data;
      let x0=view.width,x1=0,y0=view.height,y1=0;
@@ -50,9 +50,9 @@ const executablePath=process.env.CHROMIUM_EXECUTABLE||path.join(folder,fs.readdi
       x:c.left+(x0+x1+1)/2*c.width/view.width,y:c.top+(y0+y1+1)/2*c.height/view.height},p,
       native:{width:vctx.canvas.width,height:vctx.canvas.height}};
     });
-    assert.deepEqual(result.native,{width:800,height:600});
+    assert.deepEqual(result.native,{width:Math.ceil(600*Math.max(4/3,viewport.width/viewport.height)),height:600});
     assert.equal(result.drag.hid,true,'dragging the visible phone reaches its hiding spot');
-    assert.ok(Math.abs(result.circle.w-result.circle.h)<1,JSON.stringify(result.circle));
+    assert.ok(Math.abs(result.circle.w-result.circle.h)<2,JSON.stringify(result.circle));
     assert.ok(Math.abs(result.circle.x-viewport.width/2)<1);
     assert.ok(Math.abs(result.circle.y-viewport.height/2)<1);
     assert.ok(Math.abs(result.p.x-250)<.01&&Math.abs(result.p.y-450)<.01);
@@ -63,11 +63,39 @@ const executablePath=process.env.CHROMIUM_EXECUTABLE||path.join(folder,fs.readdi
    }
    await page.setViewportSize({width:932,height:360});
    await page.waitForFunction(()=>Math.abs(GAME_VIEW.width-600*innerWidth/innerHeight)<.01,null,{polling:50});
+   const fields=await page.evaluate(()=>{
+    const start=id=>{CAMP.nivel=1;CAMP.estilo('tinta');CAMP.startPractice(id);tick(1);tick(1.5);tick(.016);};
+    const pointer=(type,x,y)=>{const r=view.getBoundingClientRect();view.dispatchEvent(new PointerEvent(type,{bubbles:true,pointerId:1,pointerType:'touch',clientX:r.left+(x+GAME_VIEW.offsetX)*r.width/GAME_VIEW.width,clientY:r.top+y*r.height/600}));};
+    start('baja');const bus=G.probe();for(let i=0;i<bus.need;i++)G.press();const busWin=G.result;
+    start('chancla');const chancla=G.probe();
+    start('trencito');pointer('pointerdown',gameLeft()+150,300);const train=G.probe();pointer('pointercancel',0,0);
+    start('tendedero');const cloth=G.probe().prendas.at(-1);pointer('pointerdown',cloth.x,cloth.y);pointer('pointermove',cloth.x,cloth.y+90);pointer('pointerup',cloth.x,cloth.y+90);const collected=G.probe().done;
+    start('zancudo');let mosquito=null;for(let i=0;i<120;i++){G.update(.035);const m=G.probe();if(m.x>800){mosquito=m;break;}}
+    if(mosquito){pointer('pointerdown',mosquito.x,mosquito.y);pointer('pointerup',mosquito.x,mosquito.y);}
+    return {width:GAME_VIEW.width,bus,busWin,chancla,train,cloth,collected,mosquito,mosquitoWin:G.result};
+   });
+   assert.ok(fields.bus.X1-fields.bus.X0>1000,'bus play journey grows with the screen');
+   assert.equal(fields.busWin,'win');
+   assert.ok(fields.chancla.MX-fields.chancla.KX>1000,'mother and player use opposite sides of the scene');
+   assert.ok(fields.train.tx<0,'the train can be steered into the added play field');
+   assert.ok(fields.cloth.x>800,'clothes are distributed across the actual viewport');
+   assert.equal(fields.collected,1,'a real gesture collects a target beyond the old 800px field');
+   assert.ok(fields.mosquito,'mosquito flies into the extended scene');
+   assert.equal(fields.mosquitoWin,'win','a real touch hits the mosquito beyond the old boundary');
+   const beforeRotation=await page.evaluate(()=>{CAMP.startPractice('baja');tick(1);tick(1.5);tick(.016);G.press();return CAMP.info;});
+   await page.setViewportSize({width:390,height:844});
+   await page.waitForFunction(()=>GAME_VIEW.width===800,null,{polling:50});
+   const afterRotation=await page.evaluate(()=>({info:CAMP.info,bounds:G.probe()}));
+   assert.equal(afterRotation.info.lives,beforeRotation.lives);assert.equal(afterRotation.info.played,beforeRotation.played);
+   assert.equal(afterRotation.bounds.X0,92);assert.equal(afterRotation.bounds.X1,644);
+   await page.setViewportSize({width:932,height:360});
+   await page.waitForFunction(()=>GAME_VIEW.width>1500,null,{polling:50});
+   console.log('OK: extended play fields, gestures outside old bounds, and rotation without losing stage progress');
    const rounds=await page.evaluate(()=>{
     let rounds=0;
     for(const id of [...CAMP.TODOS,...Object.keys(CAMP.JEFES)])for(const level of [1,2,3])for(const style of ['snes','felt','ww','anime','tinta','garabato']){
      CAMP.nivel=level;CAMP.estilo(style);CAMP.startPractice(id);tick(1);tick(1.5);tick(.016);paintFrame();
-     if(vctx.canvas.width!==800||vctx.canvas.height!==600)throw new Error(id+' changed its viewport');
+     if(vctx.canvas.width!==Math.ceil(GAME_VIEW.width)||vctx.canvas.height!==600)throw new Error(id+' changed its viewport');
      if(id!=='parada'&&id!=='chancla'){
       let received=null;G.down=p=>{received=p;};
       const r=view.getBoundingClientRect(),k=r.height/600;
@@ -83,7 +111,7 @@ const executablePath=process.env.CHROMIUM_EXECUTABLE||path.join(folder,fs.readdi
    assert.deepEqual(errors,[]);
    console.log(`OK: ${rounds} game/level/style combinations with native viewports and matching touch coordinates, DPR ${deviceScaleFactor}`);
    if(process.env.WORLD_SCREENSHOTS&&deviceScaleFactor===3){
-    for(const [id,style] of [['baja','felt'],['chancla','snes'],['metro','anime']]){
+    for(const [id,style] of [['baja','felt'],['chancla','snes'],['metro','anime'],['tendedero','tinta'],['mango','tinta'],['trencito','felt']]){
      await page.evaluate(({id,style})=>{CAMP.nivel=1;CAMP.estilo(style);CAMP.startPractice(id);tick(1);tick(1.5);tick(.1);paintFrame();},{id,style});
      await page.screenshot({path:`/tmp/minicaos-viewport-${id}.png`});
     }

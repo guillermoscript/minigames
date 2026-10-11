@@ -145,7 +145,7 @@ function mkAnuncio(){
     draw(){
       const win=g.result==='win',lose=g.result==='lose',e=g.endT,clic=lose&&kind==='clic',k=clamp((g.t-T0)/(g.dur-T0),0,1),thump=win||!ad()?Math.abs(Math.sin(now*PI/STEP/4)):0;
       /* la sala */
-      wash(0,0,800,600,'#ffcf8a','#f7a86b');rr(0,468,800,132,0,'#b5764a',0);line([[0,468],[800,468]],4,INK);
+      wash(gameLeft(),0,GAME_VIEW.width,600,'#ffcf8a','#f7a86b');rr(gameLeft(),468,GAME_VIEW.width,132,0,'#b5764a',0);line([[gameLeft(),468],[gameRight(),468]],4,INK);
       for(const[x,y,c]of[[34,128,'#ff5c8a'],[770,124,'#3fb0ff'],[14,168,'#5cff7a']]){line([[x,y+26],[x+4,y+90]],2.5,INK);ell(x,y,21,27,c,3.5);ell(x-6,y-8,5,8,'#ffffff',0);}
       /* la corneta con la gallina de siempre: baila si hay música, se asoma si hay silencio */
       rr(672,474,104,98,8,'#2d2640',4);ell(724,506,22+thump*4,22+thump*4,'#5a5274',3.5);ell(724,506,8,8,INK,0);ell(724,550,12,12,'#5a5274',3);

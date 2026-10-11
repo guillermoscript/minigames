@@ -112,8 +112,8 @@ function mkRevisa(){
       const win=g.result==='win',lose=g.result==='lose',e=g.endT,b=Q[cur],nx=Q[cur+1],tell=lv<3,wdx=lerp(1010,668,ease(clamp((e-.2)/.25,0,1)));
       ctx.save();if(lose)ctx.translate(Math.sin(now*40)*5*Math.max(0,1-e*2.2),0);
       /* el bus por dentro: techo con sus avisos, pasamanos, ventanas con la calle */
-      wash(0,0,800,600,'#f6e3b4','#ecd29a');
-      rr(0,92,800,36,0,'#d9dce6',0);line([[0,128],[800,128]],4,INK);txt('NO SE ACEPTAN BILLETES ROTOS',150,110,13,INK,0,true);txt('NO HAY VUELTO',580,110,13,'#c4283a',0,true);
+      wash(gameLeft(),0,GAME_VIEW.width,600,'#f6e3b4','#ecd29a');
+      rr(gameLeft(),92,GAME_VIEW.width,36,0,'#d9dce6',0);line([[gameLeft(),128],[gameRight(),128]],4,INK);txt('NO SE ACEPTAN BILLETES ROTOS',150,110,13,INK,0,true);txt('NO HAY VUELTO',580,110,13,'#c4283a',0,true);
       line([[0,150],[690,150]],8,'#c4cad6');
       for(let i=0;i<6;i++){const x=50+i*118,sw=Math.sin(now*2+i)*2;line([[x,150],[x+sw,174]],4,'#3b3550');line(closeP(ellP(x+sw,185,9,11,10)),4,'#ffd23f');}
       for(const wx of[26,184,534]){rr(wx,200,134,112,12,'#5a4a78',4.5);
@@ -154,7 +154,7 @@ function mkRevisa(){
       if(win&&e>.2)chofer({x:wdx,y:318-Math.abs(Math.sin(now*7))*5,s:1.02,flip:true,mood:'grin',rot:Math.sin(now*7)*.03,legs:['#2b2b3a','#14101c',80],
         arms:[{side:1,a:2.2,len:78,w:22,hand:(hx,hy)=>{rr(hx-13,hy-13,26,26,9,CH.skin,3.5);rr(hx-6,hy-40,13,30,6,CH.skin,3.5);}},{side:-1,a:-.3,len:70,w:22}]});
       /* tablero: los dos botones, cuántos van y el fajo */
-      rr(0,484,800,116,0,'#5a5274',0);line([[0,484],[800,484]],5,INK);
+      rr(gameLeft(),484,GAME_VIEW.width,116,0,'#5a5274',0);line([[gameLeft(),484],[gameRight(),484]],5,INK);
       if(!g.result){
         const boton=(cx,col,lab,on,ic)=>{ctx.save();ctx.translate(cx,528);rr(-160,-32,320,74,22,dark(col,.5),4);ctx.translate(0,on*7);rr(-160,-40,320,74,22,col,4.5);for(const p of ic)line(p,9,'#fffdf2');txt(lab,26,-3,30,'#fffdf2');ctx.restore();};
         boton(184,'#ff4d5e','RECHAZAR',bL,[[[-128,-19],[-98,13]],[[-98,-19],[-128,13]]]);boton(616,'#3ecf6a','ACEPTAR',bR,[[[-124,-4],[-112,11],[-90,-19]]]);

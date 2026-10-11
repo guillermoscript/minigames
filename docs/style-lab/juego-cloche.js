@@ -174,16 +174,16 @@ function mkCloche(){
     draw(){
       const e=g.endT,win=g.result==='win',lose=g.result==='lose',inB=!g.result&&used&&verde(),over=!g.result&&used&&!inB&&(fase>0||vel>b1);
       /* la playa: mar, peñero, arena, palmas y el kiosco */
-      wash(0,0,800,600,'#8fd8ff','#e8f8ff');ell(86,148,32,32,'#ffe14d',0);
-      rr(0,330,800,70,0,'#3fb0ff',0);line([[0,330],[800,330]],4,INK);
+      wash(gameLeft(),0,GAME_VIEW.width,600,'#8fd8ff','#e8f8ff');ell(86,148,32,32,'#ffe14d',0);
+      rr(gameLeft(),330,GAME_VIEW.width,70,0,'#3fb0ff',0);line([[gameLeft(),330],[gameRight(),330]],4,INK);
       for(let i=0;i<5;i++){const x=(i*190+now*16)%950-70,y=350+(i%3)*15;line([[x,y],[x+16,y-4],[x+34,y]],3,'#e8f8ff');}
       {const x=(now*9+610)%900-50;poly([[x-26,344],[x+26,344],[x+17,357],[x-17,357]],'#e8553d',3);line([[x,344],[x,322]],3,INK);poly([[x+2,322],[x+19,340],[x+2,340]],'#fffdf2',2.5);}
-      rr(0,398,800,82,0,'#f0d9a0',0);
+      rr(gameLeft(),398,GAME_VIEW.width,82,0,'#f0d9a0',0);
       for(let i=0;i<4;i++)palma(((i*270+90-sc*.6)%1080+1080)%1080-140,474-(i%2)*14,i%2?206:226);
       {const x=((620-sc)%1500+1500)%1500-240;rr(x+16,440,9,40,0,'#8a5a30',3);rr(x+146,440,9,40,0,'#8a5a30',3);rr(x,402,172,50,6,'#ffd23f',4);txt('EMPANADAS',x+86,418,16,INK,0,true);txt('LA OLA BRAVA',x+86,438,13,'#c4283a',0,true);}
-      rr(0,478,800,122,0,'#6f6790',0);line([[0,478],[800,478]],5,INK);
+      rr(gameLeft(),478,GAME_VIEW.width,122,0,'#6f6790',0);line([[gameLeft(),478],[gameRight(),478]],5,INK);
       for(let i=0;i<7;i++)rr(((i*130-sc)%910+910)%910-70,530,62,8,3,'#ffe14d',0);
-      rr(0,574,800,26,0,'#d8d2c4',0);line([[0,574],[800,574]],4,INK);   /* la acera: aquí cae la ayuda */
+      rr(gameLeft(),574,GAME_VIEW.width,26,0,'#d8d2c4',0);line([[gameLeft(),574],[gameRight(),574]],4,INK);   /* la acera: aquí cae la ayuda */
       /* la nave */
       const cx=CX+carX+(used||g.result?0:Math.sin(now*26)*1.2),crot=win?-.07*Math.max(0,1-e*2.2):lose&&g.kind!=='nada'?.07*Math.exp(-e*6):0;
       nave(cx,{rot:crot,giro,tu:chofer,freno:lose,polizon:rara,bf:lose?ease(clamp((e-1.12)/.22,0,1)):0,ho:lose&&g.kind!=='nada'?ease(clamp((e-.84)/.14,0,1)):0});

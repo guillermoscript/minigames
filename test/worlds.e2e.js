@@ -27,7 +27,7 @@ const assert = require('node:assert/strict');
    await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
    const point=await page.evaluate(({x,y})=>{
     const c=document.getElementById('c'),r=c.getBoundingClientRect();
-    const width=window.CAMP?800:VW,offset=window.CAMP?0:OX;
+    const width=window.CAMP?GAME_VIEW.width:VW,offset=window.CAMP?GAME_VIEW.offsetX:OX;
     return {x:r.x+(x+offset)/width*r.width,y:r.y+y/600*r.height};
    },{x,y});
    await page.mouse.click(point.x,point.y);
@@ -36,6 +36,7 @@ const assert = require('node:assert/strict');
   const campState=expected=>page.waitForFunction(expected=>window.CAMP?.state===expected,expected);
   const checkLandscape=async()=>{
    if(page.viewportSize().width<=page.viewportSize().height)return;
+   await page.waitForFunction(()=>Math.abs(document.getElementById('c').getBoundingClientRect().width-innerWidth)<2);
    for(const selector of ['#c','#camp-ov']){
     const box=await page.locator(selector).boundingBox(),size=page.viewportSize();
     for(const [actual,expected] of [[box.x,0],[box.y,0],[box.width,size.width],[box.height,size.height]]){
@@ -78,7 +79,8 @@ const assert = require('node:assert/strict');
   await campState('play');assert.equal(await page.evaluate(()=>CAMP.info.stage),0);
   await checkLandscape();
   await page.keyboard.press('Escape');await campState('menu');
-  await tap(80,32);await rootState('worlds');
+  const backX=await page.evaluate(()=>80-GAME_VIEW.offsetX);
+  await tap(backX,32);await rootState('worlds');
   console.log(`OK ${viewport.width}: native worlds and classic UI, Venezuela settings/gameplay, return to worlds`);
   await context.close();
  }

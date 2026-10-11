@@ -22,7 +22,7 @@ const G1={skin:'#8a5a3a',shirt:'#ffd23f',hair:'afro',hairCol:'#14101c',earring:1
   G2={skin:'#e8b48a',shirt:'#ff5ca8',pat:'stripes',sh2:'#ffffff',hair:'slick',hairCol:'#14101c',stache:1,brow:'thick',chain:1,bw:52,th:110};
 /* el cursor del juego en curso: sigue al ratón aunque no esté apretado */
 let cur=null;
-view.addEventListener('pointermove',e=>{if(gameId!=='anuncio'||!cur)return;const r=view.getBoundingClientRect();cur.x=(e.clientX-r.left)/r.width*W;cur.y=(e.clientY-r.top)/r.height*H;cur.kb=false;});
+view.addEventListener('pointermove',e=>{if(gameId!=='anuncio'||!cur)return;const p=canvasPoint(e);cur.x=p.x;cur.y=p.y;cur.kb=false;});
 /* la salsa (original): La menor - Re menor - Mi - Re menor, clave 2-3, campana y bajo */
 const STEP=.13,CHD=[[220,261.63,329.63],[293.66,349.23,440],[329.63,415.3,493.88],[293.66,349.23,440]],CLAVE=[2,4,8,11,14];
 function salsa(i,v=.03){const n=i%16,c=CHD[n>>2],q=n%4;

@@ -1,7 +1,14 @@
 'use strict';
 const W=800,H=600,INK='#14101c',TAU=Math.PI*2,PW=267,PH=200;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,k)=>a+(b-a)*k,ease=k=>k*k*(3-2*k);
-const view=document.getElementById('c'),vctx=view.getContext('2d');
+const view=document.getElementById('c');let vctx=view.getContext('2d');
+/* Drawing and input share one projection. Campaign games retain their 800×600
+   coordinate system inside the wider display, just like Classic. */
+const GAME_VIEW={width:W,offsetX:0};
+function canvasPoint(e){const r=view.getBoundingClientRect();return{
+  x:(e.clientX-r.left)*GAME_VIEW.width/r.width-GAME_VIEW.offsetX,
+  y:(e.clientY-r.top)*H/r.height};}
+function canvasScale(){return view.getBoundingClientRect().width/GAME_VIEW.width;}
 const small=document.createElement('canvas');small.width=PW;small.height=PH;const sctx=small.getContext('2d');
 let ctx=vctx,now=0,sid=0,FRJ=0,style='tinta',gameId='parada',G=null,SP=1;
 

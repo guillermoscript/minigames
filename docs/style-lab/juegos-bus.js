@@ -20,7 +20,7 @@ function phone(x,y,rot=0,s=1){ctx.save();ctx.translate(x,y);ctx.rotate(rot);ctx.
 /* ───────── input propio ───────── */
 const MINE={},heldK={l:0,r:0},heldP={l:0,r:0};let tilt=0,tiltAsked=false,ptr=false,lastP={x:0,y:0};
 const steer=()=>clamp(heldK.r-heldK.l+heldP.r-heldP.l+tilt,-1,1);
-const cpos=e=>{const r=view.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*H};};
+const cpos=canvasPoint;
 view.addEventListener('pointerdown',e=>{if(!MINE[gameId]||!G)return;try{view.setPointerCapture(e.pointerId);}catch(_){}
   const a=A();a.resume&&a.resume();const p=cpos(e);lastP=p;ptr=true;heldP.l=+(p.x<W/2);heldP.r=+(p.x>=W/2);if(G.down)G.down(p);
   if(gameId==='agarrate'&&!tiltAsked&&window.DeviceOrientationEvent&&DeviceOrientationEvent.requestPermission){tiltAsked=true;DeviceOrientationEvent.requestPermission().catch(()=>{});}});

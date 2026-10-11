@@ -94,7 +94,7 @@ function challengeLine() {
 /* ───────────── state ───────────── */
 let state = 'title', st = 0, mode = 'stage';
 const PRE = 1.4; let pre = 0, preMax = PRE;   // read-time: game frozen while the instruction is shown
-let retryId = null, stageIdx = 0, stage = STAGES[0], lives = 4, played = 0, score = 0, lastOut = null, stars = 0;
+let stageIdx = 0, stage = STAGES[0], lives = 4, played = 0, score = 0, lastOut = null, stars = 0;
 let runLog = [];                          // this stage run, one emoji per microgame / boss try: the Wordle-style grid in shared text
 let cur = null, curId = '', tt = 0, dur = 5, outcome = null, outT = 0, tickN = 0, recent = [], isBoss = false;
 let practiceId = 'swat', practiceSp = 1, menuPage = 0, practicePage = 0;
@@ -277,13 +277,14 @@ function goMenu() { EGGS.stop(); state = 'menu'; st = 0; mode = 'stage'; parts.l
 function goPractice() { EGGS.stop(); state = 'practice'; st = 0; mode = 'practice'; parts.length = 0; }
 function startStage(i) {
   if (i > save.unlocked - 1) return;
+  EGGS.stage();
   runRank = null; attempts[i] = (attempts[i] || 0) + 1;
   track('stage_start', { stage: i + 1, stage_name: STAGES[i].name, attempt: attempts[i], unlocked: save.unlocked });
   if (poolOf(STAGES[i]).some(is3D)) loadThree();
-  mode = 'stage'; stageIdx = i; stage = STAGES[i]; lives = 4; played = 0; score = 0; lastOut = null; recent = []; retryId = null; runLog = [];
+  mode = 'stage'; stageIdx = i; stage = STAGES[i]; lives = 4; played = 0; score = 0; lastOut = null; recent = []; runLog = [];
   state = 'stagein'; st = 0; shownScore = 0; lifeT = 99; jingleGo();
 }
-function startPractice(id) { if (is3D(id)) loadThree(); track('practice_start', { game: id }); mode = 'practice'; practiceId = id; lastOut = null; stage = STAGES[0]; state = 'inter'; st = 0; }
+function startPractice(id) { EGGS.stage(); if (is3D(id)) loadThree(); track('practice_start', { game: id }); mode = 'practice'; practiceId = id; lastOut = null; stage = STAGES[0]; state = 'inter'; st = 0; }
 function toInter() { state = 'inter'; st = 0; if (mode !== 'practice') jingleGo(); }
 
 function beginGame() {
@@ -297,7 +298,7 @@ function beginGame() {
     s = stage.sp0 + Math.floor(stage.n / 2) * .1; cur = BOSSES[stage.boss](s, stage); curId = 'boss:' + stage.boss; isBoss = true; dur = cur.dur;
   } else {
     const pool = poolOf(stage), available = pool.filter(id => !recent.includes(id));
-    const id = retryId && pool.includes(retryId) ? retryId : available[Math.random() * available.length | 0];
+    const id = available[Math.random() * available.length | 0];
     if (is3D(id) && typeof THREE === 'undefined') { loadThree().then(() => { if (state === 'inter') beginGame(); }); st = -99; return; }
     if (!recent.includes(id)) recent.push(id); if (recent.length > Math.min(6, pool.length - 2)) recent.shift();
     s = speed(); cur = REGMAP[id].fn(s); curId = id; isBoss = false; dur = cur.dur / Math.sqrt(s); I18N.scope = I18N.scopeOf(curId);
@@ -363,7 +364,7 @@ function update(dt) {
       if (mode === 'party') partyLocalDone(outcome);
       else if (mode === 'practice') { state = 'inter'; st = 0; }
       else if (isBoss) { if (outcome === 'win') clearStage(); else if (lives <= 0) toOver(); else toInter(); }
-      else { if (outcome === 'win') { played++; retryId = null; } else retryId = curId; if (lives <= 0) toOver(); else toInter(); }   // lose = same microgame again, only a win advances
+      else { if (outcome === 'win') played++; if (lives <= 0) toOver(); else toInter(); }   // only a win advances the stage's microgame count
     }
   } else if (state === 'clear' && Math.random() < dt * 6) confetti(Math.random() * W, 100, 12);
 }
@@ -935,12 +936,14 @@ let lastTs = 0, lastDt = 0;
 function loop(ts) {
   const dt = Math.min(.05, (ts - lastTs) / 1000 || 0); lastTs = ts; now += dt; lastDt = dt;
   update(dt); updateFx(dt); syncMusic();
+  EGGS.update(dt);
   if (state !== lastState) {                              // screen-change whoosh (not on every microgame)
     if (['stagein', 'menu', 'practice', 'profile', 'board', 'pview', 'party', 'friends'].includes(state) || (state === 'inter' && mode === 'stage')) sfx.whoosh(true);
     lastState = state;
   }
   cv.style.cursor = state === 'play' && mouse.touch === false && cur && !cur.noHand && !cur.partyHelper && !cur.partyScene ? 'none' : '';
   ctx.setTransform(1, 0, 0, 1, OX, 0); ctx.save(); applyShake(dt); render(); drawFx(); if (sh.on) drawShareMenu(); ctx.restore();
+  EGGS.draw(ctx, W, I18N.lang === 'es');
   const hb = btns.find(b => hovered(b.x, b.y, b.w, b.h)), hk = hb ? hb.x + ',' + hb.y : '';
   if (hk !== hoverKey) { hoverKey = hk; if (hk && state !== 'play') sfx.tick(); }
   requestAnimationFrame(loop);

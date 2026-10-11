@@ -38,12 +38,12 @@ const TIPOS={
   v20:{mas:'+20',draw:v20},
   a50:{mas:'+50',draw(){cara(AZUL,'50',BANCO,'CINCUENTA LUCAS',()=>arepa(1.05));}},
   /* partido en dos y remendado con tirro marrón; q>0: el tirro se rinde y las mitades se separan */
-  roto:{nota:'¡TIRRO!',grito:'¡ESO ES PURO TIRRO!',draw(q){
+  roto:{nota:'¡TEIPE!',grito:'¡ESO ES PURO TEIPE!',draw(q){
     for(const sg of[-1,1]){ctx.save();ctx.translate(sg*(8+q*52),-sg*5+q*q*46);ctx.rotate(sg*(.035+q*.32));
       path([[sg*200,-110],[ZIG[0][0],-110],...ZIG,[ZIG[7][0],110],[sg*200,110]]);ctx.clip();v20();line(ZIG,7,INK);ctx.restore();}
     [[0,0,42,174,.05],[0,-40,176,36,-.1],[2,38,196,38,.08]].forEach(([x,y,w,h,r],i)=>tirro(x+(i-1)*q*34,y+q*q*(170+i*34),w,h,r+q*(i-1)*1.3));}},
   /* casi bueno: un rasgoncito y UN solo pedazo de tirro (niveles 2 y 3) */
-  tirrito:{nota:'¡TIRRO!',grito:'¡ESE TIENE TIRRO!',draw(){v20();line([[96,-85],[87,-64],[100,-44],[90,-22],[98,-4]],4,INK);tirro(95,-50,56,112,.14);}},
+  tirrito:{nota:'¡TEIPE!',grito:'¡ESE TIENE TEIPE!',draw(){v20();line([[96,-85],[87,-64],[100,-44],[90,-22],[98,-4]],4,INK);tirro(95,-50,56,112,.14);}},
   juguete:{nota:'¡DE JUGUETE!',grito:'¡ESO ES DE JUGUETE!',draw(){
     rr(-180,-85,360,170,10,'#ff9ec7',4.5);rr(-168,-73,336,146,6,'#ffe6f1',3);
     for(const sg of[-1,1]){ell(sg*116,2,40,40,'#ff5ca8',3.5);txt('500',sg*116,3,30,'#fffdf2');txt('★',sg*60,-40,20,'#ffd23f');}

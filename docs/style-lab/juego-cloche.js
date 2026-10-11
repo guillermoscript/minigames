@@ -130,7 +130,7 @@ function mkCloche(){
 
   const g={get impact(){return this.result?clamp(1-this.endT/.5,0,1):trip*.4;},
     probe:()=>({v:vel,b0,b1,lv,fase,used,hold:kH||pH,dipped,verde:verde(),kind:g.kind}),
-    t:0,dur:5/rs,result:null,why:'',kind:'',endT:0,cmd:'¡SUELTA EL CLOCHE!',
+    t:0,dur:5/rs,result:null,why:'',kind:'',endT:0,cmd:'¡MÉTELE CHOLA PA\'L OTRO!',
     hint:'MANTÉN el dedo (o ESPACIO) y SUELTA con la aguja en el VERDE',
     press(k){if(k==='any'||k==='down'){kH=true;pisa();}},
     kup(){if(kH){kH=false;if(!pH)suelta();}},
@@ -199,7 +199,7 @@ function mkCloche(){
       const py=lerp(514,540,ped),sy=py-12-(1-ped)*15;
       rr(700,py+12,12,562-py-12,3,'#8f8fa8',3);rr(676,py,60,14,5,'#c9ced6',3.5);for(let i=0;i<4;i++)line([[688+i*12,py+3],[688+i*12,py+11]],2,'#5a5274');
       limb(616,sy-22,684,sy-4,22,'#2f3a7a',4);ell(700,sy,32,12,'#e8553d',4);line([[672,sy+8],[728,sy+8]],3,'#fffdf2');
-      txt('CLOCHE',756,486,11,'#ffd23f',0,true);
+      txt('¡MÉTELE CHOLA PA\'L OTRO!',756,486,11,'#ffd23f',0,true);
       const ang=u=>A0+(A1-A0)*u,na=ang(clamp(vel,0,1)),c=Math.cos(na),s=Math.sin(na),fl=inB&&Math.sin(now*36)>0;
       ell(GX,GY,GR+15,GR+15,fl?'#2f5a3a':'#14101c',4);
       line(arcPts(GX,GY,GR,A0,ang(b0),12),11,'#8f8fa8');line(arcPts(GX,GY,GR,ang(b1),A1,8),11,'#ff4d5e');
@@ -212,7 +212,7 @@ function mkCloche(){
         /* el cartelito: qué toca hacer ahora mismo */
         const[s1,c1,c2]=!used?['MANTÉN','#ffd23f',INK]:inB?['¡SUELTA!','#5cff7a',INK]:over?['¡TARDE!','#ff4d5e','#ffffff']:['AGUANTA...','#fff3c4',INK],z=!used||inB?1+Math.sin(now*12)*.07:1;
         ctx.save();ctx.translate(695,262);ctx.scale(z,z);rr(-86,-22,172,44,14,c1,4);txt(s1,0,1,24,c2,0,true);ctx.restore();
-        if(!used)bubble(150,262,'¡PISA EL CLOCHE!',19,PXS[2]+14,318);
+        if(!used)bubble(150,262,'¡MÉTELE CHOLA PA\'L OTRO!',19,PXS[2]+14,318);
         else if(inB)bubble(150,262,'¡SUÉLTALO YA!',22,PXS[2]+14,318);}
       if(win&&e>1.15)bubble(588,170,'¡NO PUEDO FRENAR, SE APAGA!',17,794,330);
       if(lose&&e>.62)bubble(456,196,g.kind==='nada'?'¿YA ESTÁN EMPUJANDO?':'¿LE DAN OTRA VEZ?',19,cx+196,318);
@@ -220,5 +220,5 @@ function mkCloche(){
     }};
   cur=g;return g;
 }
-BUS.add('cloche',{name:'¡SUELTA EL CLOCHE!',mk:mkCloche,card:'EL CLOCHE',num:'73'});
+BUS.add('cloche',{name:'¡MÉTELE CHOLA PA\'L OTRO!',mk:mkCloche,card:'EL PEDAL',num:'73'});
 })();

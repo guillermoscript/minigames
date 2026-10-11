@@ -112,7 +112,7 @@ function mkPendrive(){
         const z=Math.abs(ang())<TOL;if(z&&!inZ&&(held||kb))snd(1500,.03,'square',.03);inZ=z;
         if((jT-=dt)<=0){jT=.17/rs;const f=JING[ji++%JING.length];if(f){snd(f,.12,'square',.014+.02*k);snd(f*1.5,.1,'square',.006+.01*k);}}
         if((adT-=dt)<=0){adT=.8-.42*k;grita(k,false);}
-        if(g.t>=g.dur){g.result='lose';g.kind='time';g.why='¡PURA CUÑA!';held=false;kb=false;sfx.lose();sfx.thud();}
+        if(g.t>=g.dur){g.result='lose';g.kind='time';g.why='¡QUÉ FASTIDIO DE ANUNCIO!';held=false;kb=false;sfx.lose();sfx.thud();}
         return;}
       g.endT+=dt;const e=g.endT;
       if(g.result==='win'){
@@ -201,7 +201,7 @@ function mkPendrive(){
       else if(!g.result&&g.t>.15&&g.t<1.7/rs)bubble(158,150,'¡CAMBIA EL PENDRIVE!',17,CX+16,246);
       if(dz&&e>.55)bubble(160,150,'¡ESA SÍ ES MÚSICA!',19,CX+16,240);
       if(rev&&e>.3)bubble(170,150,"¡ERA PA'L OTRO LADO!",18,CX+60,232);
-      if(lose&&!rev&&e>.3)bubble(160,150,'¡YA ME SÉ LA CUÑA!',19,CX+16,244);
+      if(lose&&!rev&&e>.3)bubble(160,150,'¡QUÉ FASTIDIO DE ANUNCIO!',19,CX+16,244);
       ctx.restore();line([[gameLeft(),576],[gameRight(),576]],4,INK);
       drawP();
     }};

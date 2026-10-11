@@ -198,14 +198,14 @@ function mkTranca(){
       else{const T=FI[idx],pp=Math.max(0,1-swT/.09),jit=1+k*2.2;mano(HX+Math.sin(now*31)*jit,HY0+Math.cos(now*27)*jit*.7+pp*12,1-pp*.12,Math.sin(now*5)*.03+pp*.1,T[0],T[1]);}
       ctx.restore();
       /* lo que se gritan */
-      if(win&&e>.25)bubble(mx(266),446,'¡LA COCHINAAA!',26,PBX+sg*36,by-bs*40);
+      if(win&&e>.25)bubble(mx(266),446,'¡TE TRANCAMOS!',26,PBX+sg*36,by-bs*40);
       if(tramp&&eT>.3&&eT<1.9)bubble(mx(500),212,'ESA NO VA AHÍ, TRAMPOSO',20,acu.o[0]-acu.in[0]*8,acu.o[1]-34);
       if(mesa&&eT>.35)bubble(400,214,'¡TUMBASTE LA MESA, CHAMO!',20,400,152);
-      if(ahor&&eT>.5)bubble(400,214,'¡TE AHORCAMOS LA COCHINA!',20,400,152);
+      if(ahor&&eT>.5)bubble(400,214,'¡AGARRA, SAPO!',20,400,152);
       drawP();
     }};
   return g;
 }
 
-BUS.add('tranca',{name:'¡TRANCA!',mk:mkTranca,card:'LA COCHINA',num:'66'});
+BUS.add('tranca',{name:'¡TRANCA!',mk:mkTranca,card:'EL DOMINÓ',num:'66'});
 })();

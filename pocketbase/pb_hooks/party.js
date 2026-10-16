@@ -73,6 +73,10 @@ const GAMES = {
   sq_hallaca: { dur: 18, pts: false, duo: true, min: 3, max: 4 },
   sq_velas: { dur: 17, pts: false, duo: true, min: 3, max: 4 },
   sq_empanada: { dur: 16, pts: false, duo: true, min: 3, max: 4 },
+  sq_pinata: { dur: 16, pts: false, duo: true, min: 3, max: 4 },
+  sq_relay: { dur: 17, pts: false, duo: true, min: 3, max: 4 },
+  sq_band: { dur: 17, pts: false, duo: true, min: 3, max: 4 },
+  sq_buseta: { dur: 18, pts: false, duo: true, min: 3, max: 4 },
 };
 const TURN_CATALOG = require(typeof __hooks === "string" ? `${__hooks}/party_catalog.js` : "./party_catalog.js");
 Object.assign(GAMES, TURN_CATALOG);

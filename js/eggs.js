@@ -12,16 +12,16 @@ const EGGS = (() => {
     'se-fue-la-luz', 'goku-drip', 'running', 'atrapada', 'carrera-de-buses'];
   /* how often each one fires (0 = never, 1 = always); each sound category is capped once per stage. */
   const CHANCE = {
-    fail: .06,     // a lost microgame: 'faaah', 'fart' or 'spongebob-fail'
-    hit: .15,      // any result in a game where something gets smacked: 'anime-ahh' or 'punch'
-    dodge: .12,    // a won dodging game: 'goku-drip'
-    catch: .12,    // a won catching game: 'atrapada'
-    run: .1,       // a running game starts: 'running'
-    dark: .015,    // a blackout game starts: 'se-fue-la-luz' (very rare)
-    race: .2,      // the lab's bus race (pique) starts: 'carrera-de-buses'
-    win: .05,      // a won microgame: 'correct' or 'anime-wow'
-    clear: .25,    // a cleared stage: 'yay' or 'heavenly'
-    music: .1      // winning a game that puts music on (the lab's pendrive and anuncio): 'bebecita' instead of the game's own tune
+    fail: .02,     // a lost microgame: 'faaah', 'fart' or 'spongebob-fail'
+    hit: .05,      // any result in a game where something gets smacked: 'anime-ahh' or 'punch'
+    dodge: .04,    // a won dodging game: 'goku-drip'
+    catch: .04,    // a won catching game: 'atrapada'
+    run: .03,       // a running game starts: 'running'
+    dark: .005,    // a blackout game starts: 'se-fue-la-luz' (very rare)
+    race: .07,      // the lab's bus race (pique) starts: 'carrera-de-buses'
+    win: .015,      // a won microgame: 'correct' or 'anime-wow'
+    clear: .08,    // a cleared stage: 'yay' or 'heavenly'
+    music: .03      // winning a game that puts music on (the lab's pendrive and anuncio): 'bebecita' instead of the game's own tune
   };
   /* which games count as what: the app's ids, then the lab's */
   const HIT = new Set(['whack', 'swat', 'mv_punch', 'gc_rhino', 'gc_nail', 'ap_mosquito', 'du_shield', 'dodge', 'chancla', 'zancudo', 'cucaracha']);

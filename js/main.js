@@ -274,7 +274,7 @@ function loadThree() {
 
 function goTitle() { EGGS.stop(); state = 'title'; st = 0; }
 function goMenu() { EGGS.stop(); state = 'menu'; st = 0; mode = 'stage'; parts.length = 0; }
-function goPractice() { EGGS.stop(); state = 'practice'; st = 0; mode = 'practice'; parts.length = 0; }
+function goPractice() { COOP.on = false; EGGS.stop(); state = 'practice'; st = 0; mode = 'practice'; parts.length = 0; }
 function startStage(i) {
   if (i > save.unlocked - 1) return;
   EGGS.stage();
@@ -284,7 +284,7 @@ function startStage(i) {
   mode = 'stage'; stageIdx = i; stage = STAGES[i]; lives = 4; played = 0; score = 0; lastOut = null; recent = []; runLog = [];
   state = 'stagein'; st = 0; shownScore = 0; lifeT = 99; jingleGo();
 }
-function startPractice(id) { EGGS.stage(); if (is3D(id)) loadThree(); track('practice_start', { game: id }); mode = 'practice'; practiceId = id; lastOut = null; stage = STAGES[0]; state = 'inter'; st = 0; }
+function startPractice(id) { COOP.on = false; EGGS.stage(); if (is3D(id)) loadThree(); track('practice_start', { game: id }); mode = 'practice'; practiceId = id; lastOut = null; stage = STAGES[0]; state = 'inter'; st = 0; }
 function toInter() { state = 'inter'; st = 0; if (mode !== 'practice') jingleGo(); }
 
 function beginGame() {
@@ -293,7 +293,7 @@ function beginGame() {
   if (mode === 'party') {
     const R = party.room; s = R.sp; const dc = R.mode === 'duo' ? duoCtx(R) : undefined; cur = withSeed(R.seed, () => partyBuildGame(R, s, dc)); curId = R.game; isBoss = false; dur = cur.dur / Math.sqrt(s); I18N.scope = I18N.scopeOf(curId);
   } else if (mode === 'practice') {
-    s = practiceSp; cur = REGMAP[practiceId].fn(s); curId = practiceId; isBoss = false; dur = cur.dur / Math.sqrt(s); I18N.scope = I18N.scopeOf(curId);
+    s = practiceSp; cur = COOP.on ? coopBuild(practiceId, s) : REGMAP[practiceId].fn(s); curId = practiceId; isBoss = false; dur = cur.dur / Math.sqrt(s); I18N.scope = I18N.scopeOf(curId);
   } else if (played >= stage.n) {
     s = stage.sp0 + Math.floor(stage.n / 2) * .1; cur = BOSSES[stage.boss](s, stage); curId = 'boss:' + stage.boss; isBoss = true; dur = cur.dur;
   } else {
@@ -334,7 +334,7 @@ function toOver() {
   state = 'over'; st = 0; submitRun(0); sfx.thud(); shake(14, .45);
 }
 function afterClear() { if (stageIdx < STAGES.length - 1) startStage(stageIdx + 1); else goMenu(); }
-function exitPlay() { if (mode === 'party') return partyLeave(); if (mode === 'stage') track('stage_quit', { stage: stageIdx + 1, microgames: played, score, lives_left: lives, in_state: state }); mode === 'practice' ? goPractice() : goMenu(); }
+function exitPlay() { if (mode === 'party') return partyLeave(); if (mode === 'stage') track('stage_quit', { stage: stageIdx + 1, microgames: played, score, lives_left: lives, in_state: state }); mode === 'practice' ? (COOP.on ? goCoop() : goPractice()) : goMenu(); }
 
 /* ───────────── update ───────────── */
 function update(dt) {
@@ -353,6 +353,7 @@ function update(dt) {
       const n = Math.floor(tt * 2);
       if (n !== tickN) { tickN = n; snd(430 + 520 * Math.min(1, tt / dur) + (dur - tt < 1.5 ? 200 : 0), .04, 'square', dur - tt < 1.5 ? .045 : .03); }
     } else outT += dt;
+    if (COOP.on) coopStep(dt, tt);
     cur.update(dt, tt);
     if (!outcome) {
       if (cur.result) setOutcome(cur.result);
@@ -519,11 +520,14 @@ function render() {
     }
     profileBtn(14 - OX, 10, 170, 56);
     button(W + OX - 184, 10, 170, 56, 'RANKS', () => goBoard(), { size: 22, fill: '#FFE14D' });
-    button(110, 455, 280, 74, 'PRACTICE', goPractice, { fill: '#5CFF7A' });
-    button(410, 455, 280, 74, worldText('◄ MUNDOS', '◄ WORLDS'), goWorlds, { fill: '#fff' });
-    if (!TOUCH) txt('1-6 STAGE · ◄ ► PAGE · P PRACTICE · L RANKS · A PROFILE · ESC BACK', W / 2, 568, 18, '#fff');
+    button(110, 455, 186, 74, 'PRACTICE', goPractice, { fill: '#5CFF7A', size: 24 });
+    button(307, 455, 186, 74, 'CO-OP vs CPU', goCoop, { fill: '#6EC6FF', size: 22 });
+    button(504, 455, 186, 74, worldText('◄ MUNDOS', '◄ WORLDS'), goWorlds, { fill: '#fff', size: 24 });
+    if (!TOUCH) txt('1-6 STAGE · ◄ ► PAGE · P PRACTICE · C CO-OP · L RANKS · A PROFILE · ESC BACK', W / 2, 568, 18, '#fff', 'center', 780);
   } else if (state === 'party') {
     drawParty();
+  } else if (state === 'coop') {
+    drawCoop();
   } else if (state === 'practice') {
     bg('#1f2a44', '#26335a', now);
     txt('PRACTICE', W / 2, 38, 44, '#FFE14D');
@@ -615,7 +619,7 @@ function render() {
       txt(isBoss ? 'BOSS' : `${played + 1}/${stage.n}`, W + OX - 16, 30, 26, isBoss ? '#FF4D4D' : '#fff', 'right');
       ctx.save(); const sp = 1 + scorePop * .3; ctx.translate(W + OX - 16, 62); ctx.scale(sp, sp); txt(String(Math.round(shownScore)), 0, 0, 22, '#FFE14D', 'right'); ctx.restore();
     } else if (mode === 'party') { if (!(pre > 0 && (preMax === DUO_PRE || partyTurnMode(party.room))) && !cur.partyScene) drawPartyHud(); }
-    else txt('PRACTICE', W + OX - 16, 30, 22, '#fff', 'right');
+    else { txt(COOP.on ? 'CO-OP TEST' : 'PRACTICE', W + OX - 16, 30, 22, '#fff', 'right'); if (COOP.on) coopHud(); }
     if (mode === 'party' && typeof pui === 'function' && typeof PARTY_UI !== 'undefined') pui().btn(W + OX - 78, 80, 66, 30, 'LEAVE', exitPlay, { size: 15, depth: 4 });   // party shell plate, same rectangle
     else button(W + OX - 78, 80, 66, 30, mode === 'party' ? 'LEAVE' : mode === 'practice' ? 'EXIT' : 'MENU', exitPlay, { size: 15, fill: 'rgba(255,255,255,.85)' });
     if (pre <= 0 && !cur.partyHelper && !cur.partyDraw && !cur.partyScene) fuse();
@@ -851,7 +855,7 @@ addEventListener('keydown', e => {
     if (mode === 'party' && (state === 'play' || (state === 'party' && party.view !== 'menu' && party.view !== 'lobby'))) return;   // no accidental leaving mid-match
     if (state === 'party') { party.view === 'lobby' ? partyLeave('menu') : goTitle(); return; }
     if (state === 'play' || state === 'inter' || state === 'stagein') exitPlay();
-    else if (state === 'worlds') goTitle(); else if (state === 'menu') goWorlds(); else if (state === 'practice') goMenu();
+    else if (state === 'worlds') goTitle(); else if (state === 'menu') goWorlds(); else if (state === 'practice') goMenu(); else if (state === 'coop') goPractice();
     else if (state === 'profile' || state === 'board' || state === 'pview' || state === 'friends') back();
     return;
   }
@@ -872,9 +876,13 @@ addEventListener('keydown', e => {
     const d = +e.key, mp = pageCount(STAGES.length, PER_MENU);
     if (d >= 1 && d <= 6 && menuPage * PER_MENU + d - 1 < STAGES.length) startStage(menuPage * PER_MENU + d - 1);
     else if (e.code === 'KeyP') goPractice();
+    else if (e.code === 'KeyC') goCoop();
     else if (e.code === 'KeyL') goBoard();
     else if (e.code === 'KeyA') goProfile();
     else if (e.code === 'ArrowRight') menuPage = (menuPage + 1) % mp; else if (e.code === 'ArrowLeft') menuPage = (menuPage + mp - 1) % mp;
+  } else if (state === 'coop') {
+    const pp = pageCount(coopList().length, COOP_PER);
+    if (e.code === 'ArrowRight') COOP.page = (COOP.page + 1) % pp; else if (e.code === 'ArrowLeft') COOP.page = (COOP.page + pp - 1) % pp;
   } else if (state === 'practice') {
     const pp = pageCount(PREG.length, PER_PRACTICE);
     if (e.code === 'ArrowRight') practicePage = (practicePage + 1) % pp; else if (e.code === 'ArrowLeft') practicePage = (practicePage + pp - 1) % pp;
@@ -991,3 +999,4 @@ api.completeGoogleSignIn().then(r => {
 });
 
 initWorldMenu();
+coopBoot();

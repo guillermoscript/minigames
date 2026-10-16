@@ -61,6 +61,18 @@ const GAMES = {
   sq_vault: { dur: 16, pts: false, duo: true, min: 3, max: 4 },
   sq_blanket: { dur: 16, pts: false, duo: true, min: 3, max: 4 },
   sq_storm: { dur: 18, pts: false, duo: true, min: 3, max: 4 },
+  du_cobra: { dur: 15, pts: false, duo: true },
+  du_vela: { dur: 15, pts: false, duo: true },
+  du_tequeno: { dur: 15, pts: false, duo: true },
+  du_tendedero: { dur: 15, pts: false, duo: true },
+  du_gasolina: { dur: 15, pts: false, duo: true },
+  du_cambio: { dur: 15, pts: false, duo: true },
+  sq_apretujen: { dur: 17, pts: false, duo: true, min: 3, max: 4 },
+  sq_balde: { dur: 17, pts: false, duo: true, min: 3, max: 4 },
+  sq_trencito: { dur: 18, pts: false, duo: true, min: 3, max: 4 },
+  sq_hallaca: { dur: 18, pts: false, duo: true, min: 3, max: 4 },
+  sq_velas: { dur: 17, pts: false, duo: true, min: 3, max: 4 },
+  sq_empanada: { dur: 16, pts: false, duo: true, min: 3, max: 4 },
 };
 const TURN_CATALOG = require(typeof __hooks === "string" ? `${__hooks}/party_catalog.js` : "./party_catalog.js");
 Object.assign(GAMES, TURN_CATALOG);

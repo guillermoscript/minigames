@@ -84,6 +84,14 @@ const GAMES = {
   sq_papagayo: { dur: 17, pts: false, duo: true, min: 3, max: 4 },
   sq_agua: { dur: 17, pts: false, duo: true, min: 3, max: 4 },
   sq_tranca: { dur: 17, pts: false, duo: true, min: 3, max: 4 },
+  du_novela: { dur: 15, pts: false, duo: true },
+  du_teleferico: { dur: 15, pts: false, duo: true },
+  du_cafe: { dur: 15, pts: false, duo: true },
+  du_mototaxi: { dur: 15, pts: false, duo: true },
+  sq_bolas: { dur: 17, pts: false, duo: true, min: 3, max: 4 },
+  sq_bemba: { dur: 17, pts: false, duo: true, min: 3, max: 4 },
+  sq_carro: { dur: 17, pts: false, duo: true, min: 3, max: 4 },
+  sq_chinchorro: { dur: 17, pts: false, duo: true, min: 3, max: 4 },
 };
 const TURN_CATALOG = require(typeof __hooks === "string" ? `${__hooks}/party_catalog.js` : "./party_catalog.js");
 Object.assign(GAMES, TURN_CATALOG);

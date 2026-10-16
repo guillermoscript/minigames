@@ -309,7 +309,7 @@ function setOutcome(r){outcome=r;outT=0;fx.stamp();EGGS.outcome(curId,r);
 function next(){lastOut=outcome;const win=lastOut==='win';
   if(mode==='practice'){state='inter';st=0;}
   else if(isBoss){if(win){bossK++;if(bossK>=stage.jefes.length)clearStage();else toInter();}else if(lives<=0)toOver();else toInter();}
-  else{if(win){played++;retryId=null;}else retryId=curId;if(lives<=0)toOver();else toInter();}}   /* perder = repetir ese microjuego; solo ganar avanza */
+  else{if(win)played++;retryId=null;if(lives<=0)toOver();else toInter();}}   /* perder = otro microjuego distinto, sin avanzar el contador; solo ganar avanza */
 function clearStage(){stars=lives>=3?3:lives>=2?2:1;const E=estrellas(nivel),R=records(nivel),nuevo=CANDADOS&&nivel<3&&!(E[stageIdx]>0);
   E[stageIdx]=Math.max(E[stageIdx]||0,stars);R[stageIdx]=Math.max(R[stageIdx]||0,score);persist();
   state='clear';st=0;shownStars=0;jingleWin();confetti(W/2,200,60);EGGS.clear(false);if(nuevo)say('¡NIVEL '+(nivel+1)+' ABIERTO EN '+stage.name+'!','#FFE14D');}
@@ -385,8 +385,8 @@ function icono(x,y,r,n){X.save();X.lineJoin='round';X.lineCap='round';X.strokeSt
   X.restore();}
 function placaNivel(x,y,largo){const s='NIVEL '+nivel+(largo?' · '+NIV[nivel-1].n:'');X.font=face(largo?17:14,false);const w=X.measureText(s).width+(largo?52:40),h=largo?32:24;
   X.fillStyle=NIV[nivel-1].hud;X.fillRect(x,y,w,h);X.fillStyle='rgba(255,255,255,.22)';X.fillRect(x,y,w,3);icono(x+(largo?18:14),y+h/2,largo?9:7,nivel);T(s,x+(largo?36:28),y+h/2+1,largo?17:14,'#fff','left');}
-function tabsNivel(x,y,h){[1,2,3].forEach(n=>{const bx=x+(n-1)*79;button(bx,y,70,h,'NIV '+n,()=>{nivel=n;},{size:16,depth:4,o:4,fill:nivel===n?'#FFE14D':'#fff'});
-  if(CANDADOS&&n>1&&!ETAPAS.some((e,i)=>abierto(i,n))){X.fillStyle='rgba(20,16,28,.5)';X.fillRect(bx,y,70,h);}});}
+function tabsNivel(x,y,h,tw=70,sz=16){[1,2,3].forEach(n=>{const bx=x+(n-1)*(tw+9);button(bx,y,tw,h,(tw>100?'NIVEL ':'NIV ')+n,()=>{nivel=n;},{size:sz,depth:4,o:4,fill:nivel===n?'#FFE14D':'#fff'});
+  if(CANDADOS&&n>1&&!ETAPAS.some((e,i)=>abierto(i,n))){X.fillStyle='rgba(20,16,28,.5)';X.fillRect(bx,y,tw,h);}});}
 function estrellitas(){for(let i=0;i<Math.ceil(46*VW/W);i++){const x=(i*197.3+31)%VW-OX,y=(i*113.7+17)%H,k=.35+.65*Math.abs(Math.sin(now*(1.1+i%5*.4)+i));X.globalAlpha=k*.8;X.fillStyle=i%7?'#fff':'#FFE14D';const r=i%9?2:3;X.fillRect(x-r/2,y-r/2,r,r);}X.globalAlpha=1;}
 function fondoNivel(a,b){rays(a,b,now);if(nivel===3)estrellitas();
   else if(nivel===2){const g=X.createLinearGradient(0,H*.45,0,H);g.addColorStop(0,'rgba(255,120,50,0)');g.addColorStop(1,'rgba(255,120,50,.32)');X.fillStyle=g;X.fillRect(-OX,H*.45,VW,H*.55);}}
@@ -417,33 +417,25 @@ function render(){
     T('DENTRO DE CADA MUNDO, «MUNDOS» O ESC TE DEVUELVEN AQUÍ',W/2,548,16,'#fff','center',770);
   }else if(state==='menu'){
     fondoNivel(NIV[nivel-1].menu[0],NIV[nivel-1].menu[1]);
-    button(14-OX,14,132,38,'◄ MUNDOS',goWorlds,{size:16,depth:4,o:4});T(PUBLIC?'VENEZUELA':'ELIGE ETAPA',W/2,36,40,'#FFE14D','center',330);if(!PUBLIC)tabsNivel(W+OX-14-228,14,38);
-    ETAPAS.forEach((s,i)=>{const sola=i===ETAPAS.length-1&&i%2===0,x=sola?210:14+(i%2)*392,y=62+(i/2|0)*102,w=380,h=90,pop=easeOut((st-i*.05)/.3),cf=tinte(s.bg[0]),dk=lum(cf)<.3?'#fff':INK,ok=abierto(i,nivel),E=estrellas(nivel),R=records(nivel);
-      X.save();X.translate(0,(1-pop)*40);X.globalAlpha=pop;hoverBox(x,y,w,h,cf,5,7);
-      shadow(x+50,y+80,26,5,.25);caos(x+50,y+78-Math.abs(Math.sin(now*3+i))*5,3.8,{col:s.col});
-      T('ETAPA '+(i+1)+' · NIVEL '+nivel,x+98,y+15,14,'#fff','left');if(R[i])T('RÉCORD '+R[i],x+w-12,y+15,13,'#fff','right');
-      T(s.name,x+98,y+39,25,'#fff','left',268);
-      T(s.n+' JUEGOS + '+(s.jefes.length>1?s.jefes.length+' JEFES':'JEFE'),x+98,y+62,14,dk,'left',170);
-      T(s.jefes.length>1?'LOS '+(['','','DOS','TRES','CUATRO','CINCO'][s.jefes.length]||s.jefes.length)+', SEGUIDOS':JEFES[s.jefes[0]]||'',x+98,y+79,12,dk,'left',170);
-      stars3(x+w-52,y+70,E[i]||0,11,27);
-      if(!ok){X.fillStyle='rgba(20,16,28,.62)';X.fillRect(x,y,w,h);T('SUPERA EL NIVEL '+(nivel-1),x+w/2,y+h/2,24,'#FFE14D','center',w-30);}
+    button(14-OX,10,170,56,'OPCIONES',()=>{state='options';st=0;},{size:22});
+    T('ELIGE ETAPA',W/2,40,44,'#FFE14D','center',400);
+    button(W+OX-184,10,170,56,'NIVEL '+nivel,()=>{state='options';st=0;},{size:22,fill:'#FFE14D'});
+    ETAPAS.forEach((s,i)=>{const row=i/3|0,inRow=Math.min(3,ETAPAS.length-row*3),x=(W-(inRow*260-20))/2+(i%3)*260,y=95+row*175,w=240,h=155,pop=easeOut((st-i*.05)/.3),ok=abierto(i,nivel),E=estrellas(nivel);
+      X.save();X.translate(0,(1-pop)*40);X.globalAlpha=pop;hoverBox(x,y,w,h,ok?tinte(s.bg[0]):'#5a5870',5,7);
+      shadow(x+62,y+120,36,7);caos(x+56,y+122-(ok?Math.abs(Math.sin(now*3+i))*6:0),6,ok?{col:s.col}:{col:'#4a4558'});
+      T('ETAPA '+(i+1),x+14,y+20,17,'#fff','left');
+      const sp=s.name.indexOf(' '),l1=sp<0?s.name:s.name.slice(0,sp),l2=sp<0?'':s.name.slice(sp+1);
+      T(l1,x+166,y+58,26,ok?'#fff':'#aaa','center',130);if(l2)T(l2,x+166,y+90,26,ok?'#fff':'#aaa','center',130);
+      if(ok)stars3(x+166,y+128,E[i]||0,14,34);else T('BLOQUEADO',x+166,y+130,20,'#ddd','center',150);
       X.restore();X.restore();btns.push({x,y,w,h,fn:()=>startStage(i)});});
-    if(PUBLIC){
-      button(110,420,280,64,'PRÁCTICA',goPractice,{fill:'#5CFF7A'});
-      button(410,420,280,64,'OPCIONES',()=>{state='options';st=0;},{fill:'#fff'});
-      T('ELIGE UNA ETAPA PARA JUGAR',W/2,540,20,'#fff');
-    }else{
-    T('ESTILO DE DIBUJO',W/2,380,16,'#fff');chips(394,36);
-    button(60,446,320,56,'PRÁCTICA',goPractice,{fill:'#5CFF7A'});
-    button(420,446,320,56,save.musica?'MÚSICA: SÍ':'MÚSICA: NO',()=>{save.musica=!save.musica;persist();},{fill:'#fff'});
-    T('NIVEL '+nivel+' · '+NIV[nivel-1].n+(nivel>1?': LOS MISMOS JUEGOS, CON MÁS MALDAD':': 4 VIDAS · SI PIERDES, REPITES ESE JUEGO · CADA 2 JUEGOS, MÁS RÁPIDO'),W/2,528,14,'#fff','center',770);
-    T('1-7 ESTILO (TAMBIÉN JUGANDO) · P PRÁCTICA · M MÚSICA · ESC MUNDOS',W/2,562,16,'#fff','center',770);
-    }
+    button(110,455,280,74,'PRÁCTICA',goPractice,{fill:'#5CFF7A'});
+    button(410,455,280,74,'◄ MUNDOS',goWorlds,{fill:'#fff'});
+    T('P PRÁCTICA · O OPCIONES · ESC MUNDOS',W/2,568,18,'#fff','center',770);
   }else if(state==='options'){
     rays('#2b2757','#322d66',now);
-    button(14,14,150,44,'◄ ETAPAS',goMenu,{size:18});T('OPCIONES',W/2,52,44,'#FFE14D');
-    T('DIFICULTAD',W/2,154,26,'#fff');tabsNivel((W-228)/2,190,48);
-    T(NIV[nivel-1].n,W/2,265,22,'#FFE14D');
+    button(14-OX,10,170,56,'◄ ETAPAS',goMenu,{size:22});T('OPCIONES',W/2,40,44,'#FFE14D');
+    T('NIVEL',W/2,130,26,'#fff');tabsNivel((W-3*150-18)/2,160,64,150,24);
+    T(NIV[nivel-1].n+(nivel>1?': LOS MISMOS JUEGOS, CON MÁS MALDAD':': 4 VIDAS · SI PIERDES, NO AVANZAS'),W/2,255,20,'#FFE14D','center',760);
     T('ESTILO DE DIBUJO',W/2,340,26,'#fff');chips(380,44);
     button(220,475,360,60,save.musica?'MÚSICA: SÍ':'MÚSICA: NO',()=>{save.musica=!save.musica;persist();},{fill:'#fff'});
   }else if(state==='practice'){
@@ -570,6 +562,7 @@ addEventListener('keydown',e=>{despierta();const k=e.code,go=k==='Enter'||k==='S
   if(live())return;                                                       /* jugando: la tecla es del juego */
   e.stopImmediatePropagation();if(go||k.startsWith('Arrow'))e.preventDefault();if(e.repeat)return;
   if(state==='menu'&&k==='KeyP')goPractice();
+  else if(state==='menu'&&k==='KeyO'){state='options';st=0;}
   else if(state==='over'&&go&&st>.4)startStage(stageIdx);
   else if(state==='clear'&&go&&st>.5)afterClear();},true);
 

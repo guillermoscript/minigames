@@ -303,7 +303,7 @@ function beginGame() {
     if (!recent.includes(id)) recent.push(id); if (recent.length > Math.min(6, pool.length - 2)) recent.shift();
     s = speed(); cur = REGMAP[id].fn(s); curId = id; isBoss = false; dur = cur.dur / Math.sqrt(s); I18N.scope = I18N.scopeOf(curId);
   }
-  EGGS.begin(curId);
+  EGGS.begin(curId); gyro.base = null;
   tt = 0; outcome = null; outT = 0; tickN = 0; preMax = mode === 'party' ? party.room.mode === 'duo' ? DUO_PRE : partyTurnMode(party.room) ? balloonPre(party.room) : PRE : PRE; pre = preMax; state = 'play';
 }
 function setOutcome(r) {
@@ -428,6 +428,7 @@ function placeInputs() {
 }
 function hintOf(g) {
   if (!TOUCH) return t(g.hint);
+  if (gyroGame() && g === cur && !gyro.denied && typeof DeviceOrientationEvent !== 'undefined') return t('TILT YOUR PHONE TO STEER! (OR DRAG)');
   return g.thint ? t(g.thint) : I18N.touch(t(g.hint));      // no touch wording of its own: reword the translated hint
 }
 function livesRow(x, y, u, gap, col) {
@@ -899,6 +900,36 @@ function goFull() {
   try { const p = rq.call(el, { navigationUI: 'hide' }); if (p && p.catch) p.catch(() => {}); } catch (_) {}
 }
 
+/* GYROSCOPE: on a phone the tilt games (and the barber's customer) are steered by really tilting the phone. The tilt is turned into the same
+   pointer position the finger would give (so no game needs its own code); a finger drag is ignored while it is live. The first touch asks
+   (iOS needs a gesture), and the neutral pose is whatever the phone was held at when the game began. */
+const GYRO_IDS = new Set(['tw_tilt', 'tw_spin', 'tw_pour', 'tw_slide', 'tw_wheel', 'tw_coins', 'tw_skate', 'td_roll']);
+const gyro = { denied: false, on: false, asked: false, hz: 0, x: 0, y: 0, base: null, gid: '' };
+const gyroGame = () => !!(cur && (cur.gyro || GYRO_IDS.has(curId)));
+function gyroAsk() {
+  if (gyro.asked || !TOUCH || typeof DeviceOrientationEvent === 'undefined') return; gyro.asked = true;
+  const go = () => { addEventListener('deviceorientation', gyroEv); };
+  try {
+    if (typeof DeviceOrientationEvent.requestPermission === 'function') DeviceOrientationEvent.requestPermission().then(r => { if (r === 'granted') go(); else gyro.denied = true; }).catch(() => {});
+    else go();
+  } catch (_) {}
+}
+function gyroEv(e) {
+  if (e.beta == null || e.gamma == null) return;
+  const D = Math.PI / 180, b = e.beta * D, ga = e.gamma * D, th = ((screen.orientation && screen.orientation.angle) || window.orientation || 0) * D;
+  const ux = -Math.cos(b) * Math.sin(ga), uy = Math.sin(b);                       // which way is "up", in the phone's frame ...
+  const sx = ux * Math.cos(th) - uy * Math.sin(th), sy = ux * Math.sin(th) + uy * Math.cos(th);   // ... then in the screen's frame
+  const X = -sx, Y = sy;                                                          // right edge down = +X, bottom edge down = +Y
+  if (!gyro.on) { gyro.on = true; }
+  if (gyro.gid !== curId || !gyro.base) { gyro.gid = curId; gyro.base = [X, Y]; }
+  gyro.x = X - gyro.base[0]; gyro.y = Y - gyro.base[1];
+  if (state === 'play' && !outcome && pre <= 0 && gyroGame() && cur.move) {
+    const nx = Math.max(-1, Math.min(1, gyro.x / .42)), ny = Math.max(-1, Math.min(1, gyro.y / .42));
+    cur.move({ x: W / 2 + nx * 320, y: H / 2 + ny * 240 });
+  }
+}
+const gyroLive = () => gyro.on && gyroGame();
+
 let sw = null;
 const inGame = p => (cur && cur.wide) ? p : ({ ...p, x: Math.max(0, Math.min(W, p.x)) });   // classic games only see their own 800×600 area; g.wide games get the full screen (x from -OX to W+OX)
 cv.addEventListener('contextmenu', e => e.preventDefault());
@@ -908,16 +939,18 @@ cv.addEventListener('pointerdown', e => {
   try { cv.setPointerCapture(e.pointerId); } catch (_) {}
   if (document.activeElement && document.activeElement.tagName === 'INPUT') document.activeElement.blur();
   interacted = true; pressing = true;
+  if (e.pointerType === 'touch') gyroAsk();
   const p = pos(e); mouse = inGame(p); hp = p;
   const b = btns.find(b => p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h);
   if (b) { sfx.click(); b.fn(); return; }
   if (sh.on) return;
   if (state === 'title') { titleGo(); return; }
-  if (state === 'play' && !outcome && pre <= 0) { const g = inGame(p); sw = { x: g.x, y: g.y }; if (cur.move) cur.move(g); if (cur.down) cur.down(g); }
+  if (state === 'play' && !outcome && pre <= 0) { const g = inGame(p); sw = { x: g.x, y: g.y }; if (cur.move && !gyroLive()) cur.move(g); if (cur.down && !gyroLive()) cur.down(g); }
 });
 cv.addEventListener('pointermove', e => {
   const raw = pos(e), p = inGame(raw); mouse = p; hp = raw;
   if (state !== 'play' || outcome) return;
+  if (gyroLive() && e.pointerType === 'touch') return;
   if (cur.move) cur.move(p);
   if (sw && cur.swipe) {
     const dx = p.x - sw.x, dy = p.y - sw.y;

@@ -703,3 +703,61 @@ def t_wallblock(seed=0):
     V, F = box(2.8, 1.0, 0.8, 0.0); m.add(V, F, c)
     V, F = box(2.3, 0.85, 0.55, 0.8, (0.2 * (rg.random() - 0.5), 0)); m.add(V, F, c * (0.9 + 0.15 * rg.random()))
     V, F, C, S = m.arrays(); return V, F, C, S
+
+
+def t_horse(seed=0):
+    rg = np.random.default_rng(seed + 5)
+    m = Mesh()
+    col = [hexc(0x7a4a2e), hexc(0x5a3822), hexc(0xa8764a), hexc(0x2e2420)][seed % 4]
+    dark = col * 0.55
+    _ell(m, (0, 0, 1.55), 1.35, 0.55, 0.62, col, seed)
+    V, F = tube((0.95, 0, 1.8), (1.55, 0, 2.55), 0.3, 5); m.add(V, F, col, True)
+    _ell(m, (1.85, 0, 2.6), 0.5, 0.26, 0.28, col, seed + 1)
+    for sy in (-1, 1):
+        _ell(m, (1.62, 0.17 * sy, 2.95), 0.1, 0.06, 0.2, dark, seed + 2)
+    for sx in (-0.85, 0.85):
+        for sy in (-0.3, 0.3):
+            V, F = tube((sx, sy, 1.15), (sx, sy, 0.08), 0.12, 4); m.add(V, F, col)
+            V, F = tube((sx, sy, 0.14), (sx, sy, 0.0), 0.14, 4); m.add(V, F, dark)
+    V, F = tube((-1.3, 0, 1.9), (-1.75, 0, 0.8), 0.13, 4); m.add(V, F, dark)
+    V, F = tube((0.9, 0, 2.2), (1.5, 0, 2.95), 0.1, 3); m.add(V, F, dark)
+    V, F, C, S = m.arrays(); return V, F, C, S
+
+
+def t_capybara(seed=0):
+    m = Mesh()
+    col = lerp(hexc(0x8a5a3a), hexc(0x6e4630), (seed % 3) / 2)
+    _ell(m, (0, 0, 0.7), 1.0, 0.5, 0.42, col, seed)
+    _ell(m, (1.05, 0, 0.85), 0.42, 0.33, 0.33, col * 0.95, seed + 1)
+    _ell(m, (1.4, 0, 0.78), 0.2, 0.22, 0.2, col * 0.7, seed + 2)
+    for sy in (-1, 1):
+        _ell(m, (0.95, 0.22 * sy, 1.18), 0.09, 0.07, 0.09, col * 0.7, seed + 3)
+    for sx in (-0.5, 0.5):
+        for sy in (-0.3, 0.3):
+            V, F = tube((sx, sy, 0.4), (sx, sy, 0.0), 0.1, 3); m.add(V, F, col * 0.8)
+    V, F, C, S = m.arrays(); return V, F, C, S
+
+
+def t_windmill(seed=0):
+    m = Mesh()
+    steel = hexc(0xbfc5cc); dark = hexc(0x6c7077); wood = hexc(0x8a6a4a)
+    H = 12.0
+    for sx, sy in ((-1, -1), (1, -1), (1, 1), (-1, 1)):
+        V, F = tube((sx * 2.2, sy * 2.2, 0), (sx * 0.8, sy * 0.8, H), 0.22, 4); m.add(V, F, wood)
+    for z in (3.5, 7.0):
+        w = 2.2 + (0.8 - 2.2) * z / H
+        for (ax, ay), (bx, by) in (((-1, -1), (1, -1)), ((1, -1), (1, 1)), ((1, 1), (-1, 1)), ((-1, 1), (-1, -1))):
+            V, F = tube((ax * w, ay * w, z), (bx * w, by * w, z), 0.13, 3); m.add(V, F, wood)
+    V, F = box(1.6, 1.6, 0.8, H); m.add(V, F, dark)
+    hub = np.array([0.0, -1.1, H + 0.5])
+    for k in range(12):
+        a = k / 12 * 6.283
+        tip = hub + np.array([math.cos(a) * 3.3, 0, math.sin(a) * 3.3])
+        V, F = tube(hub, tip, 0.16, 3); m.add(V, F, steel)
+        V2 = np.array([hub + np.array([math.cos(a) * 1.2, -0.05, math.sin(a) * 1.2]), tip + np.array([0, -0.05, 0]),
+                       tip + np.array([math.cos(a + 0.35) * 0.0, -0.05, 0]) + np.array([-math.sin(a) * 0.9, 0, math.cos(a) * 0.9]),
+                       hub + np.array([math.cos(a) * 1.2, -0.05, math.sin(a) * 1.2]) + np.array([-math.sin(a) * 0.5, 0, math.cos(a) * 0.5])])
+        m.add(V2, [(0, 1, 2, 3)], hexc(0xe4dccb), False)
+    V, F = tube(hub, hub + np.array([0, 3.0, 0]), 0.16, 4); m.add(V, F, dark)
+    V, F = box(0.2, 2.0, 1.4, H + 0.1, (0, 3.6)); m.add(V, F, hexc(0xc4382f))
+    V, F, C, S = m.arrays(); return V, F, C, S

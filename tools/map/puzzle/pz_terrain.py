@@ -4,6 +4,11 @@ from pz_lib import *
 
 # ── sections (layout frame). Neighbouring tiles share an edge coordinate. ──
 SECTIONS = {
+    'llanos': dict(
+        rect=(850, 690, 1250, 1090), seed=51, flat=True, outer=('s', 'e', 'w', 'n'),
+        blobs=[], green_from=(5000, 5001), river_width=10.5, bank=0xe0c98c,
+        river=[(1245, 700), (1218, 770), (1238, 835), (1186, 892), (1150, 940), (1172, 995), (1122, 1042), (1078, 1068), (1066, 1090)],
+        override={'lla_hato': (975, 850), 'lla_acarigua': (1040, 745), 'lla_guanare': (910, 770), 'lla_barinas': (920, 985), 'lla_mantecal': (1105, 1030), 'lla_achaguas': (1205, 975)}),
     'andes': dict(
         rect=(360, 820, 800, 1150), seed=37, alpine=True,
         blobs=[('mount', 470, 893, 95, 1.45), ('mount', 395, 955, 70, 1.15), ('mount', 565, 850, 62, 1.0), ('mount', 705, 880, 70, 0.75),
@@ -27,10 +32,11 @@ SECTIONS = {
         green_from=(480, 700)),
 }
 
-CAMS = {'andes': dict(az=0, dx=0, dy=-10, dist=2.15, elev=40), 'falcon': dict(az=0, dx=-70, dy=45, dist=1.9, elev=40), 'zulia': dict(az=180, dx=15, dy=0, dist=2.1, elev=40)}
+CAMS = {'llanos': dict(az=0, dx=0, dy=-25, dist=2.15, elev=40), 'andes': dict(az=0, dx=0, dy=-10, dist=2.15, elev=40), 'falcon': dict(az=0, dx=-70, dy=45, dist=1.9, elev=40), 'zulia': dict(az=180, dx=15, dy=0, dist=2.1, elev=40)}
 
 SAND = [hexc(0xf1d690), hexc(0xe3bd70), hexc(0xc9985a)]
 GRASS = [hexc(0x86a04a), hexc(0x6f8c3e), hexc(0x587a36)]
+SAVANNA = [hexc(0xbdc556), hexc(0xa3b84c), hexc(0x86a644)]
 SCRUB = hexc(0x9aa44e)
 ROCKC = [hexc(0xb8976a), hexc(0xc9a878), hexc(0x9a7d58)]
 BEACH = hexc(0xf6e6b4)
@@ -56,8 +62,10 @@ def fields(W, cfg):
     desert = np.clip(desert + 0.25 * (fbm(X / 80, Y / 80, seed + 2, 3) - 0.5), 0, 1) * (desert > 0.02)
     inl = sstep(6, 40, d)
     alpine = cfg.get('alpine', False)
-    if alpine:
+    flat = cfg.get('flat', False)
+    if alpine or flat:
         desert = desert * 0
+        mount = mount * 0
     rolling = (fbm(X / 130, Y / 130, seed, 3) - 0.5) * 6.0
     hills = mount * (5 + 24 * ridged(X / 120, Y / 120, seed + 3, 3)) * (0.5 + 0.5 * fbm(X / 170, Y / 170, seed + 4, 2))
     ang = 0.5 + 0.9 * (fbm(X / 260, Y / 260, seed + 8, 2) - 0.5)
@@ -71,6 +79,9 @@ def fields(W, cfg):
     if alpine:
         hills = mount * (14 + 120 * ridged(X / 120, Y / 120, seed + 3, 4)) * (0.55 + 0.45 * fbm(X / 150, Y / 150, seed + 4, 2))
         rolling = (fbm(X / 70, Y / 70, seed, 4) - 0.5) * 14.0
+        dunes = dunes * 0
+    if flat:
+        rolling = (fbm(X / 110, Y / 110, seed, 3) - 0.5) * 7.0
         dunes = dunes * 0
     soft = rolling * 0.6 + dunes
     for _ in range(4):                                              # blur: remove small crumples, keep broad forms
@@ -96,13 +107,14 @@ def colors(W, cfg, F):
     sand = sand * (0.94 + 0.12 * n1[..., None])
     grass = GRASS[1] * np.ones(Z.shape + (1,))
     g2 = sstep(0.3, 0.7, n2)[..., None]
-    grass = (GRASS[2] + (GRASS[0] - GRASS[2]) * g2) * (0.93 + 0.14 * n1[..., None])
+    GR = SAVANNA if cfg.get('flat') else GRASS
+    grass = (GR[2] + (GR[0] - GR[2]) * g2) * (0.93 + 0.14 * n1[..., None])
     scrub = SCRUB * (0.92 + 0.16 * n1[..., None])
     w_sand = sstep(0.18, 0.5, F['desert'])[..., None]
     w_scrub = np.clip(F['scrub'] + 0.35 * (1 - F['desert']) * sstep(0.2, 0.0, n2) , 0, 1)[..., None] * (1 - w_sand)
     col = grass * (1 - w_sand) + sand * w_sand
     col = col * (1 - w_scrub) + scrub * w_scrub
-    forest = sstep(0.32, 0.62, fbm(X / 48, Y / 48, seed + 90, 3)) * np.clip(1.25 - F['desert'] * 2.4, 0, 1)
+    forest = sstep(0.32, 0.62, fbm(X / 48, Y / 48, seed + 90, 3)) * np.clip(1.25 - F['desert'] * 2.4, 0, 1) * (0.0 if cfg.get('flat') else 1.0)
     floor_c = hexc(0x4b6a32) * (0.9 + 0.2 * n1[..., None])
     col = col * (1 - 0.55 * forest[..., None]) + floor_c * 0.55 * forest[..., None]
     dirt = sstep(0.62, 0.72, fbm(X / 22, Y / 22, seed + 77, 3)) * (1 - F['desert']) * sstep(5, 15, d)

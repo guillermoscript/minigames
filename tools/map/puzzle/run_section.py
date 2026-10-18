@@ -15,7 +15,7 @@ col = bpy.data.collections.new(sec); bpy.context.scene.collection.children.link(
 W, F, C, cfg = pz_terrain.build_fields(sec)
 import pz_sections
 plan = pz_sections.prepare(sec, W, F, C, cfg)
-terr, wat, info = build_slab(sec, W, F['Z'], C, seed=cfg['seed'], wts=F.get('wts'))
+terr, wat, info = build_slab(sec, W, F['Z'], C, seed=cfg['seed'], wts=F.get('wts'), outer=cfg.get('outer'))
 print('terrain', time.time() - t0, len(terr.data.vertices))
 if '--noprops' not in args:
     pz_sections.populate(sec, W, F, C, cfg, plan)

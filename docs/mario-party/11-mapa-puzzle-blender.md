@@ -27,6 +27,8 @@ Cada sección tarda ~7 s. (No usar el Blender abierto vía MCP para esto: se ago
 3. Correr `run_section.py -- <nombre>` y luego `assemble.py`.
 
 ## Estado (2026-10-18)
+Cuarta loseta: `llanos` (hato con molino, corral, vacas, caballos, chigüires, río con rápidos y puente de madera, sabana con palmas). Rect propio 400x400 con borde orgánico en los 4 lados (aún no comparte borde con las otras).
+
 Tercera loseta: `andes` (Mérida): picos con nieve, río con cascada y puente de piedra, pueblo con plaza, teleférico de 3 estaciones, vacas, pinos por altitud. Comparte el borde y=820 con `zulia`.
 
 Hechas: `falcon` (Paraguaná, médanos de Coro, Dabajuro, Barquisimeto, San Felipe, cayo Morrocoy) y `zulia` (lago, puente, Maracaibo, costa petrolera, palafitos, tormenta del Catatumbo).

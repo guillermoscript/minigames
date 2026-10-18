@@ -34,7 +34,7 @@ def all_nodes():
 
 # which landmark builder each node gets: (kind, size)
 BUILD = {
-    'and_merida': ('colonial', 60), 'and_ejido': ('town', 26), 'and_elvigia': ('town', 26), 'and_losnevados': ('town', 14), 'and_picoespejo': ('peak', 0),
+    'lla_hato': ('hacienda', 0), 'lla_acarigua': ('town', 44), 'lla_guanare': ('town', 34), 'lla_barinas': ('town', 38), 'lla_mantecal': ('wetland', 0), 'lla_achaguas': ('wetland', 0),    'and_merida': ('colonial', 60), 'and_ejido': ('town', 26), 'and_elvigia': ('town', 26), 'and_losnevados': ('town', 14), 'and_picoespejo': ('peak', 0),
     'coc_coro': ('colonial', 70), 'zul_dabajuro': ('town', 34), 'coc_barquisimeto': ('city', 70), 'coc_sanfelipe': ('town', 40),
     'coc_morrocoy': ('cay', 0), 'zul_maracaibo': ('city', 110), 'zul_puente': ('bridge', 0), 'zul_altagracia': ('stilts', 7),
     'zul_gaita': ('town', 30), 'zul_sanfrancisco': ('town', 32), 'zul_cabimas': ('oil', 8), 'zul_ojeda': ('oil', 7), 'zul_lagunillas': ('oil', 8),
@@ -237,7 +237,7 @@ def draw_paths(ctx, pos, nodes):
     return drawn
 
 
-TERRACE_R = {'peak': 0, 'colonial': 46, 'city': 52, 'town': 34, 'oil': 0, 'stilts': 0, 'cay': 0, 'bridge': 0, 'storm': 28}
+TERRACE_R = {'hacienda': 40, 'wetland': 0, 'peak': 0, 'colonial': 46, 'city': 52, 'town': 34, 'oil': 0, 'stilts': 0, 'cay': 0, 'bridge': 0, 'storm': 28}
 
 
 def terrace(F, C, W, x, y, R, blend=18.0, tint=0xb9ab7a):
@@ -277,7 +277,7 @@ def bridge_geometry(W):
     return (bx0 - 20, by - 5), (bx1 + 20, by + 6)
 
 
-def carve_river(F, C, W, pts, width=4.6):
+def carve_river(F, C, W, pts, width=4.6, bank=0x8a8478):
     """Carve a monotonic-descending channel along pts; returns the dense centre line and bed heights."""
     P = np.array(pts, float)
     for _ in range(3):
@@ -304,7 +304,7 @@ def carve_river(F, C, W, pts, width=4.6):
         w = np.where(m, 1 - sstep(width * 0.7, width + 10, d), 0.0)
         F['Z'][:] = np.where(w > 0, np.minimum(F['Z'], F['Z'] * (1 - w) + zt * w), F['Z'])
         wet = np.where(m, 1 - sstep(width * 0.9, width + 4, d), 0.0)[..., None]
-        C[:] = C * (1 - 0.5 * wet) + hexc(0x8a8478) * 0.5 * wet
+        C[:] = C * (1 - 0.6 * wet) + hexc(bank) * 0.6 * wet
     return P, bed
 
 
@@ -418,6 +418,135 @@ def frailejones(ctx, zlo=14, zhi=50, step=8.0):
     return n
 
 
+def fence(ctx, pts, closed=False, gap=None, name='fence'):
+    """Wooden ranch fence: posts + two rails following the terrain."""
+    m = Mesh(); wood = hexc(0x6b4a30)
+    pts = [np.array(p, float) for p in pts]
+    if closed:
+        pts = pts + [pts[0]]
+    for a, b in zip(pts[:-1], pts[1:]):
+        L = np.linalg.norm(b - a); d = (b - a) / L; k = max(1, int(L / 4.0))
+        prev = None
+        for i in range(k + 1):
+            p = a + d * (L * i / k)
+            if gap is not None and np.hypot(*(p - np.array(gap[0]))) < gap[1]:
+                prev = None; continue
+            z = float(ctx.z_at(p[0], p[1]))
+            V, F = tube((p[0], p[1], z - 0.2), (p[0], p[1], z + 1.7), 0.14, 4); m.add(V, F, wood)
+            if prev is not None:
+                for h in (0.6, 1.3):
+                    V, F = tube((prev[0], prev[1], prev[2] + h), (p[0], p[1], z + h), 0.09, 3); m.add(V, F, wood * 1.1)
+            prev = (p[0], p[1], z)
+    V, F, C, S = m.arrays()
+    make_mesh_obj(f'{ctx.sec}_{name}', V, F, C, [False] * len(F), ctx.coll, ctx.mat)
+    ctx.circles.append((float(np.mean([p[0] for p in pts])), float(np.mean([p[1] for p in pts])), 4))
+
+
+def wood_bridge(ctx, RP, bed, i, width):
+    """Plank bridge with railings and pile pairs across the river at sample i."""
+    t = RP[min(i + 2, len(RP) - 1)] - RP[max(i - 2, 0)]; t = t / (np.linalg.norm(t) + 1e-9); nv = np.array([-t[1], t[0]])
+    c = RP[i]; half = width + 9.0
+    a = c - nv * half; b = c + nv * half
+    za = float(ctx.z_at(*a)); zb = float(ctx.z_at(*b)); zd = max(za, zb) + 0.8
+    m = Mesh(); wood = hexc(0x8a6a4a); dark = hexc(0x5a3d28)
+    k = int(2 * half / 2.0)
+    for j in range(k):
+        p = a + (b - a) * (j + 0.5) / k
+        V, F = box(2.0, 6.4, 0.45, 0.0); V = rotz(V, math.atan2(nv[1], nv[0])) + np.array([p[0], p[1], zd]); m.add(V, F, wood * (0.9 + 0.2 * ((j * 37) % 7) / 7))
+    for sg in (-1, 1):
+        off = np.array([t[0], t[1]]) * 3.0 * sg
+        V, F = tube((*(a + off), zd + 1.6), (*(b + off), zd + 1.6), 0.14, 4); m.add(V, F, dark)
+        V, F = tube((*(a + off), zd + 0.9), (*(b + off), zd + 0.9), 0.1, 4); m.add(V, F, dark)
+        for j in range(0, k + 1, 3):
+            p = a + (b - a) * j / k + off
+            V, F = tube((*p, zd), (*p, zd + 1.7), 0.12, 4); m.add(V, F, dark)
+        for j in range(2, k - 1, 4):
+            p = a + (b - a) * j / k + off
+            V, F = tube((*p, float(bed[i]) - 0.4), (*p, zd), 0.25, 4); m.add(V, F, dark)
+    V, F, C, S = m.arrays()
+    make_mesh_obj(f'{ctx.sec}_bridge', V, F, C, [False] * len(F), ctx.coll, ctx.mat)
+    ctx.circles.append((c[0], c[1], half * 0.7))
+    return a, b
+
+
+def hacienda(ctx, cx, cy, rot=0.25, ps=1.7):
+    """Ranch house + second house + open shed, windmill, water tank, corral with cows and horses, wooden fences."""
+    rg = np.random.default_rng(int(cx + cy))
+    cs, sn = math.cos(rot), math.sin(rot)
+    P_ = lambda u, v: np.array([cx + u * ps * cs - v * ps * sn, cy + u * ps * sn + v * ps * cs])
+    parts = [(t_hacienda(1), (0, 0), 0.0, 1.7), (t_house(7, False), (22, -2), 0.5, 1.5), (t_market(), (-22, 6), 0.0, 1.2), (t_windmill(), (-6, -22), 0.0, 1.2), (t_tank(1), (-18, -16), 0.0, 1.0)]
+    for tpl, (u, v), dyaw, sc in parts:
+        p = P_(u, v)
+        ctx.sc['town'].put(tpl, p[0], p[1], ctx.z_at(*p) - 0.1, rot + dyaw, sc * ps / 1.2)
+    ctx.circles.append((cx, cy, 44 * ps / 1.2))
+    # corral
+    ctr = P_(2, 34); hw, hd = 30.0 * ps / 1.2, 17.0 * ps / 1.2
+    corners = [ctr + np.array([-hw, -hd]), ctr + np.array([hw, -hd]), ctr + np.array([hw, hd]), ctr + np.array([-hw, hd])]
+    fence(ctx, corners, closed=True, gap=(ctr + np.array([-hw, 0.0]), 4.5), name='corral')
+    fence(ctx, [P_(-34, -8), P_(-34, 52), P_(40, 54)], name='fence_w')
+    cows = [t_cow(i) for i in range(4)]; horses = [t_horse(i) for i in range(4)]
+    placed = []
+    for k in range(8):
+        for _ in range(60):
+            x = ctr[0] + (rg.random() - 0.5) * (hw * 1.6); y = ctr[1] + (rg.random() - 0.5) * (hd * 1.6)
+            if all((x - q[0]) ** 2 + (y - q[1]) ** 2 > 10 ** 2 for q in placed):
+                placed.append((x, y)); tpl = cows[k % 4] if k < 5 else horses[k % 4]
+                ctx.sc['misc'].put(tpl, x, y, ctx.z_at(x, y) - 0.05, rg.random() * 6.28, 2.3); break
+    ctx.circles.append((ctr[0], ctr[1], 38 * ps / 1.2))
+    for (u, v) in ((-12, 14), (30, -14), (-26, 30)):
+        q = P_(u, v); ctx.sc['trees'].put((QA.trees() or [t_tree(3)])[(u + 40) % max(1, len(QA.trees() or [1]))], q[0], q[1], ctx.z_at(*q), 0.0, 2.2)
+
+
+def savanna(ctx, RP, bed, width):
+    """Open savanna: lone trees, small clumps, morichal palms hugging the river, grazing herds, capybaras in the shallows."""
+    W = ctx.W; rg = np.random.default_rng(ctx.seed + 303)
+    trees = QA.trees() or [t_tree(i) for i in range(10)]
+    palms = QA.palms() or [t_palm(i) for i in range(6)]
+    bushes = QA.bushes() or [t_shrub(i) for i in range(6)]
+    pts = jgrid(W.rect, 19.0, 0.5); pts = pts[ctx.in_rect(pts, 10)]
+    x, y = pts[:, 0], pts[:, 1]
+    patch = sstep(0.42, 0.62, fbm(x / 70, y / 70, ctx.seed + 9, 3))
+    ok = ctx.land_at(x, y) & (ctx.d_at(x, y) > 10) & (ctx.slope_at(x, y) < 0.6) & ~ctx.blocked(pts, 6)
+    for (px, py) in pts[ok & (rg.random(len(x)) < 0.14 + 0.5 * patch)]:
+        for j in range(1 + int(rg.random() * 3 * float(sstep(0.4, 0.7, fbm(px / 70, py / 70, ctx.seed + 9, 3))))):
+            qx, qy = px + rg.normal() * 5, py + rg.normal() * 5
+            if ctx.land_at(qx, qy) and not ctx.blocked(np.array([[qx, qy]]), 3)[0]:
+                ctx.sc['trees'].put(trees[int(rg.random() * len(trees))], qx, qy, ctx.z_at(qx, qy) - 0.2, rg.random() * 6.28, 1.7 + rg.random() * 0.9)
+    n = len(RP)
+    for i in range(3, n - 3, 5):
+        for _ in range(1 + int(rg.random() * 2)):
+            side = 1 if rg.random() < 0.5 else -1
+            tg = RP[min(i + 2, n - 1)] - RP[i - 2]; tg = tg / (np.linalg.norm(tg) + 1e-9); nv = np.array([-tg[1], tg[0]])
+            c = RP[i] + nv * side * (width + 9 + rg.random() * 18)
+            for j in range(3 + int(rg.random() * 4)):
+                qx, qy = c[0] + rg.normal() * 4.5, c[1] + rg.normal() * 4.5
+                if ctx.land_at(qx, qy) and ctx.z_at(qx, qy) > 1.0 and not ctx.blocked(np.array([[qx, qy]]), 3)[0]:
+                    ctx.sc['palms'].put(palms[int(rg.random() * len(palms))], qx, qy, ctx.z_at(qx, qy) - 0.2, rg.random() * 6.28, 1.5 + rg.random() * 0.5)
+                    if rg.random() < 0.5:
+                        ctx.sc['shrubs'].put(bushes[int(rg.random() * len(bushes))], qx + 2, qy + 1.5, ctx.z_at(qx + 2, qy + 1.5) - 0.2, rg.random() * 6.28, 1.0)
+    cow = [t_cow(i) for i in range(4)]; horse = [t_horse(i) for i in range(4)]
+    spots = []
+    for _ in range(400):
+        if len(spots) >= 6:
+            break
+        x_, y_ = W.rect[0] + 30 + rg.random() * (W.rect[2] - W.rect[0] - 60), W.rect[1] + 30 + rg.random() * (W.rect[3] - W.rect[1] - 60)
+        if ctx.land_at(x_, y_) and ctx.slope_at(x_, y_) < 0.35 and not ctx.blocked(np.array([[x_, y_]]), 14)[0] and all((x_ - q[0]) ** 2 + (y_ - q[1]) ** 2 > 60 ** 2 for q in spots):
+            spots.append((x_, y_))
+    for si, (sx, sy) in enumerate(spots):
+        for k in range(2 + si % 3):
+            qx, qy = sx + rg.normal() * 7, sy + rg.normal() * 7
+            if ctx.land_at(qx, qy) and not ctx.blocked(np.array([[qx, qy]]), 3)[0]:
+                tpl = horse[k % 4] if si % 3 == 2 else cow[k % 4]
+                ctx.sc['misc'].put(tpl, qx, qy, ctx.z_at(qx, qy) - 0.05, rg.random() * 6.28, 2.3)
+                ctx.circles.append((qx, qy, 5))
+    cap = [t_capybara(i) for i in range(3)]
+    for i in (int(n * 0.55), int(n * 0.72), int(n * 0.84)):
+        for k in range(3):
+            tg = RP[min(i + 2, n - 1)] - RP[i - 2]; tg = tg / (np.linalg.norm(tg) + 1e-9); nv = np.array([-tg[1], tg[0]])
+            c = RP[i] + nv * (width * (0.55 + 0.3 * k) * (1 if k % 2 else -1)) + tg * (k * 3.0)
+            ctx.sc['misc'].put(cap[k % 3], c[0], c[1], float(bed[i]) + 0.45, rg.random() * 6.28, 2.4)
+
+
 def cable_car(ctx, stops, name='cable'):
     """Aerial tramway through stops [(x, y), ...]: stations, pylons, sagging cables and red cabins."""
     steel = hexc(0x8a8f99); cab = t_cabin()
@@ -485,7 +614,7 @@ def prepare(sec, W, F, C, cfg):
         if R:
             terrace(F, C, W, p_[0], p_[1], R * (0.75 if BUILD.get(k, ('', 0))[1] < 30 else 1.0))
     if cfg.get('river'):
-        plan['river'] = carve_river(F, C, W, cfg['river'])
+        plan['river'] = carve_river(F, C, W, cfg['river'], cfg.get('river_width', 4.6), cfg.get('bank', 0x8a8478))
     plan['pos'] = pos
     return plan
 
@@ -607,7 +736,7 @@ def populate(sec, W, F, C, cfg, plan):
                 continue
             roads.append((a, b))
             pl = smooth_road([pa, pb], 0.12 * np.linalg.norm(pb - pa), len(a) * 31 + len(b))
-            ribbon(W_, ctx.F, pl, 3.0, 0.3, PATHC, f'{sec}_road_{a}__{b}', ctx.coll)
+            ribbon(W_, ctx.F, pl, 2.6 if sec == 'llanos' else 3.0, 0.3, hexc(0xcdb58a) if sec in ('llanos', 'andes') else PATHC, f'{sec}_road_{a}__{b}', ctx.coll)
             for p in pl[::4]:
                 ctx.circles.append((p[0], p[1], 6.5))
     if sec == 'andes':
@@ -642,6 +771,24 @@ def populate(sec, W, F, C, cfg, plan):
                 if all((x - q[0]) ** 2 + (y - q[1]) ** 2 > 7 ** 2 for q in ctx.misc_pts):
                     ctx.misc_pts.append((x, y)); ctx.sc['misc'].put(cow[placed % 4], x, y, ctx.z_at(x, y) - 0.05, rgc.random() * 6.28, 1.5); placed += 1
         frailejones(ctx)
+    if sec == 'llanos':
+        RP, bed = plan['river']; rw = cfg.get('river_width', 8.0)
+        x0_, y0_, x1_, y1_ = W.rect
+        ins_s = 3 + 24 * float(fbm(np.array([RP[-1][0] / 42.0]), np.array([y1_ / 90.0]), ctx.seed + 71, 3)[0])
+        ins_n = 3 + 24 * float(fbm(np.array([RP[0][0] / 42.0]), np.array([y0_ / 90.0]), ctx.seed + 73, 3)[0])
+        keep = (RP[:, 1] < y1_ - ins_s - 0.5) & (RP[:, 1] > y0_ + ins_n + 0.5)
+        RP, bed = RP[keep], bed[keep]
+        river_mesh(ctx, RP, bed, rw)
+        waterfall(ctx, float(RP[-1][0]), float(y1_ - ins_s), float(bed[-1]) + 0.9, rw)
+        for q_ in RP[::3]:
+            ctx.circles.append((q_[0], q_[1], rw + 5))
+        river_features(ctx, RP, bed, rw)
+        hx, hy = pos['lla_hato']
+        hacienda(ctx, hx, hy)
+        j = int(np.argmin(np.hypot(RP[:, 0] - 1226, RP[:, 1] - 800)))
+        ba, bb = wood_bridge(ctx, RP, bed, j, rw)
+        ribbon(W, ctx.F, smooth_road([(hx + 60, hy + 8), ba], 16.0, 3), 3.2, 0.3, hexc(0xcdb58a), f'{sec}_road_bridge', ctx.coll)
+        savanna(ctx, RP, bed, rw)
     if sec == 'zulia':
         asph = hexc(0x4c4f58)
         for end, tgt, sd in ((bq0, 'zul_maracaibo', 2), (bq1, 'zul_cabimas', 3)):
@@ -662,12 +809,13 @@ def populate(sec, W, F, C, cfg, plan):
                 x = bx0 + 8 + rng_.random() * (bx1 - bx0 - 16); y = by + 25 + rng_.random() * 190
                 if W.sample(W.lake.astype(float), x, y) > 0.9 and ctx.d_at(x, y) > 12 and not ctx.blocked(np.array([[x, y]]), 6)[0]:
                     ctx.sc['boats'].put(t_boat(i), x, y, 0.1, rng_.random() * 6.28, 1.15); ctx.circles.append((x, y, 7)); break
-    if sec != 'andes':
+    if sec in ('falcon', 'zulia'):
         islets(ctx, 7 if sec == 'falcon' else 3, 18, 75, 1)
-    forests(ctx, 6.6)
-    coast_palms(ctx, 8.0)
-    desert_life(ctx)
-    boulders(ctx)
+    if sec != 'llanos':
+        forests(ctx, 6.6)
+        coast_palms(ctx, 8.0)
+        desert_life(ctx)
+        boulders(ctx)
     finish(ctx)
     json.dump(dict(section=sec, rect=cfg['rect'], landmarks=ctx.landmarks, roads=roads), open(os.path.join(OUT, sec + '_landmarks.json'), 'w'), indent=1, ensure_ascii=False)
     return ctx

@@ -326,7 +326,7 @@ def water_material(name='pz_water'):
 ROCK = [0x7f5a3e, 0x8c6644, 0x70503a, 0x946e48, 0x654636]
 
 
-def build_slab(name, W, Z, color, water_lvl=0.0, depth=34.0, buf=None, coll=None, seed=3, wts=None):
+def build_slab(name, W, Z, color, water_lvl=0.0, depth=34.0, buf=None, coll=None, seed=3, wts=None, outer=None):
     """W: World. Z: (ny,nx) top height. color: (ny,nx,3) srgb. buf: (ny,nx) footprint half-width into the sea.
     Returns (terrain_obj, water_obj, info)."""
     ny, nx = W.ny, W.nx
@@ -334,6 +334,18 @@ def build_slab(name, W, Z, color, water_lvl=0.0, depth=34.0, buf=None, coll=None
     if buf is None:
         buf = 70 + 50 * fbm(W.X / 60.0, W.Y / 60.0, seed + 5, 3)
     f = np.where(land_like, buf + 5.0, buf - W.d)           # >0 inside footprint
+    if outer:       # organic outline on the free (non-shared) sides of an inland tile
+        x0_, y0_, x1_, y1_ = W.rect
+        ex = np.full(f.shape, 1e9)
+        if 'e' in outer:
+            ex = np.minimum(ex, (x1_ - W.X) - (3 + 24 * fbm(W.Y / 42.0, W.X / 90.0, seed + 70, 3)))
+        if 's' in outer:
+            ex = np.minimum(ex, (y1_ - W.Y) - (3 + 24 * fbm(W.X / 42.0, W.Y / 90.0, seed + 71, 3)))
+        if 'w' in outer:
+            ex = np.minimum(ex, (W.X - x0_) - (3 + 24 * fbm(W.Y / 42.0, W.X / 90.0, seed + 72, 3)))
+        if 'n' in outer:
+            ex = np.minimum(ex, (W.Y - y0_) - (3 + 24 * fbm(W.X / 42.0, W.Y / 90.0, seed + 73, 3)))
+        f = np.minimum(f, ex)
     inside = f > 0
     # snap outside vertices that touch an inside neighbour onto the f=0 contour
     P = np.stack([W.X, W.Y], -1).copy()

@@ -1,0 +1,159 @@
+{
+ "section": "zulia",
+ "rect": [
+  150,
+  200,
+  620,
+  820
+ ],
+ "landmarks": [
+  {
+   "id": "zul_altagracia",
+   "name": "Los Puertos de Altagracia",
+   "type": "azul",
+   "region": "zul",
+   "kind": "stilts",
+   "x": 492.9,
+   "y": 386.0,
+   "z": -5.19
+  },
+  {
+   "id": "zul_puente",
+   "name": "Puente sobre el Lago",
+   "type": "alcabala",
+   "region": "zul",
+   "kind": "bridge",
+   "x": 466.0,
+   "y": 520.5,
+   "z": -12.76
+  },
+  {
+   "id": "zul_maracaibo",
+   "name": "Maracaibo",
+   "type": "azul",
+   "region": "zul",
+   "kind": "city",
+   "x": 411.9,
+   "y": 379.7,
+   "z": 3.43
+  },
+  {
+   "id": "zul_gaita",
+   "name": "Feria de la Gaita",
+   "type": "evento",
+   "region": "zul",
+   "kind": "town",
+   "x": 395.4,
+   "y": 435.3,
+   "z": 4.07
+  },
+  {
+   "id": "zul_sanfrancisco",
+   "name": "San Francisco (40 °C a la sombra)",
+   "type": "roja",
+   "region": "zul",
+   "kind": "town",
+   "x": 380.2,
+   "y": 491.3,
+   "z": 5.29
+  },
+  {
+   "id": "zul_machiques",
+   "name": "Machiques (queso y ganado)",
+   "type": "azul",
+   "region": "zul",
+   "kind": "town",
+   "x": 227.7,
+   "y": 557.0,
+   "z": 16.63
+  },
+  {
+   "id": "zul_catatumbo",
+   "name": "Relámpago del Catatumbo",
+   "type": "especial",
+   "region": "zul",
+   "kind": "storm",
+   "x": 349.7,
+   "y": 776.6,
+   "z": 11.23
+  },
+  {
+   "id": "zul_encontrados",
+   "name": "Encontrados",
+   "type": "azul",
+   "region": "zul",
+   "kind": "town",
+   "x": 272.1,
+   "y": 780.8,
+   "z": 8.98
+  },
+  {
+   "id": "zul_cabimas",
+   "name": "Cabimas (los balancines)",
+   "type": "azul",
+   "region": "zul",
+   "kind": "oil",
+   "x": 527.3,
+   "y": 493.6,
+   "z": 2.03
+  },
+  {
+   "id": "zul_ojeda",
+   "name": "Ciudad Ojeda: Pozo en el Lago",
+   "type": "especial",
+   "region": "zul",
+   "kind": "oil",
+   "x": 554.2,
+   "y": 545.0,
+   "z": 2.29
+  },
+  {
+   "id": "zul_lagunillas",
+   "name": "Lagunillas",
+   "type": "villano",
+   "region": "zul",
+   "kind": "oil",
+   "x": 578.1,
+   "y": 597.8,
+   "z": 2.31
+  }
+ ],
+ "roads": [
+  [
+   "zul_cabimas",
+   "zul_ojeda"
+  ],
+  [
+   "zul_catatumbo",
+   "zul_encontrados"
+  ],
+  [
+   "zul_catatumbo",
+   "zul_machiques"
+  ],
+  [
+   "zul_gaita",
+   "zul_maracaibo"
+  ],
+  [
+   "zul_gaita",
+   "zul_sanfrancisco"
+  ],
+  [
+   "zul_lagunillas",
+   "zul_ojeda"
+  ],
+  [
+   "zul_machiques",
+   "zul_sanfrancisco"
+  ],
+  [
+   "bridge",
+   "zul_maracaibo"
+  ],
+  [
+   "bridge",
+   "zul_cabimas"
+  ]
+ ]
+}

@@ -1,0 +1,71 @@
+{
+ "section": "andes",
+ "rect": [
+  360,
+  820,
+  800,
+  1150
+ ],
+ "landmarks": [
+  {
+   "id": "and_picoespejo",
+   "name": "Pico Espejo (Mukumbarí)",
+   "type": "especial",
+   "region": "and",
+   "kind": "peak",
+   "x": 470,
+   "y": 893,
+   "z": 77.39
+  },
+  {
+   "id": "and_losnevados",
+   "name": "Los Nevados",
+   "type": "azul",
+   "region": "and",
+   "kind": "town",
+   "x": 548,
+   "y": 945,
+   "z": 32.96
+  },
+  {
+   "id": "and_merida",
+   "name": "Mérida",
+   "type": "azul",
+   "region": "and",
+   "kind": "colonial",
+   "x": 700,
+   "y": 1030,
+   "z": 5.86
+  },
+  {
+   "id": "and_ejido",
+   "name": "Ejido",
+   "type": "duelo",
+   "region": "and",
+   "kind": "town",
+   "x": 590,
+   "y": 1040,
+   "z": 9.64
+  },
+  {
+   "id": "and_elvigia",
+   "name": "El Vigía",
+   "type": "azul",
+   "region": "and",
+   "kind": "town",
+   "x": 410,
+   "y": 1085,
+   "z": 18.97
+  }
+ ],
+ "roads": [
+  [
+   "and_ejido",
+   "and_merida"
+  ],
+  [
+   "and_elvigia",
+   "and_merida"
+  ]
+ ]
+}

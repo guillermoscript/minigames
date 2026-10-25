@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Isla de Margarita · tablero</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  :root { --ink:#14101c; --paper:#fffdf2; --gold:#ffd23f; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; background:#0d1b2a; color:var(--paper); font-family:'Press Start 2P',monospace; overflow:hidden; touch-action:manipulation; }
+  #wrap { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:6px; }
+  #top, #msgbox { width:100%; }
+  #msgbox { height:clamp(84px,21vh,160px); position:relative; }
+  #stage { position:relative; }
+  canvas#b { touch-action:none; cursor:grab; display:block; width:100%; height:100%; image-rendering:pixelated; image-rendering:crisp-edges; }
+  #hud { display:flex; gap:1%; pointer-events:none; }
+  .pj { flex:1; background:rgba(20,16,28,.82); border:3px solid var(--c); border-radius:6px; padding:.5em .6em; font-size:clamp(6px,1.25vw,13px); line-height:1.6; position:relative; }
+  .pj.on { box-shadow:0 0 0 3px var(--paper); }
+  .pj b { color:var(--c); }
+  .pj .it { font-size:.9em; letter-spacing:.1em; }
+  .pj .x { position:absolute; right:.5em; top:.5em; font-size:.8em; color:#ff8a8a; }
+  #turno { text-align:center; margin-top:5px; font-size:clamp(6px,1vw,10px); color:#9fd8ff; pointer-events:none; }
+  #msg { position:absolute; inset:0; overflow:auto; background:rgba(20,16,28,.92); border:3px solid var(--paper); border-radius:8px; padding:.9em 1em; font-size:clamp(7px,1.3vw,13px); line-height:1.7; text-align:center; display:none; }
+  #msg .t { white-space:pre-line; }
+  #msg .bt { margin-top:.8em; display:flex; gap:.8em; justify-content:center; flex-wrap:wrap; }
+  button { font-family:inherit; font-size:inherit; padding:.7em 1em; border:3px solid var(--ink); border-radius:6px; background:var(--gold); color:var(--ink); cursor:pointer; box-shadow:0 4px 0 var(--ink); }
+  button:active { transform:translateY(3px); box-shadow:0 1px 0 var(--ink); }
+  button.alt { background:#9fd8ff; }
+  button.no { background:#ffb3b3; }
+  #ctl { position:absolute; right:1%; bottom:2%; display:flex; gap:.5em; font-size:clamp(6px,1vw,10px); }
+  #ctl button { padding:.5em .7em; }
+  #toast { position:fixed; left:50%; top:16px; transform:translate(-50%,-150%); background:#ffd23f; color:#14101c; border:3px solid #14101c; border-radius:8px; padding:.8em 1em; font-size:clamp(7px,1.2vw,12px); line-height:1.6; z-index:20; transition:transform .3s; max-width:90vw; text-align:center; pointer-events:none; }
+  #toast.on { transform:translate(-50%,0); }
+  #mj { position:fixed; inset:0; background:#000; display:none; z-index:10; }
+  #mj iframe { width:100%; height:100%; border:0; }
+  #mj .skip { position:absolute; right:10px; top:10px; z-index:2; font-size:10px; opacity:.7; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="top"><div id="hud"></div><div id="turno"></div></div>
+  <div id="stage">
+    <canvas id="b" width="1280" height="720"></canvas>
+    <div id="ctl"><button id="cam" class="alt">🎥 AUTO</button><button id="vel" class="alt">x1</button></div>
+  </div>
+  <div id="msgbox"><div id="msg"><div class="t"></div><div class="bt"></div></div></div>
+</div>
+<div id="toast"></div>
+<div id="mj"><button class="skip no" id="skip">SALTAR</button><iframe id="mjf" allow="autoplay"></iframe></div>
+<script src="pixel.js"></script>
+<script src="mapa.js"></script>
+<script src="criaturas.js"></script>
+<script src="margarita.js"></script>
+</body>
+</html>

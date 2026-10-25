@@ -856,10 +856,7 @@ addEventListener('keydown', e => {
   }
   if (state === 'title' && go) { e.preventDefault(); titleGo(); }
   else if (state === 'worlds') {
-    if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') worldChoice = 1 - worldChoice;
-    else if (e.code === 'Digit1') chooseClassic();
-    else if (e.code === 'Digit2') chooseVenezuela();
-    else if (go) { e.preventDefault(); worldChoice === 0 ? chooseClassic() : chooseVenezuela(); }
+    worldKey(e, go);
   }
   else if (state === 'title' && e.code === 'KeyA') goProfile();
   else if (state === 'title' && e.code === 'KeyF') goParty('title');

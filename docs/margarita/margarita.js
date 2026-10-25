@@ -20,16 +20,16 @@ const lanchaCerrada = () => E.kraken ? '¡el Kraken anda suelto en la laguna!' :
 
 /* ───────── jugadores ───────── */
 const JUG = [
-  { nom: 'TÚ', c: '#ffd23f', pal: { h: '#3a2414', s: '#e8b48a', e: '#14101c', k: '#e8b48a', c: '#ffd23f', p: '#2a4a8a', z: '#14101c' } },
-  { nom: 'MAMÁ', c: '#ff6fa8', pal: { h: '#2a1a14', s: '#c98a5a', e: '#14101c', k: '#d26a6a', c: '#ff6fa8', p: '#6a3a5a', z: '#14101c' } },
-  { nom: 'ABUELA', c: '#b88aff', pal: { h: '#eeeeee', s: '#d8a070', e: '#14101c', k: '#d8a070', c: '#8a5ad2', p: '#4a3a6a', z: '#14101c' } },
-  { nom: 'PANA', c: '#5cd27a', pal: { h: '#2a6a3a', s: '#8a5a3a', e: '#14101c', k: '#8a5a3a', c: '#3aa860', p: '#2a3a5a', z: '#14101c' } }
+  { nom: 'TÚ', ch: 'tu', c: '#ffd23f', pal: { h: '#3a2414', s: '#e8b48a', e: '#14101c', k: '#e8b48a', c: '#ffd23f', p: '#2a4a8a', z: '#14101c' } },
+  { nom: 'MAMÁ', ch: 'mama', c: '#ff6fa8', pal: { h: '#2a1a14', s: '#c98a5a', e: '#14101c', k: '#d26a6a', c: '#ff6fa8', p: '#6a3a5a', z: '#14101c' } },
+  { nom: 'ABUELA', ch: 'abuela', c: '#b88aff', pal: { h: '#eeeeee', s: '#d8a070', e: '#14101c', k: '#d8a070', c: '#8a5ad2', p: '#4a3a6a', z: '#14101c' } },
+  { nom: 'PANA', ch: 'pana', c: '#5cd27a', pal: { h: '#2a6a3a', s: '#8a5a3a', e: '#14101c', k: '#8a5a3a', c: '#3aa860', p: '#2a3a5a', z: '#14101c' } }
 ].map((j, i) => Object.assign(j, {
   i, cpu: TODO_CPU || i > 0, reales: 10, emp: 0, items: [], en: J.POR.id, x: 0, y: 0, z: 0, pierde: false, color: 'azul', pimpinas: 0,
   bono: { mj: 0, max: 10, ev: 0 }
 }));
 JUG.forEach((j) => { const n = nodos[j.en]; j.x = n.x; j.y = n.y; });
-const S = { ritmo: 1, turno: 1, activo: 0, senora: 'O', bacha: 'W', dado: null, flechas: null, bote: null, puff: null, fin: false, confeti: [], foco: null, bolsas: [], san: 0, cofre: null };
+const S = { ritmo: 1, turno: 1, activo: 0, senora: 'O', bacha: 'W', dado: null, flechas: null, bote: null, puff: null, fin: false, confeti: [], foco: null, bolsas: [], san: 0, cofre: null, ultMJ: null, ultDuelo: null, equipo: null, monedas: [] };
 
 /* ───────── objetos (como los de Mario Party: dado doble/triple, dado a medida, llave, bloque de cambio, tubo dorado) ───────── */
 const ITEMS = {
@@ -437,10 +437,10 @@ async function bronca(j) {
     : await preguntar('⚔️ ¡BRONCA! Reta a alguien a un duelo. El que gane se lleva la apuesta.', rivales.map((o) => ({ l: `${o.nom} (${o.reales} Bs)`, v: o, cls: 'alt' })));
   const ap = Math.min(10, j.reales, vs.reales);
   if (!ap) { await decir(`⚔️ ${j.nom} reta a ${vs.nom}… pero no hay plata para apostar. ¡Quedan como panas!`, 1.4); return; }
-  const g = pick(DUELOS);
+  const g = pick(DUELOS.filter((x) => x !== S.ultDuelo)); S.ultDuelo = g;
   await preguntar(`⚔️ ¡BRONCA! ${j.nom} VS ${vs.nom}\nApuesta: ${ap} Bs cada uno · «${nombreMJ(g)}»`, [{ l: '¡VAMOS!', v: 1 }], j.cpu && vs.cpu || TODO_CPU);
   callar();
-  const tu = !j.cpu ? j : !vs.cpu ? vs : null;
+  const tu = !j.cpu ? j : !vs.cpu ? vs : null, otro = tu === j ? vs : j;
   let gana;
   if (!tu || SIN_MJ) gana = R() < .5 ? j : vs;
   else {
@@ -448,14 +448,14 @@ async function bronca(j) {
       const oir = (e) => { if (e.data && e.data.k === 'mj-fin') { removeEventListener('message', oir); done(e.data.pl || []); } };
       addEventListener('message', oir);
       skip.onclick = () => { removeEventListener('message', oir); done([]); };
-      abrirFrame(`../style-lab/fiesta.html?practica=${g}&embed=1&tipo=1v1&ch=tu&lv=1`);
+      abrirFrame(urlMJ(g, '1v1', 'solo', [tu, otro]));   // asiento a = tú, b = el rival
     });
     cerrarFrame();
-    const otro = tu === j ? vs : j;
     gana = pl.length === 2 && pl[0] !== pl[1] ? (pl[0] === 1 ? tu : otro) : (R() < .5 ? j : vs);
   }
   const pierde = gana === j ? vs : j;
-  plata(pierde, -ap); plata(gana, ap); sfx.gana();
+  plata(pierde, -ap); sfx.gana();
+  S.foco = null; await monedas([gana], ap, pierde);
   await decir(`⚔️ ¡${gana.nom} gana la bronca! Se lleva ${ap} Bs de ${pierde.nom}.`, 1.8);
 }
 /* ───────── la ruta histórica de La Asunción: los monos del Copey, el calabozo de Santa Rosa y el cerro Matasiete ───────── */
@@ -722,13 +722,15 @@ async function triple(j) {
 /* ───────── minijuegos ───────── */
 const MJ = {
   ffa: ['f_abuela', 'f_bombita', 'f_cola', 'f_chancla', 'f_cerro', 'f_domino', 'f_harina', 'f_cotufas', 'f_tequeno', 'f_mecate', 'f_perro'],
-  '2v2': ['f_cava', 'f_futbolito', 'f_hallacas'],
+  '2v2': ['f_cava', 'f_futbolito', 'f_hallacas', 'f_cuerda'],
   '1v3': ['f_bono', 'f_alcabala', 'f_guaya', 'f_patilla']
 };
 const MICROS = ['mango', 'hielo', 'tequenos', 'soplalo', 'baile', 'torta', 'pique', 'chancla', 'sopa', 'queso', 'parada', 'tendedero'];
 const mjBox = document.getElementById('mj'), mjF = document.getElementById('mjf'), skip = document.getElementById('skip');
-function abrirFrame(src) { mjBox.style.display = 'block'; mjF.src = src; mjF.onload = () => { try { mjF.contentWindow.focus(); } catch (e) {} }; }
-function cerrarFrame() { mjBox.style.display = 'none'; mjF.src = 'about:blank'; window.focus(); }
+/* el foco va al iframe al abrirlo y al cargar: Espacio/Enter de la tarjeta de reglas solo llegan si el foco está adentro */
+const enfocarFrame = () => { try { mjF.focus(); mjF.contentWindow.focus(); } catch (e) {} };
+function abrirFrame(src) { mjBox.style.display = 'flex'; mjF.onload = enfocarFrame; mjF.src = src; enfocarFrame(); }
+function cerrarFrame() { mjF.onload = null; mjBox.style.display = 'none'; mjF.src = 'about:blank'; window.focus(); }
 
 async function micro(j) {
   if (j.cpu || SIN_MJ) {
@@ -762,9 +764,94 @@ function formato() {
   if (az.length === 2) return { tipo: '2v2', lados: [az, ro] };
   return { tipo: '1v3', lados: az.length === 1 ? [az, ro] : [ro, az] };
 }
+/* URL del minijuego en iframe: nombres y personajes en orden de asiento (a = tú siempre) */
+const urlMJ = (g, tipo, rol, asientos) => `../style-lab/fiesta.html?practica=${g}&embed=1&tipo=${tipo}&rol=${rol}&ch=tu&lv=1` +
+  `&noms=${asientos.map((j) => encodeURIComponent(j.nom)).join(',')}&chs=${asientos.map((j) => j.ch).join(',')}`;
+const barajar = (l) => { const a = l.slice(); for (let i = a.length - 1; i > 0; i--) { const k = ri(0, i); [a[i], a[k]] = [a[k], a[i]]; } return a; };
+const nomCol = (j) => `<b style="color:${j.c}">${j.nom}</b>`;
+const COL_EQ = { azul: '#4f8fff', rojo: '#ff5a4f', ffa: '#ffd23f' };
+function equiposHtml(fm) {
+  if (fm.tipo === 'ffa') return JUG.map(nomCol).join(' · ');
+  return fm.lados.map((l) => `<span class="eq" style="--e:${COL_EQ[l[0].color]}">${l.map(nomCol).join(' + ')}</span>`).join('  <b>VS</b>  ');
+}
+/* las piezas saltan y se marcan con el color de su equipo (como la revelación de equipos de MP) */
+async function revelarEquipos(fm) {
+  S.foco = null;
+  S.equipo = new Map(JUG.map((j) => [j, fm.tipo === 'ffa' ? COL_EQ.ffa : COL_EQ[j.color]]));
+  const orden = fm.tipo === 'ffa' ? JUG : fm.lados.flat();
+  for (const j of orden) {
+    snd(fm.tipo === 'ffa' ? 700 : j.color === 'azul' ? 620 : 420, .08);
+    await tween(.28, (k) => { j.z = Math.sin(k * Math.PI) * 10; }); j.z = 0;
+  }
+}
+const podioEl = document.getElementById('podio');   // cartel grande sobre el tablero: ruleta y podio
+/* ruleta: 4 candidatos del formato, nunca el de la ronda pasada; frena en el elegido con el animador */
+async function ruleta(fm, cab) {
+  const cand = barajar(MJ[fm.tipo].filter((x) => x !== S.ultMJ)).slice(0, 4), n = cand.length, gi = ri(0, n - 1);
+  const pintar = (on, linea, flash) => {
+    podioEl.className = 'rul'; podioEl.style.display = 'flex';
+    podioEl.innerHTML = `${cab}<div class="ru">${cand.map((c, i) => `<span class="${i === on ? (flash ? 'on fl' : 'on') : ''}">${nombreMJ(c)}</span>`).join('')}</div>`;
+    msg.style.display = 'block'; msgB.innerHTML = ''; msgT.textContent = linea || '';
+  };
+  if (n > 1) {
+    const fin = n * 3 + (((gi - 2) % n) + n) % n;
+    for (let i = 0; i <= fin; i++) { pintar(i % n, '🎡 ¡Gira, gira, gira!'); sfx.dado(); await espera(.05 + Math.pow(i / fin, 2) * .22); }
+    let at = fin % n;
+    for (const l of ['🎤 «¡Esa no…', '🎤 «…esa no…']) { pintar(at, l); await espera(.55); at = (at + 1) % n; snd(900, .05); }
+  }
+  for (let k = 0; k < 4; k++) { pintar(gi, '🎤 «…¡ESA!» 🎉', k % 2 === 0); if (!k) sfx.gana(); await espera(.18); }
+  S.ultMJ = cand[gi];
+  return cand[gi];
+}
+async function podio(titulo, asientos, pl, premio) {
+  const puesto = asientos.map((j, k) => ({ j, p: pl[k] >= 1 && pl[k] <= 4 ? pl[k] : 4 }));
+  const grupos = [...new Set(puesto.map((x) => x.p))].sort((a, b) => a - b).map((p) => ({ p, js: puesto.filter((x) => x.p === p).map((x) => x.j) }));
+  const vis = grupos.length > 1 ? [grupos[1], grupos[0]].concat(grupos.slice(2)) : grupos;   // 2.º a la izquierda, 1.º en el centro
+  const ALTO = { 1: 62, 2: 44, 3: 30, 4: 18 }, MET = { 1: '#ffd23f', 2: '#c8d4e0', 3: '#d8925a', 4: '#6a6a7a' };
+  podioEl.className = 'pod';
+  podioEl.innerHTML = `<div class="tit">🏆 «${titulo}»</div><div class="esc">${vis.map((g) => `<div class="col"><div class="who">${g.js.map((j) => `<div style="color:${j.c}">${j.nom}${j.cpu ? '' : ' ★'}</div>`).join('')}${g.p === 1 && premio ? `<div class="pr">+${premio} Bs</div>` : ''}</div><div class="blk" data-h="${ALTO[g.p]}" style="--m:${MET[g.p]}">${g.p}.º</div></div>`).join('')}</div>`;
+  podioEl.style.display = 'flex';
+  requestAnimationFrame(() => requestAnimationFrame(() => podioEl.querySelectorAll('.blk').forEach((b) => { b.style.height = b.dataset.h + '%'; })));
+  sfx.gana();
+  await decir(grupos[0].p === 1 ? `🏆 ${grupos[0].js.map((j) => j.nom).join(' + ')} ${grupos[0].js.length > 1 ? 'ganan' : 'gana'} el minijuego` : 'Nadie ganó. ¡Qué pena!', 2.2);
+  podioEl.style.display = 'none';
+}
+/* monedas que vuelan a la pieza de cada ganador (desde arriba, o desde la pieza del que pierde); pagan al llegar */
+async function monedas(ganan, premio, de) {
+  if (!ganan.length || !premio) return;
+  const N = Math.min(10, Math.max(4, premio >> 1)), D = 1.9;
+  const xs = ganan.map((j) => j.x), ys = ganan.map((j) => j.y);   // la cámara se acerca si los ganadores caben en el cuadro
+  const cerca = Math.max(...xs) - Math.min(...xs) < 140 && Math.max(...ys) - Math.min(...ys) < 60;
+  S.foco = cerca ? { x: (Math.max(...xs) + Math.min(...xs)) / 2, y: (Math.max(...ys) + Math.min(...ys)) / 2 } : null;
+  if (cerca) await espera(.5);
+  const ms = [];
+  ganan.forEach((j) => { for (let i = 0; i < N; i++) ms.push({ j, x0: de ? de.x : j.x + ri(-30, 30), y0: de ? de.y - 8 : j.y - 80 - ri(0, 20), del: i * .07 + R() * .05, dur: .55, u: 0, ok: false }); });
+  S.monedas = ms;
+  await tween(D, (k) => {
+    const t = k * D;
+    for (const m of ms) {
+      m.u = clamp((t - m.del) / m.dur, 0, 1);
+      if (m.u >= 1 && !m.ok) { m.ok = true; snd(1320 + R() * 200, .05, 'square', .03); }
+    }
+  });
+  S.monedas = [];
+  ganan.forEach((j) => { plata(j, premio); MAPA.efx('texto', j.x, j.y - 18, { s: '+' + premio, c: '#ffd23f' }); });
+  sfx.gana();
+}
+function dibujarMonedas(t) {
+  for (const m of S.monedas) {
+    if (m.u <= 0 || m.ok) continue;
+    const j = m.j, u = m.u, x = m.x0 + (j.x - m.x0) * u, y = m.y0 + (j.y - 10 - m.y0) * u - Math.sin(u * Math.PI) * (m.y0 < j.y - 40 ? 10 : 24);
+    const c = Math.abs(Math.cos(t * 10 + m.del * 30)), ancho = c > .7 ? 5 : c > .3 ? 3 : 1, X = Math.round(x - ancho / 2), Y = Math.round(y);
+    ctx.fillStyle = '#14101c'; ctx.fillRect(X - 1, Y - 3, ancho + 2, 7);
+    ctx.fillStyle = '#d8a520'; ctx.fillRect(X, Y - 2, ancho, 5);
+    ctx.fillStyle = '#ffd23f'; ctx.fillRect(X, Y - 2, ancho, 3);
+    ctx.fillStyle = '#fff6b0'; ctx.fillRect(X, Y - 2, 1, 1);
+  }
+}
 async function minijuego() {
   S.foco = null; S.ritmo = 1;
-  const fm = formato(), g = pick(MJ[fm.tipo]);
+  const fm = formato();
   const tu = JUG.find((j) => !j.cpu) || JUG[0];
   let asientos, rol = 'solo';
   if (fm.tipo === 'ffa') asientos = [tu].concat(JUG.filter((j) => j !== tu));
@@ -777,10 +864,17 @@ async function minijuego() {
     else { rol = 'trio'; asientos = [tu, solo].concat(fm.lados[1].filter((j) => j !== tu)); }
   }
   const nomFm = fm.tipo === 'ffa' ? 'TODOS CONTRA TODOS' : fm.tipo === '2v2' ? '2 VS 2' : '1 VS 3';
-  const lados = fm.tipo === 'ffa' ? JUG.map((j) => j.nom).join(' · ') : fm.lados.map((l) => l.map((j) => j.nom).join(' + ')).join('  VS  ');
+  const eq = equiposHtml(fm);
+  const cpu = TODO_CPU;
+  msg.style.display = 'block'; msgB.innerHTML = ''; msgT.innerHTML = `📣 <b class="host">¡EPA! ¡HORA DEL MINIJUEGO!</b>\n${nomFm}${E.carnaval ? ' · 🎉 CARNAVAL' : ''}: ${eq}`; pintarHud();
+  await revelarEquipos(fm);
+  await espera(.6 * (cpu ? .6 : 1));
+  const cab = `<div class="fm">🎮 ${nomFm}${E.carnaval ? ' · 🎉 CARNAVAL' : ''}</div><div class="eqs">${eq}</div>`;
+  const g = await ruleta(fm, cab);
   const nomJ = nombreMJ(g);
-  await preguntar(`🎮 ¡MINIJUEGO! ${nomFm}\n${lados}\n«${nomJ}»`, [{ l: '¡A JUGAR!', v: 1 }], TODO_CPU);
-  callar();
+  podioEl.innerHTML = `${cab}<div class="ru"><span class="on">${nomJ}</span></div>`;
+  await preguntar(`«${nomJ}» · ${fm.tipo === 'ffa' ? 'gana el mejor' : 'gana un equipo'}: +${E.carnaval ? 15 : 10} Bs`, [{ l: '¡A JUGAR!', v: 1 }], cpu);
+  podioEl.style.display = 'none'; callar();
   let pl;
   if (SIN_MJ || TODO_CPU) pl = simular(fm, asientos);
   else {
@@ -788,15 +882,18 @@ async function minijuego() {
       const oir = (e) => { if (e.data && e.data.k === 'mj-fin') { removeEventListener('message', oir); done(e.data.pl && e.data.pl.length ? e.data.pl : simular(fm, asientos)); } };
       addEventListener('message', oir);
       skip.onclick = () => { removeEventListener('message', oir); done(simular(fm, asientos)); };
-      abrirFrame(`../style-lab/fiesta.html?practica=${g}&embed=1&tipo=${fm.tipo}&rol=${rol}&ch=tu&lv=1`);
+      abrirFrame(urlMJ(g, fm.tipo, rol, asientos));
     });
     cerrarFrame();
   }
   const ganan = asientos.filter((j, k) => pl[k] === 1);
   const premio = E.carnaval ? 15 : 10;
-  ganan.forEach((j) => { plata(j, premio); j.bono.mj += premio; });
-  sfx.gana();
-  await decir(ganan.length ? `🏆 ${ganan.map((j) => j.nom).join(' + ')} ${ganan.length > 1 ? 'ganan' : 'gana'} +${premio} Bs` : 'Nadie ganó. ¡Qué pena!', 2);
+  await podio(nomJ, asientos, pl, premio);
+  callar(); S.foco = null;
+  ganan.forEach((j) => { j.bono.mj += premio; });
+  await monedas(ganan, premio);
+  if (ganan.length) await decir(`🏆 ${ganan.map((j) => j.nom).join(' + ')} ${ganan.length > 1 ? 'ganan' : 'gana'} +${premio} Bs`, 1.2);
+  S.equipo = null;
   callar();
 }
 function simular(fm, asientos) {
@@ -805,8 +902,8 @@ function simular(fm, asientos) {
   return asientos.map((j) => (lado.includes(j) ? 1 : 2));
 }
 const NOMBRES = { f_abuela: '¡LA ABUELA DICE!', f_bombita: '¡AGUA EN CARNAVAL!', f_cola: '¡LA COLA DE LA GASOLINA!', f_chancla: '¡LLUEVEN CHANCLAS!', f_cerro: '¡SUBE EL CERRO!',
-  f_domino: '¡DOMINÓ!', f_harina: '¡LA ÚLTIMA HARINA!', f_cotufas: '¡LLUEVEN COTUFAS!', f_tequeno: '¡TEQUEÑOS!', f_mecate: '¡SALTA EL MECATE!', f_perro: '¡PERRO CALIENTE CON TODO!',
-  f_cava: '¡CARGA LA CAVA!', f_futbolito: '¡FUTBOLITO DE CALLE!', f_hallacas: '¡LA LÍNEA DE HALLACAS!', f_bono: '¡SE LE CAE EL BONO!', f_alcabala: '¡LA ALCABALA DE MEDIANOCHE!',
+  f_domino: '¡CAPICÚA!', f_harina: '¡LA ÚLTIMA HARINA!', f_cotufas: '¡LLUEVEN COTUFAS!', f_tequeno: '¡TEQUEÑOS!', f_mecate: '¡SALTA EL MECATE!', f_perro: '¡PERRO CALIENTE CON TODO!',
+  f_cava: '¡CARGA LA CAVA!', f_futbolito: '¡FUTBOLITO DE CALLE!', f_hallacas: '¡LA LÍNEA DE HALLACAS!', f_cuerda: '¡HALA LA CUERDA!', f_bono: '¡SE LE CAE EL BONO!', f_alcabala: '¡LA ALCABALA DE MEDIANOCHE!',
   f_guaya: '¡LA GUAYA DEL TELEFÉRICO!', f_patilla: '¡LA PATILLA GIGANTE!' };
 const nombreMJ = (g) => NOMBRES[g] || g.replace(/^f_/, '').toUpperCase();
 
@@ -903,7 +1000,10 @@ function pieza(j, t) {
   ctx.fillStyle = 'rgba(20,16,28,.35)'; ctx.fillRect(Math.round(j.x - sombra), Math.round(j.y + 2), Math.round(sombra * 2), 2);
   const bob = !j.anda && j.i === S.activo && !S.fin ? Math.round(Math.abs(Math.sin(t * 5)) * 1.5) : 0;
   sprite(PJ_ROWS, j.pal, Math.round(j.x - 4), Math.round(j.y - 10 - j.z - bob));
-  if (!j.cpu && !S.fin) { ctx.fillStyle = j.c; ctx.fillRect(Math.round(j.x), Math.round(j.y - 14 - j.z - bob), 1, 2); }
+  if (S.equipo && S.equipo.get(j)) {   // flechita del color del equipo
+    const ex = Math.round(j.x), ey = Math.round(j.y - 18 - j.z - bob);
+    ctx.fillStyle = '#14101c'; ctx.fillRect(ex - 3, ey - 1, 7, 4); ctx.fillStyle = S.equipo.get(j); ctx.fillRect(ex - 2, ey, 5, 1); ctx.fillRect(ex - 1, ey + 1, 3, 1); ctx.fillRect(ex, ey + 2, 1, 1);
+  } else if (!j.cpu && !S.fin) { ctx.fillStyle = j.c; ctx.fillRect(Math.round(j.x), Math.round(j.y - 14 - j.z - bob), 1, 2); }
 }
 function dado(t) {
   const d = S.dado; if (!d || d.oculto) return;
@@ -962,7 +1062,7 @@ function cuadroReal(ts) {
   PEAJES.forEach((P) => { const n = nodos[P.nodo], c = P.id === 'lancha' && lanchaCerrada(); texto(c ? 'CERRADO' : 'PEAJE ' + feeDe(P), n.x + (P.id === 'lancha' ? -14 : 10), n.y + (P.id === 'lancha' ? 14 : -24), c ? '#ff8a8a' : '#ffd23f', 1, '#14101c'); });
   JUG.slice().sort((a, b) => a.y - b.y).forEach((j) => pieza(j, T));
   MAPA.dibujarCielo(T, dt);
-  flechas(T); dado(T); particulas(dt);
+  flechas(T); dado(T); dibujarMonedas(T); particulas(dt);
   camara(dt);
 }
 
@@ -1033,5 +1133,5 @@ addEventListener('resize', ajustar); pintarHud(); ajustar();
 acomodar();
 requestAnimationFrame(cuadro);
 partida();
-window.MARGARITA = { S, JUG, nodos, PEAJES, E, CAM, ITEMS, NOTICIAS };
+window.MARGARITA = { S, JUG, nodos, PEAJES, E, CAM, ITEMS, NOTICIAS, MJ, DUELOS, urlMJ, minijuego, bronca };   // minijuego/bronca/urlMJ: para forzarlos en pruebas desde la consola
 })();

@@ -33,9 +33,35 @@
   #ctl button { padding:.5em .7em; }
   #toast { position:fixed; left:50%; top:16px; transform:translate(-50%,-150%); background:#ffd23f; color:#14101c; border:3px solid #14101c; border-radius:8px; padding:.8em 1em; font-size:clamp(7px,1.2vw,12px); line-height:1.6; z-index:20; transition:transform .3s; max-width:90vw; text-align:center; pointer-events:none; }
   #toast.on { transform:translate(-50%,0); }
-  #mj { position:fixed; inset:0; background:#000; display:none; z-index:10; }
-  #mj iframe { width:100%; height:100%; border:0; }
-  #mj .skip { position:absolute; right:10px; top:10px; z-index:2; font-size:10px; opacity:.7; }
+  #msg .host { color:#ffd23f; }
+  .eq { padding:.15em .4em; border-bottom:4px solid var(--e); white-space:nowrap; }
+  #podio { position:absolute; inset:0; display:none; flex-direction:column; align-items:center; justify-content:flex-end; background:rgba(13,27,42,.62); pointer-events:none; z-index:3; }
+  #podio.rul { justify-content:center; gap:4%; }
+  #podio .fm { font-size:clamp(9px,2vw,22px); color:var(--gold); text-shadow:0 3px 0 var(--ink); }
+  #podio .eqs { font-size:clamp(8px,1.6vw,18px); background:rgba(20,16,28,.85); border:3px solid var(--paper); border-radius:8px; padding:.8em 1em; text-align:center; line-height:1.9; }
+  #podio .eqs > b { color:var(--paper); margin:0 .6em; }
+  #podio .ru { display:flex; flex-wrap:wrap; gap:1.2%; justify-content:center; width:92%; }
+  #podio .ru span { flex:0 1 23%; text-align:center; padding:1.2em .5em; font-size:clamp(7px,1.3vw,14px); line-height:1.6; border:4px solid #3a3450; border-radius:8px; color:#8a84a0; background:rgba(28,24,40,.92); transition:transform .08s; }
+  #podio .ru span.on { border-color:var(--ink); background:var(--gold); color:var(--ink); transform:scale(1.1) translateY(-4%); box-shadow:0 5px 0 var(--ink); }
+  #podio .ru span.fl { background:#fffdf2; }
+  #podio .tit { font-size:clamp(9px,2vw,22px); color:var(--gold); text-shadow:0 3px 0 var(--ink); margin-bottom:auto; margin-top:5%; }
+  #podio .esc { display:flex; align-items:flex-end; justify-content:center; gap:2%; width:78%; height:72%; }
+  #podio .col { flex:1; max-width:24%; height:100%; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; }
+  #podio .who { font-size:clamp(7px,1.4vw,15px); line-height:1.7; text-align:center; text-shadow:0 2px 0 var(--ink); margin-bottom:.5em; }
+  #podio .pr { color:var(--gold); }
+  #podio .blk { width:100%; height:0; transition:height .6s cubic-bezier(.3,1.5,.6,1); background:var(--m); border:4px solid var(--ink); border-bottom:0; border-radius:6px 6px 0 0; color:var(--ink); font-size:clamp(9px,2vw,22px); display:flex; justify-content:center; padding-top:.5em; overflow:hidden; }
+  /* SALTAR vive en una franja propia fuera del iframe: nunca tapa HUD ni botones del minijuego */
+  #mj { position:fixed; inset:0; background:#000; display:none; z-index:10; flex-direction:column; }
+  #mj iframe { flex:1 1 auto; min-height:0; min-width:0; width:100%; border:0; }
+  #mj .bar { flex:0 0 auto; display:flex; justify-content:flex-end; align-items:center; padding:3px 8px calc(3px + env(safe-area-inset-bottom)); background:#111; }
+  #mj .skip { font-size:8px; padding:.45em .8em; border-width:2px; box-shadow:0 2px 0 var(--ink); opacity:.55; min-height:24px; }
+  #mj .skip:hover, #mj .skip:focus-visible { opacity:1; }
+  @media (orientation:landscape) and (max-height:500px) {
+    #mj { flex-direction:row; }
+    #mj iframe { width:auto; height:100%; }
+    #mj .bar { flex-direction:column; justify-content:flex-end; padding:8px calc(3px + env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) 3px; }
+    #mj .skip { writing-mode:vertical-rl; min-height:0; min-width:24px; padding:.8em .45em; }
+  }
 </style>
 </head>
 <body>
@@ -43,12 +69,13 @@
   <div id="top"><div id="hud"></div><div id="turno"></div></div>
   <div id="stage">
     <canvas id="b" width="1280" height="720"></canvas>
+    <div id="podio"></div>
     <div id="ctl"><button id="cam" class="alt">🎥 AUTO</button><button id="vel" class="alt">x1</button></div>
   </div>
   <div id="msgbox"><div id="msg"><div class="t"></div><div class="bt"></div></div></div>
 </div>
 <div id="toast"></div>
-<div id="mj"><button class="skip no" id="skip">SALTAR</button><iframe id="mjf" allow="autoplay"></iframe></div>
+<div id="mj"><iframe id="mjf" allow="autoplay"></iframe><div class="bar"><button class="skip no" id="skip">SALTAR</button></div></div>
 <script src="pixel.js"></script>
 <script src="mapa.js"></script>
 <script src="criaturas.js"></script>

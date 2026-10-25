@@ -9,7 +9,7 @@ self.addEventListener('install', e => e.waitUntil((async () => {
   const html = await response.clone().text();
   const assets = [...html.matchAll(/(?:src|href)="([^"]+)"/g)]
     .map(m => new URL(m[1], ROOT))
-    .filter(u => u.origin === ROOT.origin && /\.(js|css|png|webmanifest)$/.test(u.pathname));
+    .filter(u => u.origin === ROOT.origin && /\.(js|css|png|webmanifest|woff2)$/.test(u.pathname));
   // The 3D engine is loaded on demand; include it so that stage also works offline.
   const main = assets.find(u => u.pathname.endsWith('/js/main.js'));
   const three = new URL('js/vendor/three.min.js', ROOT);
@@ -30,7 +30,7 @@ self.addEventListener('fetch', e => {
   if (u.origin !== ROOT.origin && !font) return;
   // Only cache game resources, never backend records, OAuth callbacks or admin pages.
   const shell = u.pathname === ROOT.pathname || u.pathname === new URL('index.html', ROOT).pathname;
-  const asset = ['js/', 'css/', 'img/', 'audio/'].some(dir => u.pathname.startsWith(new URL(dir, ROOT).pathname)) || u.pathname === new URL('manifest.webmanifest', ROOT).pathname;
+  const asset = ['js/', 'css/', 'img/', 'audio/', 'fonts/'].some(dir => u.pathname.startsWith(new URL(dir, ROOT).pathname)) || u.pathname === new URL('manifest.webmanifest', ROOT).pathname;
   if (!font && !shell && !asset) return;
   const save = async res => {
     if (res && (res.ok || (font && res.type === 'opaque'))) {

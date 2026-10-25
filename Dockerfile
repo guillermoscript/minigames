@@ -21,6 +21,7 @@ COPY css /pb/pb_public/css
 COPY img /pb/pb_public/img
 COPY js /pb/pb_public/js
 COPY audio /pb/pb_public/audio
+COPY fonts /pb/pb_public/fonts
 COPY docs/style-lab/*.js docs/style-lab/public.html /tmp/style-lab-source/docs/style-lab/
 COPY scripts/sync-world-assets.sh /tmp/sync-world-assets.sh
 RUN sh /tmp/sync-world-assets.sh /tmp/style-lab-source /pb/pb_public && rm -rf /tmp/style-lab-source /tmp/sync-world-assets.sh

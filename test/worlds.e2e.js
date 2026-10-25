@@ -32,14 +32,25 @@ const assert = require('node:assert/strict');
    },{x,y});
    await page.mouse.click(point.x,point.y);
   };
+  // kit menus (title, main menu, worlds): tap a widget by id, wherever the current layout put it (wide or tall)
+  const tapId=async id=>{
+   await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+   const point=await page.evaluate(id=>MCUI.client(id),id);
+   assert.ok(point,`kit widget ${id} is on screen`);
+   await page.mouse.click(point.x,point.y);
+  };
   const rootState=expected=>page.waitForFunction(expected=>typeof state!=='undefined'&&state===expected,expected);
   const campState=expected=>page.waitForFunction(expected=>window.CAMP?.state===expected,expected);
   await page.goto(base+'/?lang=es');
+  await page.waitForFunction(()=>typeof MCUI!=='undefined'&&!MCUI.stale(state));   // the title has drawn its first frame
+  await page.keyboard.press('Enter');await rootState('main');
+  await page.waitForTimeout(400);
+  assert.equal(await page.evaluate(()=>MCUI.focus()),'m-play','main menu starts on PLAY');
   await page.keyboard.press('Enter');await rootState('worlds');
   await page.waitForTimeout(400);
   assert.equal(await page.locator('.world-menu').count(),0,'no replacement DOM menus');
   if(process.env.WORLD_SCREENSHOTS) await page.screenshot({path:`/tmp/minicaos-worlds-${viewport.width}.png`});
-  await tap(210,270);await rootState('menu');
+  await tapId('w-classic');await rootState('menu');
   await page.waitForTimeout(400);
   if(process.env.WORLD_SCREENSHOTS) await page.screenshot({path:`/tmp/minicaos-classic-${viewport.width}.png`});
   assert.equal(await page.evaluate(()=>save.unlocked),1);
@@ -47,7 +58,11 @@ const assert = require('node:assert/strict');
   assert.equal(await page.evaluate(()=>stageIdx),0);
   await page.keyboard.press('Escape');await rootState('menu');
   await tap(550,490);await rootState('worlds');
-  await page.keyboard.press('ArrowRight');await page.keyboard.press('Enter');
+  await page.waitForTimeout(400);
+  const next=await page.evaluate(()=>TALL?'ArrowDown':'ArrowRight');   // cards sit in a 2×2 grid, or in a column on a phone held upright
+  await page.keyboard.press(next);await page.keyboard.press(next);   // first press shows the focus, second moves it
+  assert.equal(await page.evaluate(()=>MCUI.focus()),'w-venezuela');
+  await page.keyboard.press('Enter');
   await campState('menu');await page.waitForTimeout(400);
   assert.equal(await page.evaluate(()=>CAMP.ETAPAS.length),5);
   assert.equal(await page.evaluate(()=>window.__labControlsSeen),false,'lab controls never enter the public DOM');
@@ -63,6 +78,9 @@ const assert = require('node:assert/strict');
   await campState('play');assert.equal(await page.evaluate(()=>CAMP.info.stage),0);
   await page.keyboard.press('Escape');await campState('menu');
   await tap(80,32);await rootState('worlds');
+  await page.waitForTimeout(400);
+  assert.equal(await page.evaluate(()=>MCUI.focus()),'w-venezuela','back from Venezuela lands on its card');
+  await page.keyboard.press('Escape');await rootState('main');
   console.log(`OK ${viewport.width}: native worlds and classic UI, Venezuela settings/gameplay, return to worlds`);
   await context.close();
  }

@@ -84,6 +84,8 @@ async function partyPoll() {
 }
 
 /* ───────────── entering / leaving ───────────── */
+/* where the party screen goes back to: the main menu it was opened from, else the title */
+const partyHome = () => party.from === 'main' ? goMain() : goTitle();
 function goParty(from) {
   if (net.user && !fr.list) loadFriends();
   party.from = from || state; party.view = 'menu'; party.msg = ''; party.busy = false;
@@ -126,7 +128,7 @@ function partyCleanup() {
 function partyLeave(to) {
   voiceStop(true); if (party.room && party.you) pcall('leave', auth());
   partyCleanup(); mode = 'stage'; parts.length = 0;
-  if (to === 'menu') { party.view = 'menu'; party.msg = ''; state = 'party'; st = 0; } else goTitle();
+  if (to === 'menu') { party.view = 'menu'; party.msg = ''; state = 'party'; st = 0; } else partyHome();
 }
 function roomGone() {
   if (!party.room) return;
@@ -553,7 +555,7 @@ function drawPartyMenu() {
   const K = pui(), U = K.U;
   const bob = Math.sin(now * 2) * 2;
   txt('PLAY WITH FRIENDS', 372, 44 + bob, 35, '#FFE14D', 'center', 410);
-  K.btn(14, 10, 130, 56, '◄ BACK', () => { goTitle(); }, { size: 22 });
+  K.btn(14, 10, 130, 56, '◄ BACK', partyHome, { size: 22 });
   K.btn(W + OX - 204, 10, 190, 56, 'MY FRIENDS', goFriends, { size: 20, fill: '#B49CFF' });
   if (net.user && frPending() > 0) { U.orb(W + OX - 20, 14, 14, { col: '#ff4d5e', t: now }); txt(String(frPending()), W + OX - 20, 15, 15, '#fff'); }
   ['INVITE FRIENDS', 'CHOOSE A MODE', 'PLAY TOGETHER'].forEach((label, i) => {

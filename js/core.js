@@ -6,7 +6,22 @@ const ctx = cv.getContext('2d');
 /* Widescreen: the canvas widens to the screen's shape. Games still play in the 800×600 area in the
    middle; VW is the full logical width and OX how far that area sits from the left edge (so the screen spans -OX..W+OX). */
 let VW = W, OX = 0;
+/* Tall mode: a phone held upright on a menu that has a tall layout (js/ui/mcui.js) gets a TW-wide canvas as tall as the screen (TW × TH).
+   Microgames never see it: tallWanted() (set by js/main.js) is true only on kit menus. */
+const TW = 400;
+let TALL = false, TH = H, tallWanted = () => false;
+const tallNow = () => innerHeight > innerWidth * 1.05 && tallWanted();
 function fitScreen() {
+  TALL = tallNow();
+  document.body.classList.toggle('tall', TALL);
+  if (TALL) {
+    TH = Math.round(TW * innerHeight / innerWidth); VW = TW; OX = 0;
+    if (cv.width !== TW) cv.width = TW;
+    if (cv.height !== TH) cv.height = TH;
+    cv.style.width = innerWidth + 'px'; cv.style.height = innerHeight + 'px';
+    return;
+  }
+  if (cv.height !== H) cv.height = H;
   const a = Math.max(W / H, innerWidth / innerHeight);
   VW = Math.round(H * a); OX = (VW - W) / 2;
   if (cv.width !== VW) cv.width = VW;
@@ -298,7 +313,7 @@ const keys = {};
 let mouse = { x: W / 2, y: H / 2 };
 function pos(e) {
   const r = cv.getBoundingClientRect();
-  return { x: (e.clientX - r.left) * VW / r.width - OX, y: (e.clientY - r.top) * H / r.height, touch: e.pointerType === 'touch' };
+  return { x: (e.clientX - r.left) * VW / r.width - OX, y: (e.clientY - r.top) * (TALL ? TH : H) / r.height, touch: e.pointerType === 'touch' };
 }
 
 

@@ -8,12 +8,14 @@
   // Launched from the home screen / app drawer: counts how many people actually run the installed app (once per page load).
   if (installed) ev('pwa_launch', { mode: navigator.standalone === true ? 'ios-standalone' : 'standalone' });
   function sync() {
-    button.hidden = installed || busy || (!prompt && !ios) || !['title', 'menu'].includes(state);
+    button.hidden = installed || busy || (!prompt && !ios) || state !== 'menu';   // the kit menus have their own INSTALL APP plate (OPTIONS)
     button.textContent = I18N.lang === 'es' ? 'INSTALAR APP' : 'INSTALL APP';
     if (!button.hidden && !offered) { offered = true; ev('pwa_install_offered', { native: !!prompt }); }   // the button was actually shown to someone
   }
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); prompt = e; sync(); });
   addEventListener('appinstalled', () => { installed = true; prompt = null; ev('pwa_installed'); sync(); });   // fires for the button and for the browser's own menu
+  // OPTIONS (js/menus.js) draws the install plate on the canvas and calls these.
+  globalThis.PWA = { available: () => !installed && !busy && (!!prompt || ios), installed: () => installed, install: () => button.click() };
   button.addEventListener('click', async () => {
     ev('pwa_install_click', { native: !!prompt });
     if (!prompt && ios) {

@@ -75,8 +75,8 @@ function drawShareMenu() {
   button(130, 330, 540, 70, 'COPY LINK', shareCopy, { fill: '#B49CFF', size: 26 });
   button(250, 440, 300, 64, 'CLOSE', () => { sh.on = false; }, { size: 24 });
 }
-/* title tap / Enter: a room invite wins over a score challenge, which wins over world selection */
-function titleGo() { if (inviteOpen()) joinInvite(); else if (chOpen) acceptChallenge(); else goWorlds(); }
+/* title tap / Enter: a room invite wins over a score challenge, which wins over the main menu */
+function titleGo() { if (inviteOpen()) joinInvite(); else if (chOpen) acceptChallenge(); else goMain(); }
 function acceptChallenge() {
   const i = Math.min(CH.stage, save.unlocked - 1);          // locked stage? start from the furthest one you can play
   chOpen = false; track('challenge_accept', { from: CH.from, target: CH.score, stage: CH.stage + 1, played: i + 1 });
@@ -464,32 +464,9 @@ function render() {
   btns = []; I18N.scope = state === 'play' ? I18N.scopeOf(curId) : '';
   const col = mode === 'stage' ? stage.col : OR;
 
-  if (state === 'worlds') {
-    drawWorlds();
-  } else if (state === 'title') {
-    bg('#7C4DFF', '#6a3de8', now);
-    const SC = ['#FFE14D', '#5CFF7A', '#4DB8FF', '#FF4D9E'];
-    for (let i = 0; i < 8; i++) { const a = now * .5 + i * Math.PI / 4; star(W / 2 + Math.cos(a) * 340, 300 + Math.sin(a) * 215, 9 + (i % 3) * 4, 4, 5, now * 2 + i, SC[i % 4], 3); }
-    const drop = easeBack(st / .6), bob = Math.sin(now * 2.2) * 8;
-    ctx.save(); ctx.translate(W / 2, 130 + bob - (1 - drop) * 200); ctx.rotate(Math.sin(now * 2) * .03); ctx.scale(.6 + .4 * drop, .6 + .4 * drop);
-    txt('MINI', 6, 8, 120, INK); txt('MINI', 0, 0, 120, '#FFE14D'); ctx.restore();
-    ctx.save(); ctx.translate(W / 2, 250 - bob * .8 - (1 - easeBack(st / .6 - .15)) * 200); ctx.rotate(-Math.sin(now * 2 + 1) * .03);
-    txt('CAOS!', 6, 8, 120, INK); txt('CAOS!', 0, 0, 120, '#fff'); ctx.restore();
-    const jump = Math.abs(Math.sin(now * 4)) * 20;
-    shadow(W / 2, 484, 80 - jump, 13 - jump * .2, .3);
-    caos(W / 2, 480 - jump, 10.5, { mood: 'happy' });
-    if (inviteOpen()) txt(t('A FRIEND INVITES YOU TO ROOM {code}', { code: PINVITE }), W / 2, 505, 21, '#5CFF7A', 'center', 760);
-    else if (chOpen) txt(t('{from} CHALLENGES YOU: BEAT {score} ON {stage}', { from: chFrom(), score: CH.score, stage: t(STAGES[CH.stage].name) }), W / 2, 505, 21, '#FFE14D', 'center', 760);
-    else txt(t('{games} MICROGAMES · {stages} STAGES · MOUSE + KEYBOARD + TOUCH', { games: PREG.length, stages: STAGES.length }), W / 2, 505, 19, '#fff', 'center', 760);
-    ctx.save(); ctx.translate(W / 2, 558); const pl = 1 + Math.sin(now * 6) * .07; ctx.scale(pl, pl);
-    txt(inviteOpen() ? (TOUCH ? 'TAP TO JOIN' : 'CLICK TO JOIN') : chOpen ? (TOUCH ? 'TAP TO ACCEPT' : 'CLICK TO ACCEPT') : TOUCH ? 'TAP TO START' : 'CLICK OR PRESS ENTER', 0, 0, 34, '#5CFF7A', 'center', 700); ctx.restore();
-    txt(muted ? 'MUTED · M = SOUND' : 'M = MUTE', 20 - OX, 28, 18, '#fff', 'left');
-    profileBtn(W + OX - 194, 12, 180, 52);
-    button(14 - OX, 48, 140, 42, LANGS.find(l => l.code === I18N.lang).name, () => I18N.next(), { size: 18, fill: '#fff' });
-    button(14 - OX, 536, 150, 50, 'INVITE', () => doShare('invite'), { size: 22, fill: '#4DB8FF' });
-    button(W + OX - 164, chOpen || inviteOpen() ? 478 : 536, 150, 50, 'FRIENDS', () => goParty('title'), { size: 22, fill: '#5CFF7A' });
-    if (chOpen || inviteOpen()) button(W + OX - 164, 536, 150, 50, 'MENU ►', () => { chOpen = false; PINVITE_USED = true; goMenu(); }, { size: 22 });
-  } else if (state === 'menu') {
+  if (kitOn()) { drawKit(); placeInputs(); return; }   // title, main menu, worlds, options: js/menus.js
+
+  if (state === 'menu') {
     bg('#2b2757', '#322d66', now);
     txt('SELECT STAGE', W / 2, 40, 44, '#FFE14D');
     STAGES.forEach((s, i) => {
@@ -519,7 +496,7 @@ function render() {
     profileBtn(14 - OX, 10, 170, 56);
     button(W + OX - 184, 10, 170, 56, 'RANKS', () => goBoard(), { size: 22, fill: '#FFE14D' });
     button(110, 455, 280, 74, 'PRACTICE', goPractice, { fill: '#5CFF7A' });
-    button(410, 455, 280, 74, worldText('◄ MUNDOS', '◄ WORLDS'), goWorlds, { fill: '#fff' });
+    button(410, 455, 280, 74, '◄ WORLDS', goWorlds, { fill: '#fff' });
     if (!TOUCH) txt('1-6 STAGE · ◄ ► PAGE · P PRACTICE · L RANKS · A PROFILE · ESC BACK', W / 2, 568, 18, '#fff');
   } else if (state === 'party') {
     drawParty();
@@ -842,26 +819,20 @@ addEventListener('keydown', e => {
   keys[e.code] = true;
   if (e.repeat) return;
   if (sh.on && e.code !== 'Escape') return;
+  if (kitOn() && kitKey(e)) return;
   const go = e.code === 'Enter' || e.code === 'Space';
   if (e.code === 'Escape') {
     if (sh.on) { sh.on = false; return; }
     if (rn.on) { closeRename(); return; }
     if (fr.add && state === 'friends') { closeAddFriend(); return; }
     if (mode === 'party' && (state === 'play' || (state === 'party' && party.view !== 'menu' && party.view !== 'lobby'))) return;   // no accidental leaving mid-match
-    if (state === 'party') { party.view === 'lobby' ? partyLeave('menu') : goTitle(); return; }
+    if (state === 'party') { party.view === 'lobby' ? partyLeave('menu') : partyHome(); return; }
     if (state === 'play' || state === 'inter' || state === 'stagein') exitPlay();
-    else if (state === 'worlds') goTitle(); else if (state === 'menu') goWorlds(); else if (state === 'practice') goMenu();
+    else if (state === 'menu') goWorlds(); else if (state === 'practice') goMenu();
     else if (state === 'profile' || state === 'board' || state === 'pview' || state === 'friends') back();
     return;
   }
-  if (state === 'title' && go) { e.preventDefault(); titleGo(); }
-  else if (state === 'worlds') {
-    worldKey(e, go);
-  }
-  else if (state === 'title' && e.code === 'KeyA') goProfile();
-  else if (state === 'title' && e.code === 'KeyF') goParty('title');
-  else if (state === 'title' && e.code === 'KeyG') I18N.next();
-  else if (state === 'board') { if (e.code === 'ArrowRight') setTab(lb.tab + 1); else if (e.code === 'ArrowLeft') setTab(lb.tab - 1); }
+  if (state === 'board') { if (e.code === 'ArrowRight') setTab(lb.tab + 1); else if (e.code === 'ArrowLeft') setTab(lb.tab - 1); }
   else if (state === 'profile' && go) doGoogle();
   else if (state === 'party' && go) { if (party.view === 'lobby') partyStart(); else if (party.view === 'end' && isHost() && st > .6) partyAgain(); }
   else if (state === 'menu') {
@@ -906,14 +877,15 @@ cv.addEventListener('pointerdown', e => {
   if (document.activeElement && document.activeElement.tagName === 'INPUT') document.activeElement.blur();
   interacted = true; pressing = true;
   const p = pos(e); mouse = inGame(p); hp = p;
+  if (kitOn()) { if (!MCUI.stale(state)) MCUI.down(p); return; }
   const b = btns.find(b => p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h);
   if (b) { sfx.click(); b.fn(); return; }
   if (sh.on) return;
-  if (state === 'title') { titleGo(); return; }
   if (state === 'play' && !outcome && pre <= 0) { const g = inGame(p); sw = { x: g.x, y: g.y }; if (cur.move) cur.move(g); if (cur.down) cur.down(g); }
 });
 cv.addEventListener('pointermove', e => {
   const raw = pos(e), p = inGame(raw); mouse = p; hp = raw;
+  if (kitOn()) { MCUI.move(raw); return; }
   if (state !== 'play' || outcome) return;
   if (cur.move) cur.move(p);
   if (sw && cur.swipe) {
@@ -924,18 +896,20 @@ cv.addEventListener('pointermove', e => {
     }
   }
 });
-const endPtr = e => { pressing = false; if (e.pointerType === 'touch') hp = { x: -999, y: -999 }; if (state === 'play' && !outcome && pre <= 0 && cur.up) cur.up(inGame(pos(e))); sw = null; };
+const endPtr = e => { if (e.type === 'pointerup' && kitOn() && !MCUI.stale(state)) MCUI.up(pos(e)); pressing = false; if (e.pointerType === 'touch') hp = { x: -999, y: -999 }; if (state === 'play' && !outcome && pre <= 0 && cur.up) cur.up(inGame(pos(e))); sw = null; };
 cv.addEventListener('pointerup', endPtr);
 cv.addEventListener('pointercancel', endPtr);
+cv.addEventListener('wheel', e => { if (kitOn() && MCUI.wheel(e.deltaY)) e.preventDefault(); }, { passive: false });
 cv.addEventListener('pointerleave', () => { hp = { x: -999, y: -999 }; pressing = false; });
 
 let lastTs = 0, lastDt = 0;
 function loop(ts) {
   const dt = Math.min(.05, (ts - lastTs) / 1000 || 0); lastTs = ts; now += dt; lastDt = dt;
+  if (tallNow() !== TALL) fitScreen();                    // a kit menu in portrait gets the tall canvas; anything else the 800×600 one
   update(dt); updateFx(dt); syncMusic();
   EGGS.update(dt);
   if (state !== lastState) {                              // screen-change whoosh (not on every microgame)
-    if (['stagein', 'menu', 'practice', 'profile', 'board', 'pview', 'party', 'friends'].includes(state) || (state === 'inter' && mode === 'stage')) sfx.whoosh(true);
+    if (['stagein', 'menu', 'practice', 'profile', 'board', 'pview', 'party', 'friends', 'main', 'worlds', 'options'].includes(state) || (state === 'inter' && mode === 'stage')) sfx.whoosh(true);
     lastState = state;
   }
   cv.style.cursor = state === 'play' && mouse.touch === false && cur && !cur.noHand && !cur.partyHelper && !cur.partyScene ? 'none' : '';

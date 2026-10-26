@@ -127,7 +127,7 @@ I18N.add('es', {
   '◄ ► TAB · ESC BACK': '◄ ► PESTAÑA · ESC VOLVER', 'LOADING...': 'CARGANDO...',
   'RANK #{rank} · TOTAL {total}': 'RANGO #{rank} · TOTAL {total}', 'NOT RANKED YET': 'SIN RANGO AÚN',
   '{stars}/{max} STARS · {unlocked}/{stages} UNLOCKED': '{stars}/{max} ESTRELLAS · {unlocked}/{stages} DESBLOQUEADAS',
-  'COLOUR': 'COLOR', 'CHANGE NAME': 'CAMBIAR NOMBRE', 'LOG OUT': 'SALIR', 'SAVE': 'GUARDAR',
+  'COLOUR': 'COLOR', 'CHANGE NAME': 'CAMBIAR NOMBRE', 'LOG OUT': 'CERRAR SESIÓN', 'SAVE': 'GUARDAR',
   '3-16 LETTERS, NUMBERS, _ -': '3-16 LETRAS, NÚMEROS, _ -',
 
   /* toasts / messages / errors (api.js messages arrive in English and are uppercased) */
@@ -177,4 +177,7 @@ I18N.add('es', {
   'READY TO PLAY WITH YOUR PROFILE.': 'LISTO PARA JUGAR CON TU PERFIL.', 'NO ACCOUNT NEEDED TO PLAY.': 'NO HACE FALTA CUENTA PARA JUGAR.',
   'SCAN IT OR SEND THE LINK': 'ESCANÉALO O MANDA EL ENLACE',
   "COULDN'T COPY": 'NO SE PUDO COPIAR', 'SEE PROFILE': 'VER PERFIL',
+  'VENEZUELA: {n}/15 STARS': 'VENEZUELA: {n}/15 ESTRELLAS', '{n}/{total} STAGES': '{n}/{total} ETAPAS', '{n}/15 STARS ON THIS DEVICE': '{n}/15 ESTRELLAS EN ESTE EQUIPO',
+  'PLAYED ON THEIR DEVICE': 'SE JUEGA EN SU EQUIPO', 'ONLINE · 2-4 PLAYERS': 'EN LÍNEA · 2-4 JUGADORES', '1 + 3 CPU': '1 + 3 CPU',
+  'STATS': 'ESTADÍSTICAS', 'UNLOCKS': 'DESBLOQUEOS', 'EDIT': 'EDITAR', 'CHARACTER': 'PERSONAJE',
 });

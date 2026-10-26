@@ -398,14 +398,6 @@ function drawToast(dt) {
   const k = Math.min(1, toast.t / .15), y = H - 24 - (1 - k) * 30;
   ctx.save(); ctx.globalAlpha = toast.t > 2.2 ? (2.6 - toast.t) / .4 : 1; txt(toast.s, W / 2, y, 26, toast.col, 'center', 740); ctx.restore();
 }
-function swatches(cx, cy, r, gap, sel, fn) {
-  AVATAR_COLORS.forEach((c, i) => {
-    const x = cx + (i - (AVATAR_COLORS.length - 1) / 2) * gap;
-    circ(x, cy, r, c, c === sel ? 6 : 3);
-    if (c === sel) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x, cy, r + 8, 0, 7); ctx.stroke(); }
-    btns.push({ x: x - r - 6, y: cy - r - 6, w: 2 * r + 12, h: 2 * r + 12, fn: () => fn(c) });
-  });
-}
 /* the multicolour Google "G", drawn on canvas (no external image); grey = disabled */
 function googleG(cx, cy, r, grey) {
   const lw = r * .42, rr = r - lw / 2, d = Math.PI / 180, c = grey ? ['#9a98a8', '#aaa8b6', '#8e8c9c', '#9a98a8'] : ['#EA4335', '#FBBC05', '#34A853', '#4285F4'];
@@ -416,13 +408,13 @@ function googleG(cx, cy, r, grey) {
   ctx.restore();
 }
 function placeInputs() {
-  const showName = state === 'pview' && rn.on && !!net.user, showCode = state === 'party' && party.view === 'menu' && !!codeSlot, showFriend = state === 'friends' && !!net.user && !!friendSlot;
+  const showName = state === 'pview' && rn.on && !!net.user && !!nameSlot, showCode = state === 'party' && party.view === 'menu' && !!codeSlot, showFriend = state === 'friends' && !!net.user && !!friendSlot;
   ov.style.display = showName || showCode || showFriend ? 'block' : 'none';
   inName.style.display = showName ? 'block' : 'none'; inCode.style.display = showCode ? 'block' : 'none'; inFriend.style.display = showFriend ? 'block' : 'none';
   if (!showName && !showCode && !showFriend) return;
   const r = cv.getBoundingClientRect(), k = r.width / VW;
   const put = (el, x, y, w, h) => { const s = el.style; s.left = r.left + (x + OX) * k + 'px'; s.top = r.top + y * k + 'px'; s.width = w * k + 'px'; s.height = h * k + 'px'; s.fontSize = h * k * .36 + 'px'; };   // Press Start 2P is wide: a third of the slot height
-  if (showName) put(inName, 200, 262, 400, 52);
+  if (showName) put(inName, ...nameSlot);
   else if (showFriend) put(inFriend, ...friendSlot);   // slots come from the kit screens (js/panas.js)
   else put(inCode, ...codeSlot);
 }
@@ -578,27 +570,6 @@ function render() {
     const share = ['share', 'SHARE', () => doShare('stage_clear'), 'info'], stagesBtn = ['stages', 'STAGES', goMenu, 'paper'];
     kitButtons(st > .5 ? (last ? [share, stagesBtn] : [['next', 'NEXT', afterClear, 'go'], share, stagesBtn]) : [], 500);
 
-  } else if (state === 'profile') {
-    bg('#2b2757', '#322d66', now);
-    txt('PROFILE', W / 2, 40, 54, '#FFE14D');
-    button(14 - OX, 10, 130, 56, '◄ BACK', back, { size: 22 });
-    caos(W / 2, 205, 6, { mood: 'happy' });
-    txt('SAVE YOUR PROGRESS · JOIN THE LEADERBOARDS', W / 2, 262, 22, '#fff', 'center', 740);
-    const ok = pf.avail === 'yes' || pf.avail === 'loading', bx = 190, by = 298, bw = 420, bh = 84;
-    if (ok && !pf.busy) hoverBox(bx, by, bw, bh, '#fff', 5); else box3(bx, by, bw, bh, ok ? '#fff' : '#bdbbc9', 5, 5);
-    googleG(bx + 56, by + bh / 2, 20, !ok);
-    ctx.font = '900 25px "Arial Black", Impact, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = ok ? INK : '#6d6a80'; ctx.fillText(t(pf.busy ? 'Waiting for Google...' : 'Sign in with Google'), bx + 96, by + bh / 2 + 2, bw - 110);
-    if (ok && !pf.busy) ctx.restore();
-    if (pf.busy) button(bx + 60, by + bh + 18, bw - 120, 46, 'CANCEL', cancelGoogle, { size: 20, fill: '#FFE14D' });
-    else if (pf.avail === 'down') { txt('CAN\'T REACH SERVER RIGHT NOW', W / 2, by + bh + 36, 22, '#FF4D4D', 'center', 740); button(300, by + bh + 62, 200, 46, 'RETRY', checkSignIn, { size: 20, fill: '#FFE14D' }); }
-    else if (pf.avail === 'no') txt('SIGN-IN NOT AVAILABLE RIGHT NOW', W / 2, by + bh + 36, 24, '#FF4D4D', 'center', 740);
-    if (!pf.busy && pf.avail !== 'no' && pf.avail !== 'down') btns.push({ x: bx, y: by, w: bw, h: bh, fn: doGoogle });
-    if (pf.msg && !pf.busy && pf.avail !== 'no' && pf.avail !== 'down') txt(pf.msg, W / 2, by + bh + 36, 20, pf.msgCol, 'center', 740);
-    hoverBox(190, 500, 420, 50, '#5CFF7A', 4);
-    txt('OR JUST PLAY AS A GUEST', W / 2, 526, 22, INK, 'center', 400); ctx.restore();
-    btns.push({ x: 190, y: 500, w: 420, h: 50, fn: back });
-    txt('GUESTS KEEP PLAYING FULLY OFFLINE · NO PASSWORD EVER', W / 2, 578, 16, '#ddd', 'center', 760);
   } else if (state === 'board') {
     bg('#1f2a44', '#26335a', now);
     const n = STAGES.length + 1, tp = pageCount(n, PER_TABS), tot = lb.tab === STAGES.length, s = STAGES[lb.tab];
@@ -636,51 +607,6 @@ function render() {
     } else txt('LOADING...', W / 2, 320, 36, '#fff');
     if (!TOUCH) txt('◄ ► TAB · ESC BACK', W + OX - 12, 584, 14, '#ddd', 'right');
     if (!net.user && !c.err) button(W + OX - 184, 10, 170, 56, 'PROFILE', goProfile, { size: 22, fill: '#5CFF7A' });
-  } else if (state === 'pview') {
-    bg('#2b2757', '#322d66', now);
-    button(14 - OX, 10, 130, 56, '◄ BACK', back, { size: 22 });
-    const d = pv.data, me = net.user && pv.name === net.user.username;
-    if (!d) {
-      txt(pv.loading ? 'LOADING...' : pv.err, W / 2, 300, 36, pv.loading ? '#fff' : '#FF4D4D', 'center', 740);
-      if (!pv.loading) button(300, 340, 200, 56, 'RETRY', () => openProfile(pv.name), { size: 24, fill: '#FFE14D' });
-    } else {
-      caos(110, 215, 8, { col: d.color, mood: 'happy' });
-      txt(d.username, 210, 110, 52, d.color, 'left', 560);
-      txt(d.rank ? t('RANK #{rank} · TOTAL {total}', { rank: d.rank, total: d.total }) : 'NOT RANKED YET', 210, 165, 28, '#fff', 'left', 370);
-      if (me) button(590, 150, 190, 50, 'FRIENDS', goFriends, { size: 22, fill: '#5CFF7A' });
-      else if (!net.user) button(560, 150, 220, 50, 'SIGN IN TO FOLLOW', goProfile, { size: 16, fill: '#FFE14D' });
-      else if (fr.list) {
-        const rl = frRel(d.uid), fol = !!(rl && rl.following), mut = fol && rl.followsMe;
-        button(590, 150, 190, 50, fr.busy ? '...' : mut ? '✓ FRIENDS' : fol ? 'FOLLOWING' : rl && rl.followsMe ? 'FOLLOW BACK' : 'FOLLOW', () => followToggle(d.uid, d.username), { size: 22, fill: fol ? '#FFE14D' : '#5CFF7A' });
-        if (rl && rl.followsMe && !fol) txt('FOLLOWS YOU', 685, 238, 15, '#5CFF7A', 'center', 190);
-      }
-      stars3(260, 210, Math.min(3, Math.round(d.totalStars / (STAGES.length * 3) * 3)), 18, 48);
-      txt(t('{stars}/{max} STARS · {unlocked}/{stages} UNLOCKED', { stars: d.totalStars, max: STAGES.length * 3, unlocked: d.unlocked, stages: STAGES.length }), 340, 210, 18, '#ddd', 'left', 440);
-      const cw = 146, ch = 112;
-      STAGES.forEach((s2, i) => {
-        const x = 24 + (i % 5) * (cw + 10), y = 262 + (i / 5 | 0) * (ch + 12), played2 = d.best[i] > 0 || d.stars[i] > 0;
-        box(x, y, cw, ch, played2 ? s2.bg[0] : '#5a5870', 4);
-        txt(t('STAGE {n}', { n: i + 1 }), x + 8, y + 14, 14, '#fff', 'left', cw - 40);
-        txt(played2 ? String(d.best[i]) : '-', x + cw / 2, y + 48, 30, '#fff', 'center', cw - 12);
-        stars3(x + cw / 2, y + 80, d.stars[i], 10, 28);
-        if (d.stageRanks[i]) txt('#' + d.stageRanks[i], x + cw - 8, y + 14, 15, '#FFE14D', 'right');
-      });
-      if (me) {
-        swatches(262, 548, 12, 34, net.user.color, pickColor);
-        txt('COLOUR', 24, 548, 17, '#fff', 'left');
-        button(414, 520, 186, 56, 'CHANGE NAME', openRename, { size: 18, fill: '#FFE14D' });
-        button(612, 520, 178, 56, 'LOG OUT', doLogout, { size: 22, fill: '#FF4D4D', col: '#fff' });
-      }
-    }
-    if (rn.on && me) {
-      btns = []; ctx.fillStyle = 'rgba(10,8,24,.8)'; ctx.fillRect(-OX, 0, VW, H);
-      box(150, 150, 500, 300, '#2b2757', 6);
-      txt('CHANGE NAME', W / 2, 195, 40, '#FFE14D');
-      txt('3-16 LETTERS, NUMBERS, _ -', W / 2, 232, 17, '#ddd');
-      button(215, 340, 170, 52, rn.busy ? '...' : 'SAVE', doRename, { size: 24, fill: '#5CFF7A' });
-      button(415, 340, 170, 52, 'CANCEL', closeRename, { size: 24 });
-      if (rn.msg) txt(rn.msg, W / 2, 418, 18, rn.msg === 'ONE MOMENT...' ? '#fff' : '#FF4D4D', 'center', 470);
-    }
   }
   vignette(state === 'play' ? .22 : .35);
   if (state !== 'play' && st < .3) {                    // slanted ink curtain wipes off to the right on every screen change
@@ -718,7 +644,6 @@ addEventListener('keydown', e => {
     return;
   }
   if (state === 'board') { if (e.code === 'ArrowRight') setTab(lb.tab + 1); else if (e.code === 'ArrowLeft') setTab(lb.tab - 1); }
-  else if (state === 'profile' && go) doGoogle();
   else if (state === 'party' && go) { if (party.view === 'lobby') partyStart(); else if (party.view === 'end' && isHost() && st > .6) partyAgain(); }
   if (state === 'play' && !outcome && pre <= 0 && cur.key) cur.key(e);
   else if (state === 'party' && party.view === 'wait') { partyGhostKey(e); partyWaitKey(e); }   // trap keys of an eliminated player (js/party-ghost.js) or of a finished one in VERSUS / TEAM (js/party-wait.js)

@@ -51,13 +51,21 @@ const assert=require('node:assert/strict');
    await press('Escape');await at('main');assert.equal(await focus(),'m-play');
    await press('Escape');await at('title');
   }
+  // MI PERFIL: a guest picks a character; it sticks on this device and shows on the player chip
+  await page.evaluate(()=>{goMain();});await at('main');
+  await tapId('m-profile');await at('profile');
+  const before=await page.evaluate(()=>perfil.ch);await tapId('ch-next');
+  const after=await page.evaluate(()=>perfil.ch);assert.notEqual(after,before);
+  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('minicaos-perfil-v1')).ch),after);
+  await tapId('guest');await at('main');assert.equal(await focus(),'m-profile',`${tag}: back from the profile lands on MI PERFIL`);
+  await page.evaluate(()=>{setChar(-1);});
   // JOIN: a LA FIESTA code goes to its own page
   await page.evaluate(()=>{goParty('main');});await at('party');
   await page.evaluate(()=>{inCode.value='FIES';});
   await tapId('join');
   await page.waitForURL(/fiesta\.html\?r=FIES/);
   assert.deepEqual(errors,[],`${tag}: no page errors`);
-  console.log(`OK ${tag}: title, main menu, worlds, panas, invite, friends, options; back and focus; FIESTA code routing`);
+  console.log(`OK ${tag}: title, main menu, worlds, panas, invite, friends, options, profile; back and focus; character; FIESTA code routing`);
   await context.close();
  }
  await browser.close();

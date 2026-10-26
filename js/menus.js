@@ -2,7 +2,7 @@
 /* The console-style front end (docs/ui/01-menu-redesign.md): title (press start) → main menu → JUGAR (js/worlds.js) / panas / profile /
    records / options. These screens are drawn with the shared kit (js/ui/mcui.js) and have a tall layout for phones held upright.
    Loaded before js/main.js; everything here runs at draw / input time, so it can use main.js state freely. */
-const KIT_STATES = ['title', 'main', 'worlds', 'options', 'menu', 'practice', 'invite', 'friends'];
+const KIT_STATES = ['title', 'main', 'worlds', 'options', 'menu', 'practice', 'invite', 'friends', 'profile', 'pview'];
 const RESULT_STATES = ['clear', 'over'];   // old-style art, kit buttons: input goes through the kit, no tall layout
 const kitOn = () => (KIT_STATES.includes(state) || panasMenuOn()) && !sh.on;   // panasMenuOn: the party screen before you are in a room (js/panas.js)
 const kitInput = () => kitOn() || (!sh.on && RESULT_STATES.includes(state));
@@ -27,7 +27,7 @@ const kitView = () => ({ w: TALL ? TW : W, h: TALL ? TH : H, ox: TALL ? 0 : OX, 
 function kitChip() {
   const u = net.user, V = MCUI.view(), w = V.tall ? 56 : 184, x = V.tall ? V.w - 16 - w : W + OX - 16 - w;
   MCUI.player('chip', x, 16, w, 56, { name: u ? u.username : t('GUEST'), color: u ? u.color : null,
-    avatar: (cx, feet, h) => caos(cx, feet, h / 24, { col: u ? u.color : '#9a98ad' }) }, goProfile);
+    avatar: (cx, feet, h) => drawMe(cx, feet, h / 24, u ? u.color : '#9a98ad') }, goProfile);   // your character (js/perfil.js)
 }
 function kitLang(x, y, w) {
   MCUI.btn('lang', x, y, w, 48, LANGS.find(l => l.code === I18N.lang).name, () => I18N.next(), { icon: 'globe', size: 16 });
@@ -260,7 +260,7 @@ function kitButtons(items, y) {
 /* ───────────── frame + input ───────────── */
 function drawKit() {
   MCUI.begin(ctx, kitView(), state);
-  codeSlot = friendSlot = null;   // the screens below set the slot their <input> sits in
+  codeSlot = friendSlot = nameSlot = null;   // the screens below set the slot their <input> sits in
   if (state === 'title') drawTitle();
   else if (state === 'main') drawMain();
   else if (state === 'worlds') drawWorlds();
@@ -270,6 +270,8 @@ function drawKit() {
   else if (state === 'party') drawPanas();
   else if (state === 'invite') drawInvite();
   else if (state === 'friends') drawFriends();
+  else if (state === 'profile') drawSignIn();
+  else if (state === 'pview') drawPview();
   if (toast) { MCUI.toast(toast.s, toast.col); toast = null; }
   MCUI.end();
   if (leaving) {

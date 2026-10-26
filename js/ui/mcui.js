@@ -350,17 +350,26 @@ var MCUI = (function () {
     notch(x - 4, y - 4, w + 8, 48, 4, INKC); rect(x, y, w, 40, TONE.panelDk); rect(x, y, 6, 40, toastS.col);
     text(toastS.s, x + w / 2 + 3, y + 21, 16, toastS.col, 'center', w - 24);
   }
-  /* modal: drops everything registered so far and keeps only its own buttons. buttons = [{ label, fn, tone }]; Esc = the last one */
+  /* modal: drops everything registered so far and keeps only its own buttons. buttons = [{ label, fn, tone }]; Esc = the last one.
+     o.input = { focus } adds a slot for a DOM <input> and returns its rectangle [x, y, w, h]; o.msg is a line under it */
   function dialog(o) {
     list = []; modal = true;
     rect(-V.ox, 0, V.w + 2 * V.ox, V.h, 'rgba(20,16,28,.8)');
-    var w = V.tall ? V.w - 32 : 480, x = (V.w - w) / 2, bodyH = o.body ? wrap(o.body, w - 48, 16).length * 24 : 0, h = 152 + bodyH, y = Math.round((V.h - h) / 2);
+    var w = V.tall ? V.w - 32 : 480, x = (V.w - w) / 2, bodyH = o.body ? wrap(o.body, w - 48, 8).length * 16 : 0, inH = o.input ? 80 : 0, h = 152 + bodyH + inH, y = Math.round((V.h - h) / 2), slot = null;
     panel(x, y, w, h, { tone: 'night', band: o.band || TONE.gold });
     text(o.title, V.w / 2, y + 40, 16, TONE.gold, 'center', w - 32);
-    if (o.body) para(o.body, x + 24, y + 72, w - 48, 16, '#fff', 'center', 24);
+    if (o.body) para(o.body, x + 24, y + 68, w - 48, 8, '#ddd', 'center', 16);
+    if (o.input) {   // the host puts its DOM <input> on this slot (returned)
+      var sy = y + 72 + bodyH; notch(x + 20, sy - 4, w - 40, 64, 4, INKC); notch(x + 24, sy, w - 48, 56, 0, '#171c34');
+      add({ id: 'dlg-input', x: x + 24, y: sy, w: w - 48, h: 56, fn: o.input.focus || null });
+      slot = [x + 24, sy, w - 48, 56];
+    }
+    if (o.msg) text(o.msg, V.w / 2, y + h - 100, 8, o.msgCol || '#FF4D4D', 'center', w - 32);
     var bs = o.buttons || [], bw = Math.floor((w - 48 - (bs.length - 1) * 16) / bs.length);
-    for (var i = 0; i < bs.length; i++) btn('dlg' + i, x + 24 + i * (bw + 16), y + h - 84, bw, 64, bs[i].label, bs[i].fn, { tone: bs[i].tone || 'paper', prime: i === 0 });
+    var bsz = 16; for (var k = 0; k < bs.length; k++) if (width(tr(bs[k].label), 16) > bw - 32) bsz = 8;   // one size for the row
+    for (var i = 0; i < bs.length; i++) btn('dlg' + i, x + 24 + i * (bw + 16), y + h - 84, bw, 64, bs[i].label, bs[i].fn, { tone: bs[i].tone || 'paper', prime: i === 0, size: bsz });
     backFn = bs.length ? bs[bs.length - 1].fn : null;
+    return slot;
   }
   function loading(s, k) {
     bg('menu');

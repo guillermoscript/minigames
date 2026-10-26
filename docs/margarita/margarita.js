@@ -6,12 +6,14 @@
    campaña en las casillas M (jugar.html). Parámetros: ?turnos=N  ?sinmj=1 (minijuegos simulados)  ?cpu=1 (los 4 son CPU). */
 (function () {
 const Q = new URLSearchParams(location.search);
-const TURNOS = Math.max(1, Math.min(30, +Q.get('turnos') || 10));
+let TURNOS = Math.max(1, Math.min(30, +Q.get('turnos') || 10));
 const SIN_MJ = Q.get('sinmj') === '1', TODO_CPU = Q.get('cpu') === '1';
 const { nodos, J, PEAJES, PUESTOS, ISLAS, COCHE, NPCS } = MAPA;
 /* Estado de la isla (como el día/noche de Superstars y los eventos de Super MP): hora por ronda (día, día, atardecer, noche),
    clima y vainas que duran N rondas, carnaval a mitad de partida y las 3 últimas rondas al doble. */
-const CARNAVAL = TURNOS >= 4 ? Math.ceil(TURNOS / 2) : 0, FINAL = TURNOS >= 6 ? TURNOS - 2 : TURNOS + 1;
+let CARNAVAL = 0, FINAL = 0;
+function fijarTurnos(n) { TURNOS = Math.max(1, Math.min(30, n | 0)); CARNAVAL = TURNOS >= 4 ? Math.ceil(TURNOS / 2) : 0; FINAL = TURNOS >= 6 ? TURNOS - 2 : TURNOS + 1; }   // la carcasa (shell.js) elige los turnos
+fijarTurnos(TURNOS);
 const E = { hora: 'dia', lluvia: 0, leva: 0, turistas: 0, apagon: false, obras: { O: false, W: false }, carnaval: false, final: false, vis: { tarde: 0, noche: 0, lluvia: 0 },
   sinAgua: null, kraken: 0, sirena: null, oferta: 0, silbon: null };
 const HORAS = ['dia', 'dia', 'tarde', 'noche'];
@@ -938,9 +940,9 @@ async function final() {
 }
 
 /* ───────── bucle de la partida ───────── */
-async function partida() {
+async function partida(intro = true) {
   pintarHud();
-  await preguntar('🏝️ ISLA DE MARGARITA 🏝️\nCompra EMPANADAS DE ORO (20 Bs) a la señora. Cruza por La Restinga o la lancha (el Fiscal cobra peaje).\nCuidado con el Bachaquero. Compra cosas en la BODEGA, paga el SAN, y ojo con el PÍCARO. El que tenga más empanadas gana.\n(Rueda o pellizca para hacer zoom · 🎥 cambia la cámara · ¡TOCA las cosas del mapa, hay 8 SECRETOS escondidos! · ESPACIO adelanta los mensajes)',
+  if (intro) await preguntar('🏝️ ISLA DE MARGARITA 🏝️\nCompra EMPANADAS DE ORO (20 Bs) a la señora. Cruza por La Restinga o la lancha (el Fiscal cobra peaje).\nCuidado con el Bachaquero. Compra cosas en la BODEGA, paga el SAN, y ojo con el PÍCARO. El que tenga más empanadas gana.\n(Rueda o pellizca para hacer zoom · 🎥 cambia la cámara · ¡TOCA las cosas del mapa, hay 8 SECRETOS escondidos! · ESPACIO adelanta los mensajes)',
     [{ l: '¡ARRANCAR!', v: 1 }], TODO_CPU);
   for (S.turno = 1; S.turno <= TURNOS; S.turno++) {
     await inicioRonda();
@@ -1132,6 +1134,8 @@ function ajustar() {
 addEventListener('resize', ajustar); pintarHud(); ajustar();
 acomodar();
 requestAnimationFrame(cuadro);
-partida();
-window.MARGARITA = { S, JUG, nodos, PEAJES, E, CAM, ITEMS, NOTICIAS, MJ, DUELOS, urlMJ, minijuego, bronca };   // minijuego/bronca/urlMJ: para forzarlos en pruebas desde la consola
+// con la carcasa (shell.js) el tablero espera a ¡ARRANCAR!, que ya explicó las reglas; ?cpu=1 y ?turnos=N siguen entrando directo
+const carcasa = !!window.MARGARITA_SHELL && !TODO_CPU && !Q.has('turnos');
+if (!carcasa) { if (window.MARGARITA_SHELL) window.MARGARITA_SHELL.hide(); partida(); }
+window.MARGARITA = { S, JUG, nodos, PEAJES, E, CAM, ITEMS, NOTICIAS, MJ, DUELOS, urlMJ, minijuego, bronca, arrancar: (n) => { fijarTurnos(n); partida(false); } };   // minijuego/bronca/urlMJ: para forzarlos en pruebas desde la consola
 })();

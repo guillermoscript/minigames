@@ -72,13 +72,23 @@ const assert=require('node:assert/strict');
   const tab0=await page.evaluate(()=>lb.tab);await tapId('lb-next');assert.equal(await page.evaluate(()=>lb.tab),(tab0+1)%await page.evaluate(()=>STAGES.length));
   await tapId('lbw1');assert.equal(await page.evaluate(()=>lbWorld),1);await tapId('lbw0');
   await tapId('back');await at('main');assert.equal(await focus(),'m-records',`${tag}: back from records lands on RÉCORDS`);
+  // MARGARITA (local only): the kit shell picks the turns, starts the board, Esc asks before leaving, back lands on its card
+  await page.evaluate(()=>{goWorlds();});await at('worlds');
+  await tapId('w-margarita');await page.waitForURL(/docs\/margarita/);await page.waitForFunction(()=>window.MARGARITA_SHELL&&MARGARITA_SHELL.on);
+  await tapId('turnos-15');await tapId('arrancar');
+  await page.waitForFunction(()=>!MARGARITA_SHELL.on&&MARGARITA.S.turno>=1);
+  assert.match(await page.evaluate(()=>document.getElementById('turno').textContent),/1\/15/);
+  await page.keyboard.press('Escape');await page.waitForFunction(()=>MARGARITA_SHELL.on);await tapId('dlg1');
+  await page.waitForURL(/from=margarita/);await at('worlds');assert.equal(await focus(),'w-margarita',`${tag}: back from Margarita lands on its card`);
+  const autostart=await context.newPage();await autostart.goto(base+'/docs/margarita/?cpu=1&sinmj=1&turnos=1');
+  await autostart.waitForFunction(()=>window.MARGARITA&&MARGARITA.S.turno>=1&&!MARGARITA_SHELL.on);await autostart.close();   // ?cpu=1 still skips the shell
   // JOIN: a LA FIESTA code goes to its own page
   await page.evaluate(()=>{goParty('main');});await at('party');
   await page.evaluate(()=>{inCode.value='FIES';});
   await tapId('join');
   await page.waitForURL(/fiesta\.html\?r=FIES/);
   assert.deepEqual(errors,[],`${tag}: no page errors`);
-  console.log(`OK ${tag}: title, main menu, worlds, panas, invite, friends, options, profile, records, volumes, controls; back and focus; character; FIESTA code routing`);
+  console.log(`OK ${tag}: title, main menu, worlds, panas, invite, friends, options, profile, records, volumes, controls, margarita; back and focus; character; FIESTA code routing`);
   await context.close();
  }
  await browser.close();

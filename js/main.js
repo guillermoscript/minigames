@@ -416,15 +416,15 @@ function googleG(cx, cy, r, grey) {
   ctx.restore();
 }
 function placeInputs() {
-  const showName = state === 'pview' && rn.on && !!net.user, showCode = state === 'party' && party.view === 'menu', showFriend = state === 'friends' && fr.add && !!net.user;
+  const showName = state === 'pview' && rn.on && !!net.user, showCode = state === 'party' && party.view === 'menu' && !!codeSlot, showFriend = state === 'friends' && !!net.user && !!friendSlot;
   ov.style.display = showName || showCode || showFriend ? 'block' : 'none';
   inName.style.display = showName ? 'block' : 'none'; inCode.style.display = showCode ? 'block' : 'none'; inFriend.style.display = showFriend ? 'block' : 'none';
   if (!showName && !showCode && !showFriend) return;
   const r = cv.getBoundingClientRect(), k = r.width / VW;
-  const put = (el, x, y, w, h) => { const s = el.style; s.left = r.left + (x + OX) * k + 'px'; s.top = r.top + y * k + 'px'; s.width = w * k + 'px'; s.height = h * k + 'px'; s.fontSize = h * k * .5 + 'px'; };
+  const put = (el, x, y, w, h) => { const s = el.style; s.left = r.left + (x + OX) * k + 'px'; s.top = r.top + y * k + 'px'; s.width = w * k + 'px'; s.height = h * k + 'px'; s.fontSize = h * k * .36 + 'px'; };   // Press Start 2P is wide: a third of the slot height
   if (showName) put(inName, 200, 262, 400, 52);
-  else if (showFriend) put(inFriend, 165, 82, 430, 52);
-  else put(inCode, 200, 322, 260, 64);
+  else if (showFriend) put(inFriend, ...friendSlot);   // slots come from the kit screens (js/panas.js)
+  else put(inCode, ...codeSlot);
 }
 function hintOf(g) {
   if (!TOUCH) return t(g.hint);
@@ -636,62 +636,6 @@ function render() {
     } else txt('LOADING...', W / 2, 320, 36, '#fff');
     if (!TOUCH) txt('◄ ► TAB · ESC BACK', W + OX - 12, 584, 14, '#ddd', 'right');
     if (!net.user && !c.err) button(W + OX - 184, 10, 170, 56, 'PROFILE', goProfile, { size: 22, fill: '#5CFF7A' });
-  } else if (state === 'friends') {
-    bg('#1f2a44', '#26335a', now);
-    txt('FRIENDS', W / 2, 38, 44, '#FFE14D');
-    button(14 - OX, 10, 130, 56, '◄ BACK', back, { size: 22 });
-    if (!net.user) {
-      caos(W / 2, 215, 6, { mood: 'happy' });
-      txt('SIGN IN WITH GOOGLE TO FOLLOW PLAYERS', W / 2, 290, 26, '#fff', 'center', 740);
-      txt('FOLLOW EACH OTHER = FRIENDS', W / 2, 328, 20, '#ddd', 'center', 740);
-      button(250, 380, 300, 64, 'PROFILE', goProfile, { fill: '#5CFF7A', size: 28 });
-    } else {
-      txt('SEARCH BY PLAYER NAME', 40, 100, 17, '#ddd', 'left');
-      button(610, 82, 150, 52, fr.busy && !fr.found ? 'SEARCHING...' : 'SEARCH', doAddFriend, { size: 20, fill: '#5CFF7A' });
-      for (let i = 0; i < 3; i++) button(40 + i * 245, 145, 235, 48, t(FR_TABS[i], { n: fr.list ? frOf(i).length : '-' }), () => { fr.tab = i; fr.page = 0; }, { size: 18, fill: i === fr.tab ? '#FFE14D' : '#fff' });
-      if (fr.msg) txt(fr.msg, W / 2, 207, 18, fr.msg === 'ONE MOMENT...' ? '#fff' : '#FF4D4D', 'center', 470);
-      if (fr.found) {
-        const rel = frRel(fr.found.uid), following = !!(rel && rel.following);
-        box(40, 184, 720, 58, '#222b4c', 3);
-        txt(fr.found.username, 60, 213, 22, '#fff', 'left', 350);
-        button(570, 188, 175, 48, following ? '✓ FOLLOWING' : rel && rel.followsMe ? 'FOLLOW BACK' : 'FOLLOW',
-          () => following ? openProfile(fr.found.username) : followToggle(fr.found.uid, fr.found.username), { size: 17, fill: following ? '#FFE14D' : '#5CFF7A' });
-      }
-      const list = frOf(fr.tab), pages = pageCount(list.length, FR_PER);
-      if (fr.list) {
-        if (!list.length) {
-          txt(fr.tab === 0 ? 'NO FRIENDS YET' : fr.tab === 1 ? 'YOU\'RE NOT FOLLOWING ANYONE' : 'NOBODY FOLLOWS YOU YET', W / 2, 300, 27, '#fff', 'center', 740);
-          txt('SEARCH FOR A PLAYER ABOVE TO GET STARTED', W / 2, 338, 17, '#ddd', 'center', 740);
-        }
-        list.slice(fr.page * FR_PER, fr.page * FR_PER + FR_PER).forEach((f, i) => {
-          const y = 258 + i * 48, act = fr.tab === 2 && !f.following, w = act ? 560 : 720, mut = f.following && f.followsMe;
-          box(40, y, w, 44, i % 2 ? '#35406a' : '#2c3659', 3);
-          caos(80, y + 46, 2.2, { col: f.color });
-          ctx.save(); txt(f.username, 112, y + 22, 20, f.color, 'left', 250); ctx.restore();
-          txt(mut ? '✓ FRIENDS' : f.following ? 'FOLLOWING' : 'FOLLOWS YOU', 395, y + 22, 15, mut ? '#5CFF7A' : f.following ? '#FFE14D' : '#ddd', 'left', 140);
-          txt(String(f.total), 40 + w - 12, y + 22, 18, '#fff', 'right');
-          btns.push({ x: 40, y, w, h: 44, fn: () => openProfile(f.username) });
-          if (act) button(610, y, 150, 44, 'FOLLOW BACK', () => followToggle(f.uid, f.username), { size: 15, fill: '#5CFF7A' });
-        });
-        if (pages > 1) {
-          button(40, 530, 90, 50, '◄', () => { fr.page = (fr.page + pages - 1) % pages; }, { size: 24, fill: '#FFE14D' });
-          button(670, 530, 90, 50, '►', () => { fr.page = (fr.page + 1) % pages; }, { size: 24, fill: '#FFE14D' });
-          txt(t('PAGE {n}/{total}', { n: fr.page + 1, total: pages }), W / 2, 556, 18, '#fff');
-        }
-      } else if (fr.err) {
-        txt(fr.err, W / 2, 300, 30, '#FF4D4D', 'center', 740);
-        button(300, 340, 200, 56, 'RETRY', loadFriends, { size: 24, fill: '#FFE14D' });
-      } else txt('LOADING...', W / 2, 320, 36, '#fff');
-      if (fr.add) {
-        btns = []; ctx.fillStyle = 'rgba(10,8,24,.8)'; ctx.fillRect(-OX, 0, VW, H);
-        box(150, 150, 500, 300, '#2b2757', 6);
-        txt('ADD A FRIEND', W / 2, 195, 40, '#FFE14D');
-        txt('TYPE THEIR PLAYER NAME', W / 2, 232, 17, '#ddd');
-        button(215, 340, 170, 52, fr.busy ? '...' : 'FIND', doAddFriend, { size: 24, fill: '#5CFF7A' });
-        button(415, 340, 170, 52, 'CANCEL', closeAddFriend, { size: 24 });
-        if (fr.msg) txt(fr.msg, W / 2, 418, 18, fr.msg === 'ONE MOMENT...' ? '#fff' : '#FF4D4D', 'center', 470);
-      }
-    }
   } else if (state === 'pview') {
     bg('#2b2757', '#322d66', now);
     button(14 - OX, 10, 130, 56, '◄ BACK', back, { size: 22 });
@@ -749,7 +693,7 @@ function render() {
 /* ───────────── input events ───────────── */
 addEventListener('keydown', e => {
   if (e.target && e.target.tagName === 'INPUT') { // typing in a profile field: don't leak keys into the game
-    if (e.target.id === 'in-code') { if (e.code === 'Enter') { e.preventDefault(); joinTyped(); } else if (e.code === 'Escape') e.target.blur(); return; }
+    if (e.target.id === 'in-code') { if (e.code === 'Enter') { e.preventDefault(); panasJoin(); } else if (e.code === 'Escape') e.target.blur(); return; }
     if (e.target.id === 'in-friend') { if (e.code === 'Enter') { e.preventDefault(); doAddFriend(); } else if (e.code === 'Escape') closeAddFriend(); return; }
     if (e.code === 'Enter') { e.preventDefault(); doRename(); }
     else if (e.code === 'Escape') closeRename();

@@ -143,6 +143,7 @@ var MCUI = (function () {
     cup: ['1111111', '1011101', '0111110', '0011100', '0001000', '0011100', '0111110'],
     friends: ['0110000110', '0110000110', '0000000000', '1111001111', '1111001111', '1111001111'],
     play: ['1000', '1100', '1110', '1111', '1110', '1100', '1000'],
+    check: ['0000001', '0000011', '1000110', '1101100', '0111000', '0010000'],
     share: ['0001100', '0011110', '0101101', '0001100', '0001100', '1101011', '1111111'],
     wifi: ['0111110', '1000001', '0011100', '0100010', '0001000', '0001000'],
     nowifi: ['1000001', '0100010', '0010100', '0001000', '0010100', '0100010', '1000001']
@@ -300,7 +301,8 @@ var MCUI = (function () {
     o = o || {};
     if (o.band) { rect(-V.ox, 0, V.w + 2 * V.ox, 88, o.band); dither(-V.ox, 0, V.w + 2 * V.ox, 88, mix(o.band, INKC, 0.12), 4); rect(-V.ox, 88, V.w + 2 * V.ox, 4, INKC); }
     var maxW = V.tall ? V.w - 2 * 80 : V.w - 2 * 176;
-    text(title, V.w / 2, V.tall ? 44 : 44, V.tall ? 16 : 32, o.col || TONE.gold, 'center', maxW);
+    if (V.tall) label(title, V.w / 2, 44, maxW, 72, 16, o.col || TONE.gold);   // narrow: two lines of 16 before going smaller
+    else text(title, V.w / 2, 44, 32, o.col || TONE.gold, 'center', maxW);
     return V.tall ? 104 : 104;
   }
   function keybar(items) {

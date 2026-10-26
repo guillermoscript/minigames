@@ -116,7 +116,6 @@ async function partyJoin(code) {
   const idn = partyIdentity(), r = await pcall('join', { code, name: idn.name, color: idn.color, id: old && old.code === code ? old.id : undefined, key: old && old.code === code ? old.key : undefined });
   if (enterRoom(r)) track('party_join', { signed_in: !!net.user, invited: code === PINVITE });
 }
-const joinTyped = () => partyJoin(inCode ? inCode.value : '');
 function joinInvite() { PINVITE_USED = true; partyJoin(PINVITE); }
 let PINVITE_USED = false;
 const inviteOpen = () => !!PINVITE && !PINVITE_USED;
@@ -542,42 +541,13 @@ function mini(x, y, p, u) { caos(x, y, u, { col: p.color }); }
 function drawParty() {
   const R = party.room, v = party.view;
   bg('#1f2a44', '#26335a', now);
-  if (!R || v === 'menu' || v === 'joining') { drawPartyMenu(); vignette(.14); return; }   // no voice button before there is a room
+  if (!R) return;   // before a room the hub is the kit screen in js/panas.js
   if (v === 'lobby') drawLobby(R);
   else if (v === 'between') drawBetween(R);
   else if (v === 'end') drawEnd(R);
   else drawWait(R);
   vignette(.14);
   voiceButton(W + OX - 164, 8, 150, 42);
-}
-
-function drawPartyMenu() {
-  const K = pui(), U = K.U;
-  const bob = Math.sin(now * 2) * 2;
-  txt('PLAY WITH FRIENDS', 372, 44 + bob, 35, '#FFE14D', 'center', 410);
-  K.btn(14, 10, 130, 56, '◄ BACK', partyHome, { size: 22 });
-  K.btn(W + OX - 204, 10, 190, 56, 'MY FRIENDS', goFriends, { size: 20, fill: '#B49CFF' });
-  if (net.user && frPending() > 0) { U.orb(W + OX - 20, 14, 14, { col: '#ff4d5e', t: now }); txt(String(frPending()), W + OX - 20, 15, 15, '#fff'); }
-  ['INVITE FRIENDS', 'CHOOSE A MODE', 'PLAY TOGETHER'].forEach((label, i) => {
-    const x = 68 + i * 247;
-    U.orb(x, 113, 15, { col: i === 0 ? '#4DB8FF' : i === 1 ? '#B49CFF' : '#7BD88F', t: now, seed: i * 1.3 }); txt(String(i + 1), x, 114, 17, INK); txt(label, x + 24, 113, 15, '#fff', 'left', 192);
-  });
-  K.panel(40, 158, 720, 112, '#252c4b', { band: '#7BD88F' });
-  txt('HOST A PARTY', 64, 192, 26, '#7BD88F', 'left', 330);
-  txt('Create a room and invite your friends.', 64, 229, 16, '#fff', 'left', 350);
-  K.btn(450, 180, 286, 66, 'CREATE ROOM', partyCreate, { fill: '#5CFF7A', size: 28 });
-  K.panel(40, 290, 720, 142, '#252c4b', { band: '#4DB8FF' });
-  txt('JOIN A ROOM', 400, 306, 17, '#4DB8FF');
-  ctx.save(); U.rr(190, 316, 280, 76, 18); U.ink('#171c34', 4); ctx.restore();       // the slot the code box (a DOM input at 200,322) sits in
-  K.btn(480, 322, 120, 64, 'JOIN', joinTyped, { fill: '#4DB8FF', size: 28 });
-  txt('Enter the 4-character code shared by the host.', 400, 412, 16, '#ddd', 'center', 680);
-  const idn = partyIdentity();
-  K.panel(40, 458, 720, 82, '#171c34', { o: 3, sh: 4, edge: idn.color });
-  U.avatar(88, 497, 24, idn.color, { mood: 'happy', t: now, bob: true });
-  txt(t('PLAYING AS {name}', { name: idn.name.toUpperCase() }), 124, 485, 21, idn.color, 'left', 612);
-  txt(net.user ? 'Ready to play with your profile.' : 'Guest play is ready. No account needed.', 124, 519, 16, '#ddd', 'left', 612);
-  if (party.msg) K.plaque(W / 2, 571, party.msg, 20, party.msgCol, { maxW: 760 });
-  else txt('2-4 PLAYERS · ONLINE · MOUSE, KEYBOARD OR TOUCH', W / 2, 571, 14, '#B49CFF', 'center', 740);
 }
 
 function drawLobby(R) {

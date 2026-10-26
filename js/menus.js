@@ -2,10 +2,10 @@
 /* The console-style front end (docs/ui/01-menu-redesign.md): title (press start) → main menu → JUGAR (js/worlds.js) / panas / profile /
    records / options. These screens are drawn with the shared kit (js/ui/mcui.js) and have a tall layout for phones held upright.
    Loaded before js/main.js; everything here runs at draw / input time, so it can use main.js state freely. */
-const KIT_STATES = ['title', 'main', 'worlds', 'options', 'menu', 'practice'];
+const KIT_STATES = ['title', 'main', 'worlds', 'options', 'menu', 'practice', 'invite', 'friends'];
 const RESULT_STATES = ['clear', 'over'];   // old-style art, kit buttons: input goes through the kit, no tall layout
-const kitOn = () => KIT_STATES.includes(state) && !sh.on;
-const kitInput = () => !sh.on && (KIT_STATES.includes(state) || RESULT_STATES.includes(state));
+const kitOn = () => (KIT_STATES.includes(state) || panasMenuOn()) && !sh.on;   // panasMenuOn: the party screen before you are in a room (js/panas.js)
+const kitInput = () => kitOn() || (!sh.on && RESULT_STATES.includes(state));
 tallWanted = kitOn;
 MCUI.sounds({ click: () => sfx.click(), tick: () => sfx.tick(), back: () => sfx.whoosh(false) });
 let optFrom = 'main', leaving = null;
@@ -131,7 +131,7 @@ function drawMain() {
     const fid = MCUI.focus() && MAIN_ITEMS.some(m => m.id === MCUI.focus()) ? MCUI.focus() : 'm-play';
     mainScene(fid, V.w / 2, top + 76 + off);
     MAIN_ITEMS.forEach((m, i) => MCUI.btn(m.id, 16, top + 160 + i * rowH + off, V.w - 32, 72, m.label, m.fn, { icon: m.icon, tone: m.tone, align: 'left', prime: i === 0, dot: m.id === 'm-party' && pend ? pend : 0 }));
-    MCUI.btn('m-invite', 16, top + 160 + MAIN_ITEMS.length * rowH + off, V.w - 32, 64, 'INVITE A FRIEND', () => doShare('invite'), { icon: 'share', tone: 'info' });
+    MCUI.btn('m-invite', 16, top + 160 + MAIN_ITEMS.length * rowH + off, V.w - 32, 64, 'INVITE A FRIEND', goInvite, { icon: 'share', tone: 'info' });
     MCUI.scrollEnd();
     return;
   }
@@ -140,7 +140,7 @@ function drawMain() {
   MCUI.panel(424, 112, 336, 296, { tone: 'panel', band: MCUI.TONE[sel.tone] || '#fffdf2' });
   mainScene(sel.id, 592, 196);
   MCUI.para(sel.desc, 440, 320, 304, 16, '#fff', 'left', 24);
-  MCUI.btn('m-invite', 424, 436, 336, 64, 'INVITE A FRIEND', () => doShare('invite'), { icon: 'share', tone: 'info' });
+  MCUI.btn('m-invite', 424, 436, 336, 64, 'INVITE A FRIEND', goInvite, { icon: 'share', tone: 'info' });
   MCUI.keybar([['ESC', 'GO BACK'], ['ENTER', 'CHOOSE'], ['ARROWS', 'MOVE']]);
 }
 
@@ -260,12 +260,16 @@ function kitButtons(items, y) {
 /* ───────────── frame + input ───────────── */
 function drawKit() {
   MCUI.begin(ctx, kitView(), state);
+  codeSlot = friendSlot = null;   // the screens below set the slot their <input> sits in
   if (state === 'title') drawTitle();
   else if (state === 'main') drawMain();
   else if (state === 'worlds') drawWorlds();
   else if (state === 'options') drawOptions();
   else if (state === 'menu') drawClassicStages();
   else if (state === 'practice') drawClassicPractice();
+  else if (state === 'party') drawPanas();
+  else if (state === 'invite') drawInvite();
+  else if (state === 'friends') drawFriends();
   if (toast) { MCUI.toast(toast.s, toast.col); toast = null; }
   MCUI.end();
   if (leaving) {

@@ -2,7 +2,7 @@
 /* The console-style front end (docs/ui/01-menu-redesign.md): title (press start) → main menu → JUGAR (js/worlds.js) / panas / profile /
    records / options. These screens are drawn with the shared kit (js/ui/mcui.js) and have a tall layout for phones held upright.
    Loaded before js/main.js; everything here runs at draw / input time, so it can use main.js state freely. */
-const KIT_STATES = ['title', 'main', 'worlds', 'options', 'menu', 'practice', 'invite', 'friends', 'profile', 'pview', 'board'];
+const KIT_STATES = ['title', 'main', 'worlds', 'options', 'menu', 'practice', 'invite', 'friends', 'profile', 'pview', 'board', 'controls'];
 const RESULT_STATES = ['clear', 'over'];   // old-style art, kit buttons: input goes through the kit, no tall layout
 const kitOn = () => (KIT_STATES.includes(state) || panasMenuOn()) && !sh.on;   // panasMenuOn: the party screen before you are in a room (js/panas.js)
 const kitInput = () => kitOn() || (!sh.on && RESULT_STATES.includes(state));
@@ -33,7 +33,7 @@ function kitLang(x, y, w) {
   MCUI.btn('lang', x, y, w, 48, LANGS.find(l => l.code === I18N.lang).name, () => I18N.next(), { icon: 'globe', size: 16 });
 }
 function kitSound(x, y) {
-  MCUI.btn('sound', x, y, 56, 48, '', () => { muted = !muted; if (!muted) sfx.click(); else EGGS.stop(); }, { icon: muted ? 'mute' : 'note' });
+  MCUI.btn('sound', x, y, 56, 48, '', muteToggle, { icon: muted ? 'mute' : 'note' });
 }
 
 /* ───────────── T0 title ───────────── */
@@ -100,7 +100,7 @@ const MAIN_ITEMS = [
   { id: 'm-party', label: 'PARTY WITH FRIENDS', icon: 'friends', tone: 'info', desc: 'MAKE A ROOM, SHARE THE CODE AND PLAY LIVE WITH UP TO 4 FRIENDS.', fn: () => goParty('main') },
   { id: 'm-profile', label: 'MY PROFILE', icon: 'person', tone: 'lilac', desc: 'YOUR NAME, YOUR COLOUR, YOUR STARS AND YOUR RANK.', fn: () => goProfile() },
   { id: 'm-records', label: 'RECORDS', icon: 'cup', tone: 'gold', desc: 'THE BEST SCORES OF EVERY STAGE.', fn: () => goBoard() },
-  { id: 'm-options', label: 'OPTIONS', icon: 'gear', tone: 'paper', desc: 'LANGUAGE, SOUND AND INSTALLING THE APP.', fn: () => goOptions() },
+  { id: 'm-options', label: 'OPTIONS', icon: 'gear', tone: 'paper', desc: 'LANGUAGE, MUSIC AND EFFECTS VOLUME, CONTROLS AND INSTALLING THE APP.', fn: () => goOptions() },
 ];
 function mainScene(id, cx, cy) {
   const hop = k => Math.floor(Math.abs(Math.sin(now * 4 + k)) * 4) * 4, u = net.user;
@@ -144,32 +144,79 @@ function drawMain() {
   MCUI.keybar([['ESC', 'GO BACK'], ['ENTER', 'CHOOSE'], ['ARROWS', 'MOVE']]);
 }
 
-/* ───────────── O0 options (step 1: language, sound, install; volumes and controls come later) ───────────── */
+/* ───────────── O0 options and O1 controls ───────────── */
+const muteToggle = () => { muted = !muted; if (!muted) sfx.click(); else EGGS.stop(); };
 function drawOptions() {
-  const V = MCUI.view(), pwa = window.PWA;
+  const V = MCUI.view(), pwa = window.PWA, tall = V.tall;
   if (pwa) pwa.shown();
   MCUI.bg('menu');
   MCUI.header('OPTIONS');
   MCUI.back(() => { state = optFrom; st = 0; }, 'GO BACK');
   kitChip();
+  const canInstall = !!(pwa && pwa.available()), installed = !!(pwa && pwa.installed());
   const rows = [
-    { id: 'o-lang', label: 'LANGUAGE', value: LANGS.find(l => l.code === I18N.lang).name, icon: 'globe', fn: () => I18N.next() },
-    { id: 'o-sound', label: 'SOUND', value: muted ? 'OFF' : 'ON', icon: muted ? 'mute' : 'note', fn: () => { muted = !muted; if (!muted) sfx.click(); else EGGS.stop(); }, tone: muted ? 'paper' : 'go' },
-    { id: 'o-install', label: 'INSTALL APP', value: pwa && pwa.installed() ? 'INSTALLED' : 'INSTALL', icon: 'right', fn: () => pwa && pwa.install(), off: !(pwa && pwa.available()), tone: 'gold' },
+    ['LANGUAGE', (x, y, w, h) => MCUI.btn('o-lang', x, y, w, h, LANGS.find(l => l.code === I18N.lang).name, () => I18N.next(), { icon: 'globe', prime: true })],
+    ['MUSIC', (x, y, w, h) => MCUI.slider('o-music', x, y, w, h, () => vol.music, v => setVolume('music', v))],
+    ['EFFECTS', (x, y, w, h) => MCUI.slider('o-sfx', x, y, w, h, () => vol.sfx, v => { setVolume('sfx', v); sfx.coin(); })],
+    ['SOUND', (x, y, w, h) => MCUI.btn('o-sound', x, y, w, h, muted ? 'OFF' : 'ON', muteToggle, { icon: muted ? 'mute' : 'note', tone: muted ? 'paper' : 'go', key: 'M' })],
+    ['CONTROLS', (x, y, w, h) => MCUI.btn('o-controls', x, y, w, h, 'SEE', goControls, { icon: 'right', tone: 'lilac' })],
+    ['INSTALL APP', (x, y, w, h) => MCUI.btn('o-install', x, y, w, h, installed ? 'INSTALLED' : 'INSTALL', () => pwa && pwa.install(), { icon: installed ? 'check' : 'right', tone: 'gold', off: !canInstall })],
   ];
+  const rh = tall ? 56 : 52, gap = tall ? 16 : 8, top = 112, cx = tall ? 160 : 380, cw = tall ? V.w - 16 - 160 : 380, lx = tall ? 16 : 64;
+  const off = tall ? MCUI.scrollStart('options', top - 8, V.h - 8, rows.length * (rh + gap) + 160) : 0;
   rows.forEach((r, i) => {
-    if (V.tall) {
-      const y = 112 + i * 128;
-      MCUI.text(r.label, 24, y + 12, 16, '#fff', 'left', V.w - 48);
-      MCUI.btn(r.id, 16, y + 36, V.w - 32, 64, r.value, r.fn, { icon: r.icon, tone: r.tone, off: r.off, prime: i === 0 });
-    } else {
-      const y = 128 + i * 96;
-      MCUI.text(r.label, 64, y + 32, 24, '#fff', 'left', 320);
-      MCUI.btn(r.id, 420, y, 316, 64, r.value, r.fn, { icon: r.icon, tone: r.tone, off: r.off, prime: i === 0 });
-    }
+    const y = top + i * (rh + gap) + off;
+    MCUI.text(r[0], lx, y + rh / 2, tall ? 8 : 16, '#fff', 'left', cx - lx - 16);
+    r[1](cx, y, cw, rh);
   });
-  if (!(pwa && pwa.available()) && !(pwa && pwa.installed())) MCUI.para('YOUR BROWSER CAN ADD MINICAOS TO THE HOME SCREEN FROM ITS OWN MENU.', V.tall ? 16 : 64, V.tall ? 520 : 440, V.tall ? V.w - 32 : 672, 8, '#ddd', 'left', 16);
-  MCUI.keybar([['ESC', 'GO BACK'], ['ENTER', 'CHANGE'], ['ARROWS', 'MOVE']]);
+  let y = top + rows.length * (rh + gap) + off;
+  if (!canInstall && !installed) { MCUI.para('YOUR BROWSER CAN ADD MINICAOS TO THE HOME SCREEN FROM ITS OWN MENU.', cx, y - 4, cw, 8, '#ddd', 'left', 14); y += 36; }
+  const lw = tall ? (V.w - 48) / 2 : 180;
+  MCUI.btn('o-privacy', tall ? 16 : cx, y + 8, lw, 44, 'PRIVACY', () => window.open('privacy/', '_blank', 'noopener'), { size: 8 });
+  MCUI.btn('o-terms', tall ? 32 + lw : cx + lw + 20, y + 8, lw, 44, 'TERMS', () => window.open('terms/', '_blank', 'noopener'), { size: 8 });
+  if (tall) MCUI.scrollEnd();
+  MCUI.keybar([['ESC', 'GO BACK'], ['ARROWS', 'MOVE'], ['ENTER', 'CHANGE']]);
+}
+let ctlFrom = 'options';
+function goControls() { if (state !== 'controls') ctlFrom = state; state = 'controls'; st = 0; }
+/* O1: the same input rules everywhere (docs/ui/01-menu-redesign.md §4) */
+const CONTROLS = [
+  ['MOVE', 'ARROWS · WASD', 'D-PAD · STICK', 'TAP'],
+  ['CHOOSE', 'ENTER · SPACE', 'A', 'TAP'],
+  ['GO BACK', 'ESC · BACKSPACE', 'B', 'BACK BUTTON'],
+  ['TABS', 'Q / E', 'LB / RB', 'TAP THE TAB'],
+  ['OPTIONS', 'O', 'SELECT', 'MAIN MENU'],
+  ['MUTE', 'M', '-', 'OPTIONS'],
+];
+function drawControls() {
+  const V = MCUI.view(), tall = V.tall;
+  MCUI.bg('menu');
+  MCUI.header('CONTROLS');
+  MCUI.back(() => { state = ctlFrom; st = 0; }, 'GO BACK');
+  kitChip();
+  const heads = ['', 'KEYBOARD', 'GAMEPAD', 'TOUCH'];
+  if (tall) {
+    const off = MCUI.scrollStart('controls', 104, V.h - 8, CONTROLS.length * 120 + 80);
+    CONTROLS.forEach((r, i) => {
+      const y = 112 + i * 120 + off;
+      MCUI.panel(16, y, V.w - 32, 104, { tone: 'panelDk', band: MCUI.TONE.lilac });
+      MCUI.text(r[0], 32, y + 28, 16, '#FFE14D', 'left', V.w - 64);
+      for (let k = 1; k < 4; k++) { MCUI.text(heads[k], 32, y + 34 + k * 18, 8, '#ddd', 'left'); MCUI.text(r[k], V.w - 32, y + 34 + k * 18, 8, '#fff', 'right', 200); }
+    });
+    MCUI.para('IN A MICROGAME, EACH GAME SAYS ITS OWN CONTROLS ON ITS CARD.', 16, 112 + CONTROLS.length * 120 + 8 + off, V.w - 32, 8, '#ddd', 'center', 16);
+    MCUI.scrollEnd();
+    return;
+  }
+  const xs = [40, 240, 440, 600], ws = [192, 192, 152, 160];
+  MCUI.panel(32, 112, 736, 52, { tone: 'panelDk', band: MCUI.TONE.lilac });
+  heads.forEach((h, k) => { if (h) MCUI.text(h, xs[k] + 8, 144, 8, '#FFE14D', 'left', ws[k]); });
+  CONTROLS.forEach((r, i) => {
+    const y = 176 + i * 56;
+    MCUI.panel(32, y, 736, 44, { tone: i % 2 ? '#35406a' : '#2c3659' });
+    r.forEach((c, k) => MCUI.text(c, xs[k] + 8, y + 22, k ? 8 : 16, k ? '#fff' : '#FFE14D', 'left', ws[k] - 8));
+  });
+  MCUI.para('IN A MICROGAME, EACH GAME SAYS ITS OWN CONTROLS ON ITS CARD.', 32, 520, 736, 8, '#ddd', 'center', 16);
+  MCUI.keybar([['ESC', 'GO BACK']]);
 }
 
 /* ───────────── W1 Clásico: world shell with ETAPAS · PRÁCTICA · RÉCORDS ───────────── */
@@ -265,6 +312,7 @@ function drawKit() {
   else if (state === 'main') drawMain();
   else if (state === 'worlds') drawWorlds();
   else if (state === 'options') drawOptions();
+  else if (state === 'controls') drawControls();
   else if (state === 'menu') drawClassicStages();
   else if (state === 'practice') drawClassicPractice();
   else if (state === 'party') drawPanas();

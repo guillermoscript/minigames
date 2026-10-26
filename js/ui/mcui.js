@@ -18,7 +18,7 @@
      card(id,x,y,w,h,o)          o = { color, art(cx,cy,t,focused), title, desc, foot, badges:[{text,tone,icon}], stamp, fn, off, prime }
      area(id,x,y,w,h,fn,o)       invisible tap target; o = { focus, prime } makes it focusable
      panel(x,y,w,h,o)  badge(x,y,text,tone,o)  header(title,o)  back(fn,label)  player(id,x,y,w,h,o,fn)
-     tile(id,x,y,w,h,fill,draw(dy,focused),fn,o)  tabBar(id,x,y,w,h,labels,sel,fn)  pager(id,cx,y,page,pages,fn)  setBack(fn)  onEdge(fn)
+     slider(id,x,y,w,h,get,fn)  tile(id,x,y,w,h,fill,draw(dy,focused),fn,o)  tabBar(id,x,y,w,h,labels,sel,fn)  pager(id,cx,y,page,pages,fn)  setBack(fn)  onEdge(fn)
      keybar(list)  toast(text,tone)  dialog(o)  loading(text,k)  bg(theme)  wipe(k,color)
      text(s,x,y,size,col,align,maxW)  para(s,x,y,w,size,col,align,lh)  icon(name,x,y,unit,col)  plate(x,y,w,h,fill,o)
    Tests
@@ -201,7 +201,7 @@ var MCUI = (function () {
       else label(lab, cx, cy, avail, h - 8, size, col, o.align, left);
     }
     if (o.dot) { notch(x + w - 14, y - 10 + dy, 24, 24, 2, INKC); rect(x + w - 12, y - 8 + dy, 20, 20, TONE.bad); text(String(o.dot), x + w - 2, y + 2 + dy, 8, '#fff'); }
-    return add({ id: id, x: x, y: y, w: w, h: h, fn: o.off ? o.offFn || null : fn, off: o.off && !o.offFn, prime: o.prime });
+    return add({ id: id, x: x, y: y, w: w, h: h, fn: o.off ? o.offFn || null : fn, off: o.off && !o.offFn, prime: o.prime, nofocus: o.nofocus });
   }
   /* generic plate you draw on yourself: draw(dy) gets the face's press offset */
   function tile(id, x, y, w, h, fill, draw, fn, o) {
@@ -235,6 +235,16 @@ var MCUI = (function () {
       if (prefix && String(focusId).indexOf(prefix) !== 0) return;   // only from the grid's own tiles
       play('tick'); fn((page + d + pages) % pages); pageTurn = { prefix: prefix, dir: d };
     };
+  }
+  /* volume-style slider, value 0..1 in tenths: ◄ [ten segments] ►. The bar takes the focus: ◄ ► adjust it, a tap sets it */
+  function slider(id, x, y, w, h, get, fn) {   // get: () => current value, read at each change so fast repeats add up
+    var clamp1 = function (v) { return Math.round(Math.max(0, Math.min(1, v)) * 10) / 10; }, value = get();
+    btn(id + '-dn', x, y, h, h, '', function () { fn(clamp1(get() - 0.1)); }, { icon: 'left', tone: 'gold', nofocus: true });   // for fingers; keys use the bar
+    btn(id + '-up', x + w - h, y, h, h, '', function () { fn(clamp1(get() + 0.1)); }, { icon: 'right', tone: 'gold', nofocus: true });
+    var bx = x + h + 12, bw = w - 2 * h - 24, n = 10, gap = 4, sw = (bw - 8 - gap * (n - 1)) / n, on = Math.round(value * n);
+    notch(bx - 4, y - 4, bw + 8, h + 8, 4, INKC); rect(bx, y, bw, h, TONE.panelDk);
+    for (var i = 0; i < n; i++) rect(bx + 4 + i * (sw + gap), y + 6 + Math.round((h - 12) * (1 - (i + 1) / n) * 0.6), sw, h - 12 - Math.round((h - 12) * (1 - (i + 1) / n) * 0.6), i < on ? (i < 7 ? TONE.go : i < 9 ? TONE.gold : TONE.bad) : '#2c3659');
+    add({ id: id, x: bx, y: y, w: bw, h: h, fn: function () {}, adjust: function (d) { fn(clamp1(get() + d * 0.1)); }, setAt: function (px) { fn(clamp1(Math.round((px - bx) / bw * 10) / 10)); } });
   }
   function area(id, x, y, w, h, fn, o) { o = o || {}; return add({ id: id, x: x, y: y, w: w, h: h, fn: fn, nofocus: !o.focus, prime: o.prime }); }
 
@@ -463,6 +473,8 @@ var MCUI = (function () {
     if (DIRS[code]) {
       if (e.preventDefault) e.preventDefault();
       if (!focusVis) { focusVis = true; return true; }   // first press only shows where the focus is
+      var cur = find(focusId);
+      if (cur && cur.adjust && (DIRS[code] === 'left' || DIRS[code] === 'right')) { cur.adjust(DIRS[code] === 'left' ? -1 : 1); play('tick'); return true; }
       move(DIRS[code]); return true;
     }
     if (code === 'Enter' || code === 'Space' || code === 'NumpadEnter') {
@@ -495,6 +507,7 @@ var MCUI = (function () {
   function up(p) {
     var was = ptr.down; ptr.down = false; if (!was) return false;
     var it = hit(p), ok = !ptr.moved && it && it.id === ptr.id; ptr.id = null;
+    if (ok && it.setAt) { it.setAt(p.x); play('click'); return true; }
     if (ok) return activate(it);
     return false;
   }
@@ -533,7 +546,7 @@ var MCUI = (function () {
     text: text, para: para, label: label, width: width, icon: icon, iconInk: iconInk, plate: plate, notch: notch,
     scrollStart: scrollStart, scrollEnd: scrollEnd,
     tabs: function (fn) { tabFn = fn; },
-    tile: tile, tabBar: tabBar, pager: pager,
+    tile: tile, tabBar: tabBar, pager: pager, slider: slider,
     onEdge: function (fn) { edgeFn = fn; },
     setBack: function (fn) { backFn = fn; },
     sounds: function (o) { sounds = o || {}; },

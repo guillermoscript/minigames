@@ -38,12 +38,22 @@ let muted = false, now = 0;
 
 /* ───────────── sound ───────────── */
 /* Everything routes through master → compressor, so layered sfx never clip. snd() keeps its old signature. */
-let AC, MASTER, NOISEBUF;
+let AC, MASTER, MUSIC, SFX, NOISEBUF;
+/* OPTIONS volumes (js/menus.js), 0..1, shared by every world through localStorage. Music and effects each have a bus under MASTER. */
+const VOL_KEY = 'minicaos-opts-v1', vol = { music: .8, sfx: 1 };
+try { const o = JSON.parse(localStorage.getItem(VOL_KEY)); if (o) { if (o.music >= 0 && o.music <= 1) vol.music = o.music; if (o.sfx >= 0 && o.sfx <= 1) vol.sfx = o.sfx; } } catch (e) {}
+function setVolume(kind, v) {
+  vol[kind] = Math.round(Math.max(0, Math.min(1, v)) * 10) / 10;
+  try { localStorage.setItem(VOL_KEY, JSON.stringify(vol)); } catch (e) {}
+  if (AC) (kind === 'music' ? MUSIC : SFX).gain.setTargetAtTime(vol[kind], AC.currentTime, .02);
+}
 function audio() {
   if (!AC) {
     AC = new (window.AudioContext || window.webkitAudioContext)();
     const comp = AC.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 6;
     MASTER = AC.createGain(); MASTER.gain.value = .9; MASTER.connect(comp); comp.connect(AC.destination);
+    MUSIC = AC.createGain(); MUSIC.gain.value = vol.music; MUSIC.connect(MASTER);
+    SFX = AC.createGain(); SFX.gain.value = vol.sfx; SFX.connect(MASTER);
     NOISEBUF = AC.createBuffer(1, AC.sampleRate, AC.sampleRate);
     const d = NOISEBUF.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   }
@@ -64,18 +74,18 @@ function snd(f, d = .1, type = 'square', v = .06, delay = 0, f2, bus) {
     if (f2) o.frequency.exponentialRampToValueAtTime(f2, t0 + d);
     g.gain.setValueAtTime(.0001, t0); g.gain.linearRampToValueAtTime(v, t0 + .006);   // 6ms attack = no click
     g.gain.exponentialRampToValueAtTime(.0001, t0 + d);
-    o.connect(g); g.connect(bus || MASTER); o.start(t0); o.stop(t0 + d + .03);
+    o.connect(g); g.connect(bus || SFX); o.start(t0); o.stop(t0 + d + .03);
   } catch (e) {}
 }
 /* filtered noise burst: hiss / thud / whoosh / crunch. lo→hi sweeps the filter */
-function noise(d = .12, v = .08, lo = 800, hi = lo, type = 'bandpass', delay = 0, q = 1) {
+function noise(d = .12, v = .08, lo = 800, hi = lo, type = 'bandpass', delay = 0, q = 1, bus) {
   if (muted) return;
   try {
     const A = audio(), s = A.createBufferSource(), fl = A.createBiquadFilter(), g = A.createGain(), t0 = A.currentTime + delay;
     s.buffer = NOISEBUF; s.loop = true; fl.type = type; fl.Q.value = q;
     fl.frequency.setValueAtTime(lo, t0); if (hi !== lo) fl.frequency.exponentialRampToValueAtTime(hi, t0 + d);
     g.gain.setValueAtTime(.0001, t0); g.gain.linearRampToValueAtTime(v, t0 + .005); g.gain.exponentialRampToValueAtTime(.0001, t0 + d);
-    s.connect(fl); fl.connect(g); g.connect(MASTER); s.start(t0, Math.random()); s.stop(t0 + d + .03);
+    s.connect(fl); fl.connect(g); g.connect(bus || SFX); s.start(t0, Math.random()); s.stop(t0 + d + .03);
   } catch (e) {}
 }
 /* named effects: use these instead of hand-rolled snd() chains so the whole game sounds like one thing */
@@ -120,11 +130,11 @@ function musTick() {
     while (mus.next < A.currentTime + .25) {
       const s = mus.step, sd = mus.next - A.currentTime, bpm = mus.bpm * mus.mul, st16 = 60 / bpm / 4;
       const bar = (s / 16) | 0, sc = mus.scale, root = mus.root + (bar % 4 === 3 ? 5 : bar % 4 === 2 ? 3 : 0);
-      if (s % 4 === 0) { snd(midi(root - 12 + sc[(s / 4 + bar) % sc.length] % 12), st16 * 3, 'triangle', .07, sd); if (s % 8 === 0) { snd(150, .1, 'sine', .12, sd, 45); } }
-      if (s % 4 === 2) noise(.04, .018, 7000, 7000, 'highpass', sd);
+      if (s % 4 === 0) { snd(midi(root - 12 + sc[(s / 4 + bar) % sc.length] % 12), st16 * 3, 'triangle', .07, sd, undefined, MUSIC); if (s % 8 === 0) { snd(150, .1, 'sine', .12, sd, 45, MUSIC); } }
+      if (s % 4 === 2) noise(.04, .018, 7000, 7000, 'highpass', sd, 1, MUSIC);
       if (mus.kind === 'play' || mus.kind === 'boss') {
         const k = (s * 7 + bar * 3 + mus.seed) % sc.length;
-        if (s % 2 === 0 || mus.kind === 'boss') snd(midi(root + 12 + sc[k]), st16 * .8, 'square', .018, sd);
+        if (s % 2 === 0 || mus.kind === 'boss') snd(midi(root + 12 + sc[k]), st16 * .8, 'square', .018, sd, undefined, MUSIC);
       }
       mus.next += st16; mus.step = (s + 1) % 64;
     }

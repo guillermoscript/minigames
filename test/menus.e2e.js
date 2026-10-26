@@ -59,6 +59,14 @@ const assert=require('node:assert/strict');
   assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('minicaos-perfil-v1')).ch),after);
   await tapId('guest');await at('main');assert.equal(await focus(),'m-profile',`${tag}: back from the profile lands on MI PERFIL`);
   await page.evaluate(()=>{setChar(-1);});
+  // OPCIONES: the music slider steps by tenths, the value is saved and the music bus follows it after a reload
+  await tapId('m-options');await at('options');
+  const m0=await page.evaluate(()=>vol.music);await tapId('o-music-dn');
+  assert.equal(await page.evaluate(()=>vol.music),Math.round((m0-.1)*10)/10);
+  await tapId('o-controls');await at('controls');await tapId('back');await at('options');assert.equal(await focus(),'o-controls');
+  await page.reload();await page.waitForFunction(()=>typeof MCUI!=='undefined'&&!MCUI.stale(state));
+  assert.equal(await page.evaluate(()=>{audio();return [vol.music,Math.round(MUSIC.gain.value*10)/10];}).then(v=>v[0]===v[1]&&v[0]),Math.round((m0-.1)*10)/10);
+  await page.evaluate(()=>{setVolume('music',.8);goMain();});await at('main');
   // RÉCORDS: the stage stepper changes the board, the world tabs switch to Venezuela's device records
   await tapId('m-records');await at('board');
   const tab0=await page.evaluate(()=>lb.tab);await tapId('lb-next');assert.equal(await page.evaluate(()=>lb.tab),(tab0+1)%await page.evaluate(()=>STAGES.length));
@@ -70,7 +78,7 @@ const assert=require('node:assert/strict');
   await tapId('join');
   await page.waitForURL(/fiesta\.html\?r=FIES/);
   assert.deepEqual(errors,[],`${tag}: no page errors`);
-  console.log(`OK ${tag}: title, main menu, worlds, panas, invite, friends, options, profile, records; back and focus; character; FIESTA code routing`);
+  console.log(`OK ${tag}: title, main menu, worlds, panas, invite, friends, options, profile, records, volumes, controls; back and focus; character; FIESTA code routing`);
   await context.close();
  }
  await browser.close();

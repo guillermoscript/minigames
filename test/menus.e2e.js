@@ -59,13 +59,18 @@ const assert=require('node:assert/strict');
   assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('minicaos-perfil-v1')).ch),after);
   await tapId('guest');await at('main');assert.equal(await focus(),'m-profile',`${tag}: back from the profile lands on MI PERFIL`);
   await page.evaluate(()=>{setChar(-1);});
+  // RÉCORDS: the stage stepper changes the board, the world tabs switch to Venezuela's device records
+  await tapId('m-records');await at('board');
+  const tab0=await page.evaluate(()=>lb.tab);await tapId('lb-next');assert.equal(await page.evaluate(()=>lb.tab),(tab0+1)%await page.evaluate(()=>STAGES.length));
+  await tapId('lbw1');assert.equal(await page.evaluate(()=>lbWorld),1);await tapId('lbw0');
+  await tapId('back');await at('main');assert.equal(await focus(),'m-records',`${tag}: back from records lands on RÉCORDS`);
   // JOIN: a LA FIESTA code goes to its own page
   await page.evaluate(()=>{goParty('main');});await at('party');
   await page.evaluate(()=>{inCode.value='FIES';});
   await tapId('join');
   await page.waitForURL(/fiesta\.html\?r=FIES/);
   assert.deepEqual(errors,[],`${tag}: no page errors`);
-  console.log(`OK ${tag}: title, main menu, worlds, panas, invite, friends, options, profile; back and focus; character; FIESTA code routing`);
+  console.log(`OK ${tag}: title, main menu, worlds, panas, invite, friends, options, profile, records; back and focus; character; FIESTA code routing`);
   await context.close();
  }
  await browser.close();

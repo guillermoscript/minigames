@@ -2,7 +2,7 @@
 /* The console-style front end (docs/ui/01-menu-redesign.md): title (press start) → main menu → JUGAR (js/worlds.js) / panas / profile /
    records / options. These screens are drawn with the shared kit (js/ui/mcui.js) and have a tall layout for phones held upright.
    Loaded before js/main.js; everything here runs at draw / input time, so it can use main.js state freely. */
-const KIT_STATES = ['title', 'main', 'worlds', 'options', 'menu', 'practice', 'invite', 'friends', 'profile', 'pview'];
+const KIT_STATES = ['title', 'main', 'worlds', 'options', 'menu', 'practice', 'invite', 'friends', 'profile', 'pview', 'board'];
 const RESULT_STATES = ['clear', 'over'];   // old-style art, kit buttons: input goes through the kit, no tall layout
 const kitOn = () => (KIT_STATES.includes(state) || panasMenuOn()) && !sh.on;   // panasMenuOn: the party screen before you are in a room (js/panas.js)
 const kitInput = () => kitOn() || (!sh.on && RESULT_STATES.includes(state));
@@ -178,7 +178,7 @@ const lightOn = c => { const n = parseInt(c.slice(1), 16); return ((n >> 16) * .
 function classicTab(i) {
   if (i === 0) { state = 'menu'; mode = 'stage'; }
   else if (i === 1) { state = 'practice'; mode = 'practice'; }
-  else goBoard();
+  else { lbWorld = 0; goBoard(); }   // RÉCORDS from Clásico opens on Clásico's boards
 }
 function classicHeader(tab) {
   const V = MCUI.view();
@@ -272,6 +272,7 @@ function drawKit() {
   else if (state === 'friends') drawFriends();
   else if (state === 'profile') drawSignIn();
   else if (state === 'pview') drawPview();
+  else if (state === 'board') drawBoard();
   if (toast) { MCUI.toast(toast.s, toast.col); toast = null; }
   MCUI.end();
   if (leaving) {

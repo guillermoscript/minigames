@@ -570,43 +570,6 @@ function render() {
     const share = ['share', 'SHARE', () => doShare('stage_clear'), 'info'], stagesBtn = ['stages', 'STAGES', goMenu, 'paper'];
     kitButtons(st > .5 ? (last ? [share, stagesBtn] : [['next', 'NEXT', afterClear, 'go'], share, stagesBtn]) : [], 500);
 
-  } else if (state === 'board') {
-    bg('#1f2a44', '#26335a', now);
-    const n = STAGES.length + 1, tp = pageCount(n, PER_TABS), tot = lb.tab === STAGES.length, s = STAGES[lb.tab];
-    txt('LEADERBOARD', W / 2, 38, 44, '#FFE14D');
-    button(14 - OX, 10, 130, 56, '◄ BACK', back, { size: 22 });
-    if (tp > 1) {
-      button(56, 80, 56, 52, '◄', () => { lb.page = (lb.page + tp - 1) % tp; }, { size: 24, fill: '#FFE14D' });
-      button(W - 112, 80, 56, 52, '►', () => { lb.page = (lb.page + 1) % tp; }, { size: 24, fill: '#FFE14D' });
-    }
-    for (let k = 0; k < PER_TABS; k++) {
-      const i = lb.page * PER_TABS + k; if (i >= n) break;
-      button(128 + k * 90, 80, 82, 52, i === STAGES.length ? 'ALL' : String(i + 1), () => setTab(i), { size: 24, fill: i === lb.tab ? '#5CFF7A' : '#fff' });
-    }
-    txt(tot ? 'TOTAL · BEST OF EVERY STAGE' : t('STAGE {n} · {name}', { n: lb.tab + 1, name: t(s.name) }), W / 2, 168, 28, tot ? '#5CFF7A' : '#fff', 'center', 740);
-    const c = lb.cache[lb.tab] || {}, d = c.data;
-    if (d) {
-      if (!d.entries.length) txt('NO SCORES YET - BE FIRST!', W / 2, 330, 32, '#fff');
-      d.entries.forEach((e, i) => {
-        const col = i / 10 | 0, x = 20 + col * 392, y = 190 + (i % 10) * 33, mine = net.user && e.username === net.user.username;
-        box(x, y, 368, 28, mine ? '#FFE14D' : i % 2 ? '#35406a' : '#2c3659', 2);
-        txt('#' + e.rank, x + 8, y + 15, 16, mine ? INK : '#fff', 'left');
-        caos(x + 62, y + 24, 1.7, { col: e.color });
-        ctx.save(); txt(e.username, x + 82, y + 15, 17, mine ? INK : e.color, 'left', 170); ctx.restore();
-        txt(String(e.score), x + 360, y + 15, 17, mine ? INK : '#fff', 'right');
-        btns.push({ x, y, w: 368, h: 28, fn: () => openProfile(e.username) });
-      });
-      if (d.me) {
-        const inTop = d.entries.some(e => net.user && e.username === net.user.username);
-        txt(t(inTop ? 'YOU: #{rank} OF {players} · {score}' : 'YOU: #{rank} OF {players} · {score}  (OUTSIDE TOP 20)', { rank: d.me.rank, players: d.players, score: d.me.score }), W / 2, 530, 24, '#FFE14D', 'center', 760);
-      } else if (net.user) txt('YOU HAVEN\'T SET A SCORE HERE YET', W / 2, 530, 20, '#ddd');
-      else txt('GUEST · SIGN IN WITH GOOGLE (PROFILE) TO GET RANKED', W / 2, 530, 20, '#ddd');
-    } else if (c.err) {
-      txt(c.err, W / 2, 300, 30, '#FF4D4D', 'center', 740);
-      button(300, 340, 200, 56, 'RETRY', () => loadBoard(lb.tab), { size: 24, fill: '#FFE14D' });
-    } else txt('LOADING...', W / 2, 320, 36, '#fff');
-    if (!TOUCH) txt('◄ ► TAB · ESC BACK', W + OX - 12, 584, 14, '#ddd', 'right');
-    if (!net.user && !c.err) button(W + OX - 184, 10, 170, 56, 'PROFILE', goProfile, { size: 22, fill: '#5CFF7A' });
   }
   vignette(state === 'play' ? .22 : .35);
   if (state !== 'play' && st < .3) {                    // slanted ink curtain wipes off to the right on every screen change
@@ -643,8 +606,7 @@ addEventListener('keydown', e => {
     else if (state === 'profile' || state === 'board' || state === 'pview' || state === 'friends') back();
     return;
   }
-  if (state === 'board') { if (e.code === 'ArrowRight') setTab(lb.tab + 1); else if (e.code === 'ArrowLeft') setTab(lb.tab - 1); }
-  else if (state === 'party' && go) { if (party.view === 'lobby') partyStart(); else if (party.view === 'end' && isHost() && st > .6) partyAgain(); }
+  if (state === 'party' && go) { if (party.view === 'lobby') partyStart(); else if (party.view === 'end' && isHost() && st > .6) partyAgain(); }
   if (state === 'play' && !outcome && pre <= 0 && cur.key) cur.key(e);
   else if (state === 'party' && party.view === 'wait') { partyGhostKey(e); partyWaitKey(e); }   // trap keys of an eliminated player (js/party-ghost.js) or of a finished one in VERSUS / TEAM (js/party-wait.js)
 });

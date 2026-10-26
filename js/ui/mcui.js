@@ -18,6 +18,7 @@
      card(id,x,y,w,h,o)          o = { color, art(cx,cy,t,focused), title, desc, foot, badges:[{text,tone,icon}], stamp, fn, off, prime }
      area(id,x,y,w,h,fn,o)       invisible tap target; o = { focus, prime } makes it focusable
      panel(x,y,w,h,o)  badge(x,y,text,tone,o)  header(title,o)  back(fn,label)  player(id,x,y,w,h,o,fn)
+     tile(id,x,y,w,h,fill,draw(dy,focused),fn,o)  tabBar(id,x,y,w,h,labels,sel,fn)  pager(id,cx,y,page,pages,fn)  setBack(fn)  onEdge(fn)
      keybar(list)  toast(text,tone)  dialog(o)  loading(text,k)  bg(theme)  wipe(k,color)
      text(s,x,y,size,col,align,maxW)  para(s,x,y,w,size,col,align,lh)  icon(name,x,y,unit,col)  plate(x,y,w,h,fill,o)
    Tests
@@ -37,7 +38,7 @@ var MCUI = (function () {
 
   var X = null, V = { w: 800, h: 600, ox: 0, tall: false, t: 0 };
   var list = [], focusId = null, focusVis = false, inputMode = 'touch', screen = '', memory = {}, enteredAt = 0;
-  var backFn = null, tabFn = null, region = null, scrolls = {}, modal = false;
+  var backFn = null, tabFn = null, edgeFn = null, region = null, scrolls = {}, modal = false;
   var ptr = { x: -999, y: -999, down: false, sx: 0, sy: 0, moved: false, id: null, scroll: null, s0: 0 };
   var toastS = null, sounds = {}, pad = { held: {}, at: {} };
 
@@ -201,6 +202,39 @@ var MCUI = (function () {
     if (o.dot) { notch(x + w - 14, y - 10 + dy, 24, 24, 2, INKC); rect(x + w - 12, y - 8 + dy, 20, 20, TONE.bad); text(String(o.dot), x + w - 2, y + 2 + dy, 8, '#fff'); }
     return add({ id: id, x: x, y: y, w: w, h: h, fn: o.off ? o.offFn || null : fn, off: o.off && !o.offFn, prime: o.prime });
   }
+  /* generic plate you draw on yourself: draw(dy) gets the face's press offset */
+  function tile(id, x, y, w, h, fill, draw, fn, o) {
+    o = o || {}; var s = state(id), dy = plate(x, y, w, h, fill, { pressed: s.pressed, hover: s.hover, o: o.o, depth: o.depth });
+    if (draw) { X.save(); X.beginPath(); X.rect(x, y + dy, w, h); X.clip(); try { draw(dy, s.focus); } catch (e) {} X.restore(); }
+    return add({ id: id, x: x, y: y, w: w, h: h, fn: o.off ? null : fn, off: !!o.off && !o.offFn, prime: o.prime });
+  }
+  /* tab bar: the active tab is gold and sits 4 px lower, joined to the content; Q/E (LB/RB) flip tabs */
+  function tabBar(id, x, y, w, h, labels, sel, fn, icons) {
+    var n = labels.length, gap = 8, tw = Math.floor((w - gap * (n - 1)) / n), fit = true;
+    for (var j = 0; j < n; j++) if (width(tr(labels[j]), 16) > tw - 16) fit = false;   // one size for every tab: 16, or icon + 8 when a label is too long
+    for (var i = 0; i < n; i++) {
+      (function (i) {
+        var on = i === sel, s = state(id + i), tx = x + i * (tw + gap), dy = plate(tx, y + (on ? 4 : 0), tw, h - 4, on ? TONE.gold : TONE.panel, { pressed: s.pressed, hover: s.hover && !on, depth: on ? 0 : 4 });
+        var cy = y + (on ? 4 : 0) + dy + (h - 4) / 2, col = on ? INKC : '#fff';
+        if (fit) label(labels[i], tx + tw / 2, cy, tw - 16, h - 8, 16, col);
+        else { if (icons && icons[i]) icon(icons[i], tx + tw / 2, cy - 9, 2, col); text(labels[i], tx + tw / 2, icons ? cy + 11 : cy, 8, col, 'center', tw - 8); }
+        add({ id: id + i, x: tx, y: y, w: tw, h: h, fn: on ? null : function () { fn(i); }, tab: true });
+      })(i);
+    }
+    tabFn = function (d) { var k = (sel + d + n) % n; if (k !== sel) { play('tick'); fn(k); } };
+  }
+  /* pager: ◄ PAGE n/m ►, wraps around */
+  var pageTurn = null;   // { prefix, dir }: after a page flip from the grid edge, focus the new page's first (or last) tile
+  function pager(id, cx, y, page, pages, fn, prefix) {
+    if (pages < 2) return;
+    btn(id + '-prev', cx - 168, y, 64, 56, '', function () { fn((page + pages - 1) % pages); }, { icon: 'left', tone: 'gold' });
+    btn(id + '-next', cx + 104, y, 64, 56, '', function () { fn((page + 1) % pages); }, { icon: 'right', tone: 'gold' });
+    text(tr('PAGE {n}/{total}').replace('{n}', page + 1).replace('{total}', pages), cx, y + 28, 16, '#fff', 'center', 192);
+    edgeFn = function (d) {
+      if (prefix && String(focusId).indexOf(prefix) !== 0) return;   // only from the grid's own tiles
+      play('tick'); fn((page + d + pages) % pages); pageTurn = { prefix: prefix, dir: d };
+    };
+  }
   function area(id, x, y, w, h, fn, o) { o = o || {}; return add({ id: id, x: x, y: y, w: w, h: h, fn: fn, nofocus: !o.focus, prime: o.prime }); }
 
   function panel(x, y, w, h, o) {
@@ -353,7 +387,7 @@ var MCUI = (function () {
 
   /* ───────────── frame ───────────── */
   function begin(ctx, view, key) {
-    X = ctx; V = view; list = []; backFn = null; tabFn = null; modal = false; region = null;
+    X = ctx; V = view; list = []; backFn = null; tabFn = null; edgeFn = null; modal = false; region = null;
     if (key !== screen) { if (screen) memory[screen] = focusId; screen = key; focusId = memory[key] || null; enteredAt = V.t; ptr.id = null; }
     pollPad();
     if (X.imageSmoothingEnabled !== undefined) X.imageSmoothingEnabled = false;
@@ -361,6 +395,11 @@ var MCUI = (function () {
   function focusable(arr) { arr = arr || list; var out = []; for (var i = 0; i < arr.length; i++) if (!arr[i].nofocus && !arr[i].off) out.push(arr[i]); return out; }
   function end() {
     var f = focusable(), cur = find(focusId, f);
+    if (pageTurn) {
+      var tiles = []; for (var q = 0; q < f.length; q++) if (f[q].id.indexOf(pageTurn.prefix) === 0) tiles.push(f[q]);
+      if (tiles.length) { cur = pageTurn.dir > 0 ? tiles[0] : tiles[tiles.length - 1]; focusId = cur.id; }
+      pageTurn = null;
+    }
     if (!cur && f.length) { cur = null; for (var i = 0; i < f.length; i++) if (f[i].prime) { cur = f[i]; break; } cur = cur || f[0]; focusId = cur.id; }
     if (cur && cur.clip) keepVisible(cur);
     if (cur && focusVis) {
@@ -403,6 +442,7 @@ var MCUI = (function () {
       if (sc < bestS) { bestS = sc; best = c; }
     }
     if (best) { focusId = best.id; play('tick'); }
+    else if (edgeFn && (dir === 'left' || dir === 'right')) edgeFn(dir === 'left' ? -1 : 1);   // nothing further that way: e.g. turn the page
   }
   function activate(it) { if (!it || !it.fn) return false; play('click'); it.fn(); return true; }
 
@@ -482,6 +522,9 @@ var MCUI = (function () {
     text: text, para: para, label: label, width: width, icon: icon, iconInk: iconInk, plate: plate, notch: notch,
     scrollStart: scrollStart, scrollEnd: scrollEnd,
     tabs: function (fn) { tabFn = fn; },
+    tile: tile, tabBar: tabBar, pager: pager,
+    onEdge: function (fn) { edgeFn = fn; },
+    setBack: function (fn) { backFn = fn; },
     sounds: function (o) { sounds = o || {}; },
     focus: function (id) { if (id !== undefined) { focusId = id; } return focusId; },
     setMemory: function (key, id) { memory[key] = id; },

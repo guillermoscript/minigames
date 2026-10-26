@@ -54,10 +54,12 @@ const assert = require('node:assert/strict');
   await page.waitForTimeout(400);
   if(process.env.WORLD_SCREENSHOTS) await page.screenshot({path:`/tmp/minicaos-classic-${viewport.width}.png`});
   assert.equal(await page.evaluate(()=>save.unlocked),1);
-  await tap(140,165);await rootState('stagein');
+  await tapId('stage-0');await rootState('stagein');
   assert.equal(await page.evaluate(()=>stageIdx),0);
   await page.keyboard.press('Escape');await rootState('menu');
-  await tap(550,490);await rootState('worlds');
+  await page.waitForTimeout(400);
+  await tapId('tab1');await rootState('practice');   // PRÁCTICA tab, same shell
+  await tapId('back');await rootState('worlds');
   await page.waitForTimeout(400);
   const next=await page.evaluate(()=>TALL?'ArrowDown':'ArrowRight');   // cards sit in a 2×2 grid, or in a column on a phone held upright
   await page.keyboard.press(next);await page.keyboard.press(next);   // first press shows the focus, second moves it

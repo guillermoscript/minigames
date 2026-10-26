@@ -98,7 +98,7 @@ let retryId = null, stageIdx = 0, stage = STAGES[0], lives = 4, played = 0, scor
 let runLog = [];                          // this stage run, one emoji per microgame / boss try: the Wordle-style grid in shared text
 let cur = null, curId = '', tt = 0, dur = 5, outcome = null, outT = 0, tickN = 0, recent = [], isBoss = false;
 let practiceId = 'swat', practiceSp = 1, menuPage = 0, practicePage = 0;
-const PER_MENU = 6, PER_PRACTICE = 30;
+const PER_MENU = 6, PER_PRACTICE = 20;
 const pageCount = (n, per) => Math.ceil(n / per);
 let btns = [];
 /* ui juice state: hover / press, count-up score, life-loss pop, clear-screen star pops, music sync */
@@ -466,59 +466,8 @@ function render() {
 
   if (kitOn()) { drawKit(); placeInputs(); return; }   // title, main menu, worlds, options: js/menus.js
 
-  if (state === 'menu') {
-    bg('#2b2757', '#322d66', now);
-    txt('SELECT STAGE', W / 2, 40, 44, '#FFE14D');
-    STAGES.forEach((s, i) => {
-      if ((i / PER_MENU | 0) !== menuPage) return;
-      const k = i % PER_MENU, x = 20 + (k % 3) * 260, y = 95 + (k / 3 | 0) * 175, locked = i > save.unlocked - 1;
-      const pop = easeOut((st - k * .05) / .3);
-      ctx.save(); ctx.translate(0, (1 - pop) * 40); ctx.globalAlpha = pop;
-      hoverBox(x, y, 240, 155, locked ? '#5a5870' : s.bg[0], 5, 7);
-      shadow(x + 62, y + 120, 36, 7, .25);
-      if (s.intro === 'ap' && !locked) AP.person(AP.CAST.chamo, { la: [2.4 + Math.sin(now * 9) * .2, .3], ra: [.12, .1], mouth: 'yell', talk: .8, wide: 1, bob: Math.abs(Math.sin(now * 8)) * -8 }, x + 62, y + 140, .44);   // Luisito, shouting
-      else CAST.host(s.host, x + 58, y + 118 - (locked ? 0 : Math.abs(Math.sin(now * 3 + i)) * 6), s.host === 'chigui' || s.host === 'zumbi' ? 4.3 : 5.2, { col: s.col, locked });
-      txt(t('STAGE {n}', { n: i + 1 }), x + 14, y + 20, 17, '#fff', 'left');
-      const words = t(s.name).split(' ');
-      txt(words[0], x + 160, y + 58, 26, locked ? '#aaa' : '#fff', 'center', 150);
-      if (words[1]) txt(words.slice(1).join(' '), x + 160, y + 90, 26, locked ? '#aaa' : '#fff', 'center', 150);
-      if (locked) txt('LOCKED', x + 160, y + 130, 22, '#ddd');
-      else stars3(x + 160, y + 128, save.stars[i], 14, 34);
-      ctx.restore(); ctx.restore();
-      btns.push({ x, y, w: 240, h: 155, fn: () => startStage(i) });
-    });
-    const mp = pageCount(STAGES.length, PER_MENU);
-    if (mp > 1) {
-      button(20, 455, 74, 74, '◄', () => { menuPage = (menuPage + mp - 1) % mp; }, { size: 30, fill: '#FFE14D' });
-      button(706, 455, 74, 74, '►', () => { menuPage = (menuPage + 1) % mp; }, { size: 30, fill: '#FFE14D' });
-      txt(t('PAGE {n}/{total}', { n: menuPage + 1, total: mp }), W / 2, 440, 18, '#fff');
-    }
-    profileBtn(14 - OX, 10, 170, 56);
-    button(W + OX - 184, 10, 170, 56, 'RANKS', () => goBoard(), { size: 22, fill: '#FFE14D' });
-    button(110, 455, 280, 74, 'PRACTICE', goPractice, { fill: '#5CFF7A' });
-    button(410, 455, 280, 74, '◄ WORLDS', goWorlds, { fill: '#fff' });
-    if (!TOUCH) txt('1-6 STAGE · ◄ ► PAGE · P PRACTICE · L RANKS · A PROFILE · ESC BACK', W / 2, 568, 18, '#fff');
-  } else if (state === 'party') {
+  if (state === 'party') {
     drawParty();
-  } else if (state === 'practice') {
-    bg('#1f2a44', '#26335a', now);
-    txt('PRACTICE', W / 2, 38, 44, '#FFE14D');
-    button(14 - OX, 10, 130, 56, '◄ BACK', goMenu, { size: 22 });
-    button(W + OX - 184, 10, 170, 56, t('SPEED x{n}', { n: practiceSp }), () => { practiceSp = practiceSp === 1 ? 1.5 : practiceSp === 1.5 ? 2 : 1; }, { size: 22, fill: '#FFE14D' });
-    const pp = pageCount(PREG.length, PER_PRACTICE);
-    if (pp > 1) {
-      button(150, 10, 56, 56, '◄', () => { practicePage = (practicePage + pp - 1) % pp; }, { size: 24 });
-      button(W - 250, 10, 56, 56, '►', () => { practicePage = (practicePage + 1) % pp; }, { size: 24 });
-      txt(`${practicePage + 1}/${pp}`, W / 2 + 120, 38, 20, '#fff');
-    }
-    PREG.forEach((r, ri) => {
-      if ((ri / PER_PRACTICE | 0) !== practicePage) return;
-      const i = ri % PER_PRACTICE;
-      const x = 26 + (i % 6) * 126, y = 92 + (i / 6 | 0) * 92;
-      hoverBox(x, y, 118, 82, `hsl(${i * 12},70%,70%)`, 4, 5);
-      I18N.scope = I18N.scopeOf(r.id); txt(r.name, x + 59, y + 41, 20, '#fff', 'center', 106); I18N.scope = ''; ctx.restore();
-      btns.push({ x, y, w: 118, h: 82, fn: () => startPractice(r.id) });
-    });
   } else if (state === 'stagein' && stage.intro === 'mv') {
     mvIntro(st, stage, stageIdx);
   } else if (state === 'stagein' && stage.intro === 'ap') {
@@ -605,11 +554,7 @@ function render() {
     caos(W / 2, 390 + (1 - easeOut(st / .5)) * 120, 16, { col, mood: 'sad' });
     txt(t('{stage} · SCORE {n}', { stage: t(stage.name), n: Math.round(shownScore) }), W / 2, 455, 34, '#fff', 'center', 760);
     const cl = challengeLine(); if (cl) txt(cl.s, W / 2, 206, 28, cl.col, 'center', 760);
-    if (st > .4) {
-      button(40, 495, 220, 70, 'RETRY', () => startStage(stageIdx), { fill: '#5CFF7A' });
-      button(290, 495, 220, 70, 'SHARE', () => doShare('game_over'), { fill: '#4DB8FF' });
-      button(540, 495, 220, 70, 'STAGES', goMenu);
-    }
+    kitButtons(st > .4 ? [['retry', 'RETRY', () => startStage(stageIdx), 'go'], ['share', 'SHARE', () => doShare('game_over'), 'info'], ['stages', 'STAGES', goMenu, 'paper']] : [], 495);
   } else if (state === 'clear') {
     bg(stage.bg[0], stage.bg[1], now);
     const last = stageIdx === STAGES.length - 1;
@@ -630,11 +575,8 @@ function render() {
     else if (runRank && runRank.loading) txt('RANKING...', W / 2, 474 + (ccl ? 8 : 0), 26, '#FFE14D');
     else if (runRank && runRank.rank) txt(t('#{rank} ON {stage}!', { rank: runRank.rank, stage: t(stage.name) }), W / 2, 474 + (ccl ? 8 : 0), 28, '#FFE14D', 'center', 760);
     else if (runRank && runRank.queued) txt('OFFLINE · SCORE WILL BE SENT LATER', W / 2, 474 + (ccl ? 8 : 0), 20, '#ddd', 'center', 760);
-    if (st > .5) {
-      if (!last) button(40, 500, 220, 66, 'NEXT ►', afterClear, { fill: '#5CFF7A' });
-      button(last ? 110 : 290, 500, last ? 280 : 220, 66, 'SHARE', () => doShare('stage_clear'), { fill: '#4DB8FF' });
-      button(last ? 410 : 540, 500, last ? 280 : 220, 66, 'STAGES', goMenu);
-    }
+    const share = ['share', 'SHARE', () => doShare('stage_clear'), 'info'], stagesBtn = ['stages', 'STAGES', goMenu, 'paper'];
+    kitButtons(st > .5 ? (last ? [share, stagesBtn] : [['next', 'NEXT', afterClear, 'go'], share, stagesBtn]) : [], 500);
 
   } else if (state === 'profile') {
     bg('#2b2757', '#322d66', now);
@@ -819,7 +761,7 @@ addEventListener('keydown', e => {
   keys[e.code] = true;
   if (e.repeat) return;
   if (sh.on && e.code !== 'Escape') return;
-  if (kitOn() && kitKey(e)) return;
+  if (kitInput() && kitKey(e)) return;
   const go = e.code === 'Enter' || e.code === 'Space';
   if (e.code === 'Escape') {
     if (sh.on) { sh.on = false; return; }
@@ -828,26 +770,12 @@ addEventListener('keydown', e => {
     if (mode === 'party' && (state === 'play' || (state === 'party' && party.view !== 'menu' && party.view !== 'lobby'))) return;   // no accidental leaving mid-match
     if (state === 'party') { party.view === 'lobby' ? partyLeave('menu') : partyHome(); return; }
     if (state === 'play' || state === 'inter' || state === 'stagein') exitPlay();
-    else if (state === 'menu') goWorlds(); else if (state === 'practice') goMenu();
     else if (state === 'profile' || state === 'board' || state === 'pview' || state === 'friends') back();
     return;
   }
   if (state === 'board') { if (e.code === 'ArrowRight') setTab(lb.tab + 1); else if (e.code === 'ArrowLeft') setTab(lb.tab - 1); }
   else if (state === 'profile' && go) doGoogle();
   else if (state === 'party' && go) { if (party.view === 'lobby') partyStart(); else if (party.view === 'end' && isHost() && st > .6) partyAgain(); }
-  else if (state === 'menu') {
-    const d = +e.key, mp = pageCount(STAGES.length, PER_MENU);
-    if (d >= 1 && d <= 6 && menuPage * PER_MENU + d - 1 < STAGES.length) startStage(menuPage * PER_MENU + d - 1);
-    else if (e.code === 'KeyP') goPractice();
-    else if (e.code === 'KeyL') goBoard();
-    else if (e.code === 'KeyA') goProfile();
-    else if (e.code === 'ArrowRight') menuPage = (menuPage + 1) % mp; else if (e.code === 'ArrowLeft') menuPage = (menuPage + mp - 1) % mp;
-  } else if (state === 'practice') {
-    const pp = pageCount(PREG.length, PER_PRACTICE);
-    if (e.code === 'ArrowRight') practicePage = (practicePage + 1) % pp; else if (e.code === 'ArrowLeft') practicePage = (practicePage + pp - 1) % pp;
-  }
-  else if (state === 'over' && go && st > .4) startStage(stageIdx);
-  else if (state === 'clear' && go && st > .5) afterClear();
   if (state === 'play' && !outcome && pre <= 0 && cur.key) cur.key(e);
   else if (state === 'party' && party.view === 'wait') { partyGhostKey(e); partyWaitKey(e); }   // trap keys of an eliminated player (js/party-ghost.js) or of a finished one in VERSUS / TEAM (js/party-wait.js)
 });
@@ -877,7 +805,7 @@ cv.addEventListener('pointerdown', e => {
   if (document.activeElement && document.activeElement.tagName === 'INPUT') document.activeElement.blur();
   interacted = true; pressing = true;
   const p = pos(e); mouse = inGame(p); hp = p;
-  if (kitOn()) { if (!MCUI.stale(state)) MCUI.down(p); return; }
+  if (kitInput()) { if (!MCUI.stale(state)) MCUI.down(p); return; }
   const b = btns.find(b => p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h);
   if (b) { sfx.click(); b.fn(); return; }
   if (sh.on) return;
@@ -885,7 +813,7 @@ cv.addEventListener('pointerdown', e => {
 });
 cv.addEventListener('pointermove', e => {
   const raw = pos(e), p = inGame(raw); mouse = p; hp = raw;
-  if (kitOn()) { MCUI.move(raw); return; }
+  if (kitInput()) { MCUI.move(raw); return; }
   if (state !== 'play' || outcome) return;
   if (cur.move) cur.move(p);
   if (sw && cur.swipe) {
@@ -896,10 +824,10 @@ cv.addEventListener('pointermove', e => {
     }
   }
 });
-const endPtr = e => { if (e.type === 'pointerup' && kitOn() && !MCUI.stale(state)) MCUI.up(pos(e)); pressing = false; if (e.pointerType === 'touch') hp = { x: -999, y: -999 }; if (state === 'play' && !outcome && pre <= 0 && cur.up) cur.up(inGame(pos(e))); sw = null; };
+const endPtr = e => { if (e.type === 'pointerup' && kitInput() && !MCUI.stale(state)) MCUI.up(pos(e)); pressing = false; if (e.pointerType === 'touch') hp = { x: -999, y: -999 }; if (state === 'play' && !outcome && pre <= 0 && cur.up) cur.up(inGame(pos(e))); sw = null; };
 cv.addEventListener('pointerup', endPtr);
 cv.addEventListener('pointercancel', endPtr);
-cv.addEventListener('wheel', e => { if (kitOn() && MCUI.wheel(e.deltaY)) e.preventDefault(); }, { passive: false });
+cv.addEventListener('wheel', e => { if (kitInput() && MCUI.wheel(e.deltaY)) e.preventDefault(); }, { passive: false });
 cv.addEventListener('pointerleave', () => { hp = { x: -999, y: -999 }; pressing = false; });
 
 let lastTs = 0, lastDt = 0;

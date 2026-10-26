@@ -79,10 +79,8 @@ test('install UI follows supported browsers, language, game state and installati
   handlers.load(); await Promise.resolve(); assert.ok(registered);
   handlers.beforeinstallprompt({ preventDefault() {}, prompt: async () => { prompted = true; }, userChoice: Promise.resolve({ outcome: 'accepted' }) });
   assert.equal(button.hidden, true, 'the kit menus (title, main menu, options) draw their own install plate');
-  assert.equal(context.PWA.available(), true); assert.equal(context.PWA.installed(), false);
-  context.state = 'menu'; tick(); assert.equal(button.hidden, false); assert.equal(button.textContent, 'INSTALAR APP');
-  context.state = 'play'; tick(); assert.equal(button.hidden, true);
-  context.state = 'menu'; context.I18N.lang = 'en'; tick(); assert.equal(button.hidden, false); assert.equal(button.textContent, 'INSTALL APP');
+  assert.equal(context.PWA.available(), true); assert.equal(context.PWA.installed(), false); assert.equal(button.textContent, 'INSTALAR APP');
+  context.state = 'menu'; context.I18N.lang = 'en'; tick(); assert.equal(button.hidden, true); assert.equal(button.textContent, 'INSTALL APP');
   await clicks.click(); assert.ok(prompted);
-  handlers.appinstalled(); tick(); assert.equal(button.hidden, true);
+  handlers.appinstalled(); tick(); assert.equal(context.PWA.available(), false); assert.equal(context.PWA.installed(), true);
 });

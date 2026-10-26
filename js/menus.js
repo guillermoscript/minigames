@@ -2,8 +2,10 @@
 /* The console-style front end (docs/ui/01-menu-redesign.md): title (press start) → main menu → JUGAR (js/worlds.js) / panas / profile /
    records / options. These screens are drawn with the shared kit (js/ui/mcui.js) and have a tall layout for phones held upright.
    Loaded before js/main.js; everything here runs at draw / input time, so it can use main.js state freely. */
-const KIT_STATES = ['title', 'main', 'worlds', 'options'];
+const KIT_STATES = ['title', 'main', 'worlds', 'options', 'menu', 'practice'];
+const RESULT_STATES = ['clear', 'over'];   // old-style art, kit buttons: input goes through the kit, no tall layout
 const kitOn = () => KIT_STATES.includes(state) && !sh.on;
+const kitInput = () => !sh.on && (KIT_STATES.includes(state) || RESULT_STATES.includes(state));
 tallWanted = kitOn;
 MCUI.sounds({ click: () => sfx.click(), tick: () => sfx.tick(), back: () => sfx.whoosh(false) });
 let optFrom = 'main', leaving = null;
@@ -145,6 +147,7 @@ function drawMain() {
 /* ───────────── O0 options (step 1: language, sound, install; volumes and controls come later) ───────────── */
 function drawOptions() {
   const V = MCUI.view(), pwa = window.PWA;
+  if (pwa) pwa.shown();
   MCUI.bg('menu');
   MCUI.header('OPTIONS');
   MCUI.back(() => { state = optFrom; st = 0; }, 'GO BACK');
@@ -169,6 +172,91 @@ function drawOptions() {
   MCUI.keybar([['ESC', 'GO BACK'], ['ENTER', 'CHANGE'], ['ARROWS', 'MOVE']]);
 }
 
+/* ───────────── W1 Clásico: world shell with ETAPAS · PRÁCTICA · RÉCORDS ───────────── */
+const lightOn = c => { const n = parseInt(c.slice(1), 16); return ((n >> 16) * .299 + (n >> 8 & 255) * .587 + (n & 255) * .114) / 255 > .55; };
+/* flip tabs without the screen curtain (they are one screen) */
+function classicTab(i) {
+  if (i === 0) { state = 'menu'; mode = 'stage'; }
+  else if (i === 1) { state = 'practice'; mode = 'practice'; }
+  else goBoard();
+}
+function classicHeader(tab) {
+  const V = MCUI.view();
+  MCUI.bg('classic');
+  MCUI.header('CLASSIC', { band: MCUI.WORLD.classic, col: '#fff' });
+  MCUI.back(goWorlds, 'GO BACK');
+  kitChip();
+  const tw = V.tall ? V.w - 32 : 456;
+  MCUI.tabBar('tab', V.tall ? 16 : 40, 104, tw, 52, ['STAGES', 'PRACTICE', 'RECORDS'], tab, classicTab, ['star', 'play', 'cup']);
+}
+function stageCard(i, x, y, w, h) {
+  const s = STAGES[i], locked = i > save.unlocked - 1, fill = locked ? '#5a5870' : s.bg[0], ink = !locked && lightOn(fill) ? INK : '#fff', u = h / 40;
+  MCUI.tile('stage-' + i, x, y, w, h, fill, (dy, f) => {
+    const hx = x + 44, feet = y + h - 14 + dy, bob = locked || !f ? 0 : Math.floor(Math.abs(Math.sin(now * 6)) * 3) * 4;
+    MCUI.text(t('STAGE {n}', { n: i + 1 }), x + 10, y + 16 + dy, 8, ink, 'left', w - 20);
+    MCUI.label(t(s.name), x + w / 2, y + 52 + dy, w - 20, 48, 16, ink);   // the name gets the full width: two lines of 16 px
+    shadow(hx, feet + 2, 26, 5, .25);
+    if (s.intro === 'ap' && !locked) AP.person(AP.CAST.chamo, { la: [2.4, .3], ra: [.12, .1], mouth: 'yell', talk: .8, wide: 1, bob: -bob }, hx, feet + 4, h / 440);
+    else CAST.host(s.host, hx, feet - bob, s.host === 'chigui' || s.host === 'zumbi' ? u * .85 : u, { col: s.col, locked });
+    const sx = x + w - 52, sy = y + h - 26 + dy;
+    if (locked) MCUI.iconInk('lock', sx + 16, sy, 3, '#ddd');
+    else for (let k = 0; k < 3; k++) MCUI.iconInk('star', sx - 24 + k * 26, sy, 3, k < save.stars[i] ? '#FFE14D' : '#4a4558');
+  }, () => startStage(i), { off: locked, prime: i === Math.min(save.unlocked - 1, STAGES.length - 1) });
+}
+function menuFlip(p) { const mp = pageCount(STAGES.length, PER_MENU); menuPage = (p + mp) % mp; }
+function drawClassicStages() {
+  const V = MCUI.view();
+  classicHeader(0);
+  const got = save.stars.slice(0, STAGES.length).reduce((a, b) => a + b, 0);
+  if (V.tall) {
+    const top = 172, cw = (V.w - 48) / 2, ch = 132, rows = Math.ceil(STAGES.length / 2), off = MCUI.scrollStart('stages', top, V.h - 8, rows * (ch + 16) + 40);
+    MCUI.iconInk('star', 28, top + 16 + off, 3, '#FFE14D'); MCUI.text(got + '/' + STAGES.length * 3, 44, top + 16 + off, 16, '#FFE14D', 'left');
+    STAGES.forEach((s, i) => stageCard(i, 16 + (i % 2) * (cw + 16), top + 40 + (i / 2 | 0) * (ch + 16) + off, cw, ch));
+    MCUI.scrollEnd();
+    return;
+  }
+  MCUI.iconInk('star', 640, 130, 3, '#FFE14D'); MCUI.text(got + '/' + STAGES.length * 3, 760, 130, 16, '#FFE14D', 'right');
+  STAGES.forEach((s, i) => {
+    if ((i / PER_MENU | 0) !== menuPage) return;
+    const k = i % PER_MENU; stageCard(i, 40 + (k % 3) * 248, 176 + (k / 3 | 0) * 160, 224, 144);
+  });
+  MCUI.pager('spage', W / 2, 500, menuPage, pageCount(STAGES.length, PER_MENU), menuFlip, 'stage-');
+  MCUI.keybar([['ESC', 'GO BACK'], ['ENTER', 'PLAY'], ['Q/E', 'TAB'], ['1-6', 'STAGE']]);
+}
+const PCOLS = ['#5CFF7A', '#4DB8FF', '#B49CFF', '#FFE14D', '#fffdf2', '#FF9E7A'];
+function practiceFlip(p) { const pp = pageCount(PREG.length, PER_PRACTICE); practicePage = (p + pp) % pp; }
+function drawClassicPractice() {
+  const V = MCUI.view(), pp = pageCount(PREG.length, PER_PRACTICE);
+  classicHeader(1);
+  const speed = () => { practiceSp = practiceSp === 1 ? 1.5 : practiceSp === 1.5 ? 2 : 1; };
+  const tileOf = (r, ri, x, y, w, h) => MCUI.tile('pr-' + r.id, x, y, w, h, PCOLS[ri % PCOLS.length], dy => {
+    I18N.scope = I18N.scopeOf(r.id); MCUI.label(t(r.name), x + w / 2, y + h / 2 + dy, w - 12, h - 8, 16, INK); I18N.scope = '';
+  }, () => startPractice(r.id), { prime: ri % PER_PRACTICE === 0 });
+  const page = PREG.filter((r, ri) => (ri / PER_PRACTICE | 0) === practicePage);
+  if (V.tall) {
+    const top = 172, cw = (V.w - 32 - 16) / 2, ch = 56, rows = Math.ceil(page.length / 2), off = MCUI.scrollStart('practice', top, V.h - 8, 72 + rows * (ch + 12) + 80);
+    MCUI.btn('speed', 16, top + off, V.w - 32, 56, t('SPEED x{n}', { n: practiceSp }), speed, { tone: 'gold' });
+    page.forEach((r, k) => tileOf(r, practicePage * PER_PRACTICE + k, 16 + (k % 2) * (cw + 16), top + 72 + (k / 2 | 0) * (ch + 12) + off, cw, ch));
+    MCUI.pager('ppage', V.w / 2, top + 72 + rows * (ch + 12) + 8 + off, practicePage, pp, practiceFlip, 'pr-');
+    MCUI.scrollEnd();
+    return;
+  }
+  MCUI.btn('speed', 520, 104, 240, 48, t('SPEED x{n}', { n: practiceSp }), speed, { tone: 'gold' });
+  page.forEach((r, k) => tileOf(r, practicePage * PER_PRACTICE + k, 40 + (k % 4) * 184, 176 + (k / 4 | 0) * 64, 168, 52));
+  MCUI.pager('ppage', W / 2, 500, practicePage, pp, practiceFlip, 'pr-');
+  MCUI.keybar([['ESC', 'GO BACK'], ['ENTER', 'PLAY'], ['Q/E', 'TAB']]);
+}
+
+/* result screens (clear / over): their art stays in js/main.js; only the buttons are kit plates. items = [[id, label, fn, tone]] */
+function kitButtons(items, y) {
+  MCUI.begin(ctx, kitView(), state);
+  const n = items.length, w = n === 3 ? 220 : 280, gap = n === 3 ? 30 : 40, x0 = (W - (n * w + (n - 1) * gap)) / 2;
+  const size = items.every(b => MCUI.width(t(b[1]), 24) <= w - 32) ? 24 : 16;   // one size for the whole row
+  items.forEach((b, i) => MCUI.btn(b[0], x0 + i * (w + gap), y, w, 66, b[1], b[2], { tone: b[3], prime: i === 0, size }));
+  MCUI.setBack(goMenu);
+  MCUI.end();
+}
+
 /* ───────────── frame + input ───────────── */
 function drawKit() {
   MCUI.begin(ctx, kitView(), state);
@@ -176,6 +264,8 @@ function drawKit() {
   else if (state === 'main') drawMain();
   else if (state === 'worlds') drawWorlds();
   else if (state === 'options') drawOptions();
+  else if (state === 'menu') drawClassicStages();
+  else if (state === 'practice') drawClassicPractice();
   if (toast) { MCUI.toast(toast.s, toast.col); toast = null; }
   MCUI.end();
   if (leaving) {
@@ -189,11 +279,17 @@ function drawKit() {
 function kitKey(e) {
   if (leaving || MCUI.stale(state)) return true;
   if (MCUI.key(e)) return true;
-  if (e.code === 'KeyO' && state !== 'options') { goOptions(); return true; }
+  if (e.code === 'KeyO' && kitOn() && state !== 'options') { goOptions(); return true; }
   if (e.code === 'KeyG' && (state === 'title' || state === 'options')) { I18N.next(); return true; }
   if (e.code === 'KeyF' && (state === 'title' || state === 'main')) { goParty(state); return true; }
   if (e.code === 'KeyL' && state === 'main') { goBoard(); return true; }
   if (state === 'worlds') return worldKey(e);
+  if (state === 'menu') {
+    const d = +e.key;
+    if (d >= 1 && d <= 6 && menuPage * PER_MENU + d - 1 < STAGES.length) { startStage(menuPage * PER_MENU + d - 1); return true; }
+    if (e.code === 'KeyP') { classicTab(1); return true; }
+    if (e.code === 'KeyL') { goBoard(); return true; }
+  }
   return false;
 }
 addEventListener('pageshow', e => { if (e.persisted) leaving = null; });   // back/forward cache brought this page back: drop the closed curtain

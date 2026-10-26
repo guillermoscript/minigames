@@ -115,10 +115,11 @@ var MCUI = (function () {
     return lines.length * lh;
   }
   /* a label inside a box: one line, else two lines, else a smaller size */
-  function label(s, cx, cy, w, h, size, col, align, lx) {
+  function label(s, cx, cy, w, h, size, col, align, lx, one) {   // one: never two lines (the back button)
     s = tr(s);
     for (var sz = size; sz >= 8; sz -= 8) {
       if (width(s, sz) <= w) { text(s, align === 'left' ? lx : cx, cy, sz, col, align, w); return; }
+      if (one) continue;
       var lines = wrap(s, w, sz);
       if (lines.length === 2 && sz * 2.6 <= h && width(lines[0], sz) <= w && width(lines[1], sz) <= w) {
         var gap = Math.round(sz * 0.7);
@@ -198,7 +199,7 @@ var MCUI = (function () {
     if (o.key && showKeys()) { var kw = width(padName(o.key), 8) + 14; keycap(padName(o.key), x + w - kw - 10, cy); avail -= kw + 6; if (!o.icon) cx = x + 16 + avail / 2; }
     if (lab) {
       if (o.sub) { label(lab, cx, cy - 10, avail, h / 2, size, col, o.align, left); text(o.sub, o.align === 'left' ? left : cx, cy + 14, 8, col === INKC ? '#4a4558' : '#ddd', o.align || 'center', avail); }
-      else label(lab, cx, cy, avail, h - 8, size, col, o.align, left);
+      else label(lab, cx, cy, avail, h - 8, size, col, o.align, left, o.one);
     }
     if (o.dot) { notch(x + w - 14, y - 10 + dy, 24, 24, 2, INKC); rect(x + w - 12, y - 8 + dy, 20, 20, TONE.bad); text(String(o.dot), x + w - 2, y + 2 + dy, 8, '#fff'); }
     return add({ id: id, x: x, y: y, w: w, h: h, fn: o.off ? o.offFn || null : fn, off: o.off && !o.offFn, prime: o.prime, nofocus: o.nofocus });
@@ -305,7 +306,7 @@ var MCUI = (function () {
   function back(fn, lab) {
     backFn = fn;
     if (V.tall) return btn('back', 16, 16, 56, 56, '', fn, { icon: 'left' });
-    return btn('back', 16 - V.ox, 16, 136, 56, lab || 'GO BACK', fn, { icon: 'left' });
+    return btn('back', 16 - V.ox, 16, 136, 56, lab || 'GO BACK', fn, { icon: 'left', one: true });
   }
   function header(title, o) {
     o = o || {};
@@ -559,8 +560,8 @@ var MCUI = (function () {
     items: function () { var out = []; for (var i = 0; i < list.length; i++) out.push({ id: list[i].id, x: list[i].x, y: list[i].y, w: list[i].w, h: list[i].h, off: !!list[i].off }); return out; },
     client: function (id) {
       var it = find(id); if (!it || !X) return null;
-      var r = X.canvas.getBoundingClientRect(), cw = X.canvas.width, ch = X.canvas.height;
-      return { x: r.left + (it.x + it.w / 2 + V.ox) * r.width / cw, y: r.top + (it.y + it.h / 2) * r.height / ch };
+      var r = X.canvas.getBoundingClientRect(), lw = V.w + 2 * V.ox;   // layout units, whatever the canvas's pixel ratio
+      return { x: r.left + (it.x + it.w / 2 + V.ox) * r.width / lw, y: r.top + (it.y + it.h / 2) * r.height / V.h };
     },
     press: function (id) { return activate(find(id)); }
   };

@@ -68,6 +68,9 @@ css.textContent='html,body{height:100%}body{padding:0!important;gap:0!important;
 document.head.append(css);
 const fl=document.createElement('link');fl.rel='stylesheet';fl.href='https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&display=swap';document.head.append(fl);
 if(document.fonts)document.fonts.load('700 20px Fredoka').catch(()=>{});
+const pf=document.createElement('style');pf.textContent='@font-face{font-family:"Press Start 2P";src:url(../../fonts/press-start-2p-latin.woff2) format("woff2");font-display:block}';document.head.append(pf);   /* la letra del kit de menús (js/ui/mcui.js) */
+const VOL={music:.8,sfx:1};   /* los volúmenes de OPCIONES, los mismos de la portada (js/core.js) */
+try{const o=JSON.parse(localStorage.getItem('minicaos-opts-v1'));if(o){if(o.music>=0&&o.music<=1)VOL.music=o.music;if(o.sfx>=0&&o.sfx<=1)VOL.sfx=o.sfx;}}catch(e){}
 const wrap=document.createElement('div');wrap.id='camp';view.before(wrap);wrap.append(view);
 const ov=document.createElement('canvas');ov.id='camp-ov';const DPR=Math.min(2,window.devicePixelRatio||1);ov.width=W*DPR;ov.height=H*DPR;wrap.append(ov);
 const X=ov.getContext('2d');
@@ -75,19 +78,19 @@ document.title=PUBLIC?'MiniCaos · Venezuela':'MiniCaos · modo niveles';
 
 /* ───────── sonido de la app (snd/noise/jingles/música de js/core.js) por el AudioContext del laboratorio ───────── */
 EGGS.use(()=>A());   /* los audios escondidos (js/eggs.js) suenan por el AudioContext del laboratorio */
-let MASTER=null,NB=null,MUS=null,OUT=null;   /* OUT: a dónde van tone/hiss mientras se programa la música (si no, a MASTER) */
+let MASTER=null,NB=null,MUS=null,SFXG=null,OUT=null;   /* OUT: a dónde van tone/hiss mientras se programa la música (si no, a MASTER) */
 function salida(){const a=A();
-  if(!MASTER){const comp=a.createDynamicsCompressor();comp.threshold.value=-14;comp.ratio.value=6;MASTER=a.createGain();MASTER.gain.value=.9;MASTER.connect(comp);comp.connect(a.destination);MUS=a.createGain();MUS.connect(MASTER);
+  if(!MASTER){const comp=a.createDynamicsCompressor();comp.threshold.value=-14;comp.ratio.value=6;MASTER=a.createGain();MASTER.gain.value=.9;MASTER.connect(comp);comp.connect(a.destination);MUS=a.createGain();MUS.connect(MASTER);SFXG=a.createGain();SFXG.gain.value=VOL.sfx;SFXG.connect(MASTER);
     NB=a.createBuffer(1,a.sampleRate,a.sampleRate);const d=NB.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}
   return a;}
 function tone(f,d=.1,type='square',v=.06,delay=0,f2){try{const a=salida(),os=a.createOscillator(),g=a.createGain(),t0=a.currentTime+delay;
   os.type=type;os.frequency.setValueAtTime(f,t0);if(f2)os.frequency.exponentialRampToValueAtTime(f2,t0+d);
   g.gain.setValueAtTime(.0001,t0);g.gain.linearRampToValueAtTime(v,t0+.006);g.gain.exponentialRampToValueAtTime(.0001,t0+d);
-  os.connect(g);g.connect(OUT||MASTER);os.start(t0);os.stop(t0+d+.03);}catch(e){}}
+  os.connect(g);g.connect(OUT||SFXG);os.start(t0);os.stop(t0+d+.03);}catch(e){}}
 function hiss(d=.12,v=.08,lo=800,hi=lo,type='bandpass',delay=0,q=1){try{const a=salida(),s=a.createBufferSource(),f=a.createBiquadFilter(),g=a.createGain(),t0=a.currentTime+delay;
   s.buffer=NB;s.loop=true;f.type=type;f.Q.value=q;f.frequency.setValueAtTime(lo,t0);if(hi!==lo)f.frequency.exponentialRampToValueAtTime(hi,t0+d);
   g.gain.setValueAtTime(.0001,t0);g.gain.linearRampToValueAtTime(v,t0+.005);g.gain.exponentialRampToValueAtTime(.0001,t0+d);
-  s.connect(f);f.connect(g);g.connect(OUT||MASTER);s.start(t0,Math.random());s.stop(t0+d+.03);}catch(e){}}
+  s.connect(f);f.connect(g);g.connect(OUT||SFXG);s.start(t0,Math.random());s.stop(t0+d+.03);}catch(e){}}
 const fx={
   click:()=>tone(900,.04,'square',.04,0,600),
   coin:()=>{tone(988,.07,'square',.05);tone(1319,.22,'square',.05,.07);},
@@ -115,7 +118,7 @@ const mus={on:false,step:0,next:0,mul:1,key:TONOS[0],kind:'play',vol:1,timer:0};
 const midi=n=>440*Math.pow(2,(n-69)/12);
 function musTick(){if(!mus.on)return;
   try{const a=salida(),K=mus.key,jefe=mus.kind==='boss';if(mus.next<a.currentTime)mus.next=a.currentTime+.05;
-    MUS.gain.setTargetAtTime(mus.vol,a.currentTime,.12);OUT=MUS;
+    MUS.gain.setTargetAtTime(mus.vol*VOL.music,a.currentTime,.12);OUT=MUS;
     while(mus.next<a.currentTime+.25){const s=mus.step,sd=mus.next-a.currentTime,e8=30/(K.bpm*mus.mul),n=s%16,q=s%8,bar=(s>>3)%4,
         [deg,ql]=K.prog[bar],r=K.root+deg,ter=ql==='m'?3:4,ac=[0,ter,7];
       if(CLAVE.includes(n)){tone(2350,.035,'square',.04,sd);tone(1180,.03,'sine',.04,sd);}
@@ -138,6 +141,8 @@ function startMusic(i=0,mul=1,kind='play',vol=1,up=0){const K=TONOS[i%TONOS.leng
   mus.mul=1+(mul-1)*.35+(kind==='boss'?.06:0);mus.kind=kind;mus.vol=vol;
   if(!mus.on){mus.on=true;mus.step=0;mus.next=0;mus.timer=setInterval(musTick,60);}}
 function stopMusic(){mus.on=false;clearInterval(mus.timer);}
+function setVol(k,v){VOL[k]=Math.round(Math.max(0,Math.min(1,v))*10)/10;try{localStorage.setItem('minicaos-opts-v1',JSON.stringify(VOL));}catch(e){}
+  if(k==='sfx'&&SFXG)SFXG.gain.setTargetAtTime(VOL.sfx,A().currentTime,.02);}
 
 /* ───────── dibujo de la app (js/core.js), sobre la capa X ───────── */
 const OR='#FF6B3D';
@@ -247,7 +252,7 @@ let appFr=null,appOn=false,appStages=19,appStars=0;
 const SIN_APAGON="<script>{const i=STAGES.findIndex(s=>s.boss==='blackout');if(i>=0)STAGES.splice(i,1);for(let k=REG.length-1;k>=0;k--)if(REG[k].id.startsWith('ap_')){delete REGMAP[REG[k].id];REG.splice(k,1);}}</script>";
 const cuentaClasico=()=>{try{appStars=((JSON.parse(localStorage.getItem('claudeware-save-v2'))||{}).stars||[]).slice(0,appStages).reduce((a,b)=>a+(b||0),0);}catch(e){appStars=0;}};
 fetch(APP+'js/stages.js').then(r=>r.text()).then(t=>{const n=(t.match(/\{\s*name:/g)||[]).length;if(n){appStages=n-(/boss:\s*'blackout'/.test(t)?1:0);cuentaClasico();}}).catch(()=>{});
-function goWorlds(){if(PUBLIC&&window.CAMP){EGGS.stop();location.assign('../../?worlds=1&lang='+(new URLSearchParams(location.search).get('lang')==='en'?'en':'es'));return;}EGGS.stop();state='worlds';st=0;mode='stage';parts.length=0;cuentaClasico();}
+function goWorlds(){if(PUBLIC&&window.CAMP){EGGS.stop();kitLeave('../../?worlds=1&from=venezuela&lang='+(typeof I18N!=='undefined'?I18N.lang:new URLSearchParams(location.search).get('lang')==='en'?'en':'es'));return;}EGGS.stop();state='worlds';st=0;mode='stage';parts.length=0;cuentaClasico();}
 function closeClassic(){if(appFr){appFr.remove();appFr=null;}appOn=false;goWorlds();try{window.focus();}catch(e){}}
 function openClassic(){if(appFr)return;
   const f=appFr=document.createElement('iframe');f.id='camp-app';f.allowFullscreen=true;f.style.visibility='hidden';document.body.append(f);
@@ -378,6 +383,57 @@ function worldCard(i,x,y,w,h,m,fn){const pop=easeOut((st-i*.08)/.35);X.save();X.
   star(x+w/2-58,y+356,15,6.8,5,-Math.PI/2,'#FFE14D',3);T(m.stars,x+w/2-34,y+358,22,'#fff','left');
   X.restore();X.restore();btns.push({x,y,w,h,fn});}
 
+/* ───────── el mundo con el kit de menús (js/ui/mcui.js; docs/ui/01-menu-redesign.md, paso 7) ─────────
+   ETAPAS · PRÁCTICA · OPCIONES son pestañas de una sola pantalla, con el mismo encabezado, VOLVER y teclas que el resto de MiniCaos.
+   El texto pasa por t() (js/i18n.js): la clave en inglés, el español en js/i18n/es/ui.js. */
+const KIT_STATES=['menu','practice','options'],kitOn=()=>KIT_STATES.includes(state)&&!appOn&&typeof MCUI!=='undefined';
+const tr=(s,o)=>typeof t==='function'?t(s,o):String(s).replace(/\{(\w+)\}/g,(m,k)=>o&&k in o?o[k]:m);
+const NIV_EN=['DAYTIME','SUNSET','NIGHT'];
+let vPrac=0,leaving=null,arrive=null;
+try{arrive=sessionStorage.getItem('mc-wipe');sessionStorage.removeItem('mc-wipe');}catch(e){}
+if(typeof MCUI!=='undefined')MCUI.sounds({click:()=>fx.click(),tick:()=>tone(480,.04,'square',.03),back:()=>fx.whoosh()});
+function kitLeave(url){if(leaving)return;try{sessionStorage.setItem('mc-wipe',MCUI.WORLD.venezuela);}catch(e){}leaving={url,t0:now};}
+function leavingCurtain(){const k=(now-leaving.t0)/.25;MCUI.wipe(Math.max(0,1-k),MCUI.WORLD.venezuela);if(k>=1&&!leaving.gone){leaving.gone=true;location.assign(leaving.url);}}
+const kox=()=>typeof OX==='number'?OX:0;
+function vTab(i){if(i===0){state='menu';mode='stage';}else if(i===1){state='practice';mode='practice';}else state='options';}
+function stageTile(i,x,y,w,h){const s=ETAPAS[i],cf=tinte(s.bg[0]),dk=lum(cf)<.3?'#fff':INK,ok=abierto(i,nivel),E=estrellas(nivel),R=records(nivel);
+  MCUI.tile('vstage-'+i,x,y,w,h,cf,(dy,f)=>{const bob=f?Math.floor(Math.abs(Math.sin(now*6))*3)*4:0;
+    shadow(x+52,y+h-12+dy,26,5,.25);caos(x+52,y+h-14+dy-bob,3.6,{col:s.col,mood:f?'happy':null});
+    MCUI.text(tr('STAGE {n}',{n:i+1}),x+100,y+18+dy,8,dk,'left',w-200);
+    if(R[i])MCUI.text(tr('RECORD {n}',{n:R[i]}),x+w-12,y+18+dy,8,dk,'right',120);
+    MCUI.label(s.name,x+100+(w-112)/2,y+48+dy,w-112,48,16,dk,'left',x+100);
+    MCUI.text(s.n+' '+tr('GAMES')+' + '+(s.jefes.length>1?s.jefes.length+' '+tr('BOSSES'):tr('BOSS')),x+100,y+h-24+dy,8,dk,'left',w-200);
+    for(let k=0;k<3;k++)MCUI.iconInk('star',x+w-64+k*22,y+h-24+dy,2,k<(E[i]||0)?'#FFE14D':'#4a4558');
+    if(!ok){X.fillStyle='rgba(20,16,28,.62)';X.fillRect(x,y+dy,w,h);MCUI.iconInk('lock',x+w/2,y+h/2-14+dy,3,'#FFE14D');MCUI.text(tr('BEAT LEVEL {n} FIRST',{n:nivel-1}),x+w/2,y+h/2+16+dy,8,'#FFE14D','center',w-24);}
+  },()=>startStage(i),{prime:i===0});}
+const PCOL=['#5CFF7A','#4DB8FF','#B49CFF','#FFE14D','#fffdf2','#FF9E7A'];
+function kitScreen(){const ox=kox(),tab=state==='menu'?0:state==='practice'?1:2;
+  MCUI.begin(X,{w:W,h:H,ox,tall:false,t:now},state);
+  MCUI.bg('venezuela');
+  MCUI.header('VENEZUELA',{band:MCUI.WORLD.venezuela,col:INK});
+  MCUI.back(goWorlds,'GO BACK');
+  MCUI.btn('nivel',W+ox-16-200,16,200,56,tr('LEVEL {n}',{n:nivel}),()=>{nivel=nivel%3+1;},{sub:tr(NIV_EN[nivel-1]),tone:nivel===1?'gold':nivel===2?'#FF9E7A':'#8f9bff'});
+  MCUI.tabBar('vtab',40,104,456,52,['STAGES','PRACTICE','OPTIONS'],tab,vTab);
+  MCUI.iconInk('star',600,130,3,'#FFE14D');MCUI.text(totalEstrellas()+'/'+ETAPAS.length*9,760,130,16,'#FFE14D','right');
+  if(tab===0){ETAPAS.forEach((s,i)=>{const sola=i===ETAPAS.length-1&&i%2===0;stageTile(i,sola?224:40+(i%2)*368,172+(i/2|0)*124,352,108);});
+    MCUI.keybar([['ESC','GO BACK'],['ENTER','PLAY'],['Q/E','TAB'],['1-5','STAGE']]);}
+  else if(tab===1){const ids=TODOS.concat(Object.keys(JEFES).filter(id=>GAMES[id])),per=20,pages=Math.ceil(ids.length/per);vPrac=Math.min(vPrac,pages-1);
+    ids.slice(vPrac*per,vPrac*per+per).forEach((id,k)=>{const x=40+(k%4)*184,y=172+(k/4|0)*62;
+      MCUI.tile('vpr-'+id,x,y,168,52,JEFES[id]?'#FF9A8A':PCOL[(vPrac*per+k)%PCOL.length],dy=>MCUI.label(GAMES[id].name,x+84,y+26+dy,156,44,16,INK),()=>startPractice(id),{prime:k===0});});
+    MCUI.pager('vpp',W/2,500,vPrac,pages,p=>{vPrac=p;},'vpr-');
+    MCUI.keybar([['ESC','GO BACK'],['ENTER','PLAY'],['Q/E','TAB']]);}
+  else{const rows=[['LEVEL',(x,y,w,h)=>[1,2,3].forEach(n=>MCUI.btn('niv'+n,x+(n-1)*(w/3+4),y,w/3-8,h,tr('LEVEL {n}',{n}),()=>{nivel=n;},{sub:tr(NIV_EN[n-1]),tone:nivel===n?'gold':'paper',prime:n===1}))],
+      ['MUSIC',(x,y,w,h)=>MCUI.btn('vmus',x,y,w,h,save.musica?'ON':'OFF',()=>{save.musica=!save.musica;persist();},{icon:save.musica?'note':'mute',tone:save.musica?'go':'paper',key:'M'})],
+      ['MUSIC VOLUME',(x,y,w,h)=>MCUI.slider('vvol',x,y,w,h,()=>VOL.music,v=>setVol('music',v))],
+      ['EFFECTS',(x,y,w,h)=>MCUI.slider('vsfx',x,y,w,h,()=>VOL.sfx,v=>{setVol('sfx',v);fx.coin();})]];
+    if(!PUBLIC)rows.push(['ESTILO',(x,y,w,h)=>{const all=ESTILOS.concat([['mezcla','MEZCLA']]),bw=(w-6*6)/7;all.forEach(([k,n],i)=>MCUI.btn('est-'+k,x+i*(bw+6),y,bw,h,n,()=>estilo(k),{tone:save.estilo===k?'gold':'paper',size:8}));}]);
+    rows.forEach((r,i)=>{const y=176+i*68;MCUI.text(r[0],64,y+28,16,'#fff','left',260);r[1](340,y,420,56);});
+    MCUI.keybar([['ESC','GO BACK'],['ARROWS','MOVE'],['ENTER','CHANGE']]);}
+  if(toast&&MCUI){MCUI.toast(toast.s,toast.col);toast=null;}
+  MCUI.end();
+  MCUI.wipe(st/.3,arrive||MCUI.WORLD.venezuela);if(st>.3)arrive=null;
+}
+
 /* ───────── pantallas ───────── */
 function render(){
   btns=[];X.setTransform(DPR,0,0,DPR,0,0);X.clearRect(0,0,W,H);X.save();
@@ -391,44 +447,8 @@ function render(){
       l2:'Las etapas de siempre: bichos, teclado, reflejos, 3D, deportes…',stars:appStars+' / '+appStages*3},openClassic);
     if(appFr&&!appOn){X.fillStyle='rgba(20,16,28,.7)';X.fillRect(0,0,W,H);T('CARGANDO MUNDO CLÁSICO…',W/2,H/2,40,'#FFE14D','center',740);btns=[];}
     T('DENTRO DE CADA MUNDO, «MUNDOS» O ESC TE DEVUELVEN AQUÍ',W/2,548,16,'#fff','center',770);
-  }else if(state==='menu'){
-    fondoNivel(NIV[nivel-1].menu[0],NIV[nivel-1].menu[1]);
-    button(14,14,132,38,'◄ MUNDOS',goWorlds,{size:16,depth:4,o:4});T(PUBLIC?'VENEZUELA':'ELIGE ETAPA',W/2,36,40,'#FFE14D','center',330);if(!PUBLIC)tabsNivel(W-14-228,14,38);
-    ETAPAS.forEach((s,i)=>{const sola=i===ETAPAS.length-1&&i%2===0,x=sola?210:14+(i%2)*392,y=62+(i/2|0)*102,w=380,h=90,pop=easeOut((st-i*.05)/.3),cf=tinte(s.bg[0]),dk=lum(cf)<.3?'#fff':INK,ok=abierto(i,nivel),E=estrellas(nivel),R=records(nivel);
-      X.save();X.translate(0,(1-pop)*40);X.globalAlpha=pop;hoverBox(x,y,w,h,cf,5,7);
-      shadow(x+50,y+80,26,5,.25);caos(x+50,y+78-Math.abs(Math.sin(now*3+i))*5,3.8,{col:s.col});
-      T('ETAPA '+(i+1)+' · NIVEL '+nivel,x+98,y+15,14,'#fff','left');if(R[i])T('RÉCORD '+R[i],x+w-12,y+15,13,'#fff','right');
-      T(s.name,x+98,y+39,25,'#fff','left',268);
-      T(s.n+' JUEGOS + '+(s.jefes.length>1?s.jefes.length+' JEFES':'JEFE'),x+98,y+62,14,dk,'left',170);
-      T(s.jefes.length>1?'LOS '+(['','','DOS','TRES','CUATRO','CINCO'][s.jefes.length]||s.jefes.length)+', SEGUIDOS':JEFES[s.jefes[0]]||'',x+98,y+79,12,dk,'left',170);
-      stars3(x+w-52,y+70,E[i]||0,11,27);
-      if(!ok){X.fillStyle='rgba(20,16,28,.62)';X.fillRect(x,y,w,h);T('SUPERA EL NIVEL '+(nivel-1),x+w/2,y+h/2,24,'#FFE14D','center',w-30);}
-      X.restore();X.restore();btns.push({x,y,w,h,fn:()=>startStage(i)});});
-    if(PUBLIC){
-      button(110,420,280,64,'PRÁCTICA',goPractice,{fill:'#5CFF7A'});
-      button(410,420,280,64,'OPCIONES',()=>{state='options';st=0;},{fill:'#fff'});
-      T('ELIGE UNA ETAPA PARA JUGAR',W/2,540,20,'#fff');
-    }else{
-    T('ESTILO DE DIBUJO',W/2,380,16,'#fff');chips(394,36);
-    button(60,446,320,56,'PRÁCTICA',goPractice,{fill:'#5CFF7A'});
-    button(420,446,320,56,save.musica?'MÚSICA: SÍ':'MÚSICA: NO',()=>{save.musica=!save.musica;persist();},{fill:'#fff'});
-    T('NIVEL '+nivel+' · '+NIV[nivel-1].n+(nivel>1?': LOS MISMOS JUEGOS, CON MÁS MALDAD':': 4 VIDAS · SI PIERDES, REPITES ESE JUEGO · CADA 2 JUEGOS, MÁS RÁPIDO'),W/2,528,14,'#fff','center',770);
-    T('1-7 ESTILO (TAMBIÉN JUGANDO) · P PRÁCTICA · M MÚSICA · ESC MUNDOS',W/2,562,16,'#fff','center',770);
-    }
-  }else if(state==='options'){
-    rays('#2b2757','#322d66',now);
-    button(14,14,150,44,'◄ ETAPAS',goMenu,{size:18});T('OPCIONES',W/2,52,44,'#FFE14D');
-    T('DIFICULTAD',W/2,154,26,'#fff');tabsNivel((W-228)/2,190,48);
-    T(NIV[nivel-1].n,W/2,265,22,'#FFE14D');
-    T('ESTILO DE DIBUJO',W/2,340,26,'#fff');chips(380,44);
-    button(220,475,360,60,save.musica?'MÚSICA: SÍ':'MÚSICA: NO',()=>{save.musica=!save.musica;persist();},{fill:'#fff'});
-  }else if(state==='practice'){
-    rays('#1f2a44','#26335a',now);
-    button(14,10,150,40,'◄ ETAPAS',goMenu,{size:17,depth:4,o:4});T('PRÁCTICA',W/2,31,34,'#FFE14D');
-    tabsNivel(W-14-228,10,40);
-    chips(64,34);
-    const ids=TODOS.concat(Object.keys(JEFES).filter(id=>GAMES[id])),rows=Math.ceil(ids.length/5),ph=Math.min(60,478/rows);
-    ids.forEach((id,i)=>button(13+(i%5)*156,112+(i/5|0)*ph,150,ph-10,GAMES[id].name,()=>startPractice(id),{size:16,depth:4,o:4,fill:JEFES[id]?'#FF9A8A':'#fff'}));
+  }else if(kitOn()){
+    kitScreen();
   }else if(state==='stagein'){
     fondoNivel(tinte(stage.bg[0]),tinte(stage.bg[1]));
     const e1=easeOut(st/.45),e2=easeOut((st-.15)/.45),e3=easeBack((st-.35)/.4),stn='ETAPA '+(stageIdx+1);
@@ -506,9 +526,10 @@ function render(){
       const bw=bs.length>2?244:280,gp=bs.length>2?14:20,x0=(W-(bs.length*bw+(bs.length-1)*gp))/2;bs.forEach((b,i)=>button(x0+i*(bw+gp),500,bw,66,b[0],b[1],{fill:b[2]}));}
   }
   drawFx();
-  if(!(state==='play'&&pre<=0))vignette(.35);
+  if(!(state==='play'&&pre<=0)&&!kitOn())vignette(.35);
   if(toast){X.globalAlpha=clamp01(4-toast.t);X.fillStyle='rgba(20,16,28,.85)';X.fillRect(0,H-84,W,40);T(toast.s,W/2,H-64,18,toast.col,'center',770);X.globalAlpha=1;}
   EGGS.draw(X,W,true);
+  if(leaving)leavingCurtain();
   X.restore();
 }
 
@@ -537,15 +558,20 @@ function pantallaCompleta(){
   if(rq)try{const p=rq.call(el,{navigationUI:'hide'});if(p&&p.catch)p.catch(()=>{});}catch(_){}
 }
 addEventListener('pointerdown',e=>{if(e.target!==view)return;despierta();pantallaCompleta();const p=pos(e);hp=p;pressing=true;
+  if(kitOn()){e.stopImmediatePropagation();e.preventDefault();if(!leaving&&!MCUI.stale(state))MCUI.down({x:p.x,y:p.y,touch:e.pointerType==='touch'});return;}
   const b=btns.find(b=>p.x>=b.x&&p.x<=b.x+b.w&&p.y>=b.y&&p.y<=b.y+b.h);
   if(b){e.stopImmediatePropagation();e.preventDefault();fx.click();b.fn();return;}
   if(!live())e.stopImmediatePropagation();},true);
-addEventListener('pointermove',e=>{if(e.target!==view)return;hp=pos(e);if(!live())e.stopImmediatePropagation();},true);
-const suelta=e=>{pressing=false;if(e.pointerType==='touch')hp={x:-999,y:-999};};
+addEventListener('pointermove',e=>{if(e.target!==view)return;hp=pos(e);if(kitOn()){e.stopImmediatePropagation();MCUI.move({x:hp.x,y:hp.y,touch:e.pointerType==='touch'});return;}if(!live())e.stopImmediatePropagation();},true);
+const suelta=e=>{if(e.type==='pointerup'&&e.target===view&&kitOn()&&!leaving&&!MCUI.stale(state)){const p=pos(e);MCUI.up({x:p.x,y:p.y,touch:e.pointerType==='touch'});}pressing=false;if(e.pointerType==='touch')hp={x:-999,y:-999};};
 addEventListener('pointerup',suelta,true);addEventListener('pointercancel',suelta,true);
 addEventListener('contextmenu',e=>{if(e.target===view)e.preventDefault();});
 addEventListener('keydown',e=>{despierta();const k=e.code,go=k==='Enter'||k==='Space';
-  if(/^Digit[1-9]$/.test(k)){e.stopImmediatePropagation();const i=+k.slice(5)-1;if(!e.repeat&&i<=ESTILOS.length)estilo(i<ESTILOS.length?ESTILOS[i][0]:'mezcla');return;}
+  if(kitOn()){e.stopImmediatePropagation();if(go||k.startsWith('Arrow'))e.preventDefault();if(e.repeat||leaving||MCUI.stale(state))return;   /* menús: primero el kit (flechas/WASD, Enter, Esc, Q/E) */
+    if(MCUI.key(e))return;
+    if(PUBLIC&&/^Digit[1-5]$/.test(k)){startStage(+k.slice(5)-1);return;}   /* en público el estilo es fijo (16 bits): los números abren etapas */
+    if(k==='KeyP'){vTab(1);return;}if(k==='KeyO'){vTab(2);return;}}
+  if(/^Digit[1-9]$/.test(k)&&!PUBLIC){e.stopImmediatePropagation();const i=+k.slice(5)-1;if(!e.repeat&&i<=ESTILOS.length)estilo(i<ESTILOS.length?ESTILOS[i][0]:'mezcla');return;}
   if(k==='KeyM'){e.stopImmediatePropagation();if(!e.repeat){save.musica=!save.musica;persist();say(save.musica?'MÚSICA: SÍ':'MÚSICA: NO','#FFE14D');}return;}
   if(k==='Escape'){e.stopImmediatePropagation();if(state==='play'||state==='inter'||state==='stagein')exitPlay();else if(state==='practice'||state==='options'||state==='over'||state==='clear')goMenu();else if(!appFr)goWorlds();return;}
   if(k==='KeyR'&&mode==='practice'&&state==='play'){e.stopImmediatePropagation();if(!e.repeat)beginGame();return;}
@@ -557,7 +583,7 @@ addEventListener('keydown',e=>{despierta();const k=e.code,go=k==='Enter'||k==='S
 
 /* ───────── arranque ───────── */
 const q=new URLSearchParams(location.search),qe=q.get('estilo');
-estilo(qe&&(qe==='mezcla'||ESTILOS.some(e=>e[0]===qe))?qe:(save.estilo==='mezcla'||ESTILOS.some(e=>e[0]===save.estilo))?save.estilo:'snes');
+estilo(PUBLIC?'snes':qe&&(qe==='mezcla'||ESTILOS.some(e=>e[0]===qe))?qe:(save.estilo==='mezcla'||ESTILOS.some(e=>e[0]===save.estilo))?save.estilo:'snes');   /* público: siempre 16 bits */
 if(+q.get('nivel')>=1&&+q.get('nivel')<=3)nivel=+q.get('nivel');
 goWorlds();
 if(q.get('juego')&&GAMES[q.get('juego')])startPractice(q.get('juego'));else if(ETAPAS[+q.get('etapa')-1])startStage(+q.get('etapa')-1);

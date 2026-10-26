@@ -71,15 +71,14 @@ const assert = require('node:assert/strict');
   assert.equal(resources.some(url=>/\/(engine\.html|lab-ui\.js|jugar\.html)(?:[?]|$)/.test(url)),false,'public entry never loads laboratory HTML or controls');
   assert.equal(await page.locator('.world-menu').count(),0,'Venezuela uses original canvas UI');
   if(process.env.WORLD_SCREENSHOTS) await page.screenshot({path:`/tmp/minicaos-venezuela-${viewport.width}.png`});
-  await tap(550,450);await campState('options');
-  await tap(400,210);assert.equal(await page.evaluate(()=>CAMP.info.nivel),2);
-  await tap(180,400);assert.equal(await page.evaluate(()=>CAMP.info.selectedStyle),'felt');
-  await tap(730,400);assert.equal(await page.evaluate(()=>CAMP.info.selectedStyle),'mezcla');
-  await page.keyboard.press('Escape');await campState('menu');
-  await page.waitForTimeout(400);await tap(160,110);
+  await tapId('vtab2');await campState('options');   // Venezuela's shell: ETAPAS · PRÁCTICA · OPCIONES tabs (kit)
+  await tapId('niv2');assert.equal(await page.evaluate(()=>CAMP.info.nivel),2);
+  assert.equal(await page.evaluate(()=>CAMP.info.selectedStyle),'snes','public Venezuela is always 16-bit');
+  await tapId('vtab0');await campState('menu');
+  await page.waitForTimeout(400);await tapId('vstage-0');
   await campState('play');assert.equal(await page.evaluate(()=>CAMP.info.stage),0);
   await page.keyboard.press('Escape');await campState('menu');
-  await tap(80,32);await rootState('worlds');
+  await page.waitForTimeout(400);await tapId('back');await rootState('worlds');   // same VOLVER slot as every kit screen
   await page.waitForTimeout(400);
   assert.equal(await page.evaluate(()=>MCUI.focus()),'w-venezuela','back from Venezuela lands on its card');
   await page.keyboard.press('Escape');await rootState('main');

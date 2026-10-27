@@ -724,7 +724,7 @@ async function triple(j) {
 /* ───────── minijuegos ───────── */
 const MJ = {
   ffa: ['f_abuela', 'f_bombita', 'f_cola', 'f_chancla', 'f_cerro', 'f_domino', 'f_harina', 'f_cotufas', 'f_tequeno', 'f_mecate', 'f_perro'],
-  '2v2': ['f_cava', 'f_futbolito', 'f_hallacas', 'f_cuerda'],
+  '2v2': ['f_cava', 'f_futbolito', 'f_hallacas', 'f_cuerda', 'f_chocones', 'f_mudanza'],
   '1v3': ['f_bono', 'f_alcabala', 'f_guaya', 'f_patilla']
 };
 const MICROS = ['mango', 'hielo', 'tequenos', 'soplalo', 'baile', 'torta', 'pique', 'chancla', 'sopa', 'queso', 'parada', 'tendedero'];
@@ -905,7 +905,7 @@ function simular(fm, asientos) {
 }
 const NOMBRES = { f_abuela: '¡LA ABUELA DICE!', f_bombita: '¡AGUA EN CARNAVAL!', f_cola: '¡LA COLA DE LA GASOLINA!', f_chancla: '¡LLUEVEN CHANCLAS!', f_cerro: '¡SUBE EL CERRO!',
   f_domino: '¡CAPICÚA!', f_harina: '¡LA ÚLTIMA HARINA!', f_cotufas: '¡LLUEVEN COTUFAS!', f_tequeno: '¡TEQUEÑOS!', f_mecate: '¡SALTA EL MECATE!', f_perro: '¡PERRO CALIENTE CON TODO!',
-  f_cava: '¡CARGA LA CAVA!', f_futbolito: '¡FUTBOLITO DE CALLE!', f_hallacas: '¡LA LÍNEA DE HALLACAS!', f_cuerda: '¡HALA LA CUERDA!', f_bono: '¡SE LE CAE EL BONO!', f_alcabala: '¡LA ALCABALA DE MEDIANOCHE!',
+  f_cava: '¡CARGA LA CAVA!', f_futbolito: '¡FUTBOLITO DE CALLE!', f_hallacas: '¡LA LÍNEA DE HALLACAS!', f_cuerda: '¡HALA LA CUERDA!', f_chocones: '¡CARRITOS CHOCONES!', f_mudanza: '¡LA MUDANZA!', f_bono: '¡SE LE CAE EL BONO!', f_alcabala: '¡LA ALCABALA DE MEDIANOCHE!',
   f_guaya: '¡LA GUAYA DEL TELEFÉRICO!', f_patilla: '¡LA PATILLA GIGANTE!' };
 const nombreMJ = (g) => NOMBRES[g] || g.replace(/^f_/, '').toUpperCase();
 

@@ -29,10 +29,10 @@ function lazo(x,y,k){ctx.save();ctx.translate(x,y);ctx.scale(k,k);
 
 function mkAmarrala(){
   const lv=LV(),rs=Math.sqrt(SP),N=[3,4,5][lv-1],K=1/N,PUSH=[.19,.3,.38][lv-1],ph=Math.random()*TAU,tB=lv>=3?(1.2+Math.random()*.5)/rs:0,rare=Math.random()<.125;
-  const PX=356,CY=340,R=100,FY=556,TH=.06,DY=FY-126,DS=.92,VX=700,VY=330,P0=[676,FY-28],AY=CY-20,KEY={right:0,down:1,left:2,up:3};
+  const PX=356,CY=340,R=100,FY=556,TH=.06,DY=FY-126,DS=.92,VX=gameRight()-100,VY=330,P0=[gameRight()-124,FY-28],AY=CY-20,KEY={right:0,down:1,left:2,up:3};
   let acc=0,loops=0,open=.4,lean=0,jolt=0,slack=0,pop=0,nud=0,la=null,spun=0,ha=2.3,hs=2.3,hr=R,hrS=R,touched=false,kq=-1,nk=0,tk=0;
   let bumped=false,said=0,fT=0,o0=0,ev=0,hx0=0,hy0=0,nb=0;const spill=[];
-  const SX=()=>514+open*36,henXY=()=>[602+open*20,FY-120-Math.abs(Math.sin(now*(7+open*14)))*(3+open*16)];
+  const SX=()=>gameRight()-286+open*36,henXY=()=>[gameRight()-198+open*20,FY-120-Math.abs(Math.sin(now*(7+open*14)))*(3+open*16)];
   /* el bus va inclinado: el centro del tubo en pantalla y el puntero en coordenadas del bus */
   const rot=(x,y,a)=>{const c=Math.cos(a),s=Math.sin(a);x-=400;y-=560;return[400+x*c-y*s,560+x*s+y*c];};
   const nudge=()=>{if(g.result||nud>0)return;nud=.7;snd(200,.06,'square',.03);const c=rot(PX,CY,lean*TH);say('¡DALE VUELTAS!',c[0],c[1]-R-56,'#ffffff');};
@@ -108,28 +108,28 @@ function mkAmarrala(){
       const op=clamp(open+(g.result||open<.03?0:Math.sin(now*11)*.012),0,1),sx=514+op*36,glare=lose&&e>=1.1;
       ctx.save();ctx.translate(400,560);ctx.rotate(ang);ctx.translate(-400,-560-jolt*12+Math.sin(now*34)*1.2);
       /* pared del fondo, techo, pasamanos con las agarraderas volteadas por la curva */
-      wash(-70,-70,940,740,'#f6e3b4','#ecd29a');
-      rr(-70,94,940,36,0,'#d9dce6',0);line([[-70,130],[870,130]],4,INK);txt('LA PUERTA NO TIENE SEGURO  ·  EL BUS TAMPOCO',296,112,13,INK,0,true);
+      wash(gameLeft()-70,-70,GAME_VIEW.width+140,740,'#f6e3b4','#ecd29a');
+      rr(gameLeft()-70,94,GAME_VIEW.width+140,36,0,'#d9dce6',0);line([[gameLeft()-70,130],[gameRight()+70,130]],4,INK);txt('LA PUERTA NO TIENE SEGURO  ·  EL BUS TAMPOCO',296,112,13,INK,0,true);
       line([[-70,152],[596,152]],8,'#c4cad6');
       for(let i=0;i<5;i++){const x=64+i*118,sw=lean*16+Math.sin(now*3+i)*3;line([[x,152],[x+sw,180]],4,'#3b3550');line(closeP(ellP(x+sw,192,10,12,10)),4,'#ffd23f');}
-      rr(-70,FY,940,150,0,'#9b95b8',0);line([[-70,FY],[870,FY]],5,INK);for(let i=0;i<9;i++)rr(i*95-10,FY+9,56,5,2,'#857fa3',0);
+      rr(gameLeft()-70,FY,GAME_VIEW.width+140,150,0,'#9b95b8',0);line([[gameLeft()-70,FY],[gameRight()+70,FY]],5,INK);for(let x=gameLeft()-10;x<gameRight();x+=95)rr(x,FY+9,56,5,2,'#857fa3',0);
       /* vidrio de atrás */
       rr(20,166,236,130,12,'#5a4a78',4.5);ctx.save();path(rrP(27,173,222,116,8));ctx.clip();calle(138,236);ctx.restore();
       /* la puerta de atrás: bisagra a la derecha, el borde suelto se va con la curva */
-      rr(600,138,204,FY-130,10,'#2d2640',4.5);
-      ctx.save();path(rrP(612,148,180,FY-148,6));ctx.clip();calle(VX,VY,fuera);ctx.restore();
+      ctx.save();ctx.translate(GAME_VIEW.offsetX,0);rr(600,138,204,FY-130,10,'#2d2640',4.5);
+      ctx.save();path(rrP(612,148,180,FY-148,6));ctx.clip();calle(VX-GAME_VIEW.offsetX,VY,()=>{ctx.save();ctx.translate(-GAME_VIEW.offsetX,0);fuera();ctx.restore();});ctx.restore();
       const lw=180*(1-.88*Math.pow(op,.7)),fx=792-lw,hx=fx+15,hy=AY-20;
       poly([[fx,150+op*26],[792,150],[792,FY-2],[fx,FY-2-op*12]],'#ff6b3d',4.5);
       if(lw>44){poly([[fx+12,188+op*22],[780,186],[780,250],[fx+12,250+op*3]],'#bfe9ff',3.5);line([[fx+22,240],[fx+40,202]],3,'#ffffff');}
       if(lw>96){const fs=clamp((lw-40)/6.6,8,15);rr(fx+16,356,lw-32,56,6,'#ffd23f',3.5);txt('NO SE',fx+lw/2,374,fs,INK,0,true);txt('RECUESTE',fx+lw/2,394,fs,INK,0,true);}
       ell(hx,hy,10,10,'#c4cad6',3.5);
-      rr(600,FY-6,204,14,4,'#ffd23f',3.5);rr(632,98,140,30,8,'#c4283a',3.5);txt('SALIDA',702,114,15,'#ffffff',0,true);
+      rr(600,FY-6,204,14,4,'#ffd23f',3.5);rr(632,98,140,30,8,'#c4283a',3.5);txt('SALIDA',702,114,15,'#ffffff',0,true);ctx.restore();
       /* la cabulla, del tubo a la manilla (pasa por detrás de la doña) */
-      if(!lose){const sg=win?0:5+slack*48,pts=[];for(let i=0;i<=10;i++){const u=i/10;pts.push([lerp(PX+13,hx,u),lerp(AY,hy,u)+Math.sin(u*PI)*sg+(op>.7&&!win?Math.sin(now*50+i)*1.6:0)]);}soga(pts);ell(hx,hy,7,7,ROPE,3);}
+      if(!lose){const sg=win?0:5+slack*48,pts=[];for(let i=0;i<=10;i++){const u=i/10;pts.push([lerp(PX+13,hx+GAME_VIEW.offsetX,u),lerp(AY,hy,u)+Math.sin(u*PI)*sg+(op>.7&&!win?Math.sin(now*50+i)*1.6:0)]);}soga(pts);ell(hx+GAME_VIEW.offsetX,hy,7,7,ROPE,3);}
       /* el asiento largo del fondo */
-      rr(12,FY-132,588,74,18,'#3fa0ff',4);rr(24,FY-122,564,13,6,'#6fbcff',0);rr(6,FY-70,598,34,14,'#2f7fe0',4);rr(22,FY-36,572,36,0,'#2d2640',0);
+      rr(gameLeft()+12,FY-132,GAME_VIEW.width-212,74,18,'#3fa0ff',4);rr(gameLeft()+24,FY-122,GAME_VIEW.width-236,13,6,'#6fbcff',0);rr(gameLeft()+6,FY-70,GAME_VIEW.width-202,34,14,'#2f7fe0',4);rr(gameLeft()+22,FY-36,GAME_VIEW.width-228,36,0,'#2d2640',0);
       /* el señor del periódico: ni se entera (ni se inclina) */
-      ctx.save();ctx.translate(120,FY-54);ctx.rotate(-ang);
+      ctx.save();ctx.translate(gameLeft()+120,FY-54);ctx.rotate(-ang);
       for(const sg of[-1,1]){ell(sg*20,2,24,13,'#3b3550',3.5);limb(sg*22,8,sg*24,40,16,'#3b3550',3.5);ell(sg*27,48,17,8,'#14101c',3.5);}
       ell(0,-134,30,20,'#14101c',4);rr(-60,-132,120,114,4,'#f4f0e6',4);txt('EL CAOS',0,-113,18,INK,0,true);line([[-50,-100],[50,-100]],2.5,INK);
       txt(rare?'SE BUSCA GALLINA':'TODO NORMAL',0,-88,rare?9:11,INK,0,true);rr(-48,-76,42,46,2,'#d9dce6',2.5);hen(-30,-48,.3,1);for(let i=0;i<5;i++)line([[4,-72+i*10],[48,-72+i*10]],2.5,'#8f8fa8');

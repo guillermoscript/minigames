@@ -109,7 +109,7 @@ function mkHueco(){
     draw(){
       const win=g.result==='win',lose=g.result==='lose',e=g.endT,sw=lane-cam,cur=rows.find(r=>!r.out),dng=cur&&!g.result?clamp(cur.u,.01,1):0;
       const hitT=lose?Math.max(0,e-.16):0,drop=lose?ease(clamp(e/.16,0,1)):0,shk=lose&&e>=.16?Math.exp(-hitT*5):0,kb=kerb*Math.sin(kerb*9)*kd;
-      ctx.save();path([[0,0],[800,0],[800,576],[0,576]]);ctx.clip();
+      ctx.save();path([[gameLeft(),0],[gameRight(),0],[gameRight(),576],[gameLeft(),576]]);ctx.clip();
       ctx.translate(Math.sin(now*71)*7*shk+kb*8,Math.cos(now*59)*5*shk);
       /* ── la calle: se ladea con el volantazo; al caer, la trompa se hunde y todo se va de lado ── */
       ctx.save();ctx.translate(400,DASH);ctx.rotate(sw*.035-ws*drop*.085);ctx.translate(-400-sw*56,-DASH-drop*36-Math.sin(hitT*26)*9*shk+(lose?0:Math.sin(now*33)*1.3));
@@ -138,7 +138,7 @@ function mkHueco(){
       if(lose&&e>=.16){const w=rda(hitT),R=60*w.s;ell(w.x,Y(w.s),R*.9,R*.24,'#3a3650',0);rueda(w.x,Y(w.s)-w.h-R,R,hitT*13*ws);}
       ctx.restore();
       /* ── la cabina: techo, parales y flecos ── */
-      rr(-10,-10,820,100,0,CAB,0);poly([[-10,90],[30,90],[16,DASH+4],[-10,DASH+4]],CAB,0);poly([[810,90],[770,90],[784,DASH+4],[810,DASH+4]],CAB,0);
+      rr(gameLeft()-10,-10,GAME_VIEW.width+20,100,0,CAB,0);poly([[-10,90],[30,90],[16,DASH+4],[-10,DASH+4]],CAB,0);poly([[810,90],[770,90],[784,DASH+4],[810,DASH+4]],CAB,0);
       line([[30,90],[16,DASH]],4,INK);line([[770,90],[784,DASH]],4,INK);line([[30,90],[770,90]],4,INK);
       for(let i=0;i<15;i++)ell(52+i*50-sw*8,100+Math.sin(now*6+i*1.7)*1.5+shk*Math.sin(now*40+i)*5,9,10,['#ffd23f','#2f7fe0','#c4283a'][i%3],3);
       /* retrovisor: los pasajeros opinan (la abuela no se despierta ni pegada al techo) */
@@ -181,7 +181,7 @@ function mkHueco(){
       else{const kq=win?ease(clamp((e-.12)/.28,0,1)):0,[hx,hy]=hp(-.9+th);
         if(kq>0)open(-1,lerp(hx,236,kq),lerp(hy,424,kq)+(e>.45?Math.sin(now*10)*4:0),-.9*kq);else fist(-1,[hx,hy]);
         fist(1,hp(.9+th));}
-      ctx.restore();line([[0,576],[800,576]],4,INK);
+      ctx.restore();line([[gameLeft(),576],[gameRight(),576]],4,INK);
       if(lose&&e>.75)bubble(400-ws*166,376,'¡SE PARTIÓ EL MUÑÓN!',18,400-ws*84,470);
       if(win&&e>.3)bubble(452,392,'¡GRACIAS, VIRGENCITA!',18,330,470);
       drawP();

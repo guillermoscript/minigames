@@ -63,13 +63,13 @@ function mkBaile(){
     draw(){
       const win=g.result==='win',lose=g.result==='lose',e=g.endT,bp=g.t/B,bob=g.result?Math.abs(Math.sin(now*7)):Math.abs(Math.sin(bp*PI)),sw=g.result?Math.sin(now*7):Math.sin(bp*PI);
       /* la sala: pared, banderines, afiche */
-      wash(0,0,800,600,'#ffe3b0','#ffc98a');
-      line([[0,100],[800,100]],3,INK);for(let i=0;i<10;i++){const x=40+i*80;poly([[x-17,101],[x+17,101],[x,128]],CONF[i%4],3);}
+      wash(gameLeft(),0,GAME_VIEW.width,600,'#ffe3b0','#ffc98a');
+      line([[gameLeft(),100],[gameRight(),100]],3,INK);for(let i=0;i<10;i++){const x=40+i*80;poly([[x-17,101],[x+17,101],[x,128]],CONF[i%4],3);}
       rr(176,140,170,104,6,'#fff3c4',3.5);txt('HOY · EN VIVO',261,158,12,INK,0,true);txt('ORQUESTA',261,182,19,'#c4283a',0,true);txt('LOS MELOSOS',261,206,19,'#c4283a',0,true);txt(rare?'(SI LLEGAN)':'MERENGUE DEL BUENO',261,228,10,INK,0,true);
       /* los pisotones que te quedan */
       rr(14,140,150,60,10,'#fff3c4',3.5);txt('PISOTONES',89,154,12,INK,0,true);
       for(let i=0;i<3;i++){const x=53+i*36,on=i<strikes;ell(x,178,13,8,on?'#8f8fa8':'#c4283a',3);if(on){line([[x-9,170],[x+9,186]],3.5,'#ff3b4e');line([[x+9,170],[x-9,186]],3.5,'#ff3b4e');}}
-      rr(0,440,800,160,0,'#b5764a',0);line([[0,440],[800,440]],5,INK);for(let i=0;i<7;i++)line([[i*130-20,440],[i*150-80,600]],2.5,'#8a5a30');
+      rr(gameLeft(),440,GAME_VIEW.width,160,0,'#b5764a',0);line([[gameLeft(),440],[gameRight(),440]],5,INK);for(let i=0;i<7;i++)line([[i*130-20,440],[i*150-80,600]],2.5,'#8a5a30');
       /* la corneta con la gallina de siempre */
       rr(34,292,104,150,10,'#2d2640',4);ell(86,332,22+bob*3,22+bob*3,'#5a5274',3.5);ell(86,398,30+bob*5,30+bob*5,'#5a5274',3.5);ell(86,398,9,9,'#14101c',0);
       hen(82,266-bob*10,.55,1);

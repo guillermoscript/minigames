@@ -84,7 +84,7 @@ function mkVoltea(){
     draw(){
       const win=g.result==='win',lose=g.result==='lose',cruda=lose&&g.kind==='cruda',e=fin,cayo=A.every(a=>a.cayo),cook=lose?Math.max.apply(null,A.map(a=>a.cook)):mas();
       const fu=A[ult].flipT>=0?clamp(A[ult].flipT/.7,0,1):0,gas=clamp(1-cook*.55,.25,1),sw=fu>0&&fu<1?Math.sin(fu*PI):0,osc=!g.result&&oscura();
-      ctx.save();path([[0,0],[800,0],[800,576],[0,576]]);ctx.clip();
+      ctx.save();path([[gameLeft(),0],[gameRight(),0],[gameRight(),576],[gameLeft(),576]]);ctx.clip();
       AP.cocina();
       /* la abuela detrás del mesón (la espátula va después, por encima del budare) */
       const ay=336-(win&&cayo?Math.abs(Math.sin(now*11))*10:0),aa=1.45+sw*.8,hx=216+88*Math.sin(aa),hy=ay+4+88*Math.cos(aa);
@@ -123,7 +123,7 @@ function mkVoltea(){
       else medidor(262,MY,380,LO,HI,A[0].shown,false,'');
       if(win&&e>.8)bubble(300,MY+90,dos?'¡ESAS SÍ QUEDARON BUENAS!':'¡ESA SÍ QUEDÓ BUENA!',18,214,236);
       if(lose&&e>.8)bubble(300,MY+90,cruda?'¡ESO ESTÁ CRUDO, MIJO!':'¡SE QUEMÓ LA AREPA!',18,214,236);
-      ctx.restore();line([[0,576],[800,576]],4,INK);
+      ctx.restore();line([[gameLeft(),576],[gameRight(),576]],4,INK);
       drawP();
     }};
   return g;

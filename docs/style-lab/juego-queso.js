@@ -60,9 +60,9 @@ function mkQueso(){
       for(let i=sh.length-1;i>=0;i--){const s=sh[i];s.t+=dt;s.vy+=1100*dt;s.x+=s.vx*dt;s.y+=s.vy*dt;s.r+=dt*9;if(s.y>top+12||s.t>1.2)sh.splice(i,1);}},
     draw(){
       const win=g.result==='win',lose=g.result==='lose',pasa=lose&&g.kind==='pasa',falta=lose&&!pasa,e=fin,m=LOCA?d:w,inW=m>=LO&&m<=HI,ph=8+Math.min(w/MX,1)*102,bob=LOCA&&!g.result?clamp((d-w)*450,-10,10):0;
-      ctx.save();path([[0,0],[800,0],[800,576],[0,576]]);ctx.clip();
+      ctx.save();path([[gameLeft(),0],[gameRight(),0],[gameRight(),576],[gameLeft(),576]]);ctx.clip();
       /* la charcutería: baldosas, embutidos colgando y el cartel de siempre */
-      wash(0,0,800,600,'#fdf3d8','#f6e3b4');
+      wash(gameLeft(),0,GAME_VIEW.width,600,'#fdf3d8','#f6e3b4');
       for(let i=0;i<9;i++)for(let j=0;j<4;j++)if((i+j)%2)rr(i*90,104+j*80,90,80,0,'#f3e2b0',0);
       line([[0,98],[300,98]],6,'#8f8fa8');
       [[36,'#c4283a',74],[78,'#e8553d',100],[120,'#c4283a',60]].forEach(([x,c,l],i)=>{ctx.save();ctx.translate(x,98);ctx.rotate(Math.sin(now*2+i)*.04);line([[0,0],[0,16]],3,INK);limb(0,24,0,24+l,26,c,4);line([[-12,24+l*.5],[12,24+l*.5]],2.5,'#fff3c4');ctx.restore();});
@@ -84,7 +84,7 @@ function mkQueso(){
       else if(pasa)ca=[{side:-1,a:.55+Math.sin(now*14)*.12,len:50,w:22},{side:1,a:-.55-Math.sin(now*14)*.12,len:50,w:22}];
       bust(Object.assign({},CH,{x:650,y:330,s:1,look:-1,mood:cm,arms:ca,lids:!g.result&&!hold&&!used?1:0,talk:(win&&e>.75)||(lose&&e>.75)?Math.abs(Math.sin(now*12)):0,vein:falta?1:0}));
       /* el mostrador y la vitrina */
-      rr(0,424,800,160,0,'#e8e8ee',0);line([[0,424],[800,424]],5,INK);
+      rr(gameLeft(),424,GAME_VIEW.width,160,0,'#e8e8ee',0);line([[gameLeft(),424],[gameRight(),424]],5,INK);
       rr(24,452,752,116,10,'#cfeaf5',4);
       rr(54,492,112,64,8,'#fffdf2',3.5);txt('BLANCO',110,524,13,INK,0,true);
       ell(250,524,72,34,'#ff9eb0',3.5);ell(250,524,50,20,'#ffc2cc',0);
@@ -120,7 +120,7 @@ function mkQueso(){
       if(win&&e>.75)bubble(462,252,'¡OJO CLÍNICO!',24,594,296);
       if(pasa&&e>.75)bubble(448,252,'SON $'+((OBJ+.35)*PRECIO).toFixed(2)+', MI REY',21,594,296);
       if(falta&&e>.75)bubble(446,252,'¡APÚRATE, QUE HAY COLA!',18,594,296);
-      ctx.restore();line([[0,576],[800,576]],4,INK);
+      ctx.restore();line([[gameLeft(),576],[gameRight(),576]],4,INK);
       drawP();
     }};
   return g;

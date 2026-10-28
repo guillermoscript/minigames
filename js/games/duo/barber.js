@@ -22,11 +22,11 @@ const lerp = (a, b, k) => a + (b - a) * k;
 /* ───────────── layout (800×600; HUD keeps y<58, the top-left box, the top-right LEAVE and y>552) ───────────── */
 const PX = 400, PY = 452;                          // the customer's neck: the head rotates around it
 const NSEG = 3, MAXSLIP = 3;
-const LEVEL = .12;                                 // |head angle| under this = level: the scissors cut
-const SLIP = 30, CUTTOL = 22, ENG = 40, CUTV = 230; // px in head space: slip off the line / cut band / grab the front / max cut speed
+const LEVEL = .25;                                 // |head angle| under this = level: the scissors cut
+const SLIP = 46, CUTTOL = 32, ENG = 52, CUTV = 190; // px in head space: slip off the line / cut band / grab the front / max cut speed
 const CMAX = .8, KSPR = 110, DAMP = 13;             // counter-tilt range (rad), the neck spring
-const SNA = .6;                                    // a sneeze throws the head this far (rad)
-const NOWW = .2;                                   // LEAN NOW! shows this long before the ACHOO (a human reaction lands right on it)
+const SNA = .32;                                   // a sneeze throws the head this far (rad)
+const NOWW = .3;                                   // LEAN NOW! shows this long before the ACHOO (a human reaction lands right on it)
 const LVX = 400, LVY = 520;                        // the spirit level (bottom panel)
 const CLX = 702, CLY = 528;                        // the barber (Caos) on the right
 
@@ -314,10 +314,10 @@ try { addEventListener('blur', () => FOCUSN++); document.addEventListener('visib
 function duBarber(sp, D) {
   D = D || DUO.SOLO; const R = mkR(), cust = D.role === 0, TS = Math.sqrt(sp);
   /* the level, all from the seed (same draws whatever the role) */
-  const bs = R() < .5 ? -1 : 1, BIAS = bs * (.38 + R() * .06);                                 // the sleepy head droops to one side
-  const WF = [1.15 * TS, 2.4 * TS, 3.9 * TS], WA = [.19, .1, .05], WP = [R() * TAU, R() * TAU, R() * TAU];
+  const bs = R() < .5 ? -1 : 1, BIAS = bs * (.48 + R() * .04);                                 // the sleepy head droops to one side
+  const WF = [1.15 * TS, 2.4 * TS, 3.9 * TS], WA = [.1, .05, .025], WP = [R() * TAU, R() * TAU, R() * TAU];
   const drift = c => BIAS + WA[0] * Math.sin(WF[0] * c + WP[0]) + WA[1] * Math.sin(WF[1] * c + WP[1]) + WA[2] * Math.sin(WF[2] * c + WP[2]);
-  const WARN = Math.max(.75, 1.05 / TS);
+  const WARN = Math.max(1.1, 1.5 / TS);
   const SN = [1.5, 4.1, 6.8, 9.5].map(b => ({ t: (b + R() * .8) / TS, dir: R() < .5 ? -1 : 1 }));
   const snz = c => { let v = 0; for (const s of SN) { const u = c - s.t; if (u < 0 || u > 2) continue; v += s.dir * SNA * (u < .07 ? u / .07 : Math.exp(-(u - .07) * 2.4)); } return v; };
   const SEG = [[-120, 120, -300], [-136, 136, -278], [-146, 146, -256]].map(([a, b, y], i) => {
@@ -359,7 +359,7 @@ function duBarber(sp, D) {
   function snip(n) { snd(2400 + n * 300, .03, 'square', .035, 0, 1200); noise(.03, .05, 5000, 3000, 'highpass'); }
 
   const g = {
-    c: 0, dur: 15, pts: 0,
+    c: 0, dur: 20, pts: 0, gyro: cust,
     cmd: cust ? 'BALANCE!' : 'SNIP!', roleLabel: cust ? 'CUSTOMER' : 'BARBER',
     hint: cust ? 'MOVE THE MOUSE (OR ◄ ►) TO KEEP THE LINE LEVEL - LEAN AGAINST THE SNEEZES!' : 'HOLD THE MOUSE (OR SPACE + ARROWS) AND DRAG THE SCISSORS ALONG THE DOTS',
     thint: cust ? 'DRAG LEFT / RIGHT TO KEEP THE LINE LEVEL - LEAN AGAINST THE SNEEZES!' : 'HOLD AND DRAG THE SCISSORS ALONG THE DOTS',

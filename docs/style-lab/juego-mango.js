@@ -32,23 +32,24 @@ function pote(x,y,rot){ctx.save();ctx.translate(x,y);ctx.rotate(rot);
   line([[-18,0],[18,-7]],4,'#fff8e0');line([[-18,-7],[18,0]],4,'#fff8e0');ctx.restore();}
 /* el patio: el cielo, la pared de bloques, el piso de tierra, el pipote y la mata */
 function patio(){
-  wash(0,0,800,360,'#8fd8ff','#dff4ff');
-  rr(0,330,800,FY-330,0,'#e3b98a',0);line([[0,330],[800,330]],4,INK);
-  for(let j=0;j<5;j++){line([[0,372+j*42],[800,372+j*42]],2,'#c99a6a');for(let i=0;i<9;i++)line([[i*96+(j%2)*48,330+j*42],[i*96+(j%2)*48,372+j*42]],2,'#c99a6a');}
-  rr(0,FY,800,60,0,'#b97a46',0);line([[0,FY],[800,FY]],4,INK);
+  wash(gameLeft(),0,GAME_VIEW.width,360,'#8fd8ff','#dff4ff');
+  rr(gameLeft(),330,GAME_VIEW.width,FY-330,0,'#e3b98a',0);line([[gameLeft(),330],[gameRight(),330]],4,INK);
+  for(let j=0;j<5;j++){line([[gameLeft(),372+j*42],[gameRight(),372+j*42]],2,'#c99a6a');for(let i=0;i<9;i++)line([[i*96+(j%2)*48,330+j*42],[i*96+(j%2)*48,372+j*42]],2,'#c99a6a');}
+  rr(gameLeft(),FY,GAME_VIEW.width,60,0,'#b97a46',0);line([[gameLeft(),FY],[gameRight(),FY]],4,INK);
   for(let i=0;i<7;i++)line([[150+i*96,FY+8],[158+i*96,FY-6],[166+i*96,FY+8]],3,'#4fae58');
-  rr(700,430,80,112,10,'#2f7fe0',4);line([[700,462],[780,462]],3,'#1f5fb0');line([[700,508],[780,508]],3,'#1f5fb0');
-  poly([[26,FY],[48,300],[38,150],[98,150],[104,300],[122,FY]],'#8a5a30',4.5);line([[66,480],[72,360]],3,'#6a4020');line([[90,440],[86,330]],3,'#6a4020');
-  limb(70,168,770,126,28,'#8a5a30',4);
-  for(let i=0;i<9;i++)ell(40+i*92,72+(i%2)*26,88,74,HOJAS[i%2],4);
-  for(let i=0;i<8;i++)ell(92+i*92,152+(i%3)*9,58,32,HOJAS[2],0);}
+  ctx.save();ctx.translate(GAME_VIEW.offsetX,0);rr(700,430,80,112,10,'#2f7fe0',4);line([[700,462],[780,462]],3,'#1f5fb0');line([[700,508],[780,508]],3,'#1f5fb0');ctx.restore();
+  ctx.save();ctx.translate(gameLeft(),0);poly([[26,FY],[48,300],[38,150],[98,150],[104,300],[122,FY]],'#8a5a30',4.5);line([[66,480],[72,360]],3,'#6a4020');line([[90,440],[86,330]],3,'#6a4020');ctx.restore();
+  limb(gameLeft()+70,168,gameRight()-30,126,28,'#8a5a30',4);
+  for(let i=0,x=gameLeft()+40;x<gameRight()+88;i++,x+=92)ell(x,72+(i%2)*26,88,74,HOJAS[i%2],4);
+  for(let i=0,x=gameLeft()+92;x<gameRight()+58;i++,x+=92)ell(x,152+(i%3)*9,58,32,HOJAS[2],0);}
 
 /* ═════════ ¡TÚMBALO!: un toque cuando el pote quede debajo del mango maduro ═════════ */
 function mkMango(){
+  const X0=gameLeft()+140,X1=gameRight()-140;
   const rs=Math.sqrt(SP),lv=LV(),V=[360,450,540][lv-1],TOL=[46,38,32][lv-1],NT=36,R=X1-X0,bw=TU.bw||50;
-  const mx0=330+Math.random()*140,D=[0,125,98][lv-1]+Math.random()*24;
+  const mx0=fieldX(330+Math.random()*140),D=[0,125,98][lv-1]+Math.random()*24;
   const nests=lv===1?[mx0+(Math.random()<.5?-1:1)*(150+Math.random()*30)]:[mx0-D,mx0+D];
-  const verdes=[150,230,310,390,470,550,630].filter(q=>Math.abs(q-mx0)>74&&nests.every(n=>Math.abs(q-n)>66)).filter((_,i)=>i%2===0);
+  const verdes=[150,230,310,390,470,550,630].map(fieldX).filter(q=>Math.abs(q-mx0)>74&&nests.every(n=>Math.abs(q-n)>66)).filter((_,i)=>i%2===0);
   let p=mx0>400?0:1,yank=0,miss=0,fin=0,hit=-1,did=0,bz=0;
   const tx=()=>X0+R*(p<1?p:2-p),mx=()=>mx0+(lv>=3?Math.sin(g.t*3.1)*12:0);
   function jala(){if(g.result||yank>0)return;yank=1;snd(300,.12,'sawtooth',.05,-160);nz(.06,.08);
@@ -80,7 +81,7 @@ function mkMango(){
       const a0=Math.atan2(x-bx,470-TY-yk),L=Math.hypot(x-bx,470-TY-yk),a=lerp(a0,1.5,suelta),B=[bx,lerp(470,FY-8,suelta)],T=[B[0]+Math.sin(a)*L,B[1]-Math.cos(a)*L];
       const en=k=>[lerp(B[0],T[0],k),lerp(B[1],T[1],k)],g1=en(.1),g2=en(.3);
       const brazo=(side,w)=>{const dx=(w[0]-X)/S-side*bw*.78,dy=(w[1]-Y)/S-4;return{side,a:Math.atan2(dx,dy),len:clamp(Math.hypot(dx,dy),24,150),w:19};};
-      ctx.save();path([[0,0],[800,0],[800,576],[0,576]]);ctx.clip();
+      ctx.save();path([[gameLeft(),0],[gameRight(),0],[gameRight(),576],[gameLeft(),576]]);ctx.clip();
       patio();
       /* lo que cuelga de la mata: los verdes, los avisperos y el maduro */
       for(const q of verdes){line([[q,184],[q,204]],3,'#5a7a2a');ell(q,222,15,20,'#6fbf4a',3.5);}
@@ -117,7 +118,7 @@ function mkMango(){
       if(mordio&&e>1.25)bubble(clamp(X+40,190,610),Y-150,'¡CON CONCHA Y TODO!',20,X+20,Y-76);
       if(win&&e>.95&&e<1.5)txt('¡ÑAM!',X+112,Y-70,30,'#ffffff',-.1);
       if(tarde&&e>.7)bubble(clamp(X+40,200,600),Y-150,'¡TAN BUENO QUE ESTABA!',19,X+20,Y-76);
-      ctx.restore();line([[0,576],[800,576]],4,INK);
+      ctx.restore();line([[gameLeft(),576],[gameRight(),576]],4,INK);
       drawP();
     }};
   return g;

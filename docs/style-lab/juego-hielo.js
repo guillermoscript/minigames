@@ -113,13 +113,13 @@ function mkHielo(){
         lifting=!g.result&&st==='hold'&&h<hT,late=top&&topT>HOLD*.5,pain=(st==='bounce'&&paf&&bt<STUN*.72&&!g.result)||(fj&&e>=.34),q=shake*shake;
       ctx.save();ctx.translate(Math.sin(now*93)*q*9,Math.cos(now*71)*q*7);
       /* el abasto: toldo, pared, la puerta con su aviso, el letrero */
-      wash(0,0,800,600,'#8fd8ff','#e8f8ff');rr(-12,118,824,240,0,'#ffe2ad',0);rr(-12,304,824,54,0,'#f2b56b',0);
+      wash(gameLeft(),0,GAME_VIEW.width,600,'#8fd8ff','#e8f8ff');rr(gameLeft()-12,118,GAME_VIEW.width+24,240,0,'#ffe2ad',0);rr(gameLeft()-12,304,GAME_VIEW.width+24,54,0,'#f2b56b',0);
       for(let i=0;i<10;i++)rr(-12+i*83,92,83,34,0,i%2?'#fffdf2':'#e8293f',3);
       rr(430,170,172,190,8,'#5a4a78',4.5);for(let i=0;i<3;i++){rr(442,206+i*48,148,8,0,'#3b3550',0);for(let j=0;j<5;j++)rr(448+j*28,184+i*48,20,22,3,['#ffd23f','#ff9ec7','#6ecf8f','#8aa0ff','#ffb36b'][(i*2+j)%5],2.5);}
       rr(448,226,136,46,4,'#fffdf2',3);txt('HOY NO SE FÍA',516,241,13,INK,0,true);txt('MAÑANA TAMPOCO',516,259,11,'#c4283a',0,true);
       rr(92,138,164,58,8,AZUL,4);txt('ABASTO',174,155,18,'#ffffff',0,true);txt('EL PINGÜINO SUDADO',174,178,12,'#ffe14d',0,true);
       /* el estacionamiento */
-      rr(-12,356,824,260,0,'#cfc8bc',0);line([[-12,356],[812,356]],5,INK);line([[-12,486],[812,486]],2.5,'#a8a094');line([[236,358],[204,486]],2.5,'#a8a094');line([[470,358],[492,486]],2.5,'#a8a094');
+      rr(gameLeft()-12,356,GAME_VIEW.width+24,260,0,'#cfc8bc',0);line([[-12,356],[812,356]],5,INK);line([[-12,486],[812,486]],2.5,'#a8a094');line([[236,358],[204,486]],2.5,'#a8a094');line([[470,358],[492,486]],2.5,'#a8a094');
       line([[127,570],[150,490]],9,'#ffd23f');line([[735,570],[716,490]],9,'#ffd23f');ell(214,540,48,13,'#b9b1a2',0);
       /* la nevera del hielo y la gallina de siempre, abrigada */
       rr(98,272,152,86,8,'#eef4f7',4);rr(98,272,152,18,6,'#c9ced6',3.5);txt('HIELO',174,322,24,AZUL,0,true);

@@ -94,7 +94,7 @@ function challengeLine() {
 /* ───────────── state ───────────── */
 let state = 'title', st = 0, mode = 'stage';
 const PRE = 1.4; let pre = 0, preMax = PRE;   // read-time: game frozen while the instruction is shown
-let retryId = null, stageIdx = 0, stage = STAGES[0], lives = 4, played = 0, score = 0, lastOut = null, stars = 0;
+let stageIdx = 0, stage = STAGES[0], lives = 4, played = 0, score = 0, lastOut = null, stars = 0;
 let runLog = [];                          // this stage run, one emoji per microgame / boss try: the Wordle-style grid in shared text
 let cur = null, curId = '', tt = 0, dur = 5, outcome = null, outT = 0, tickN = 0, recent = [], isBoss = false;
 let practiceId = 'swat', practiceSp = 1, menuPage = 0, practicePage = 0;
@@ -274,17 +274,17 @@ function loadThree() {
 
 function goTitle() { EGGS.stop(); state = 'title'; st = 0; }
 function goMenu() { EGGS.stop(); state = 'menu'; st = 0; mode = 'stage'; parts.length = 0; }
-function goPractice() { EGGS.stop(); state = 'practice'; st = 0; mode = 'practice'; parts.length = 0; }
+function goPractice() { COOP.on = false; EGGS.stop(); state = 'practice'; st = 0; mode = 'practice'; parts.length = 0; }
 function startStage(i) {
   if (i > save.unlocked - 1) return;
   EGGS.stage();
   runRank = null; attempts[i] = (attempts[i] || 0) + 1;
   track('stage_start', { stage: i + 1, stage_name: STAGES[i].name, attempt: attempts[i], unlocked: save.unlocked });
   if (poolOf(STAGES[i]).some(is3D)) loadThree();
-  mode = 'stage'; stageIdx = i; stage = STAGES[i]; lives = 4; played = 0; score = 0; lastOut = null; recent = []; retryId = null; runLog = [];
+  mode = 'stage'; stageIdx = i; stage = STAGES[i]; lives = 4; played = 0; score = 0; lastOut = null; recent = []; runLog = [];
   state = 'stagein'; st = 0; shownScore = 0; lifeT = 99; jingleGo();
 }
-function startPractice(id) { EGGS.stage(); if (is3D(id)) loadThree(); track('practice_start', { game: id }); mode = 'practice'; practiceId = id; lastOut = null; stage = STAGES[0]; state = 'inter'; st = 0; }
+function startPractice(id) { COOP.on = false; EGGS.stage(); if (is3D(id)) loadThree(); track('practice_start', { game: id }); mode = 'practice'; practiceId = id; lastOut = null; stage = STAGES[0]; state = 'inter'; st = 0; }
 function toInter() { state = 'inter'; st = 0; if (mode !== 'practice') jingleGo(); }
 
 function beginGame() {
@@ -293,17 +293,17 @@ function beginGame() {
   if (mode === 'party') {
     const R = party.room; s = R.sp; const dc = R.mode === 'duo' ? duoCtx(R) : undefined; cur = withSeed(R.seed, () => partyBuildGame(R, s, dc)); curId = R.game; isBoss = false; dur = cur.dur / Math.sqrt(s); I18N.scope = I18N.scopeOf(curId);
   } else if (mode === 'practice') {
-    s = practiceSp; cur = REGMAP[practiceId].fn(s); curId = practiceId; isBoss = false; dur = cur.dur / Math.sqrt(s); I18N.scope = I18N.scopeOf(curId);
+    s = practiceSp; cur = COOP.on ? coopBuild(practiceId, s) : REGMAP[practiceId].fn(s); curId = practiceId; isBoss = false; dur = cur.dur / Math.sqrt(s); I18N.scope = I18N.scopeOf(curId);
   } else if (played >= stage.n) {
     s = stage.sp0 + Math.floor(stage.n / 2) * .1; cur = BOSSES[stage.boss](s, stage); curId = 'boss:' + stage.boss; isBoss = true; dur = cur.dur;
   } else {
     const pool = poolOf(stage), available = pool.filter(id => !recent.includes(id));
-    const id = retryId && pool.includes(retryId) ? retryId : available[Math.random() * available.length | 0];
+    const id = available[Math.random() * available.length | 0];
     if (is3D(id) && typeof THREE === 'undefined') { loadThree().then(() => { if (state === 'inter') beginGame(); }); st = -99; return; }
     if (!recent.includes(id)) recent.push(id); if (recent.length > Math.min(6, pool.length - 2)) recent.shift();
     s = speed(); cur = REGMAP[id].fn(s); curId = id; isBoss = false; dur = cur.dur / Math.sqrt(s); I18N.scope = I18N.scopeOf(curId);
   }
-  EGGS.begin(curId);
+  EGGS.begin(curId); gyro.base = null;
   tt = 0; outcome = null; outT = 0; tickN = 0; preMax = mode === 'party' ? party.room.mode === 'duo' ? DUO_PRE : partyTurnMode(party.room) ? balloonPre(party.room) : PRE : PRE; pre = preMax; state = 'play';
 }
 function setOutcome(r) {
@@ -334,7 +334,7 @@ function toOver() {
   state = 'over'; st = 0; submitRun(0); sfx.thud(); shake(14, .45);
 }
 function afterClear() { if (stageIdx < STAGES.length - 1) startStage(stageIdx + 1); else goMenu(); }
-function exitPlay() { if (mode === 'party') return partyLeave(); if (mode === 'stage') track('stage_quit', { stage: stageIdx + 1, microgames: played, score, lives_left: lives, in_state: state }); mode === 'practice' ? goPractice() : goMenu(); }
+function exitPlay() { if (mode === 'party') return partyLeave(); if (mode === 'stage') track('stage_quit', { stage: stageIdx + 1, microgames: played, score, lives_left: lives, in_state: state }); mode === 'practice' ? (COOP.on ? goCoop() : goPractice()) : goMenu(); }
 
 /* ───────────── update ───────────── */
 function update(dt) {
@@ -353,6 +353,7 @@ function update(dt) {
       const n = Math.floor(tt * 2);
       if (n !== tickN) { tickN = n; snd(430 + 520 * Math.min(1, tt / dur) + (dur - tt < 1.5 ? 200 : 0), .04, 'square', dur - tt < 1.5 ? .045 : .03); }
     } else outT += dt;
+    if (COOP.on) coopStep(dt, tt);
     cur.update(dt, tt);
     if (!outcome) {
       if (cur.result) setOutcome(cur.result);
@@ -364,7 +365,7 @@ function update(dt) {
       if (mode === 'party') partyLocalDone(outcome);
       else if (mode === 'practice') { state = 'inter'; st = 0; }
       else if (isBoss) { if (outcome === 'win') clearStage(); else if (lives <= 0) toOver(); else toInter(); }
-      else { if (outcome === 'win') { played++; retryId = null; } else retryId = curId; if (lives <= 0) toOver(); else toInter(); }   // lose = same microgame again, only a win advances
+      else { if (outcome === 'win') played++; if (lives <= 0) toOver(); else toInter(); }   // only a win advances the stage's microgame count
     }
   } else if (state === 'clear' && Math.random() < dt * 6) confetti(Math.random() * W, 100, 12);
 }
@@ -420,6 +421,7 @@ function placeInputs() {
 }
 function hintOf(g) {
   if (!TOUCH) return t(g.hint);
+  if (gyroGame() && g === cur && !gyro.denied && typeof DeviceOrientationEvent !== 'undefined') return t('TILT YOUR PHONE TO STEER! (OR DRAG)');
   return g.thint ? t(g.thint) : I18N.touch(t(g.hint));      // no touch wording of its own: reword the translated hint
 }
 function livesRow(x, y, u, gap, col) {
@@ -460,6 +462,8 @@ function render() {
 
   if (state === 'party') {
     drawParty();
+  } else if (state === 'coop') {
+    drawCoop();
   } else if (state === 'stagein' && stage.intro === 'mv') {
     mvIntro(st, stage, stageIdx);
   } else if (state === 'stagein' && stage.intro === 'ap') {
@@ -532,7 +536,7 @@ function render() {
       txt(isBoss ? 'BOSS' : `${played + 1}/${stage.n}`, W + OX - 16, 30, 26, isBoss ? '#FF4D4D' : '#fff', 'right');
       ctx.save(); const sp = 1 + scorePop * .3; ctx.translate(W + OX - 16, 62); ctx.scale(sp, sp); txt(String(Math.round(shownScore)), 0, 0, 22, '#FFE14D', 'right'); ctx.restore();
     } else if (mode === 'party') { if (!(pre > 0 && (preMax === DUO_PRE || partyTurnMode(party.room))) && !cur.partyScene) drawPartyHud(); }
-    else txt('PRACTICE', W + OX - 16, 30, 22, '#fff', 'right');
+    else { txt(COOP.on ? 'CO-OP TEST' : 'PRACTICE', W + OX - 16, 30, 22, '#fff', 'right'); if (COOP.on) coopHud(); }
     if (mode === 'party' && typeof pui === 'function' && typeof PARTY_UI !== 'undefined') pui().btn(W + OX - 78, 80, 66, 30, 'LEAVE', exitPlay, { size: 15, depth: 4 });   // party shell plate, same rectangle
     else button(W + OX - 78, 80, 66, 30, mode === 'party' ? 'LEAVE' : mode === 'practice' ? 'EXIT' : 'MENU', exitPlay, { size: 15, fill: 'rgba(255,255,255,.85)' });
     if (pre <= 0 && !cur.partyHelper && !cur.partyDraw && !cur.partyScene) fuse();
@@ -603,6 +607,7 @@ addEventListener('keydown', e => {
     if (mode === 'party' && (state === 'play' || (state === 'party' && party.view !== 'menu' && party.view !== 'lobby'))) return;   // no accidental leaving mid-match
     if (state === 'party') { party.view === 'lobby' ? partyLeave('menu') : partyHome(); return; }
     if (state === 'play' || state === 'inter' || state === 'stagein') exitPlay();
+    else if (state === 'coop') goPractice();
     else if (state === 'profile' || state === 'board' || state === 'pview' || state === 'friends') back();
     return;
   }
@@ -626,6 +631,36 @@ function goFull() {
   try { const p = rq.call(el, { navigationUI: 'hide' }); if (p && p.catch) p.catch(() => {}); } catch (_) {}
 }
 
+/* GYROSCOPE: on a phone the tilt games (and the barber's customer) are steered by really tilting the phone. The tilt is turned into the same
+   pointer position the finger would give (so no game needs its own code); a finger drag is ignored while it is live. The first touch asks
+   (iOS needs a gesture), and the neutral pose is whatever the phone was held at when the game began. */
+const GYRO_IDS = new Set(['tw_tilt', 'tw_spin', 'tw_pour', 'tw_slide', 'tw_wheel', 'tw_coins', 'tw_skate', 'td_roll']);
+const gyro = { denied: false, on: false, asked: false, hz: 0, x: 0, y: 0, base: null, gid: '' };
+const gyroGame = () => !!(cur && (cur.gyro || GYRO_IDS.has(curId)));
+function gyroAsk() {
+  if (gyro.asked || !TOUCH || typeof DeviceOrientationEvent === 'undefined') return; gyro.asked = true;
+  const go = () => { addEventListener('deviceorientation', gyroEv); };
+  try {
+    if (typeof DeviceOrientationEvent.requestPermission === 'function') DeviceOrientationEvent.requestPermission().then(r => { if (r === 'granted') go(); else gyro.denied = true; }).catch(() => {});
+    else go();
+  } catch (_) {}
+}
+function gyroEv(e) {
+  if (e.beta == null || e.gamma == null) return;
+  const D = Math.PI / 180, b = e.beta * D, ga = e.gamma * D, th = ((screen.orientation && screen.orientation.angle) || window.orientation || 0) * D;
+  const ux = -Math.cos(b) * Math.sin(ga), uy = Math.sin(b);                       // which way is "up", in the phone's frame ...
+  const sx = ux * Math.cos(th) - uy * Math.sin(th), sy = ux * Math.sin(th) + uy * Math.cos(th);   // ... then in the screen's frame
+  const X = -sx, Y = sy;                                                          // right edge down = +X, bottom edge down = +Y
+  if (!gyro.on) { gyro.on = true; }
+  if (gyro.gid !== curId || !gyro.base) { gyro.gid = curId; gyro.base = [X, Y]; }
+  gyro.x = X - gyro.base[0]; gyro.y = Y - gyro.base[1];
+  if (state === 'play' && !outcome && pre <= 0 && gyroGame() && cur.move) {
+    const nx = Math.max(-1, Math.min(1, gyro.x / .42)), ny = Math.max(-1, Math.min(1, gyro.y / .42));
+    cur.move({ x: W / 2 + nx * 320, y: H / 2 + ny * 240 });
+  }
+}
+const gyroLive = () => gyro.on && gyroGame();
+
 let sw = null;
 const inGame = p => (cur && cur.wide) ? p : ({ ...p, x: Math.max(0, Math.min(W, p.x)) });   // classic games only see their own 800×600 area; g.wide games get the full screen (x from -OX to W+OX)
 cv.addEventListener('contextmenu', e => e.preventDefault());
@@ -635,17 +670,19 @@ cv.addEventListener('pointerdown', e => {
   try { cv.setPointerCapture(e.pointerId); } catch (_) {}
   if (document.activeElement && document.activeElement.tagName === 'INPUT') document.activeElement.blur();
   interacted = true; pressing = true;
+  if (e.pointerType === 'touch') gyroAsk();
   const p = pos(e); mouse = inGame(p); hp = p;
   if (kitInput()) { if (!MCUI.stale(state)) MCUI.down(p); return; }
   const b = btns.find(b => p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h);
   if (b) { sfx.click(); b.fn(); return; }
   if (sh.on) return;
-  if (state === 'play' && !outcome && pre <= 0) { const g = inGame(p); sw = { x: g.x, y: g.y }; if (cur.move) cur.move(g); if (cur.down) cur.down(g); }
+  if (state === 'play' && !outcome && pre <= 0) { const g = inGame(p); sw = { x: g.x, y: g.y }; if (cur.move && !gyroLive()) cur.move(g); if (cur.down && !gyroLive()) cur.down(g); }
 });
 cv.addEventListener('pointermove', e => {
   const raw = pos(e), p = inGame(raw); mouse = p; hp = raw;
   if (kitInput()) { MCUI.move(raw); return; }
   if (state !== 'play' || outcome) return;
+  if (gyroLive() && e.pointerType === 'touch') return;
   if (cur.move) cur.move(p);
   if (sw && cur.swipe) {
     const dx = p.x - sw.x, dy = p.y - sw.y;
@@ -688,3 +725,4 @@ api.completeGoogleSignIn().then(r => {
 });
 
 initWorldMenu();
+coopBoot();

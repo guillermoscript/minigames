@@ -69,10 +69,10 @@ function mkCucaracha(){
         if(hit.y>520){hit.y=520;if(hit.vy>200){hit.vy*=-.35;snd(300,.04,'square',.04);}else hit.vy=0;}}},
     draw(){
       const win=g.result==='win',lose=g.result==='lose',e=fin,u=fly?clamp((g.t-tL)/W,0,1):0,susto=fly&&!win;
-      ctx.save();path([[0,0],[800,0],[800,576],[0,576]]);ctx.clip();
+      ctx.save();path([[gameLeft(),0],[gameRight(),0],[gameRight(),576],[gameLeft(),576]]);ctx.clip();
       /* perdiste: tu cara con el bicho en la frente, y las sombras con patas tapando todo */
       if(lose&&e>.16){const v=e-.16,sh=Math.sin(now*46)*3;
-        wash(0,0,800,600,'#3a2f55','#1c1630');
+        wash(gameLeft(),0,GAME_VIEW.width,600,'#3a2f55','#1c1630');
         bust(Object.assign({},TU,{x:400+sh,y:524,s:1.6,mood:'yell',talk:.6+.4*Math.sin(now*24),sweat:2,skin:mix(TU.skin,'#cfe0ff',.3),
           arms:[{side:-1,a:-2.75+Math.sin(now*30)*.2,len:80,w:22},{side:1,a:2.75-Math.sin(now*30)*.2,len:80,w:22}]}));
         cuca(400+sh+Math.sin(now*9)*5,524+1.6*(HY-38),1.25,Math.sin(now*6)*.3,{belly:true,fast:true,tw:1});
@@ -80,10 +80,10 @@ function mkCucaracha(){
         for(let i=0;i<n;i++){const a=i*2.4+.5,bx=400+Math.cos(a)*560,by=300+Math.sin(a)*430,q=clamp((v-i/11)*2.4,0,1),len=q*(170+hash(i,1,9)*150),dx=-Math.cos(a),dy=-Math.sin(a),wv=Math.sin(now*8+i)*30;
           line([[bx,by],[bx+dx*len*.5-dy*wv,by+dy*len*.5+dx*wv],[bx+dx*len-dy*wv*1.6+dy*26,by+dy*len+dx*wv*1.6-dx*26]],13,'#0a0810');}
         for(let i=0;i<3;i++){const q=(now*1.6+i/3)%1;ctx.save();ctx.globalAlpha=1-q;txt('¡AAAH!',170+i*230,150-q*50+(i%2)*40,30+q*16,'#ffffff',(i-1)*.14);ctx.restore();}
-        ctx.restore();line([[0,576],[800,576]],4,INK);drawP();return;}
+        ctx.restore();line([[gameLeft(),576],[gameRight(),576]],4,INK);drawP();return;}
       /* el cuarto: pared, zócalo, almanaque, interruptor y una grieta */
-      wash(0,0,800,600,'#f2d9a6','#ecc88e');
-      rr(0,520,800,60,0,'#c98a4e',0);rr(0,500,800,22,0,'#8a5a30',0);line([[0,500],[800,500]],4,INK);
+      wash(gameLeft(),0,GAME_VIEW.width,600,'#f2d9a6','#ecc88e');
+      rr(gameLeft(),520,GAME_VIEW.width,60,0,'#c98a4e',0);rr(gameLeft(),500,GAME_VIEW.width,22,0,'#8a5a30',0);line([[gameLeft(),500],[gameRight(),500]],4,INK);
       rr(600,112,130,150,6,'#fffdf2',4);rr(600,112,130,38,6,'#c4283a',3.5);txt('DICIEMBRE',665,131,14,'#ffffff',0,true);
       for(let i=0;i<15;i++)rr(612+(i%5)*22,160+Math.floor(i/5)*30,16,20,2,i===8?'#ffd23f':'#e8e8ee',0);
       rr(540,330,26,40,5,'#fffdf2',3.5);rr(549,340,8,14,2,'#c9ced6',2.5);
@@ -109,7 +109,7 @@ function mkCucaracha(){
       if(sw>.5&&!win)for(let i=0;i<5;i++){const a=i/5*TAU+.3;line([[swT[0]+Math.cos(a)*40,swT[1]+Math.sin(a)*40],[swT[0]+Math.cos(a)*66,swT[1]+Math.sin(a)*66]],5,'#ffffff');}
       if(tarde&&!fly)txt('¡UY!',cx+10,cy-78,34,'#ff4d5e',-.1);
       if(win&&e>.75)bubble(310,112,'¡ESTA CASA SE RESPETA!',19,220,286);
-      ctx.restore();line([[0,576],[800,576]],4,INK);
+      ctx.restore();line([[gameLeft(),576],[gameRight(),576]],4,INK);
       drawP();
     }};
   return g;

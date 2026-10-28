@@ -73,10 +73,10 @@ function mkHallaca(){
         for(const l of lanes.V)if(l.on)hilo([[l.o,-HH-9],[l.o,HH+9]]);
         for(const l of lanes.H)if(l.on)hilo([[-HW-9,l.o],[HW+9,l.o]]);
         if(win){for(const sg of[-1,1]){ell(sg*13,-9,11,7,HILO,3);line([[0,0],[sg*18,16]],4,HILO);}ell(0,0,5.5,5.5,HILO,3);}};
-      ctx.save();path([[0,0],[800,0],[800,576],[0,576]]);ctx.clip();
+      ctx.save();path([[gameLeft(),0],[gameRight(),0],[gameRight(),576],[gameLeft(),576]]);ctx.clip();
       /* la mesa */
-      wash(0,0,800,600,'#d9a066','#c98a4e');
-      for(let i=0;i<5;i++)line([[0,120+i*100],[800,120+i*100]],3,'#b3773e');
+      wash(gameLeft(),0,GAME_VIEW.width,600,'#d9a066','#c98a4e');
+      for(let i=0;i<5;i++)line([[gameLeft(),120+i*100],[gameRight(),120+i*100]],3,'#b3773e');
       for(let i=0;i<9;i++)line([[40+i*90,168+(i%4)*100],[96+i*90,168+(i%4)*100]],2.5,'#b3773e');
       /* hojas, aceitunas, pasas, el rollo de pabilo y la olla del guiso */
       ctx.save();ctx.translate(104,518);ctx.rotate(-.12);rr(-96,-36,196,84,22,'#2f7a3c',4.5);rr(-90,-46,196,84,22,HOJA,4.5);for(let i=0;i<6;i++)line([[-66+i*30,-40],[-58+i*30,32]],2,VENA);ctx.restore();
@@ -108,10 +108,10 @@ function mkHallaca(){
       if(bad&&(bad.t<.45||(lose&&g.kind==='chueco'))){ctx.save();if(!lose)ctx.globalAlpha=clamp(1-bad.t/.45,0,1);hilo([[bad.a.x,bad.a.y],[bad.b.x,bad.b.y]],'#ff6b6b');ctx.restore();}
       /* la aceituna que se va rodando */
       if(lose){const ox=C[0]+120+e*200,oy=C[1]+20+Math.min(1,e/.6)*150-Math.abs(Math.sin(e*10))*16*Math.max(0,1-e/1.6);aceituna(ox,oy,e*11,1.5);}
-      if(flash>0){ctx.save();ctx.globalAlpha=flash*.25;rr(0,0,800,576,0,'#ff4d5e',0);ctx.restore();}
+      if(flash>0){ctx.save();ctx.globalAlpha=flash*.25;rr(gameLeft(),0,GAME_VIEW.width,576,0,'#ff4d5e',0);ctx.restore();}
       if(lose&&e>.75)bubble(530,150,'¡ESA TE LA COMES TÚ!',20,794,104);
       if(win&&e>1.15)bubble(520,150,'¡QUEDÓ DE REVISTA!',20,794,104);
-      ctx.restore();line([[0,576],[800,576]],4,INK);
+      ctx.restore();line([[gameLeft(),576],[gameRight(),576]],4,INK);
       drawP();
     }};
   return g;

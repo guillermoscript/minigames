@@ -138,7 +138,7 @@ function mkTapala(){
       const wu=wind?clamp((g.t-l.w)/(l.a-l.w),0,1):0,pop=look?Math.max(0,1-snapT*5):0,watch=look||gap;
       ctx.save();if(pill)ctx.translate(Math.sin(now*40)*5*Math.max(0,1-e*2.5),0);
       /* ── ARRIBA: el salón ── */
-      wash(0,0,800,336,'#f6efd6','#efe2bc');rr(0,238,800,98,0,'#8fcfb0',0);line([[0,238],[800,238]],4,INK);
+      wash(gameLeft(),0,GAME_VIEW.width,336,'#f6efd6','#efe2bc');rr(gameLeft(),238,GAME_VIEW.width,98,0,'#8fcfb0',0);line([[gameLeft(),238],[gameRight(),238]],4,INK);
       rr(196,92,408,110,6,'#8a5a30',4.5);rr(206,100,388,92,3,'#2f6b4f',0);txt('EXAMEN FINAL',400,124,22,'#ffffff',0,true);txt('PROHIBIDO COPIARSE',400,156,15,'#ffe14d',0,true);rr(318,168,164,3,0,'#ffe14d',0);
       /* la ventana con su paloma chismosa */
       rr(22,96,140,118,10,'#5a4a78',4.5);
@@ -183,8 +183,8 @@ function mkTapala(){
       /* ¡pásala!: la chuleta vuela al de al lado */
       if(win&&!sus&&e>1&&e<1.35){const u=(e-1)/.35;chuleta(lerp(400,SEATS[nb],u),250-Math.sin(u*Math.PI)*46,u*9,.4);}
       /* ── ABAJO: debajo del pupitre ── */
-      ctx.save();path(rrP(0,336,800,264,0));ctx.clip();
-      wash(0,336,800,264,'#d8cdb4','#c2b598');rr(0,452,400,3,0,'#b3a688',0);rr(150,336,3,264,0,'#b3a688',0);
+      ctx.save();path(rrP(gameLeft(),336,GAME_VIEW.width,264,0));ctx.clip();
+      wash(gameLeft(),336,GAME_VIEW.width,264,'#d8cdb4','#c2b598');rr(0,452,400,3,0,'#b3a688',0);rr(150,336,3,264,0,'#b3a688',0);
       limb(330,690,352,486,150,JEAN,4.5);limb(118,690,212,466,178,JEAN,4.5);
       /* la chuleta en la pierna */
       const cu=pill?ease(clamp((e-.1)/.3,0,1)):win&&!sus?clamp((e-.95)/.3,0,1):0,chx=pill?lerp(CX,238,cu):lerp(CX,440,cu),chy=pill?lerp(CY,404,cu):lerp(CY,290,cu);

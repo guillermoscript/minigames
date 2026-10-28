@@ -71,7 +71,7 @@ function trompa(x,yb,s,o){
   ctx.restore();}
 /* la calle: el abasto, la bocacalle que sube la loma y, allá lejísimo, la bomba con el resto de la cola */
 function fondo(rare){
-  wash(0,0,800,KY,'#8fd8ff','#e8f8ff');
+  wash(gameLeft(),0,GAME_VIEW.width,KY,'#8fd8ff','#e8f8ff');
   poly([[384,KY],[384,246],[470,214],[600,228],[716,204],[810,190],[810,KY]],'#8fcf7a',3.5);
   line([[810,312],[748,288],[706,252],[718,214]],11,'#e8d7a8');
   [[786,304],[762,294],[738,280],[720,264],[709,246],[712,228]].forEach(([x,y],i)=>rr(x-9,y-6,18,11,4,LATAS[i%4],2.5));
@@ -82,11 +82,11 @@ function fondo(rare){
   rr(204,178,172,34,8,'#fff3c4',3.5);txt('ABASTO LA BENDICIÓN',290,196,12,INK,0,true);
   for(let i=0;i<3;i++){rr(22+i*58,188,40,50,6,'#5a4a78',3.5);rr(22+i*58,228,40,10,3,'#fff3c4',2.5);}
   for(let i=0;i<8;i++)rr(-10+i*50,262,50,16,0,i%2?'#fffdf2':'#e8553d',2.5);
-  rr(-10,KY-20,820,20,0,'#d8d2c4',0);
+  rr(gameLeft()-10,KY-20,GAME_VIEW.width+20,20,0,'#d8d2c4',0);
   poly([[386,KY+2],[560,KY+2],[520,214],[430,214]],'#4d4a6e',0);line([[386,KY],[430,214]],4,INK);line([[560,KY],[520,214]],4,INK);
   for(let i=0;i<4;i++)rr(471,224+i*30,5,14,2,'#ffe14d',0);
   line([[382,KY-2],[382,212]],5,'#8f8fa8');rr(290,216,90,22,5,'#2f7fe0',3);txt('CALLE EL VIVO',335,227,10,'#ffffff',0,true);
-  rr(-10,KY,820,280,0,'#4d4a6e',0);line([[-10,KY],[386,KY]],4,INK);line([[560,KY],[810,KY]],4,INK);rr(-10,574,820,36,0,'#d8d2c4',0);line([[-10,574],[810,574]],4,INK);}
+  rr(gameLeft()-10,KY,GAME_VIEW.width+20,280,0,'#4d4a6e',0);line([[-10,KY],[386,KY]],4,INK);line([[560,KY],[810,KY]],4,INK);rr(gameLeft()-10,574,GAME_VIEW.width+20,36,0,'#d8d2c4',0);line([[-10,574],[810,574]],4,INK);}
 
 /* ═════════ ¡TRÁNCALO! ═════════ */
 function mkTrancalo(){

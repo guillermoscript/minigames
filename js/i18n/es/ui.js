@@ -3,6 +3,7 @@
 /* touch screens: reword click/mouse hints after translating them */
 I18N.addTouch('es', [[/\bHAZ CLIC\b/g, 'TOCA'], [/\bCLIC\b/g, 'TOCA'], [/\b(MOUSE|RATÓN)\b/g, 'DEDO']]);
 I18N.add('es', {
+  'TILT YOUR PHONE TO STEER! (OR DRAG)': '¡INCLINA EL TELÉFONO PARA MOVER! (O ARRASTRA)',
   'LOADING 3D GAME...': 'CARGANDO MICROJUEGO 3D...',
   'PLAYER: {name}': 'JUEGA: {name}',
   "LANTERNS": "LINTERNAS",
@@ -90,7 +91,10 @@ I18N.add('es', {
   'SELECT STAGE': 'ELIGE ETAPA', 'STAGE {n}': 'ETAPA {n}', 'LOCKED': 'BLOQUEADA',
   'PAGE {n}/{total}': 'PÁG. {n}/{total}',
   'PRACTICE': 'PRÁCTICA', 'TITLE': 'INICIO', 'RANKS': 'RANKING', 'PROFILE': 'PERFIL',
-  '1-6 STAGE · ◄ ► PAGE · P PRACTICE · L RANKS · A PROFILE · ESC BACK': '1-6 ETAPA · ◄ ► PÁGINA · P PRÁCTICA · L RANKING · A PERFIL · ESC VOLVER',
+  '1-6 STAGE · ◄ ► PAGE · P PRACTICE · C CO-OP · L RANKS · A PROFILE · ESC BACK': '1-6 ETAPA · ◄ ► PÁGINA · P PRÁCTICA · C COOP · L RANKING · A PERFIL · ESC VOLVER',
+  'CO-OP vs CPU': 'COOP vs CPU', 'CO-OP TEST': 'PRUEBA COOP', 'YOUR ROLE: RANDOM': 'TU ROL: AL AZAR', 'YOUR ROLE: {n}': 'TU ROL: {n}',
+  'SQUAD GAMES: {n} PLAYERS': 'JUEGOS SQUAD: {n} JUGADORES', 'CPU {n}: {role}': 'CPU {n}: {role}', 'NO CPU BOT FOR THIS GAME YET': 'ESTE JUEGO AÚN NO TIENE BOT',
+  'DUO = 2 SEATS · SQUAD = 3-4 SEATS · THE OTHER SEATS ARE PLAYED BY THE COMPUTER': 'DUO = 2 PUESTOS · SQUAD = 3-4 PUESTOS · LA COMPUTADORA JUEGA LOS DEMÁS',
   '◄ BACK': '◄ VOLVER', 'SPEED x{n}': 'VELOCIDAD x{n}',
   'CURSED DISCO. NO REFUNDS.': 'DISCO MALDITA. SIN REEMBOLSOS.',
   '{n} GAMES + BOSS': '{n} JUEGOS + JEFE', 'GAME {n} / {total}': 'JUEGO {n} / {total}',

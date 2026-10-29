@@ -77,7 +77,7 @@ test('eid viejo da eid, aid repetido se acepta sin aplicarse, turno ajeno da tur
   assert.equal(R.aplicar(c.S, c.priv, 'b', { t: 'TIRAR', eid: c.S.esp.id }, NOW).error, 'cpu');
 });
 
-test('DADO: la palanca no se usa como dado; el trucado pide 1 a 10', () => {
+test('DADO: la palanca no se usa como dado; el trucado pide 1 a 6', () => {
   let st = turnoDe(arrancar(), ID.POR.id, (S) => { S.pj.a.items = ['palanca', 'trucado']; S.esp.opc = ['TIRAR', 'trucado']; });
   assert.equal(act(st, { t: 'USAR', item: 'palanca' }).error, 'opcion');
   const r = ok(st, { t: 'USAR', item: 'trucado' });
@@ -161,7 +161,7 @@ test('El muelle: el ferry a Coche cuesta 5 y no sale con el Kraken', () => {
 
 test('Desvío: costa o atajo, y con obras el atajo está cerrado', () => {
   const pre = G.PREV[ID.JG.id][0];
-  const r = mover(turnoDe(arrancar(), pre), 2);
+  const r = mover(turnoDe(arrancar(), pre, (S) => { S.isla.puesto = G.PUESTOS.O.nodo; }), 2);   // la señora en Playa El Agua
   assert.equal(r.S.esp.k, 'DESVIO');
   assert.equal(r.S.esp.opc.venta, 'PLAYA EL AGUA');
   assert.equal(act(r, { t: 'RUTA', a: 999 }).error, 'opcion');
@@ -171,24 +171,73 @@ test('Desvío: costa o atajo, y con obras el atajo está cerrado', () => {
   assert.ok(hops(o).includes(SEG.agua.ids[0]));
 });
 
+const EMP = (k) => G.PUESTOS_EMP.find((p) => p.k === k);
+// partida con la señora en el puesto `k` y `a` una casilla antes; r = a llega con `bs` Bs
+const alPuesto = (k, bs, mods) => { const nodo = EMP(k).nodo; return mover(turnoDe(arrancar(), G.PREV[nodo][0], (S, P) => { S.pj.a.bs = bs; S.isla.puesto = nodo; S.isla.senora = EMP(k).isla; S.isla.bacha = EMP(k).isla === 'O' ? 'W' : 'O'; if (mods) mods(S, P); }), 1); };
+
 test('La señora vende la Empanada de Oro a 20; en la otra isla el Bachaquero cobra la pimpina', () => {
-  const nodo = G.PUESTOS.O.nodo, pre = G.PREV[nodo][0];
-  let r = mover(turnoDe(arrancar(), pre, (S) => { S.pj.a.bs = 25; }), 1);
-  assert.equal(r.S.esp.k, 'EMPANADA');
+  let r = alPuesto('agua', 25);
+  assert.equal(r.S.esp.k, 'EMPANADA'); assert.equal(r.S.esp.opc.lugar, 'PLAYA EL AGUA');
   const c = ok(r, { t: 'COMPRAR', si: true });
   assert.equal(c.S.pj.a.emp, 1); assert.equal(monPor(c, 'empanada'), -20);
-  r = mover(turnoDe(arrancar(), pre, (S) => { S.pj.a.bs = 19; }), 1);
+  r = alPuesto('agua', 19);
   assert.ok(r.fx.some((x) => x.k === 'evento' && x.id === 'empanadaCara'));
-  r = mover(turnoDe(arrancar(), pre, (S) => { S.pj.a.bs = 40; S.isla.senora = 'W'; S.isla.bacha = 'O'; }), 1);
+  // el Bachaquero está en el puesto fijo de la isla que NO tiene a la señora: con ella en Macanao, cobra en Playa El Agua
+  r = mover(turnoDe(arrancar(), G.PREV[G.PUESTOS.O.nodo][0], (S) => { S.pj.a.bs = 40; S.isla.puesto = EMP('sanfco').nodo; S.isla.senora = 'W'; S.isla.bacha = 'O'; }), 1);
   assert.equal(monPor(r, 'bachaquero'), -30); assert.equal(r.S.pj.a.pimpinas, 1);
 });
 
-test('Peñero: la casilla E se lleva a la señora a la otra isla y el Bachaquero se muda', () => {
+test('Comprar la empanada MUDA a la señora: otro puesto, a más de 6 pasos del comprador, y el aviso llega a todos como fx mudanza', () => {
+  const r = ok(alPuesto('agua', 25), { t: 'COMPRAR', si: true });
+  const m = r.fx.find((x) => x.k === 'mudanza');
+  assert.ok(m, 'sin fx mudanza'); assert.equal(m.por, 'compra'); assert.equal(m.s, 'a'); assert.equal(m.de, EMP('agua').nodo);
+  assert.notEqual(m.a, m.de);
+  const P = G.PUESTO_POR_NODO[m.a];
+  assert.ok(P, 'el destino no es un puesto'); assert.equal(m.lugar, P.lugar); assert.equal(m.isla, P.isla);
+  assert.ok(G.distancia(r.S.pj.a.en, m.a) > 6, 'cae encima del comprador');
+  assert.equal(r.S.isla.puesto, m.a); assert.equal(r.S.isla.senora, P.isla); assert.equal(r.S.isla.bacha, P.isla === 'O' ? 'W' : 'O');
+  assert.equal(R.distVenta(r.S, 'a'), G.distancia(r.S.pj.a.en, m.a));
+  // los clientes reconstruyen el estado solo con los fx
+  const base = alPuesto('agua', 25), proy = R.proyectar(base.S, r.fx);
+  assert.equal(proy.isla.puesto, m.a); assert.equal(proy.isla.senora, P.isla);
+});
+
+test('La mudanza es determinista (misma semilla, mismo destino), nunca el mismo puesto, y siempre es un puesto de la lista', () => {
+  const destinos = (k) => { const out = []; for (let i = 0; i < 12; i++) { const o = ok(alPuesto(k, 25), { t: 'COMPRAR', si: true }); out.push(o.fx.find((x) => x.k === 'mudanza').a); } return out; };
+  const a = destinos('agua'), b = destinos('agua');
+  assert.deepEqual(a, b);
+  assert.ok(a.every((n) => G.PUESTO_POR_NODO[n] && n !== EMP('agua').nodo));
+  // desde cada puesto: el destino cambia y nunca es el mismo
+  for (const P of G.PUESTOS_EMP) { const o = ok(alPuesto(P.k, 25), { t: 'COMPRAR', si: true }); assert.notEqual(o.S.isla.puesto, P.nodo, P.k); }
+  // con otra semilla del RNG privado puede salir otro, pero sigue siendo válido
+  const vistos = new Set();
+  for (let sem = 1; sem <= 40; sem++) { const base = alPuesto('agua', 25, (S, P) => { P.rng = RNG.crear(sem).estado; }); vistos.add(ok(base, { t: 'COMPRAR', si: true }).S.isla.puesto); }
+  vistos.forEach((n) => assert.ok(G.PUESTO_POR_NODO[n]));
+});
+
+test('Puestos de la Empanadera: casillas azules distintas, repartidas por las dos islas', () => {
+  const ns = G.PUESTOS_EMP.map((p) => p.nodo);
+  assert.equal(new Set(ns).size, ns.length); assert.ok(ns.length >= 8);
+  G.PUESTOS_EMP.forEach((p) => { const n = G.nodos[p.nodo]; assert.equal(n.t, 'B'); assert.ok(!n.lugar && !n.peaje && !n.cruce); assert.ok(p.isla === 'O' || p.isla === 'W'); assert.equal(p.isla, n.isla); });
+  assert.ok(G.PUESTOS_EMP.some((p) => p.isla === 'O') && G.PUESTOS_EMP.some((p) => p.isla === 'W'));
+  assert.equal(R.crear(1, {}, [], NOW).S.isla.puesto, G.PUESTO_INICIAL.nodo);
+});
+
+test('Mototaxi: te deja en el puesto actual de la señora (donde esté) y ahí compras', () => {
+  const base = turnoDe(arrancar(), ID.POR.id, (S) => { S.pj.a.items = ['mototaxi']; S.pj.a.bs = 30; S.isla.puesto = EMP('cerro').nodo; S.isla.senora = 'W'; S.isla.bacha = 'O'; });
+  base.S.esp.opc = ['TIRAR', 'mototaxi'];
+  const r = ok(base, { t: 'USAR', item: 'mototaxi' });
+  assert.equal(r.S.pj.a.en, EMP('cerro').nodo); assert.equal(r.S.esp.k, 'EMPANADA');
+});
+
+test('Peñero: la casilla E se lleva a la señora a un puesto de la otra isla y el Bachaquero se muda', () => {
   const e = G.nodos.find((n) => n.t === 'E' && !n.cruce && !G.nodos[G.PREV[n.id][0]].ramas);
-  const r = mover(turnoDe(arrancar(), G.PREV[e.id][0]), 1);
-  assert.deepEqual([r.S.isla.senora, r.S.isla.bacha], ['W', 'O']);
+  const r = mover(turnoDe(arrancar(), G.PREV[e.id][0], (S) => { S.isla.puesto = EMP('piedras').nodo; S.isla.senora = 'O'; S.isla.bacha = 'W'; }), 1);
+  const f = r.fx.find((x) => x.k === 'penero');
+  assert.ok(f && f.de === 'O' && f.a === 'W' && f.desde === EMP('piedras').nodo);
+  assert.equal(G.PUESTO_POR_NODO[f.puesto].isla, 'W');
+  assert.deepEqual([r.S.isla.senora, r.S.isla.bacha, r.S.isla.puesto], ['W', 'O', f.puesto]);
   assert.equal(r.S.pj.a.bono.ev, 1);
-  assert.ok(r.fx.some((x) => x.k === 'penero' && x.de === 'O' && x.a === 'W'));
 });
 
 test('Bodega: compra si cabe y alcanza; con oferta, a mitad de precio', () => {
@@ -347,7 +396,7 @@ test('Casillas: azul +3, roja −3; doble en carnaval y en la recta final; aguac
           const I = D.isla, v = -(I.lluvia ? 6 : 3) * (I.final ? 2 : 1);
           assert.equal(f.d, Math.max(v, -D.pj[f.s].bs), 'roja en ronda ' + D.r);
         }
-        if (f.k === 'dado' && f.de === 'd10') assert.ok(f.v >= 1 && f.v <= (D.isla.lluvia ? 6 : 10));
+        if (f.k === 'dado' && f.de === 'd10') assert.ok(f.v >= 1 && f.v <= (D.isla.lluvia ? 3 : 6));
         R.aplicaFx(D, f);
       }
       S = r.S; priv = r.priv;

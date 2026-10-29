@@ -50,13 +50,13 @@ const jug = (s) => JUG[SEATS.indexOf(s)];
 const nomDe = (s) => jug(s).nom;
 JUG.forEach((j) => { const n = nodos[j.en]; j.x = n.x; j.y = n.y; });
 const S = { ritmo: 1, activo: 0, dado: null, flechas: null, bote: null, puff: null, fin: false, confeti: [], foco: null, cofre: null, equipo: null, monedas: [],
-  senora: 'O', bacha: 'W', ganador: null, get turno() { return D.r; }, get san() { return D.isla.san; }, get bolsas() { return D.isla.bolsas; } };
+  senora: 'O', bacha: 'W', puesto: MARGA.grafo.PUESTO_INICIAL.nodo, ganador: null, get turno() { return D.r; }, get san() { return D.isla.san; }, get bolsas() { return D.isla.bolsas; } };
 
 /* ───────── objetos (como los de Mario Party: dado doble/triple, dado a medida, llave, bloque de cambio, tubo dorado) ───────── */
 const ITEMS = {
-  cafe: { nom: '☕ CAFECITO', ico: '☕', txt: 'tiras 2 dados', precio: 6 },
-  guarapo: { nom: '🥤 GUARAPO', ico: '🥤', txt: 'tiras 3 dados', precio: 12 },
-  trucado: { nom: '🎲 DADO TRUCADO', ico: '🎯', txt: 'eliges el número (1–10)', precio: 8 },
+  cafe: { nom: '☕ CAFECITO', ico: '☕', txt: 'tiras 2 dados y cuenta el mejor', precio: 6 },
+  guarapo: { nom: '🥤 GUARAPO', ico: '🥤', txt: 'tiras 3 dados y cuenta el mejor', precio: 12 },
+  trucado: { nom: '🎲 DADO TRUCADO', ico: '🎯', txt: 'eliges el número (1–6)', precio: 8 },
   palanca: { nom: '🤝 PALANCA', ico: '🤝', txt: 'pasas un peaje gratis', precio: 5 },
   colearse: { nom: '🔀 COLEARSE', ico: '🔀', txt: 'cambias de puesto con un rival al azar', precio: 10 },
   mototaxi: { nom: '🛵 MOTOTAXI', ico: '🛵', txt: 'te lleva directo a las empanadas', precio: 22 }
@@ -97,13 +97,21 @@ function pintarHud() {
   if (E.lluvia) ch.push('🌧️ AGUACERO ' + E.lluvia); if (E.leva) ch.push('🌊 MAR DE LEVA ' + E.leva); if (E.turistas) ch.push('📸 TURISTAS ' + E.turistas);
   if (E.obras.O) ch.push('🚧 OBRAS ORIENTE'); if (E.obras.W) ch.push('🚧 OBRAS MACANAO');
   if (E.carnaval) ch.push('🎉 CARNAVAL'); if (E.final) ch.push('🔥 TODO AL DOBLE');
-  if (S.senora) ch.push('🥟 EN ' + ISLAS[S.senora].nom);
+  if (SEN()) { const pa = pasosEmpanada(JUG[S.activo]); ch.push('🥟 EMPANADA: ' + SEN().lugar + (pa !== null ? ' · ' + pa + (pa === 1 ? ' PASO' : ' PASOS') : ' · OTRA ISLA')); }
   if (S.san) ch.push('🏦 SAN ' + S.san + ' Bs');
   if (E.sinAgua) ch.push('💧 SIN AGUA EN ' + ISLAS[E.sinAgua.k].nom); if (E.kraken) ch.push('🐙 KRAKEN ' + E.kraken); if (E.sirena) ch.push('🧜 SIRENA');
   if (E.oferta) ch.push('🛍️ OFERTA ' + E.oferta); if (E.silbon !== null) ch.push('👻 EL SILBÓN');
   const sec = MAPA.SECRETOS.filter((q) => q.hallado).length; if (sec) ch.push(`🔍 ${sec}/${MAPA.SECRETOS.length}`);
   turnoEl.textContent = ch.join(' · ');
 }
+/* pasos del tablero desde el jugador hasta la señora de las empanadas (null si no hay o no se llega a pie: otra isla) */
+function pasosEmpanada(j) {
+  if (!SEN() || !j || S.bote) return null;
+  const d = MARGA.grafo.distancia(j.en, S.puesto); return d >= 99 ? null : d;
+}
+/* el puesto actual de la Empanadera ({x, y, nodo, isla, lugar}) o null mientras se muda; la señora se muda al comprarle (fx mudanza) y con el peñero */
+const stallDe = (nodo) => MARGA.grafo.PUESTO_POR_NODO[nodo] || null;
+function SEN() { return S.puesto == null ? null : stallDe(S.puesto); }
 let teclas = null, PLAZO_HASTA = null;
 function preguntar(txt, botones, cpu, elegida) {
   msg.style.display = 'block'; msgT.textContent = txt; msgB.innerHTML = ''; pintarHud();
@@ -112,10 +120,13 @@ function preguntar(txt, botones, cpu, elegida) {
     return w.then(() => (botones && botones.length ? (elegida !== undefined ? elegida : botones[0].v) : null));
   }
   return new Promise((res) => {
-    const fin = (v) => { teclas = null; msgB.innerHTML = ''; res(v); };
+    let hecho = false;
+    const fin = (v) => { if (hecho) return; hecho = true; teclas = null; msgB.innerHTML = ''; res(v); };
     botones.forEach((b, k) => {
       const el = document.createElement('button'); el.textContent = b.l; if (b.cls) el.className = b.cls;
-      el.onclick = () => fin(b.v); msgB.appendChild(el);
+      /* click, pointerup y touchend (de-duplicados por «hecho»): en Android un toque con unos px de arrastre a veces no genera click */
+      el.onclick = () => fin(b.v); el.addEventListener('pointerup', () => fin(b.v)); el.addEventListener('touchend', () => fin(b.v));
+      msgB.appendChild(el); if (!k) try { el.scrollIntoView({ block: 'nearest' }); } catch (e) {} guardaCapa(el, 'botón «' + b.l + '»');
     });
     teclas = (e) => {
       if (e.code === 'Enter' || e.code === 'Space') { fin(botones[0].v); return; }
@@ -158,14 +169,14 @@ const lugarDe = (n) => MAPA.lugarCerca(nodos[n].x, nodos[n].y);
 function flechasDe(n) { return RG.salidas(nodos[n]).map((i) => nodos[i]); }
 const PEDIR = {
   async DADO(e, j) {
-    const max = E.lluvia ? 6 : 10, usables = e.opc.slice(1);
+    const max = E.lluvia ? 3 : 6, usables = e.opc.slice(1);
     girar(j, max);
     if (!usables.length) { await preguntar(`¡Tu turno! Tira el dado (1–${max})${E.lluvia ? ' · con el aguacero se va más lento' : ''}`, [{ l: '🎲 TIRAR', v: 1 }]); return { t: 'TIRAR' }; }
     const k = await preguntar(`¡Tu turno! Tira el dado (1–${max}) o usa algo de tu bolsillo:\n${usables.map((x) => ITEMS[x].nom + ': ' + ITEMS[x].txt).join(' · ')}`,
       [{ l: '🎲 TIRAR', v: null }].concat(usables.map((x) => ({ l: ITEMS[x].nom, v: x, cls: 'alt' }))));
     return k ? { t: 'USAR', item: k } : { t: 'TIRAR' };
   },
-  async TRUCADO() { return { t: 'PASOS', n: await preguntar('🎯 DADO TRUCADO: ¿cuántos pasos?', Array.from({ length: 10 }, (_, i) => ({ l: String(i + 1), v: i + 1, cls: 'alt' }))) }; },
+  async TRUCADO() { return { t: 'PASOS', n: await preguntar('🎯 DADO TRUCADO: ¿cuántos pasos?', Array.from({ length: 6 }, (_, i) => ({ l: String(i + 1), v: i + 1, cls: 'alt' }))) }; },
   async CRUCE(e, j) {
     const o = e.opc, P = PEAJE(o.peaje); S.flechas = flechasDe(j.en);
     const si = await preguntar(`Cruce: ${P.nom} → ${nomIsla(o.a)}.\nLas empanadas están en ${nomIsla(S.senora)}. Peaje mínimo: ${o.fee} Bs${deNoche() && o.peaje === 'restinga' ? ' (tarifa nocturna)' : ''}.`,
@@ -226,7 +237,7 @@ const PEDIR = {
 };
 /* lo que se ve mientras una CPU decide (las mismas tarjetas de antes: «MAMÁ llega al cruce…») */
 const CPU_DICE = {
-  DADO: (e, j) => { girar(j, E.lluvia ? 6 : 10); return `${j.nom} tira el dado…`; },
+  DADO: (e, j) => { girar(j, E.lluvia ? 3 : 6); return `${j.nom} tira el dado…`; },
   CRUCE: (e, j) => { S.flechas = flechasDe(j.en); return `${j.nom} llega al cruce de ${PEAJE(e.opc.peaje).nom}…`; },
   PEAJE: (e, j) => (e.opc.palanca ? `${j.nom} saca su PALANCA… 🤝` : null),
   FERRY: (e, j) => { S.flechas = flechasDe(j.en); return `${j.nom} está en el muelle…`; },
@@ -256,7 +267,7 @@ let LOTE = [], IX = 0, RESP = null;
 const prox = (pred) => { for (let i = IX + 1; i < LOTE.length; i++) if (pred(LOTE[i])) return LOTE[i]; return null; };
 const montoDe = (s, por) => { const m = prox((f) => f.k === 'mon' && f.s === s && f.por === por); return m ? m.d : 0; };
 function ya(f) { if (!f._ok) { RG.aplicaFx(D, f); f._ok = true; } }   // aplicar un efecto antes de que le toque (lo anima otro)
-function sincronizar() { if (!S.bote) { S.senora = D.isla.senora; S.bacha = D.isla.bacha; } }
+function sincronizar() { if (!S.bote) { S.senora = D.isla.senora; S.bacha = D.isla.bacha; S.puesto = D.isla.puesto; } }
 async function reproducir(fx) {
   if (!fx) return;
   LOTE = fx;
@@ -268,7 +279,7 @@ async function reproducir(fx) {
   LOTE = []; acomodar(); pintarHud();
 }
 const VAINAS = {
-  aguacero: { nom: '🌧️ ¡AGUACERO!', txt: 'Llueve 2 rondas: dado de 1 a 6 y las rojas quitan 6.' }, obras: { nom: '🚧 ¡OBRAS!' },
+  aguacero: { nom: '🌧️ ¡AGUACERO!', txt: 'Llueve 2 rondas: dado de 1 a 3 y las rojas quitan 6.' }, obras: { nom: '🚧 ¡OBRAS!' },
   leva: { nom: '🌊 ¡MAR DE LEVA!', txt: 'La lancha no sale por 2 rondas.' }, turistas: { nom: '📸 ¡LLEGARON LOS TURISTAS!', txt: 'Por 2 rondas las azules dan +2 Bs de propina.' },
   apagon: { nom: '⚡ ¡APAGÓN GENERAL!', txt: 'La isla queda a oscuras hasta la próxima ronda: es de noche (sin lancha, peaje doble).' }
 };
@@ -279,6 +290,52 @@ const TIT_NOTICIA = { agua: '💧 ¡SE FUE EL AGUA!', piratas: '🏴‍☠️ ¡
   oferta: '🛍️ ¡OFERTA EN EL SAMBIL!', silbon: '👻 ¡EL SILBÓN!', pesca: '🐟 ¡PESCA BUENA!', virgen: '⛪ ¡LA VIRGEN DEL VALLE!', apagon: '⚡ ¡APAGÓN!' };
 const VIS = { cist: null, krak: null, sir: null, silb: null, proc: null, pesc: null };
 let bonusVisto = false;
+/* ───────── foco de evento: la cámara baja a donde pasa la vaina (aunque estés en LIBRE o MAPA), oscurece el resto, anillo que late y cartel grande ───────── */
+const SPOT = { on: false, a: 0, x: 0, y: 0, z: 2.4, b: '', c: '#ffd23f', ring: true, sigue: false, tok: 0, t: 0 };
+const npcPos = (k, dy) => { const N = NPCS.find((x) => x.k === k); return N ? { x: N.x, y: N.y + (dy || 0) } : null; };
+const sirPos = () => { if (VIS.sir) return { x: VIS.sir.x, y: VIS.sir.y + 8 }; const q = D.isla.sirena && nodos[D.isla.sirena.nodo]; return q ? { x: q.x - 8, y: q.y - 12 } : null; };
+const SPOTS = {
+  'n:agua': { b: '💧 ¡SE FUE EL AGUA!', c: '#9fd8ff', z: 2, pos: (p) => { const T = MAPA.TRAZOS.find((x) => x.id === (p.isla === 'O' ? 'agua' : 'arenas')); return { x: T.pts[0][0], y: T.pts[0][1] }; } },
+  'n:piratas': { b: '🏴‍☠️ ¡PIRATAS!', c: '#ff8a8a', z: 1.7, sigue: 1, pos: (p) => (p.isla === 'O' ? { x: 430, y: 42 } : { x: 70, y: 112 }) },
+  'n:kraken': { b: '🐙 ¡EL KRAKEN!', c: '#c58aff', z: 2.4, pos: () => ({ x: 258, y: 236 }) },
+  'n:sirena': { b: '🧜 ¡LA SIRENA!', c: '#6fe7d6', z: 2.7, pos: (p) => { const n = nodos[p.nodo]; return { x: n.x - 8, y: n.y - 12 }; } },
+  'n:ovni': { b: '👽 ¡UN OVNI!', c: '#7dff9a', z: 2, sigue: 1, pos: (p) => { const v = jug(p.vict); return { x: v.x, y: v.y - 20 }; } },
+  'n:oferta': { b: '🛍️ ¡OFERTA EN EL SAMBIL!', c: '#ff6fa8', z: 2.2, pos: () => { const d = MAPA.DECO.find((x) => x.k === 'sambil'); return d ? { x: d.x + 15, y: d.y - 10 } : null; } },
+  'n:silbon': { b: '👻 ¡EL SILBÓN!', c: '#b8f0ff', z: 2.7, pos: (p) => { const n = nodos[p.nodo]; return { x: n.x, y: n.y - 8 }; } },
+  'n:pesca': { b: '🐟 ¡PESCA BUENA!', c: '#9fd8ff', z: 2.2, pos: () => ({ x: 120, y: 318 }) },
+  'n:virgen': { b: '⛪ ¡LA VIRGEN DEL VALLE!', c: '#fff6b0', z: 2.1, pos: () => ({ x: 520, y: 236 }) },
+  'n:apagon': { b: '⚡ ¡APAGÓN GENERAL!', c: '#ffd23f', z: 1, ring: false, pos: () => ({ x: W / 2, y: H / 2 }) },
+  'e:sirenaPerla': { b: '🧜 ¡LA SIRENA LE CANTA!', c: '#6fe7d6', z: 3, pos: sirPos },
+  'e:sirenaEmbobado': { b: '🧜 ¡EMBOBADO CON LA SIRENA!', c: '#6fe7d6', z: 3, pos: sirPos },
+  'e:silbonAtrapa': { b: '👻 ¡SE TOPÓ CON EL SILBÓN!', c: '#b8f0ff', z: 3, pos: () => (VIS.silb ? { x: VIS.silb.x, y: VIS.silb.y - 6 } : null) },
+  'e:sanCobra': { b: '🏦 ¡LE TOCÓ EL SAN!', c: '#ffd23f', z: 2.6, pos: () => npcPos('san', -6) },
+  'e:monoMango': { b: '🐒 ¡UN MONO DEL COPEY!', c: '#ffb04d', z: 2.8, pos: () => npcPos('monos', -4) },
+  'e:monoArranca': { b: '🐒 ¡UN MONO DEL COPEY!', c: '#ffb04d', z: 2.8, pos: () => npcPos('monos', -4) },
+  'e:preso': { b: '🏰 ¡AL CALABOZO!', c: '#ff8a8a', z: 2.6, pos: () => npcPos('calabozo', -6) },
+  'e:tiaDeMiami': { b: '✈️ ¡LA TÍA DE MIAMI!', c: '#ff6fa8', z: 2.6, pos: (p, j) => ({ x: j.x, y: j.y - 10 }) },
+  'e:cofre': { b: '✨ ¡COFRE ESCONDIDO!', c: '#ffd23f', z: 2.8, pos: (p, j) => ({ x: j.x, y: j.y - 8 }) },
+  'e:piedras': { b: '⚔️ ¡PIEDRAS EN EL MATASIETE!', c: '#ff8a8a', z: 2.6, pos: (p) => { const v = jug(p.vict); return { x: v.x, y: v.y - 8 }; } },
+  'e:bachaquero': { b: '🛢️ ¡EL BACHAQUERO!', c: '#ffb04d', z: 2.6, pos: (p, j) => ({ x: j.x, y: j.y - 8 }) },
+  'fx:bolsa': { b: '👛 ¡SE LE CAYÓ LA CARTERA AL TURISTA!', c: '#ffd23f', z: 2.5, pos: (f) => { const n = nodos[f.en]; return { x: n.x, y: n.y - 6 }; } },
+  'fx:penero': { b: '🚤 ¡ZARPÓ EL PEÑERO!', c: '#9fd8ff', z: 1.8, sigue: 1, pos: (f) => { const p = stallDe(f.desde); return p && { x: p.x, y: p.y }; } },
+  'fx:mudanza': { b: '🥟 ¡SE VA LA EMPANADERA!', c: '#ffd23f', z: 2.2, pos: (f) => { const p = stallDe(f.de); return p && { x: p.x + 2, y: p.y - 8 }; } },
+  'fx:cartera': { b: '💼 ¡LA CARTERA!', c: '#ffd23f', z: 2.6, pos: (f, j) => { const n = nodos[j.en]; return { x: n.x, y: n.y - 6 }; } }
+};
+/* abre el foco del evento `id`; devuelve un ficha para cerrarlo (no hace nada si no hay tabla o lugar) */
+async function spotAbre(id, a, b, c) {
+  const e = SPOTS[id]; if (!e) return 0;
+  let q = null; try { q = e.pos(a, b, c); } catch (_) { q = null; }
+  if (!q) return 0;
+  const mismo = SPOT.on && Math.hypot(SPOT.x - q.x, SPOT.y - q.y) < 4, tok = ++SPOT.tok;
+  Object.assign(SPOT, { on: true, x: q.x, y: q.y, z: e.z, b: e.b, c: e.c, ring: e.ring !== false, sigue: !!e.sigue });
+  SPOT.t = mismo ? SPOT.t : 0;
+  S.foco = null; CAM.cine = true;
+  await espera(.45);   // lo que tarda la cámara en llegar (corre con la velocidad x2/x4)
+  return tok;
+}
+function spotMueve(tok, x, y) { if (tok && tok === SPOT.tok) { SPOT.x = x; SPOT.y = y; SPOT.sigue = false; } }
+function spotCierra(tok) { if (tok && tok === SPOT.tok) { SPOT.on = false; CAM.cine = false; } }
+const conSpot = async (id, a, b, c, fn) => { const k = await spotAbre(id, a, b, c); try { return await fn(); } finally { spotCierra(k); } };
 const FX = {
   ronda: async (f) => { S.foco = null; S.ritmo = 1; ya(f); if (VIS.proc) { CRIAT.quitar(VIS.proc); VIS.proc = null; } if (VIS.pesc) { CRIAT.quitar(VIS.pesc); VIS.pesc = null; } pintarHud(); },
   turno: async (f) => { const j = jug(f.s); S.activo = j.i; S.ritmo = j.yo ? 1 : .6; S.foco = j; pintarHud(); },
@@ -290,7 +347,7 @@ const FX = {
       const sale = [];
       for (let k = 0; k < f.dados.length; k++) {
         sale.push(f.dados[k]); S.dado.n = f.dados[k]; S.dado.gira = false; snd(1000 + k * 200, .1);
-        await decir(`${j.nom}: ${sale.join(' + ')}${k === f.dados.length - 1 ? ' = ' + f.v : ''}`, .55);
+        await decir(`${j.nom}: ${sale.join(' · ')}${k === f.dados.length - 1 ? ' → cuenta el mejor: ' + f.v : ''}`, .55);
         if (k < f.dados.length - 1) { S.dado.gira = true; await espera(.25); }
       }
     }
@@ -305,7 +362,7 @@ const FX = {
     }
     if (f.modo === 'moto') {
       S.dado = null; snd(180, .6, 'sawtooth', .04); await vuelo(j, n, 1.4, 30); ya(f); acomodar();
-      await decir(`🛵 «¡Llegamos, pana!» ${j.nom} está en ${PUESTOS[D.isla.senora].lugar}.`, 1); return;
+      await decir(`🛵 «¡Llegamos, pana!» ${j.nom} está en ${stallDe(D.isla.puesto).lugar}.`, 1); return;
     }
     ya(f); acomodar();
   },
@@ -325,7 +382,7 @@ const FX = {
     const j = jug(f.s), d = f.d;
     if (f.por === 'azul') { ya(f); plata(j, d); await decir(`${j.nom}: ${E.turistas ? '¡un turista te dio propina!' : E.carnaval ? '¡te cayó plata en la comparsa!' : '¡te encontraste un billete!'} +${d} Bs`, .9); return; }
     if (f.por === 'roja') { ya(f); plata(j, d); await decir(`${j.nom}: ${E.lluvia ? 'te agarró el aguacero y se te mojaron los billetes.' : 'se te cayó en la arena.'} ${d} Bs`, .9); return; }
-    if (f.por === 'cartera' || f.por === 'cofre') { ya(f); plata(j, d); const n = nodos[j.en]; lluvia(n.x, n.y - 6); await decir(f.por === 'cofre' ? `🏴‍☠️ ¡${j.nom} encontró el COFRE PIRATA! +${d} Bs` : `💼 ¡${j.nom} se encontró la cartera! +${d} Bs`, 1.1); return; }
+    if (f.por === 'cartera' || f.por === 'cofre') { ya(f); plata(j, d); const n = nodos[j.en]; lluvia(n.x, n.y - 6); const k = await spotAbre('fx:cartera', f, j); if (f.por === 'cofre') SPOT.b = '🏴‍☠️ ¡EL COFRE PIRATA!'; try { await decir(f.por === 'cofre' ? `🏴‍☠️ ¡${j.nom} encontró el COFRE PIRATA! +${d} Bs` : `💼 ¡${j.nom} se encontró la cartera! +${d} Bs`, 1.1); } finally { spotCierra(k); } return; }
     if (f.por === 'san' && d < 0) { const N = NPCS.find((x) => x.k === 'san'); ya(f); plata(j, d); MAPA.burbuja('¡PAGUE EL SAN!', N.x, N.y - 10); await decir(`🏦 ${j.nom} paga ${-d} Bs al San. Pote: ${D.isla.san - d} Bs (se lo lleva el que caiga justo aquí).`, 1.1); return; }
     if (f.por === 'fianza') { ya(f); plata(j, d); await decir(`🏰 ${j.nom} paga la fianza y sale libre.`, 1); return; }
     if (f.por === 'tesoro') { ya(f); plata(j, d); await decir(`Adentro había ${d} Bs. 💰`, 1.2); S.cofre = null; return; }
@@ -336,7 +393,7 @@ const FX = {
   },
   emp: async (f) => {
     const j = jug(f.s);
-    if (f.por === 'senora') { const P = PUESTOS[D.isla.senora]; ya(f); sfx.gana(); lluvia(P.x, P.y); await decir(`¡${j.nom} consiguió una EMPANADA DE ORO! 🥟`, 1.6); }
+    if (f.por === 'senora') { const P = stallDe(D.isla.puesto); ya(f); sfx.gana(); lluvia(P.x, P.y); await decir(`¡${j.nom} consiguió una EMPANADA DE ORO! 🥟`, 1.6); }
     else if (f.por === 'tesoro') { const n = nodos[j.en]; ya(f); lluvia(n.x, n.y - 10); await decir(`🥟 ¡Adentro había una EMPANADA DE ORO! ¡Qué suerte, ${j.nom}!`, 1.8); S.cofre = null; }
     else if (f.por === 'picaro' && f.d > 0) { ya(f); sfx.mal(); await decir(`🦹 ¡El Pícaro le sacó una EMPANADA DE ORO a ${nomDe(RESP.a.s)} y se la dio a ${j.nom}!`, 2); }
     else if (f.d > 0) sfx.gana();
@@ -364,17 +421,34 @@ const FX = {
     await decir(`🔀 ¡${j.nom} se coleó! Cambia de puesto con ${o.nom}.`, 1.4);
   },
   penero: async (f) => {
-    const j = jug(LOTE.find((x) => x.k === 'cae').s);
+    const j = jug(LOTE.find((x) => x.k === 'cae').s), kk = await spotAbre('fx:penero', f);
     await decir(`¡ZARPÓ EL PEÑERO! 🚤 Se lleva a la señora de las empanadas a ${nomIsla(f.a)}.`, 1.2);
-    const de = PUESTOS[f.de], a = PUESTOS[f.a], via = MAPA.rutaBote(f.de), tramos = via.length - 1;
-    S.bote = { x: via[0].x, y: via[0].y, flip: a.x < de.x }; S.foco = S.bote; S.senora = null; S.puff = { x: a.x, y: a.y, t: 0 };
+    const de = stallDe(f.desde), a = stallDe(f.puesto), via = [{ x: de.x, y: de.y }].concat(MAPA.rutaBote(f.de), [{ x: a.x, y: a.y }]), tramos = via.length - 1;
+    S.bote = { x: via[0].x, y: via[0].y, flip: a.x < de.x }; S.foco = S.bote; S.senora = null; S.puesto = null; S.puff = { x: de.x, y: de.y, t: 0 };
     await tween(3.2, (k) => {
       const s = k * tramos, i = Math.min(tramos - 1, Math.floor(s)), u = s - i, p = via[i], q = via[i + 1];
       S.bote.flip = q.x < p.x; S.bote.x = p.x + (q.x - p.x) * u; S.bote.y = p.y + (q.y - p.y) * u + Math.sin(k * 40) * .6;
     });
-    S.foco = j; S.bote = null; ya(f); sincronizar(); S.puff = { x: de.x, y: de.y, t: 0 };
+    S.foco = j; S.bote = null; ya(f); sincronizar(); S.puff = { x: a.x, y: a.y, t: 0 };
+    spotMueve(kk, a.x, a.y - 6); SPOT.b = '🥟 ¡LA EMPANADERA SE MUDÓ!';
     sfx.bien(); pintarHud();
-    await decir(`Las empanadas ahora están en ${PUESTOS[S.senora].lugar} (${nomIsla(S.senora)}). El Bachaquero se mudó a ${nomIsla(S.bacha)}.`, 1.4);
+    const pa = pasosEmpanada(JUG[S.activo]);
+    toast(`🥟 ¡LA EMPANADERA SE MUDÓ A ${a.lugar}!`);
+    await decir(`🥟 ¡LA EMPANADERA SE MUDÓ A ${a.lugar}! (${nomIsla(S.senora)})${pa !== null ? `\nQueda a ${pa} ${pa === 1 ? 'paso' : 'pasos'} de ${JUG[S.activo].yo ? 'ti' : JUG[S.activo].nom}.` : ''}\nEl Bachaquero se mudó a ${nomIsla(S.bacha)}.`, 1.8);
+    spotCierra(kk);
+  },
+  /* la Empanadera, como la estrella del Mario Party: tras venderte se muda. Todos lo ven: zoom al puesto viejo (recoge y se va), vuelo al nuevo y cartel */
+  mudanza: async (f) => {
+    const de = stallDe(f.de), a = stallDe(f.a), kk = await spotAbre('fx:mudanza', f);
+    S.puesto = null; S.puff = { x: de.x, y: de.y - 6, t: 0 }; sfx.bien(); snd(520, .12, 'square', .05);
+    await decir('🥟 ¡La Empanadera recoge el puesto y se va!', .9);
+    ya(f); sincronizar(); S.puff = { x: a.x, y: a.y - 6, t: 0 };
+    spotMueve(kk, a.x, a.y - 6); SPOT.b = '🥟 ¡LA EMPANADERA SE MUDÓ A ' + a.lugar + '!';
+    sfx.gana(); snd(880, .15, 'triangle', .06); lluvia(a.x + 4, a.y - 8); pintarHud();
+    const pa = pasosEmpanada(JUG[S.activo]);
+    toast(`🥟 ¡LA EMPANADERA SE MUDÓ A ${a.lugar}!`);
+    await decir(`🥟 ¡LA EMPANADERA SE MUDÓ A ${a.lugar}! (${nomIsla(a.isla)})${pa !== null ? `\nQueda a ${pa} ${pa === 1 ? 'paso' : 'pasos'} de ${JUG[S.activo].yo ? 'ti' : JUG[S.activo].nom}.` : '\nHay que cruzar de isla.'}\n¡A correr, el que llegue primero con 20 Bs se la lleva!`, 2.4);
+    spotCierra(kk);
   },
   triple: async (f) => {
     const nom = Object.keys(D.pj).map(nomDe);
@@ -407,12 +481,13 @@ const FX = {
     else await decir(`🛍️ ${j.nom} no ganó nada. ¡Así es la rifa!`, 1);
   },
   bolsa: async (f) => {
-    const n = nodos[f.en]; S.foco = { x: n.x, y: n.y };
+    const n = nodos[f.en], k = await spotAbre('fx:bolsa', f); S.foco = { x: n.x, y: n.y };
     LOTE.slice(IX + 1).filter((x) => x.k === 'isla' && x.campo === 'bolsas').slice(0, 1).forEach(ya);
-    await decir(`💼 ¡A un turista se le cayó la cartera cerca de ${lugarDe(f.en)}! El primero que pase se lleva ${f.bs} Bs.`, 2); S.foco = null;
+    MAPA.efx('texto', n.x, n.y - 14, { s: '👛 ¡CARTERA!', c: '#ffd23f' }); lluvia(n.x, n.y - 6); sfx.plata();
+    try { await decir(`💼 ¡A un turista se le cayó la cartera cerca de ${lugarDe(f.en)}! El primero que pase se lleva ${f.bs} Bs.`, 2); } finally { spotCierra(k); } S.foco = null;
   },
-  noticia: async (f) => { sfx.gana(); await preguntar(`📺 ¡ÚLTIMA HORA EN MARGARITA! 📺\n${TIT_NOTICIA[f.id]}`, [{ l: '¿QUÉ PASÓ?', v: 1 }], AUTO); await NOTICIA[f.id](f.p || {}, f); pintarHud(); S.foco = null; },
-  evento: async (f) => { const h = EVENTO[f.id]; if (h) await h(f.s ? jug(f.s) : null, f.p || {}, f); },
+  noticia: async (f) => { sfx.gana(); const p = f.p || {}, k = await spotAbre('n:' + f.id, p); try { await preguntar(`📺 ¡ÚLTIMA HORA EN MARGARITA! 📺\n${TIT_NOTICIA[f.id]}`, [{ l: '¿QUÉ PASÓ?', v: 1 }], AUTO); await NOTICIA[f.id](p, f); } finally { spotCierra(k); } pintarHud(); S.foco = null; },
+  evento: async (f) => { const h = EVENTO[f.id]; if (h) { const j = f.s ? jug(f.s) : null, p = f.p || {}; await conSpot('e:' + f.id, p, j, f, () => h(j, p, f)); } },
   equipos: async (f) => { await revelarEquipos(f); },
   mjIni: async (f) => { await (f.duelo ? cartaDuelo(f) : cartaMJ(f)); },
   mjRes: async (f) => { await (D.mj && D.mj.duelo || DUELO ? finDuelo(f) : finMJ(f)); },
@@ -451,7 +526,7 @@ const EVENTO = {
   ferryCerrado: (j) => aviso(j, '🐙 El ferry no sale: ¡el Kraken anda suelto!'),
   atajoCerrado: (j) => aviso(j, `🚧 ${nodos[j.en].ramas[1].nom}: cerrado por obras. ${j.yo ? 'Vas' : j.nom + ' va'} por la costa.`),
   lanchaCerrada: (j, p) => aviso(j, `⛔ LA LANCHA: ${RAZON[p.por]}. ${j.yo ? 'Sigues' : j.nom + ' sigue'} por ${nomIsla(PEAJE('lancha').de)}.`),
-  empanadaCara: (j) => aviso(j, `La señora de las empanadas: «La de oro cuesta 20 Bs, mi amor».\n${j.yo ? 'No te alcanza' : j.nom + ' no tiene'} (${j.reales} Bs).`),
+  empanadaCara: (j) => aviso(j, `La señora de las empanadas: «La de oro cuesta 20 Bs, mi amor».\n${j.yo ? 'No te alcanza' : j.nom + ' no tiene'} (${j.reales} Bs): ${j.yo ? 'te' : 'le'} faltan ${Math.max(0, 20 - j.reales)} Bs.`),
   bachaquero: async (j, p) => {
     await aviso(j, `El Bachaquero: «¡Epa! Pimpina de gasolina, buenísima, 30 Bs». No es opcional.`);
     LOTE.slice(IX + 1).filter((x) => x.k === 'mon' && x.por === 'bachaquero').slice(0, 1).forEach((x) => { ya(x); plata(j, x.d); });
@@ -583,11 +658,35 @@ const MJ = {   // solo para la ruleta (los candidatos que se ven girar); el jueg
   '1v3': ['f_bono', 'f_alcabala', 'f_guaya', 'f_patilla', 'f_silbon']
 };
 const MICROS = ['mango', 'hielo', 'tequenos', 'soplalo', 'baile', 'torta', 'pique', 'chancla', 'sopa', 'queso', 'parada', 'tendedero'];
-const mjBox = document.getElementById('mj'), mjF = document.getElementById('mjf'), skip = document.getElementById('skip');
+const mjBox = document.getElementById('mj'); let mjF = document.getElementById('mjf'); const skip = document.getElementById('skip');
 /* el foco va al iframe al abrirlo y al cargar: Espacio/Enter de la tarjeta de reglas solo llegan si el foco está adentro */
 const enfocarFrame = () => { try { mjF.focus(); mjF.contentWindow.focus(); } catch (e) {} };
-function abrirFrame(src) { mjBox.style.display = 'flex'; mjF.onload = enfocarFrame; mjF.src = src; enfocarFrame(); }
-function cerrarFrame() { mjF.onload = null; mjBox.style.display = 'none'; mjF.src = 'about:blank'; window.focus(); }
+/* pantalla completa real en táctiles (iOS Safari no tiene fullscreen de elemento: se ignora); y avisar al juego de cada cambio de tamaño */
+const avisarResize = () => { try { mjF.contentWindow.dispatchEvent(new Event('resize')); } catch (e) {} };
+const TACTIL = matchMedia('(pointer:coarse)').matches;
+/* DISEÑO: ya NO se pone #mj en pantalla completa por juego (en Android Chrome cada alternar fullscreen redimensiona el viewport, la 2.ª petición sin gesto se rechaza y deja la página sin toques).
+   #mj es solo una capa fija de viewport completo; la única pantalla completa es la de la página, pedida en un toque (ver abajo) y nunca se sale de ella. */
+function pantallaCompleta() {}
+['resize', 'orientationchange'].forEach((ev) => addEventListener(ev, () => { if (mjBox.style.display !== 'none') { avisarResize(); setTimeout(avisarResize, 250); } }));
+/* cada minijuego usa un iframe NUEVO: reusar el mismo (src -> about:blank -> src) deja en móvil el foco/toques del documento anterior y el botón de la tarjeta no responde */
+function frameNuevo() { const f = document.createElement('iframe'); f.id = 'mjf'; f.setAttribute('allow', 'autoplay'); mjF.replaceWith(f); mjF = f; }
+function abrirFrame(src) { resetToques(); frameNuevo(); mjBox.style.display = 'block'; mjF.onload = () => { enfocarFrame(); avisarResize(); }; mjF.src = src; enfocarFrame(); guardaCapa(mjF, 'minijuego'); enfocarFrame(); }
+function cerrarFrame() { mjF.onload = null; mjBox.style.display = 'none'; frameNuevo(); resetToques(); window.focus(); }
+/* guardia: pasados unos ms, el elemento (botón o iframe) debe ser lo más alto en su centro; si otra capa se lo come, avisa y la apaga */
+function guardaCapa(el, que) {
+  const mira = () => {
+    try {
+      if (!el.isConnected) return;
+      const r = el.getBoundingClientRect(); if (r.width < 2 || r.height < 2) return;
+      const x = Math.min(innerWidth - 1, Math.max(0, r.left + r.width / 2)), y = Math.min(innerHeight - 1, Math.max(0, r.top + r.height / 2));
+      const top = document.elementFromPoint(x, y);
+      if (!top || top === el || el.contains(top) || top.contains(el) || top === document.documentElement || top === document.body) return;
+      console.warn('[margarita] capa que come toques sobre ' + que + ':', top.tagName + (top.id ? '#' + top.id : '') + (top.className ? '.' + top.className : ''));
+      top.style.pointerEvents = 'none';
+    } catch (e) {}
+  };
+  setTimeout(mira, 60); setTimeout(mira, 600);
+}
 
 /* la casilla M en local: el microjuego de campaña de verdad; el resultado lo manda el reductor como MICRO{gana} */
 async function micro() {
@@ -670,7 +769,7 @@ async function jugarMJ() {
   else if (tipo === '2v2') { const lados = mj.eq.map((l) => l.map(jug)), mio = lados.find((l) => l.includes(tu)), otro = lados.find((l) => l !== mio); asientos = [tu, mio.find((j) => j !== tu)].concat(otro); }
   else { const solo = jug(mj.solo), trio = as.filter((j) => j !== solo); if (solo === tu) asientos = [tu].concat(trio); else { rol = 'trio'; asientos = [tu, solo].concat(trio.filter((j) => j !== tu)); } }
   const pl = await new Promise((done) => {
-    const oir = (e) => { if (e.data && e.data.k === 'mj-fin') { removeEventListener('message', oir); done(e.data.pl || []); } };
+    const oir = (e) => { if (e.data && e.data.k === 'mj-fin' && (!e.source || e.source === mjF.contentWindow)) { removeEventListener('message', oir); done(e.data.pl || []); } };
     addEventListener('message', oir);
     skip.onclick = () => { removeEventListener('message', oir); done([]); };
     abrirFrame(urlMJ(g, tipo, rol, asientos));
@@ -800,7 +899,7 @@ function cambioRed() {
 function resincronizar(B) {
   D = clon(B); TURNOS = B.tot;
   JUG.forEach((j) => { j.anda = false; j.z = 0; const q = nodos[j.en]; j.x = q.x; j.y = q.y; });
-  S.senora = D.isla.senora; S.bacha = D.isla.bacha; S.dado = null; S.flechas = null; S.bote = null; clearInterval(giro);
+  S.senora = D.isla.senora; S.bacha = D.isla.bacha; S.puesto = D.isla.puesto; S.dado = null; S.flechas = null; S.bote = null; clearInterval(giro);
   if (D.t && D.t.s) S.activo = jug(D.t.s).i;
   acomodar(); efectoVisual(); pintarHud();
 }
@@ -903,16 +1002,28 @@ function bolsas(t) {
   }
 }
 function boya(n, t) { const b = Math.round(Math.sin(t * 3 + n.id) * .8); ctx.fillStyle = '#d23b3b'; ctx.fillRect(n.x - 5, n.y + 3 + b, 11, 2); }
-function puestoDibujo(k, t) {
-  const p = PUESTOS[k];
+function puestoDibujo(p, rol, t) {
+  if (!p) return;
   ctx.fillStyle = '#6a4a2a'; ctx.fillRect(p.x + 4, p.y - 12, 1, 12);
-  if (S.senora === k) {
-    for (let i = 0; i < 11; i++) { ctx.fillStyle = i % 4 < 2 ? '#d23b3b' : '#fffdf2'; ctx.fillRect(p.x - 1 + i, p.y - 14 + Math.abs(i - 5) * .4, 1, 3); }
-    ctx.fillStyle = '#8a5a2a'; ctx.fillRect(p.x - 3, p.y + 3, 14, 4);
-    sprite(SENORA, PAL_SENORA, p.x - 8, p.y - 7);
-    const b = Math.round(Math.sin(t * 3) * 1.5);
-    sprite(EMPANADA, PAL_EMP, p.x + 2, p.y - 22 + b);
-  } else if (S.bacha === k) {
+  if (rol === 'senora') {   // sombrilla a rayas + carrito de madera con letrero de empanada + señora con pañuelo y delantal + vaho de la freidora
+    const x = Math.round(p.x), y = Math.round(p.y) - 4, R = (rx, ry, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(x + rx, y + ry, w, h); };
+    R(4, -16, 1, 18, '#6a4a2a');                                                           // palo de la sombrilla
+    [[-20, 0, 9], [-19, -2, 13], [-18, -4, 17]].forEach(([ry, rx, w], k) => {          // domo de la sombrilla a rayas
+      if (!k) R(rx, ry - 1, w, 1, '#14101c');
+      R(rx - 1, ry, 1, 1, '#14101c'); R(rx + w, ry, 1, 1, '#14101c');
+      for (let i = 0; i < w; i++) R(rx + i, ry, 1, 1, (rx + i + 8) % 4 < 2 ? '#d23b3b' : '#fffdf2');
+    });
+    for (let i = -4; i < 13; i += 2) R(i, -17, 1, 1, '#14101c');                          // festón
+    R(-4, 1, 16, 9, '#14101c'); R(-3, 2, 14, 7, '#8a5a2a'); R(-3, 2, 14, 2, '#c98a4a'); R(-3, 8, 14, 1, '#6a4a2a');   // carrito de madera
+    R(-1, 4, 9, 5, '#fff6b0'); sprite(EMPANADA_MINI, PAL_EMPICO, x, y + 5);                                       // letrero de la empanada al frente
+    R(-1, 10, 4, 3, '#14101c'); R(0, 11, 2, 1, '#8a8a96'); R(7, 10, 4, 3, '#14101c'); R(8, 11, 2, 1, '#8a8a96');       // ruedas
+    sprite(EMPANADA_MINI, PAL_EMPICO, x - 1, y - 3); sprite(EMPANADA_MINI, PAL_EMPICO, x + 6, y - 3);                  // bandeja a la vista
+    sprite(SENORA, PAL_SENORA, x - 11, y + 1);
+    for (let i = 0; i < 3; i++) {                                                         // vaho: se eleva en pasos de 2px y se desvanece
+      const f = (t * 1.6 + i / 3) % 1, py = y - 5 - Math.floor(f * 8 / 2) * 2, px = x + 2 + i * 4 + (Math.floor(f * 4) % 2 ? 1 : 0);
+      ctx.fillStyle = `rgba(255,253,242,${(1 - f * .85).toFixed(2)})`; ctx.fillRect(px, py, 2, 2); if (f < .5) ctx.fillRect(px + 1, py - 1, 1, 1);
+    }
+  } else {
     ctx.fillStyle = '#4a4a5a'; ctx.fillRect(p.x - 3, p.y + 3, 14, 4);
     sprite(BACHA, PAL_BACHA, p.x - 8, p.y - 7, Math.sin(t * 1.5) > 0);
     sprite(PIMPINA, PAL_PIMP, p.x + 2, p.y - 2); sprite(PIMPINA, PAL_PIMP, p.x + 7, p.y - 2);
@@ -945,6 +1056,49 @@ function flechas(t) {
     ctx.fillStyle = c; ctx.fillRect(n.x - 2, n.y - 13 + k, 5, 2); ctx.fillRect(n.x - 1, n.y - 11 + k, 3, 1); ctx.fillRect(n.x, n.y - 10 + k, 1, 1);
   });
 }
+/* baliza de la empanadera: resplandor + empanada que rebota + cartel, en el mundo (se ve a cualquier zoom) */
+function balizaEmpanada(t) {
+  if (!SEN() || S.bote) return;
+  const q = SEN(), v = CAM.vista, k = v && v.sw > W * .62 ? 2 : 1;   // vista general: icono al doble (píxeles enteros); de cerca: tamaño normal
+  const cx = Math.round(q.x + 4), cy = Math.round(q.y + 7);
+  ctx.fillStyle = 'rgba(20,16,28,.35)'; for (let i = 0; i < 9; i++) if (!(i & 1)) ctx.fillRect(cx - 4 + i, cy, 1, 1);   // sombrita fija de 1 fila tramada
+  const b = Math.floor(t * 3) % 2 * 2;                                        // vaivén en pasos de 2px
+  const oy = Math.round(q.y - 31 - (k - 1) * 8) - b;
+  ctx.save(); ctx.translate(cx, oy); ctx.scale(k, k);
+  ctx.fillStyle = '#14101c'; ctx.fillRect(-23, -18, 47, 9); ctx.fillStyle = '#d23b3b'; ctx.fillRect(-22, -17, 45, 7);   // cinta roja con borde de tinta
+  ctx.fillStyle = '#ff6a5a'; ctx.fillRect(-22, -17, 45, 1);
+  ctx.fillStyle = '#14101c'; ctx.fillRect(-26, -16, 3, 7); ctx.fillRect(24, -16, 3, 7); ctx.fillStyle = '#a82a2a'; ctx.fillRect(-25, -15, 3, 5); ctx.fillRect(24, -15, 2, 5);   // colas de la cinta
+  texto('EMPANADERA', 0, -16, '#fffdf2', 1, '#14101c');                         // mismo tipo de letra de los globos, con sombra
+  sprite(EMPANADA_ICO, PAL_EMPICO, -7, -8);                                    // la empanada dorada
+  ctx.fillStyle = '#14101c'; ctx.fillRect(-2, 1, 5, 1); ctx.fillRect(-1, 2, 3, 1); ctx.fillRect(0, 3, 1, 1);   // punta que señala al puesto
+  ctx.fillStyle = '#ffd23f'; ctx.fillRect(-1, 1, 3, 1); ctx.fillRect(0, 2, 1, 1);
+  ctx.restore();
+}
+/* flechas en el borde de la pantalla hacia lo que quedó fuera de cuadro: la empanadera y el jugador en turno */
+function guiaFuera(t) {
+  const v = CAM.vista; if (!v || (v.sw >= W - 1 && v.sh >= H - 1)) return;
+  const act = JUG[S.activo], objs = [];
+  if (SEN() && !S.bote) { const p = SEN(), n = pasosEmpanada(act); objs.push({ x: p.x + 4, y: p.y - 20, c: '#ffd23f', ico: '🥟', tx: n !== null ? n + (n === 1 ? ' PASO' : ' PASOS') : 'OTRA ISLA', pri: 1 }); }
+  if (act && !S.fin) objs.push({ x: act.x, y: act.y - 10, c: act.c, ico: '', tx: act.yo ? 'TU' : act.nom, pri: 0 });
+  const sx = cv.width / v.sw, sy = cv.height / v.sh, cw = cv.width, ch = cv.height, u = cw / V0.sw, m = 16 * u;
+  const ls = document.getElementById('wrap').classList.contains('ls'), mt = ls ? ch * .17 : m, mb = ls && msg.style.display !== 'none' ? ch * .3 : m;   // en horizontal el HUD y los mensajes se montan sobre el lienzo
+  objs.forEach((o, k) => {
+    const px = (o.x - v.sx) * sx, py = (o.y - v.sy) * sy;
+    if (px > 0 && px < cw && py > 0 && py < ch) return;
+    const cy = (mt + ch - mb) / 2, dx = px - cw / 2, dy = py - cy, e = Math.min((cw / 2 - m) / Math.abs(dx || 1e-6), ((ch - mt - mb) / 2) / Math.abs(dy || 1e-6));
+    const ax = cw / 2 + dx * e, ay = cy + dy * e, a = Math.atan2(dy, dx), pu = Math.round(Math.sin(t * 6) * 3 * u);
+    vctx.save(); vctx.translate(Math.round(ax + Math.cos(a) * pu), Math.round(ay + Math.sin(a) * pu)); vctx.rotate(a); vctx.scale(u * 1.6, u * 1.6);
+    vctx.fillStyle = '#14101c'; vctx.beginPath(); vctx.moveTo(12, 0); vctx.lineTo(-7, -9); vctx.lineTo(-7, 9); vctx.closePath(); vctx.fill();
+    vctx.fillStyle = o.c; vctx.beginPath(); vctx.moveTo(9, 0); vctx.lineTo(-5, -6); vctx.lineTo(-5, 6); vctx.closePath(); vctx.fill();
+    vctx.restore();
+    const lbl = o.tx, pxs = Math.max(1, Math.round(u * 1.5)), icw = o.ico ? 15 * pxs + 3 * u : 0;   // la empanada va dibujada en píxeles
+    vctx.font = 'bold ' + Math.round(11 * u * 1.5) + 'px monospace'; vctx.textBaseline = 'middle';
+    const bh = 14 * u * 1.5, tw = vctx.measureText(lbl).width + 10 * u + icw, bx = Math.round(clamp(ax - Math.cos(a) * 34 * u - tw / 2, 2, cw - tw - 2)), by = Math.round(clamp(ay - Math.sin(a) * 34 * u - bh / 2, mt - 10 * u, ch - mb - bh + 10 * u));
+    vctx.fillStyle = '#14101c'; vctx.fillRect(bx, by, tw, bh); vctx.fillStyle = o.c; vctx.fillRect(bx, by, tw, 2 * u); vctx.fillRect(bx, by + bh - 2 * u, tw, 2 * u);
+    vctx.fillStyle = '#fffdf2'; vctx.fillText(lbl, bx + 5 * u + icw, by + bh / 2 + u);
+    if (o.ico) { const ox = Math.round(bx + 3 * u), oy = Math.round(by + (bh - 8 * pxs) / 2); EMPANADA_ICO.forEach((row, j) => { for (let i = 0; i < row.length; i++) { const c = row[i]; if (c === '.') continue; vctx.fillStyle = PAL_EMPICO[c]; vctx.fillRect(ox + i * pxs, oy + j * pxs, pxs, pxs); } }); }
+  });
+}
 const PART = [];
 function lluvia(x, y) { for (let i = 0; i < 26; i++) PART.push({ x, y, vx: (R() - .5) * 90, vy: -40 - R() * 70, t: 0, c: pick(['#ffd23f', '#ff6fa8', '#5cd27a', '#9fd8ff', '#fffdf2']) }); }
 function particulas(dt) {
@@ -968,8 +1122,10 @@ function cuadroReal(ts) {
   MAPA.dibujarMar(T, dt);
   for (const n of nodos) { if (n.cruce === 'lancha') boya(n, T); casilla(n, T); }
   MAPA.dibujarDeco(T);
-  MAPA.dibujarNPCs(T, S.senora, S.bacha);
-  puestoDibujo('O', T); puestoDibujo('W', T);
+  MAPA.dibujarNPCs(T, SEN(), S.bacha);
+  if (SEN()) puestoDibujo(SEN(), 'senora', T);
+  if (S.bacha) puestoDibujo(PUESTOS[S.bacha], 'bacha', T);
+  balizaEmpanada(T);
   bolsas(T);
   if (S.bote) {
     sprite(PENERO, PAL_PEN, Math.round(S.bote.x - 9), Math.round(S.bote.y - 3), S.bote.flip);
@@ -987,50 +1143,104 @@ function cuadroReal(ts) {
   MAPA.dibujarCielo(T, dt);
   flechas(T); dado(T); dibujarMonedas(T); particulas(dt);
   camara(dt);
+  spotDibuja(dt);
+  if (SPOT.a < .05) guiaFuera(T);
 }
 
 /* ───────── cámara: sigue al que juega (zoom 2x), vista general en los anuncios; rueda/pellizco/arrastre = cámara libre ───────── */
 const CAM = { x: W / 2, y: H / 2, z: 1, modo: 'auto' };
+let V0 = { sw: W, sh: H };   // ventana de mundo a zoom 1 = «cover» del viewport sobre el mundo 640x360 (ajustar() la recalcula); a zoom z se ve V0/z
+
 const camBtn = document.getElementById('cam');
 function camModo(m) { CAM.modo = m; camBtn.textContent = m === 'auto' ? '🎥 AUTO' : m === 'mapa' ? '🗺️ MAPA' : '✋ LIBRE'; }
-camBtn.onclick = (e) => { camModo(CAM.modo === 'auto' ? 'mapa' : 'auto'); e.target.blur(); };
+camBtn.onclick = (e) => { camModo(CAM.modo === 'auto' ? 'mapa' : 'auto'); e.target.blur(); };   // LIBRE (zoom/arrastre manual) y MAPA → AUTO; AUTO → MAPA
 function camara(dt) {
   let tx = W / 2, ty = H / 2, tz = 1;
-  if (CAM.modo === 'auto' && S.foco) { tx = S.foco.x; ty = S.foco.y - 10; tz = 2; }
+  if (V0.sw < W - 1 || V0.sh < H - 1) { const a = JUG[S.activo]; if (a && !S.fin) { tx = a.x; ty = a.y; } }   // vista general recortada (pantalla más ancha/angosta que 16:9): el recorte sigue al que juega
+  if (SPOT.on) { const q = SPOT.sigue && S.foco ? S.foco : SPOT; tx = q.x; ty = q.y - 4; tz = SPOT.z; }
+  else if (CAM.modo === 'auto' && S.foco) { tx = S.foco.x; ty = S.foco.y - 10; tz = 2; }
   else if (CAM.modo === 'libre') { tx = CAM.lx; ty = CAM.ly; tz = CAM.lz; }
   const k = 1 - Math.pow(.02, dt);
   CAM.z += (tz - CAM.z) * k; CAM.x += (tx - CAM.x) * k; CAM.y += (ty - CAM.y) * k;
   if (Math.abs(CAM.z - tz) < .01) CAM.z = tz;
-  const sw = W / CAM.z, sh = H / CAM.z, sx = clamp(CAM.x - sw / 2, 0, W - sw), sy = clamp(CAM.y - sh / 2, 0, H - sh);
+  const sw = V0.sw / CAM.z, sh = V0.sh / CAM.z, sx = clamp(CAM.x - sw / 2, 0, W - sw), sy = clamp(CAM.y - sh / 2, 0, H - sh);
   vctx.drawImage(mundoCv, sx, sy, sw, sh, 0, 0, cv.width, cv.height);
   CAM.vista = { sx, sy, sw, sh };
 }
+/* evento: la cámara hace zoom (camara()) y listo; aquí solo un cartel chico arriba y, si hace falta señalar el punto exacto, una flechita de píxeles que rebota (nada de círculos ni oscurecer) */
+function spotDibuja(dt) {
+  SPOT.a = clamp(SPOT.a + (SPOT.on ? dt * 4 : -dt * 3), 0, 1); if (SPOT.a <= 0) return;
+  SPOT.t += dt; const v = CAM.vista, a = SPOT.a, cw = cv.width, ch = cv.height, u = cw / V0.sw, sx = cw / v.sw, sy = ch / v.sh;
+  const q = SPOT.sigue && S.foco ? S.foco : SPOT, px = (q.x - v.sx) * sx, py = (q.y - v.sy) * sy;
+  const ls = document.getElementById('wrap').classList.contains('ls'), mt = ls ? ch * .17 : 8 * u, mb = ls && msg.style.display !== 'none' ? ch * .3 : 8 * u;
+  vctx.save(); vctx.globalAlpha = a;
+  if (SPOT.ring && SPOT.a > .5 && SPOT.t > .45 && px > 0 && px < cw && py > mt && py < ch - mb) {   // chevrón de 7x4 píxeles (x u*1.5) sobre el punto, rebota de a pasos enteros
+    const k = Math.max(1, Math.round(u * 1.5)), bob = (Math.floor(SPOT.t * 4) % 2) * k, ax = Math.round(px - 3.5 * k), ay = Math.round(py - 9 * sy - 5 * k - bob);
+    const fila = [[0, 7], [1, 5], [2, 3], [3, 1]];
+    vctx.fillStyle = '#14101c'; fila.forEach(([j, n]) => vctx.fillRect(Math.round(ax + (7 - n) / 2 * k - k), ay + j * k - k, (n + 2) * k, 3 * k));
+    vctx.fillStyle = SPOT.c; fila.forEach(([j, n]) => vctx.fillRect(Math.round(ax + (7 - n) / 2 * k), ay + j * k, n * k, k));
+  }
+  /* cartel chico: entra con un rebote corto y se ajusta al ancho */
+  const pop = SPOT.t < .25 ? 1 + Math.sin(SPOT.t / .25 * Math.PI) * .12 : 1;
+  let fs = Math.round(8 * u * 1.5); vctx.font = 'bold ' + fs + 'px monospace';
+  const max = cw - 24 * u; let tw = vctx.measureText(SPOT.b).width + 14 * u; if (tw > max) { fs = Math.floor(fs * max / tw); vctx.font = 'bold ' + fs + 'px monospace'; tw = vctx.measureText(SPOT.b).width + 14 * u; }
+  const bh = fs + 8 * u, cx = cw / 2, cy = Math.min(mt + bh / 2 + 4 * u, ch - mb - bh / 2);
+  vctx.translate(cx, cy + (1 - a) * -10 * u); vctx.scale(pop, pop);
+  vctx.fillStyle = '#14101c'; vctx.fillRect(-tw / 2 - 2 * u, -bh / 2 - 2 * u, tw + 4 * u, bh + 4 * u);
+  vctx.fillStyle = SPOT.c; vctx.fillRect(-tw / 2, -bh / 2, tw, bh);
+  vctx.fillStyle = '#14101c'; vctx.fillRect(-tw / 2 + 2 * u, -bh / 2 + 2 * u, tw - 4 * u, bh - 4 * u);
+  vctx.textAlign = 'center'; vctx.textBaseline = 'middle'; vctx.fillStyle = '#fffdf2'; vctx.fillText(SPOT.b, 0, 1 * u);
+  vctx.restore();
+}
 function aMundo(e) { const r = cv.getBoundingClientRect(), v = CAM.vista; return { x: v.sx + (e.clientX - r.left) / r.width * v.sw, y: v.sy + (e.clientY - r.top) / r.height * v.sh }; }
 function libre() { if (CAM.modo !== 'libre') { CAM.lx = CAM.x; CAM.ly = CAM.y; CAM.lz = CAM.z; camModo('libre'); } }
+const ZMAX = 3;
+function topeLibre() { CAM.lz = clamp(CAM.lz, 1, ZMAX); const hw = V0.sw / CAM.lz / 2, hh = V0.sh / CAM.lz / 2; CAM.lx = clamp(CAM.lx, hw, W - hw); CAM.ly = clamp(CAM.ly, hh, H - hh); }
+// fracción (0..1) del canvas bajo un punto de pantalla, y punto del mundo bajo esa fracción en la vista OBJETIVO (libre)
+function fracCv(cx, cy) { const r = cv.getBoundingClientRect(); return { fx: (cx - r.left) / r.width, fy: (cy - r.top) / r.height }; }
+function mundoLibre(fx, fy) { return { x: CAM.lx + (fx - .5) * V0.sw / CAM.lz, y: CAM.ly + (fy - .5) * V0.sh / CAM.lz }; }
+function zoomEn(cx, cy, z2) {   // zoom manteniendo fijo el punto del mundo bajo (cx,cy)
+  const { fx, fy } = fracCv(cx, cy), p = mundoLibre(fx, fy);
+  CAM.lz = clamp(z2, 1, ZMAX); CAM.lx = p.x - (fx - .5) * V0.sw / CAM.lz; CAM.ly = p.y - (fy - .5) * V0.sh / CAM.lz; topeLibre();
+}
 cv.addEventListener('wheel', (e) => {
   e.preventDefault(); libre();
-  const p = aMundo(e), z = clamp(CAM.lz * (e.deltaY < 0 ? 1.15 : 1 / 1.15), 1, 3.5);
-  CAM.lx = p.x + (CAM.lx - p.x) * CAM.lz / z; CAM.ly = p.y + (CAM.ly - p.y) * CAM.lz / z; CAM.lz = z;
-  if (z === 1) camModo('auto');
+  zoomEn(e.clientX, e.clientY, CAM.lz * Math.exp(-e.deltaY * (e.ctrlKey ? .012 : .0015)));
 }, { passive: false });
+['gesturestart', 'gesturechange', 'gestureend'].forEach((n) => document.addEventListener(n, (e) => e.preventDefault(), { passive: false }));   // iOS: nada de zoom de página
 const dedos = new Map();
-cv.addEventListener('pointerdown', (e) => { cv.setPointerCapture(e.pointerId); dedos.set(e.pointerId, { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY }); });
+let gesto = false;
+function resetToques() { dedos.clear(); gesto = false; }   // hubo 2+ dedos en este toque → al soltar no cuenta como tap
+cv.addEventListener('pointerdown', (e) => {
+  try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+  dedos.set(e.pointerId, { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY });
+  if (dedos.size > 1) gesto = true;
+});
 cv.addEventListener('pointermove', (e) => {
   const d = dedos.get(e.pointerId); if (!d) return;
-  const r = cv.getBoundingClientRect(), v = CAM.vista;
+  const r = cv.getBoundingClientRect();
   if (dedos.size === 1) {
-    const dx = (e.clientX - d.x) / r.width * v.sw, dy = (e.clientY - d.y) / r.height * v.sh;
-    if (Math.hypot(e.clientX - d.x0, e.clientY - d.y0) > 6) { libre(); CAM.lx -= dx; CAM.ly -= dy; }
+    if (Math.hypot(e.clientX - d.x0, e.clientY - d.y0) > 6) {
+      libre(); const sw = V0.sw / CAM.lz, sh = V0.sh / CAM.lz;
+      CAM.lx -= (e.clientX - d.x) / r.width * sw; CAM.ly -= (e.clientY - d.y) / r.height * sh; topeLibre();
+    }
   } else if (dedos.size === 2) {
-    const [a, b] = [...dedos.entries()].map(([id, q]) => (id === e.pointerId ? { x: e.clientX, y: e.clientY } : q));
-    const [a0, b0] = [...dedos.values()], d0 = Math.hypot(a0.x - b0.x, a0.y - b0.y), d1 = Math.hypot(a.x - b.x, a.y - b.y);
-    if (d0 > 10) { libre(); CAM.lz = clamp(CAM.lz * d1 / d0, 1, 3.5); }
+    const [a0, b0] = [...dedos.values()];
+    const a = dedos.get(e.pointerId) === a0 ? { x: e.clientX, y: e.clientY } : a0, b = dedos.get(e.pointerId) === b0 ? { x: e.clientX, y: e.clientY } : b0;
+    const d0 = Math.hypot(a0.x - b0.x, a0.y - b0.y), d1 = Math.hypot(a.x - b.x, a.y - b.y);
+    if (d0 > 10 && d1 > 10) {
+      libre();
+      const f0 = fracCv((a0.x + b0.x) / 2, (a0.y + b0.y) / 2), f1 = fracCv((a.x + b.x) / 2, (a.y + b.y) / 2), p = mundoLibre(f0.fx, f0.fy);
+      CAM.lz = clamp(CAM.lz * d1 / d0, 1, ZMAX);   // el punto entre los dedos queda pegado a ellos (zoom + arrastre de 2 dedos)
+      CAM.lx = p.x - (f1.fx - .5) * V0.sw / CAM.lz; CAM.ly = p.y - (f1.fy - .5) * V0.sh / CAM.lz; topeLibre();
+    }
   }
   d.x = e.clientX; d.y = e.clientY;
 });
 const suelta = (e) => {
   const d = dedos.get(e.pointerId); dedos.delete(e.pointerId);
-  if (!d || Math.hypot(e.clientX - d.x0, e.clientY - d.y0) > 6 || dedos.size) return;
+  const fue = gesto; if (!dedos.size) gesto = false;
+  if (!d || fue || e.type === 'pointercancel' || Math.hypot(e.clientX - d.x0, e.clientY - d.y0) > 6 || dedos.size) return;
   const p = aMundo(e), r = MAPA.tocar(p.x, p.y); if (!r) return;
   const S2 = { coco: [300, .08], pio: [1400, .05], ay: [500, .1], toc: [200, .05], beep: [900, .05], campana: [520, .5], bum: [70, .4], fiesta: [880, .15], brillo: [1600, .1], bocina: [140, .5], burro: [260, .35], agua: [600, .06], silbido: [1800, .4], secreto: [1320, .3] }[r.sonido] || [700, .05];
   snd(S2[0], S2[1], r.sonido === 'bocina' || r.sonido === 'burro' ? 'sawtooth' : r.sonido === 'campana' || r.sonido === 'silbido' ? 'sine' : 'square', .05);
@@ -1045,12 +1255,39 @@ const suelta = (e) => {
 const toastEl = document.getElementById('toast');
 function toast(s) { toastEl.textContent = s; toastEl.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => toastEl.classList.remove('on'), 3200); }
 cv.addEventListener('pointerup', suelta); cv.addEventListener('pointercancel', suelta);
+cv.addEventListener('lostpointercapture', (e) => { dedos.delete(e.pointerId); if (!dedos.size) gesto = false; });
+addEventListener('touchcancel', () => resetToques(), true);
+addEventListener('blur', () => resetToques());
 
 /* ───────── tamaño ───────── */
 function ajustar() {
-  const st = document.getElementById('stage'), top = document.getElementById('top'), mb = document.getElementById('msgbox');
-  const s = Math.min((innerWidth - 12) / W, (innerHeight - top.offsetHeight - mb.offsetHeight - 30) / H), e = s >= 2 ? Math.floor(s) : s;
-  st.style.width = W * e + 'px'; st.style.height = H * e + 'px'; top.style.width = mb.style.width = W * e + 'px';
+  const wrap = document.getElementById('wrap'), st = document.getElementById('stage'), top = document.getElementById('top'), mb = document.getElementById('msgbox');
+  const ls = innerWidth > innerHeight;   // horizontal (teléfono, tablet o escritorio): el mundo LLENA la pantalla de borde a borde; HUD y mensajes se montan encima
+  wrap.classList.toggle('ls', ls);
+  let A = 16 / 9;
+  if (ls) {
+    A = innerWidth / innerHeight;
+    st.style.width = innerWidth + 'px'; st.style.height = innerHeight + 'px'; top.style.width = mb.style.width = '';
+  } else {
+    const s = Math.min((innerWidth - 12) / W, (innerHeight - top.offsetHeight - mb.offsetHeight - 30) / H), e = s >= 2 ? Math.floor(s) : s;
+    st.style.width = W * e + 'px'; st.style.height = H * e + 'px'; top.style.width = mb.style.width = W * e + 'px';
+  }
+  // «cover»: la ventana de mundo a zoom 1 tiene la proporción de la pantalla (más ancha que 16:9 → recorta arriba/abajo; más cuadrada → recorta a los lados) y el lienzo es 2 px por pixel de mundo
+  const sw0 = A >= W / H ? W : H * A, sh0 = A >= W / H ? W / A : H, cw = Math.round(sw0 * 2), ch = Math.round(sh0 * 2);
+  V0 = { sw: sw0, sh: sh0 };
+  if (cv.width !== cw || cv.height !== ch) { cv.width = cw; cv.height = ch; vctx.imageSmoothingEnabled = false; }
+  const rot = document.getElementById('rot'); if (rot) rot.classList.toggle('on', !ls && innerHeight > innerWidth);
+}
+addEventListener('orientationchange', () => setTimeout(ajustar, 200));
+/* en el teléfono, el primer toque pide pantalla completa (iPhone no tiene: se salta); al girar ya llena todo */
+if (matchMedia('(pointer:coarse)').matches) {
+  let intentos = 0;
+  addEventListener('pointerup', function full() {   // activación de usuario = pointerup en táctil; pasivo, nunca bloquea ni altera el toque; se reintenta pocas veces si no quedó en pantalla completa; nunca se sale
+    const el = document.documentElement, rq = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (!rq || intentos >= 4 || document.fullscreenElement || document.webkitFullscreenElement) return;
+    intentos++;
+    try { const p = rq.call(el, { navigationUI: 'hide' }); if (p && p.catch) p.catch(() => {}); } catch (_) {}
+  }, { capture: true, passive: true });
 }
 addEventListener('resize', ajustar); pintarHud(); ajustar();
 acomodar();
@@ -1058,6 +1295,6 @@ requestAnimationFrame(cuadro);
 // con la carcasa (shell.js) el tablero espera a ¡ARRANCAR!, que ya explicó las reglas; ?cpu=1 y ?turnos=N siguen entrando directo
 const carcasa = !!window.MARGARITA_SHELL && !TODO_CPU && !Q.has('turnos');
 if (!carcasa) { if (window.MARGARITA_SHELL) window.MARGARITA_SHELL.hide(); partida(); }
-window.MARGARITA = { S, JUG, nodos, PEAJES, E, CAM, ITEMS, MJ, urlMJ, LOCAL, enLinea, get D() { return D; }, get YO() { return YO; }, get enLineaOn() { return EN_LINEA; },
+window.MARGARITA = { SPOT, SPOTS, FX, NOTICIA, EVENTO, reproducir, abrirFrame, cerrarFrame, S, JUG, nodos, PEAJES, E, CAM, ITEMS, MJ, urlMJ, LOCAL, enLinea, get D() { return D; }, get YO() { return YO; }, get enLineaOn() { return EN_LINEA; },
   arrancar: (n) => { nueva(n); JUG.forEach((j) => { const q = nodos[j.en]; j.x = q.x; j.y = q.y; }); partida(false); } };
 })();

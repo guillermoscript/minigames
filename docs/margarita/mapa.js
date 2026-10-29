@@ -469,7 +469,7 @@ const DICHOS = {
 };
 const BURB = [];
 function burbuja(s, x, y, col) { BURB.push({ s, x, y, t: 0, col: col || '#14101c' }); }
-function dibujarNPCs(t, senora, bacha) {
+function dibujarNPCs(t, senora, bacha) {   // senora = el puesto actual de la Empanadera ({x, y}) o null; bacha = isla del Bachaquero
   for (const N of NPCS) {
     if (N.k === 'bodega') { sprite(SPR_NPC.bodega, PAL_NPC.bodega, N.x - 7, N.y - 4); texto('PORTU', N.x + 1, N.y - 9, '#ffd23f', 1, '#14101c'); }
     else if (N.k === 'san') { sprite(SPR_NPC.san, PAL_NPC.san, N.x - 5, N.y - 4 + Math.round(Math.sin(t * 2))); }
@@ -483,7 +483,8 @@ function dibujarNPCs(t, senora, bacha) {
   // dichos al azar
   if (sr() < .006) {
     const op = NPCS.map((N) => [N.k, N.x, N.y - 10]);
-    op.push(['senora', PUESTOS[senora || 'O'].x + 2, PUESTOS[senora || 'O'].y - 26], ['bacha', PUESTOS[bacha || 'W'].x, PUESTOS[bacha || 'W'].y - 14]);
+    if (senora) op.push(['senora', senora.x + 2, senora.y - 26]);
+    op.push(['bacha', PUESTOS[bacha || 'W'].x, PUESTOS[bacha || 'W'].y - 14]);
     PEAJES.forEach((P) => op.push(['fiscal', nodos[P.nodo].x + (P.id === 'lancha' ? -10 : 14), nodos[P.nodo].y + (P.id === 'lancha' ? -4 : -22)]));
     const o = op[Math.floor(sr() * op.length)], l = DICHOS[o[0]];
     if (l) burbuja(l[Math.floor(sr() * l.length)], o[1], o[2]);

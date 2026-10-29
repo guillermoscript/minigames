@@ -25,6 +25,7 @@
   #turno { text-align:center; margin-top:5px; font-size:clamp(6px,1vw,10px); color:#9fd8ff; pointer-events:none; }
   #msg { position:absolute; inset:0; overflow:auto; background:var(--panel); border:4px solid var(--ink); border-top:8px solid var(--gold); border-radius:0; box-shadow:0 6px 0 rgba(20,16,28,.55); padding:.9em 1em; font-size:clamp(7px,1.3vw,13px); line-height:1.7; text-align:center; display:none; }
   #msg .t { white-space:pre-line; }
+  #msg button { touch-action:none; }   /* #msg hace scroll: sin esto un toque con arrastre empieza un pan, llega pointercancel y el botón no responde */
   #msg .bt { margin-top:.8em; display:flex; gap:.8em; justify-content:center; flex-wrap:wrap; }
   button { font-family:inherit; font-size:inherit; padding:.7em 1em; min-height:44px; border:4px solid var(--ink); border-radius:0; background:var(--gold); color:var(--ink); cursor:pointer; box-shadow:inset 0 2px 0 rgba(255,255,255,.45), inset 0 -4px 0 rgba(20,16,28,.28), 0 6px 0 var(--ink); }
   button:active { transform:translateY(4px); box-shadow:inset 0 -2px 0 rgba(20,16,28,.28), 0 2px 0 var(--ink); }
@@ -33,6 +34,23 @@
   button.no { background:var(--bad); color:#fff; }
   #ctl { position:absolute; right:1%; bottom:2%; display:flex; gap:.5em; font-size:clamp(6px,1vw,10px); }
   #ctl button { padding:.5em .7em; }
+  /* HORIZONTAL EN TELÉFONO: el tablero (16:9) llena la pantalla; HUD arriba y mensajes abajo van encima del lienzo (ajustar() fija el tamaño del escenario y la proporción del lienzo; los márgenes seguros solo mueven HUD y mensajes) */
+  #wrap { padding:max(6px,env(safe-area-inset-top)) max(6px,env(safe-area-inset-right)) max(6px,env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-left)); }
+  #rot { position:fixed; left:50%; bottom:calc(10px + env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:15; display:none; background:rgba(20,16,28,.9); border:3px solid var(--gold); padding:.7em 1em; font-size:8px; line-height:1.6; text-align:center; pointer-events:none; max-width:92vw; }
+  @media (orientation:portrait) and (pointer:coarse) { #rot.on { display:block; } }
+  #wrap.ls { display:block; padding:0; }
+  .ls #stage { position:absolute; left:0; top:0; }
+  .ls #top { position:absolute; left:max(4px,env(safe-area-inset-left)); right:max(4px,env(safe-area-inset-right)); top:max(0px,env(safe-area-inset-top)); width:auto; z-index:2; pointer-events:none; }
+  .ls #hud { gap:.6%; padding:3px 3px 0; }
+  .ls .pj { background:rgba(37,44,75,.78); border-width:2px; border-top-width:4px; padding:.25em .4em; font-size:clamp(5px,1.15vw,12px); line-height:1.4; }
+  .ls .pj.on { box-shadow:0 0 0 2px var(--paper); }
+  .ls #turno { margin-top:3px; font-size:clamp(5px,.95vw,8px); text-shadow:0 2px 0 var(--ink); }
+  .ls #msgbox { position:absolute; left:max(4px,env(safe-area-inset-left)); right:max(4px,env(safe-area-inset-right)); bottom:max(4px,env(safe-area-inset-bottom)); width:auto; height:clamp(44px,23vh,130px); pointer-events:none; z-index:2; }
+  .ls #msg { pointer-events:auto; scrollbar-width:none; background:rgba(37,44,75,.86); border-width:3px; border-top-width:5px; padding:.45em .7em; font-size:clamp(6px,1.15vw,13px); line-height:1.5; left:12%; right:12%; }
+  .ls #msg .bt { margin-top:.4em; gap:.5em; position:sticky; bottom:-.3em; padding:.25em 0; background:rgba(37,44,75,.96); z-index:1; }   /* texto largo: los botones quedan SIEMPRE a la vista pegados abajo */
+  .ls button { min-height:34px; padding:.45em .8em; border-width:3px; }
+  .ls #ctl { right:1.5%; bottom:auto; top:16%; flex-direction:column; }
+  .ls #ctl button { min-height:28px; padding:.35em .5em; opacity:.8; }
   #toast { position:fixed; left:50%; top:16px; transform:translate(-50%,-150%); background:#171c34; color:var(--paper); border:4px solid var(--ink); border-left:10px solid var(--go); border-radius:0; padding:.8em 1em; font-size:clamp(7px,1.2vw,12px); line-height:1.6; z-index:20; transition:transform .3s; max-width:90vw; text-align:center; pointer-events:none; }
   #toast.on { transform:translate(-50%,0); }
   #msg .host { color:#ffd23f; }
@@ -52,18 +70,12 @@
   #podio .who { font-size:clamp(7px,1.4vw,15px); line-height:1.7; text-align:center; text-shadow:0 2px 0 var(--ink); margin-bottom:.5em; }
   #podio .pr { color:var(--gold); }
   #podio .blk { width:100%; height:0; transition:height .6s cubic-bezier(.3,1.5,.6,1); background:var(--m); border:4px solid var(--ink); border-bottom:0; border-radius:6px 6px 0 0; color:var(--ink); font-size:clamp(9px,2vw,22px); display:flex; justify-content:center; padding-top:.5em; overflow:hidden; }
-  /* SALTAR vive en una franja propia fuera del iframe: nunca tapa HUD ni botones del minijuego */
-  #mj { position:fixed; inset:0; background:#000; display:none; z-index:10; flex-direction:column; }
-  #mj iframe { flex:1 1 auto; min-height:0; min-width:0; width:100%; border:0; }
-  #mj .bar { flex:0 0 auto; display:flex; justify-content:flex-end; align-items:center; padding:3px 8px calc(3px + env(safe-area-inset-bottom)); background:#111; }
-  #mj .skip { font-size:8px; padding:.45em .8em; border-width:2px; box-shadow:0 2px 0 var(--ink); opacity:.55; min-height:24px; }
-  #mj .skip:hover, #mj .skip:focus-visible { opacity:1; }
-  @media (orientation:landscape) and (max-height:500px) {
-    #mj { flex-direction:row; }
-    #mj iframe { width:auto; height:100%; }
-    #mj .bar { flex-direction:column; justify-content:flex-end; padding:8px calc(3px + env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) 3px; }
-    #mj .skip { writing-mode:vertical-rl; min-height:0; min-width:24px; padding:.8em .45em; }
-  }
+  /* minijuego a pantalla completa: el iframe llena el viewport; SALTAR flota en una esquina baja (los juegos usan arriba y la derecha) */
+  #mj { position:fixed; top:0; left:0; width:100vw; height:100vh; width:100dvw; height:100dvh; background:#000; display:none; z-index:10; }
+  #mj iframe { position:absolute; inset:0; width:100%; height:100%; border:0; display:block; }
+  #mj .bar { position:absolute; left:calc(6px + env(safe-area-inset-left)); bottom:calc(6px + env(safe-area-inset-bottom)); z-index:2; pointer-events:none; }
+  #mj .skip { pointer-events:auto; font-size:8px; padding:.45em .8em; border-width:2px; box-shadow:0 2px 0 var(--ink); opacity:.35; min-height:24px; }
+  #mj .skip:hover, #mj .skip:focus-visible, #mj .skip:active { opacity:1; }
 </style>
 </head>
 <body>
@@ -77,6 +89,7 @@
   <div id="msgbox"><div id="msg"><div class="t"></div><div class="bt"></div></div></div>
 </div>
 <div id="toast"></div>
+<div id="rot">📱↻ GIRA EL TELÉFONO<br>PARA VER MÁS TABLERO</div>
 <div id="mj"><iframe id="mjf" allow="autoplay"></iframe><div class="bar"><button class="skip no" id="skip">SALTAR</button></div></div>
 <script src="../../js/i18n.js"></script>
 <script src="../../js/i18n/es/ui.js"></script>

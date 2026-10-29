@@ -7,8 +7,14 @@ R.ESTRICTO = true;   // una jugada inválida de la CPU revienta la prueba en vez
 // Referencia: 120 partidas del juego de hoy en Chromium (rAF acelerado), medidas el 2026-10-26 antes de partir margarita.js.
 // [media, desviación] por partida. emp = empanadas de los 4 al final (con las extra); bs, mj, ev, max, items = por jugador;
 // pimp = pimpinas de los 4; gan = empanadas del ganador.
-const HOY = { emp: [7.18, 1.67], bs: [47.62, 10.77], pimp: [1.07, 0.99], mj: [36.88, 5.97], ev: [1.28, 0.53], max: [56.08, 8.19],
-  items: [0.68, 0.37], gan: [3.07, 0.77] };
+const HOY = { emp: [7.39, 1.66], bs: [53.52, 11.51], pimp: [0.27, 0.81], mj: [37.89, 5.92], ev: [1.09, 0.43], max: [61.06, 9.89],
+  items: [0.56, 0.36], gan: [3.10, 0.78] };
+// Recalibrado el 2026-10-29 (600 partidas del reductor) tras limitar el dado a 1–6 (antes 1–10): ~41 % menos pasos por turno,
+// así que se llega menos a la señora (empanadas -15 %) y sobra más plata (bs +24 %); el resto de cifras no se mueve.
+// Recalibrado el 2026-10-29 (600 partidas) con la Empanadera MÓVIL (como la estrella del Mario Party): al comprarle se muda a otro de 10 puestos
+// (PUESTOS_EMP) y arranca en Punta de Piedras, a 8 pasos de la salida. Antes solo había 2 puestos a 25-39 casillas uno del otro (~0.54 compras por
+// jugador a 10 turnos); ahora ~0.84: empanadas +18 % (6.27 -> 7.39, con las extra del final), bs -9 % (se gasta más en ellas) y el Bachaquero cobra
+// 3 veces menos (0.77 -> 0.27 pimpinas por partida) porque su puesto fijo cae menos en el camino de la carrera. Las demás cifras no se mueven.
 // Diferencias a propósito con el juego de hoy (doc 14): las casillas M son una ruleta al 50 % (P3; hoy la CPU gana el 55 %),
 // el minijuego sale del CATALOGO en vivo y La Restinga cobra por cruzar (hoy cobraba por quedarse, ver salidas() en el reductor).
 

@@ -78,7 +78,7 @@ Mismo registro `rooms`. `board` lleva todo lo que hoy está en `JUG`, `S` y `E`,
                           |'BRONCA'|'CALABOZO'|'MATASIETE'|'RIFA'|'CANON'|'TRUCADO'|'OK', opc: [...], hasta } | null,
   pj: { a: { ch:'tu', name, en: 'por_01', bs: 10, emp: 0, items: ['cafe'], color: 'azul', pierde: false,
              pimpinas: 0, bono: { mj: 0, max: 10, ev: 0 }, cpu: null|'auto'|'afk', afk: 0, on: true }, ... },
-  isla: { senora: 'O', bacha: 'W', peajes: { restinga: 3, lancha: 1 }, san: 14, bolsas: [{ en, bs }],
+  isla: { puesto: 53 /* nodo del puesto de la Empanadera: uno de G.PUESTOS_EMP */, senora: 'O' /* isla de ese puesto (derivada) */, bacha: 'W' /* isla opuesta: el Bachaquero cobra en el puesto fijo de esa isla */, peajes: { restinga: 3, lancha: 1 }, san: 14, bolsas: [{ en, bs }],
           hora: 'dia'|'tarde'|'noche', lluvia: 0, leva: 0, turistas: 0, apagon: false, obras: { O: false, W: false },
           carnaval: false, final: false, sinAgua: null, kraken: 0, sirena: null, oferta: 0, silbon: null },
   mj: { ...el mismo objeto que LA FIESTA, doc 07 §3.2 y M2-SPEC §3.2... } | null,
@@ -109,7 +109,7 @@ Las cabras, los NPC que dicen cosas, el agua, las nubes y el giro del dado mient
 | Hoy (`margarita.js`) | Aviso `esp.k` | Acción | Validación en el reductor | Si vence el plazo |
 |---|---|---|---|---|
 | Tirar o usar objeto (`:331`) | `DADO` | `TIRAR` / `USAR {item}` | El objeto está en `items` y no es `palanca` | CPU |
-| Dado trucado (`:340`) | `TRUCADO` | `PASOS {n}` | 1 ≤ n ≤ 10 | CPU (`distVenta`) |
+| Dado trucado (`:340`) | `TRUCADO` | `PASOS {n}` | 1 ≤ n ≤ 6 | CPU (`distVenta`) |
 | Llegar a un cruce (`:198`) | `CRUCE` | `CRUZAR {si}` | Le alcanza el peaje mínimo; la lancha está abierta (de noche, con mar de leva o con Kraken no sale) | CPU |
 | Palanca en el peaje (`:242`) | `PEAJE` | `PALANCA` | Tiene `palanca` | CPU |
 | «¿Cuánto es la colaboración?» (`:252`) | `PEAJE` | `PAGAR {bs}` / `NO` | `fee ≤ bs ≤ min(50, reales)`. Lo pagado pasa a ser el nuevo peaje (de noche, en La Restinga, la mitad) | CPU (paga el mínimo; a veces un poco más, como hoy) |
@@ -134,7 +134,9 @@ Son los de doc 07 §3.4 donde ya existen (`dado`, `hop`, `mon`, `turno`, `evento
 ```js
 {k:'emp', s, d:+1, tot, por:'senora'|'tesoro'|'rifa'|'picaro'|'bonus'}   {k:'item', s, items:[...], item, que:'compra'|'suerte'|'perlero'|'mono'|'usa'}
 {k:'peaje', id:'restinga', s, pago, fee}       {k:'cruza', s, por:'restinga'|'lancha'|'ferry'|'canon'|'mototaxi', de, a}
-{k:'penero', senora:'W', bacha:'O', via:[...]} {k:'isla', campo:'lluvia', v:2}       // cambios de E (hora, lluvia, obras...)
+{k:'penero', de:'O', a:'W', desde:53, puesto:96, lugar}   // casilla E: el peñero lleva a la señora a un puesto de la OTRA isla (de/a = islas; desde/puesto = nodos)
+{k:'mudanza', s, de:53, a:96, isla:'W', lugar:'CERRO MACANAO', por:'compra'}   // al COMPRARLE una empanada se muda a otro puesto (nodo `a`); s = el comprador. Aplica: isla.puesto=a, isla.senora=isla, isla.bacha=opuesta
+{k:'isla', campo:'lluvia', v:2}       // cambios de E (hora, lluvia, obras...)
 {k:'vaina', id:'aguacero'}                     {k:'noticia', id:'kraken', p:{...}}    // p = lo que necesita la animación (víctima, isla, punto)
 {k:'san', s, d, pote}                          {k:'bolsa', en, bs}                    {k:'colearse', s, con}
 {k:'equipos', tipo:'2v2', lados:[...]}         {k:'podio', puestos, premio}           {k:'bonusFin', id:'mj', ganan:[...], top}
@@ -284,3 +286,9 @@ M0 a M3 están hechos (sin commit). `margarita-live.test.js` pasa. Falta la otra
 - **P4. ¿Minijuego en iframe de `fiesta.html` o cargado en la página de Margarita?** Recomiendo el iframe (menos código nuevo, reutiliza `fiesta-main` tal cual).
 - **P5. ¿Saco la submáquina del minijuego a `fiesta-mj.js`** después de que subas LA FIESTA? Le quitaría a `margarita-reglas.js` una copia de unas 80 líneas.
 - **P6. ¿Margarita y LA FIESTA comparten lobby?** Recomiendo que sí: un solo lobby del kit de menús, con el tablero como primera opción. Así el paso 8 del doc de menús se hace una sola vez.
+
+
+### La Empanadera móvil (estrella del Mario Party)
+- 10 puestos (`G.PUESTOS_EMP` en margarita-grafo.js, casillas azules sin lugar): Oriente = PLAYA EL AGUA, JUAN GRIEGO, LA ASUNCIÓN, PAMPATAR, PORLAMAR, PUNTA DE PIEDRAS (arranca aquí, a 8 pasos de la salida); Macanao = PUNTA ARENAS, SAN FRANCISCO, CERRO MACANAO, BOCA DE RÍO. `PUESTO_POR_NODO[nodo]` -> {k, x, y, nodo, isla, lugar}.
+- Tras una compra (`COMPRAR si`) el reductor emite `mudanza` con el RNG sembrado: nunca el puesto actual, a más de 6 pasos del comprador (no se recompra en el mismo turno) y, entre esos, sortea entre los 3 que le quedan más cerca al grupo (distancia media de los 4 jugadores). Misma semilla = mismo destino en cliente y servidor.
+- Los clientes reciben `mudanza` por el anillo de fx como cualquier otro efecto: reproducen el spotlight en el puesto viejo, el cartel `¡LA EMPANADERA SE MUDÓ A <LUGAR>!` y siguen la baliza. `distVenta`, la CPU y el mototaxi leen `isla.puesto`.

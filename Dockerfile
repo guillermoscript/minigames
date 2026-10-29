@@ -22,7 +22,7 @@ COPY img /pb/pb_public/img
 COPY js /pb/pb_public/js
 COPY audio /pb/pb_public/audio
 COPY fonts /pb/pb_public/fonts
-COPY docs/style-lab/*.js docs/style-lab/public.html docs/style-lab/fiesta.html /tmp/style-lab-source/docs/style-lab/
+COPY docs/style-lab/*.js docs/style-lab/public.html docs/style-lab/fiesta.html docs/style-lab/jugar.html /tmp/style-lab-source/docs/style-lab/
 COPY docs/margarita/index.html docs/margarita/*.js /tmp/style-lab-source/docs/margarita/
 COPY scripts/sync-world-assets.sh scripts/sync-fiesta-rules.sh /tmp/
 # LA FIESTA: the server hooks run the same board reducer as the browser (copied from docs/style-lab, one source of truth)

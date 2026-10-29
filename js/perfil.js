@@ -124,7 +124,7 @@ function drawPview() {
       ['CLASSIC', t('{n}/{total} STAGES', { n: d.unlocked, total: STAGES.length }), MCUI.WORLD.classic],
       ['VENEZUELA', me ? t('{n}/15 STARS ON THIS DEVICE', { n: ls.ve }) : 'PLAYED ON THEIR DEVICE', MCUI.WORLD.venezuela],
       ['LA FIESTA', 'ONLINE · 2-4 PLAYERS', MCUI.WORLD.fiesta],
-      ['MARGARITA', LOCAL_DEV ? '1 + 3 CPU' : 'COMING SOON', MCUI.WORLD.margarita],
+      ['MARGARITA', '1 + 3 CPU', MCUI.WORLD.margarita],
     ];
     rows.forEach((r, i) => {
       const y = top + i * 60;

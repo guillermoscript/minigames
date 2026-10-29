@@ -1161,7 +1161,7 @@ function mkChancla(){
   /* horario en centésimas (el nivel 1 queda igualito: carga .95 / suelta 1.3, brinco 1.75-2.2, carga 2.25 / suelta 2.6). fk = momento del amago; tras el rebote hay medio segundo más de aire */
   const T=[],HOPS=[];for(let i=0,c=95;i<NT;i++){const f=i===FI?45:0;T.push({wind:c/100/rs,fk:f?(c+35)/100/rs:0,rel:(c+35+f)/100/rs,fd:0});c+=35+f;if(i<NT-1)HOPS.push([(c+45)/100/rs,(c+90)/100/rs]);c+=95+(i===BI?(touch?100:50):0);}
   const WALL={hi:gameLeft()+150,lo:gameLeft()+120},TY={hi:335,lo:505},HB=.16/rs,RB=(touch?.72:.54)/rs;
-  const KX=gameLeft()+(touch?230:250),KFEET=548,MX=gameRight()-(touch?100:150),MY=262,MS=touch?1.2:1.5,ARML=95,JD=touch?.75:.55;
+  const KX=gameLeft()+(touch?230:250),KFEET=548,MX=gameRight()-(touch?150:150),MY=262,MS=touch?1.2:1.5,ARML=95,JD=touch?.75:.55;
   let jumpT=0,duckT=0;
   const th=kinds.map((k,i)=>({kind:k,i,state:'idle',x:0,y:0,rot:0,sx:0,sy:0,tt:0}));
   const broke={tv:false,vase:false};

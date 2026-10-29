@@ -10,18 +10,18 @@ const EGGS = (() => {
   const DIR = here.replace(/[^/]*\/[^/]*$/, '') + 'audio/eggs/';
   const CLIPS = ['faaah', 'fart', 'spongebob-fail', 'anime-ahh', 'punch', 'correct', 'anime-wow', 'alert', 'defy-gravity', 'yay', 'heavenly', 'bebecita',
     'se-fue-la-luz', 'goku-drip', 'running', 'atrapada', 'carrera-de-buses'];
-  /* how often each one fires (0 = never, 1 = always) */
+  /* how often each one fires (0 = never, 1 = always); each sound category is capped once per stage. */
   const CHANCE = {
-    fail: .12,     // a lost microgame: 'faaah', 'fart' or 'spongebob-fail'
-    hit: .3,       // any result in a game where something gets smacked: 'anime-ahh' or 'punch'
-    dodge: .3,     // a won dodging game: 'goku-drip'
-    catch: .3,     // a won catching game: 'atrapada'
-    run: .25,      // a running game starts: 'running'
-    dark: .15,     // a blackout game starts: 'se-fue-la-luz'
-    race: .6,      // the lab's bus race (pique) starts: 'carrera-de-buses'
-    win: .1,       // a won microgame: 'correct' or 'anime-wow'
-    clear: .5,     // a cleared stage: 'yay' or 'heavenly'
-    music: .25     // winning a game that puts music on (the lab's pendrive and anuncio): 'bebecita' instead of the game's own tune
+    fail: .02,     // a lost microgame: 'faaah', 'fart' or 'spongebob-fail'
+    hit: .05,      // any result in a game where something gets smacked: 'anime-ahh' or 'punch'
+    dodge: .04,    // a won dodging game: 'goku-drip'
+    catch: .04,    // a won catching game: 'atrapada'
+    run: .03,       // a running game starts: 'running'
+    dark: .005,    // a blackout game starts: 'se-fue-la-luz' (very rare)
+    race: .07,      // the lab's bus race (pique) starts: 'carrera-de-buses'
+    win: .015,      // a won microgame: 'correct' or 'anime-wow'
+    clear: .08,    // a cleared stage: 'yay' or 'heavenly'
+    music: .03      // winning a game that puts music on (the lab's pendrive and anuncio): 'bebecita' instead of the game's own tune
   };
   /* which games count as what: the app's ids, then the lab's */
   const HIT = new Set(['whack', 'swat', 'mv_punch', 'gc_rhino', 'gc_nail', 'ap_mosquito', 'du_shield', 'dodge', 'chancla', 'zancudo', 'cucaracha']);
@@ -48,18 +48,18 @@ const EGGS = (() => {
     cur = null;
   }
   /* true if the clip exists (and is now playing or about to) */
-  function play(name, v = .9, result) {
-    if (off() || used.has(name) || pending.has(name) || (result && (results.has(result) || pendingResults.has(result))) || !(buf[name] || raw[name])) return false;
+  function play(name, v = .9, type) {
+    if (off() || used.has(name) || pending.has(name) || (type && (results.has(type) || pendingResults.has(type))) || !(buf[name] || raw[name])) return false;
     try {
       const a = ac(); if (!a) return false;
       pending.clear(); pendingResults.clear();
-      pending.add(name); if (result) pendingResults.add(result);
+      pending.add(name); if (type) pendingResults.add(type);
       const ticket = ++request, go = b => {
         if (ticket !== request || off()) return;
         try {
           stop(); const s = a.createBufferSource(), g = a.createGain();
           g.gain.value = v; s.buffer = b; s.connect(g); g.connect(a.destination); s.start();
-          used.add(name); if (result) results.add(result); badge = 2;
+          used.add(name); if (type) results.add(type); badge = 2.7;
           cur = { s, g, name }; s.onended = () => { if (cur && cur.s === s) cur = null; };
         } catch (e) {} // optional audio must not interrupt gameplay, even after asynchronous decoding
       };
@@ -71,9 +71,9 @@ const EGGS = (() => {
   const roll = k => Math.random() < CHANCE[k];
   /* a clip for the start of a game: on the first game of the session it is still downloading, so it plays as soon as it lands
      (if that game is still the current one) */
-  function opening(name, v) {
-    if (play(name, v) || !coming[name]) return;
-    const g = game, ticket = request; coming[name].then(() => { if (g === game && ticket === request) play(name, v); });
+  function opening(name, v, type) {
+    if (play(name, v, type) || !coming[name]) return;
+    const g = game, ticket = request; coming[name].then(() => { if (g === game && ticket === request) play(name, v, type); });
   }
   /* one of these, picked at random among the ones that exist */
   const any = (result, ...l) => l.map(n => [Math.random(), n]).sort((a, b) => a[0] - b[0]).some(e => play(e[1], .9, result));
@@ -86,20 +86,27 @@ const EGGS = (() => {
     update(dt) { badge = Math.max(0, badge - dt); },
     draw(x, width = 800, spanish = false) {
       if (badge <= 0) return;
-      const t = 2 - badge, scale = t < .18 ? .75 + t / .18 * .25 : 1;
-      x.save(); x.translate(width / 2, 130); x.rotate(-.035); x.scale(scale, scale);
-      x.globalAlpha = Math.min(1, badge / .3);
-      x.fillStyle = '#14101c'; x.fillRect(-130, -25, 268, 56);
-      x.fillStyle = '#FFE14D'; x.fillRect(-134, -29, 268, 56);
-      x.strokeStyle = '#14101c'; x.lineWidth = 3; x.strokeRect(-134, -29, 268, 56);
+      const t = 2.7 - badge, enter = Math.min(1, t / .28), scale = enter < 1 ? .55 + enter * .55 : 1 + Math.sin(t * 9) * .025;
+      x.save(); x.translate(width / 2, 142); x.rotate(-.025); x.scale(scale, scale);
+      x.globalAlpha = Math.min(1, badge / .38);
+      // A burst behind the announcement makes the hidden clip feel like a discovered event.
+      x.save(); x.rotate(t * .35);
+      for (let i = 0; i < 20; i++) {
+        x.rotate(Math.PI / 10); x.fillStyle = i % 2 ? 'rgba(255,225,77,.72)' : 'rgba(255,107,61,.76)';
+        x.fillRect(-5, -108, 10, 42);
+      }
+      x.restore();
+      x.fillStyle = '#14101c'; x.fillRect(-218, -53, 436, 112);
+      x.fillStyle = '#FFE14D'; x.fillRect(-224, -59, 436, 112);
+      x.strokeStyle = '#14101c'; x.lineWidth = 5; x.strokeRect(-224, -59, 436, 112);
       x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#14101c';
-      x.font = '900 20px "Arial Black", sans-serif'; x.fillText('★ EASTER EGG ★', 0, -10);
-      x.font = '900 12px "Arial Black", sans-serif'; x.fillText(spanish ? '¡VERSIÓN ESPECIAL!' : 'SPECIAL EDITION!', 0, 12);
-      // A little confetti burst around the sticker, leaving the game visible.
-      for (let i = 0; i < 8; i++) {
-        const a = i * Math.PI / 4, r = 150 + Math.min(t, .6) * 30;
-        x.fillStyle = ['#FF6B3D', '#5CFF7A', '#7C4DFF'][i % 3];
-        x.fillRect(Math.cos(a) * r, Math.sin(a) * 42, 7, 7);
+      x.font = '900 32px "Arial Black", sans-serif'; x.fillText(spanish ? '¡EASTER EGG!' : 'EASTER EGG!', 0, -21);
+      x.font = '900 16px "Arial Black", sans-serif'; x.fillText(spanish ? '¡HALLAZGO SECRETO!' : 'SECRET DISCOVERY!', 0, 22);
+      // Confetti pops beyond the banner while keeping the game visible.
+      for (let i = 0; i < 14; i++) {
+        const a = i * Math.PI / 7, r = 245 + Math.min(t, .6) * 35;
+        x.save(); x.translate(Math.cos(a) * r, Math.sin(a) * 70); x.rotate(a + t * 4);
+        x.fillStyle = ['#FF6B3D', '#5CFF7A', '#7C4DFF', '#fff'][i % 4]; x.fillRect(-5, -5, 10, 10); x.restore();
       }
       x.restore();
     },
@@ -108,24 +115,24 @@ const EGGS = (() => {
     /* a microgame is starting (id): a song trails off over the command card, anything else is cut */
     begin(id) {
       stop(cur && SONGS.has(cur.name) ? .45 : .06); load(); game++; outcomeDone = false;
-      if (id === 'pique' && roll('race')) opening('carrera-de-buses');
-      else if (DARK.has(id) && roll('dark')) opening('se-fue-la-luz', .8);
-      else if (RUN.has(id) && roll('run')) opening('running');
+      if (id === 'pique' && roll('race')) opening('carrera-de-buses', .9, 'race');
+      else if (DARK.has(id) && roll('dark')) opening('se-fue-la-luz', .8, 'dark');
+      else if (RUN.has(id) && roll('run')) opening('running', .9, 'run');
     },
     /* a microgame ended: id, 'win' | 'lose' */
     outcome(id, r) {
-      if (outcomeDone || results.has(r) || pendingResults.has(r)) return;
+      if (outcomeDone) return;
       outcomeDone = true;
-      if (HIT.has(id) && roll('hit') && any(r, 'anime-ahh', 'punch')) return;
+      if (HIT.has(id) && roll('hit') && any('hit', 'anime-ahh', 'punch')) return;
       if (r === 'win') {
-        if (DODGE.has(id) && roll('dodge') && play('goku-drip', .9, r)) return;
-        if (CATCH.has(id) && roll('catch') && play('atrapada', .9, r)) return;
-        if (roll('win')) any(r, 'correct', 'anime-wow');
-      } else if (roll('fail')) any(r, 'faaah', 'fart', 'spongebob-fail');
+        if (DODGE.has(id) && roll('dodge') && play('goku-drip', .9, 'dodge')) return;
+        if (CATCH.has(id) && roll('catch') && play('atrapada', .9, 'catch')) return;
+        if (roll('win')) any('victory', 'correct', 'anime-wow');
+      } else if (roll('fail')) any('defeat', 'faaah', 'fart', 'spongebob-fail');
     },
     /* a game just put music on: true if the song took over (then the game keeps its own tune quiet) */
-    music() { if(outcomeDone || !roll('music') || !play('bebecita', .8, 'win')) return false; outcomeDone = true; return true; },
+    music() { if(outcomeDone || !roll('music') || !play('bebecita', .8, 'music')) return false; outcomeDone = true; return true; },
     /* a stage was cleared. big = the one-off moment (level 6 for the first time): that one always plays */
-    clear(big) { if (big && play('defy-gravity', .8, 'win')) return; if (roll('clear')) any('win', 'yay', 'heavenly'); }
+    clear(big) { if (big && play('defy-gravity', .8, 'victory')) return; if (roll('clear')) any('victory', 'yay', 'heavenly'); }
   };
 })();

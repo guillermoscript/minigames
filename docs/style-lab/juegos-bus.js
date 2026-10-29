@@ -18,7 +18,7 @@ const tag=(x,y)=>{rr(x-28,y-14,56,28,10,'#ffd23f',3.5);txt('TÚ',x,y,18,INK,0,tr
 function phone(x,y,rot=0,s=1){ctx.save();ctx.translate(x,y);ctx.rotate(rot);ctx.scale(s,s);rr(-14,-25,28,50,7,'#14101c',3.5);rr(-10,-19,20,34,3,'#7fe0d0',0);ell(0,20,2.5,2.5,'#8f8fa8',0);ctx.restore();}
 
 /* ───────── input propio ───────── */
-const MINE={},heldK={l:0,r:0},heldP={l:0,r:0};let ptr=false,lastP={x:0,y:0};
+const MINE={},heldK={l:0,r:0},heldP={l:0,r:0};let tilt=0,tiltAsked=false,ptr=false,lastP={x:0,y:0};
 const mobile=()=>('ontouchstart' in window||navigator.maxTouchPoints>0);
 // Touch is explicit: moving the phone must not add an accidental steering input.
 const steer=()=>clamp(heldK.r-heldK.l+heldP.r-heldP.l,-1,1);

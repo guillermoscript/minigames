@@ -315,7 +315,7 @@ function setOutcome(r){outcome=r;outT=0;fx.stamp();EGGS.outcome(curId,r);
 function next(){lastOut=outcome;const win=lastOut==='win';
   if(mode==='practice'){state='inter';st=0;}
   else if(isBoss){if(win){bossK++;if(bossK>=stage.jefes.length)clearStage();else toInter();}else if(lives<=0)toOver();else toInter();}
-  else{if(win){played++;retryId=null;}else retryId=curId;if(lives<=0)toOver();else toInter();}}   /* perder = repetir ese microjuego; solo ganar avanza */
+  else{if(win)played++;retryId=null;if(lives<=0)toOver();else toInter();}}   /* perder = otro microjuego distinto, sin avanzar el contador; solo ganar avanza */
 function clearStage(){stars=lives>=3?3:lives>=2?2:1;const E=estrellas(nivel),R=records(nivel),nuevo=CANDADOS&&nivel<3&&!(E[stageIdx]>0);
   E[stageIdx]=Math.max(E[stageIdx]||0,stars);R[stageIdx]=Math.max(R[stageIdx]||0,score);persist();
   state='clear';st=0;shownStars=0;jingleWin();confetti(W/2,200,60);EGGS.clear(false);if(nuevo)say('¡NIVEL '+(nivel+1)+' ABIERTO EN '+stage.name+'!','#FFE14D');}
@@ -391,8 +391,8 @@ function icono(x,y,r,n){X.save();X.lineJoin='round';X.lineCap='round';X.strokeSt
   X.restore();}
 function placaNivel(x,y,largo){const s='NIVEL '+nivel+(largo?' · '+NIV[nivel-1].n:'');X.font=face(largo?17:14,false);const w=X.measureText(s).width+(largo?52:40),h=largo?32:24;
   X.fillStyle=NIV[nivel-1].hud;X.fillRect(x,y,w,h);X.fillStyle='rgba(255,255,255,.22)';X.fillRect(x,y,w,3);icono(x+(largo?18:14),y+h/2,largo?9:7,nivel);T(s,x+(largo?36:28),y+h/2+1,largo?17:14,'#fff','left');}
-function tabsNivel(x,y,h){[1,2,3].forEach(n=>{const bx=x+(n-1)*79;button(bx,y,70,h,'NIV '+n,()=>{nivel=n;},{size:16,depth:4,o:4,fill:nivel===n?'#FFE14D':'#fff'});
-  if(CANDADOS&&n>1&&!ETAPAS.some((e,i)=>abierto(i,n))){X.fillStyle='rgba(20,16,28,.5)';X.fillRect(bx,y,70,h);}});}
+function tabsNivel(x,y,h,tw=70,sz=16){[1,2,3].forEach(n=>{const bx=x+(n-1)*(tw+9);button(bx,y,tw,h,(tw>100?'NIVEL ':'NIV ')+n,()=>{nivel=n;},{size:sz,depth:4,o:4,fill:nivel===n?'#FFE14D':'#fff'});
+  if(CANDADOS&&n>1&&!ETAPAS.some((e,i)=>abierto(i,n))){X.fillStyle='rgba(20,16,28,.5)';X.fillRect(bx,y,tw,h);}});}
 function estrellitas(){for(let i=0;i<Math.ceil(46*VW/W);i++){const x=(i*197.3+31)%VW-OX,y=(i*113.7+17)%H,k=.35+.65*Math.abs(Math.sin(now*(1.1+i%5*.4)+i));X.globalAlpha=k*.8;X.fillStyle=i%7?'#fff':'#FFE14D';const r=i%9?2:3;X.fillRect(x-r/2,y-r/2,r,r);}X.globalAlpha=1;}
 function fondoNivel(a,b){rays(a,b,now);if(nivel===3)estrellitas();
   else if(nivel===2){const g=X.createLinearGradient(0,H*.45,0,H);g.addColorStop(0,'rgba(255,120,50,0)');g.addColorStop(1,'rgba(255,120,50,.32)');X.fillStyle=g;X.fillRect(-OX,H*.45,VW,H*.55);}}
@@ -603,6 +603,7 @@ addEventListener('keydown',e=>{despierta();const k=e.code,go=k==='Enter'||k==='S
   if(live())return;                                                       /* jugando: la tecla es del juego */
   e.stopImmediatePropagation();if(go||k.startsWith('Arrow'))e.preventDefault();if(e.repeat)return;
   if(state==='menu'&&k==='KeyP')goPractice();
+  else if(state==='menu'&&k==='KeyO'){state='options';st=0;}
   else if(state==='over'&&go&&st>.4)startStage(stageIdx);
   else if(state==='clear'&&go&&st>.5)afterClear();},true);
 

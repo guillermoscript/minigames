@@ -57,13 +57,13 @@ const PJ_ROWS = [
 ];
 const SENORA = [
   '..rrrr..',
-  '.rrwwrr.',
-  '.rssssr.',
-  '..sees..',
+  '.rrrwrr.',
+  '.hssssh.',
+  '..sese..',
   '..ssss..',
   '.wwwwww.',
-  'swwwwwws',
-  '.wwwwww.',
+  'swaaaaws',
+  '.waaaaw.',
   '.bbbbbb.',
   '..b..b..'
 ];
@@ -79,10 +79,23 @@ const BACHA = [
   '..jjjj..',
   '..j..j..'
 ];
-const PAL_SENORA = { r: '#d23b3b', w: '#fffdf2', s: '#c98a5a', e: '#14101c', b: '#2a4a8a' };
+const PAL_SENORA = { r: '#d23b3b', w: '#fffdf2', s: '#c98a5a', e: '#14101c', b: '#2a4a8a', h: '#3a2a22', a: '#ffd23f' };
 const PAL_BACHA = { k: '#1a1a24', s: '#a8703f', g: '#14101c', t: '#e8a020', h: '#a8703f', j: '#2a3a5a' };
 const EMPANADA = ['..yyy..', '.yyyyy.', 'yyyyyyy', 'ooooooo', '.o.o.o.'];
 const PAL_EMP = { y: '#ffd23f', o: '#d08a1a' };
+/* icono de la empanada (media luna con repulgue): para la baliza, la flecha y el letrero del puesto */
+const EMPANADA_ICO = [
+  '....kkkkkkk....',
+  '..kkyyyyyyykk..',
+  '.kyllyyyyyyyyk.',
+  'kyllyyyyyyyyyok',
+  'kyyyyyyyyyyyyok',
+  'kooyoyoyoyoyook',
+  '.kkokokokokokk.',
+  '...kkkkkkkkk...'
+];
+const PAL_EMPICO = { k: '#14101c', y: '#ffd23f', l: '#fff6b0', o: '#d08a1a' };
+const EMPANADA_MINI = ['.kkkkk.', 'kyyylyk', 'kooyook', '.kkkkk.'];
 const PIMPINA = ['.kk.', 'rrrr', 'rwrr', 'rrrr', 'rrrr'];
 const PAL_PIMP = { k: '#14101c', r: '#d23b3b', w: '#ffb3b3' };
 const PENERO = [

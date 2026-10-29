@@ -22,7 +22,7 @@
 (function (root) {
 'use strict';
 const F = root.FIESTA = root.FIESTA || {};
-const K = { RATIO_MAX: 2.17, RATIO_MIN: .56, TICK_MS: 250, ANDA_Y: 120, ROOM_LENTO: 12, SSE_GRACIA: 4, COMPACTO_K: .72, MINI: { w: 132, h: 99 },
+const K = { RATIO_MAX: 2.25, RATIO_MIN: .56, TICK_MS: 250, ANDA_Y: 120, ROOM_LENTO: 12, SSE_GRACIA: 4, COMPACTO_K: .72, MINI: { w: 132, h: 99 },
   ESTILOS: ['snes', 'felt', 'ww', 'anime', 'tinta', 'garabato'], ESTILO0: 'snes', LAB_KEY: 'minicaos-lab-niveles-v1' };
 
 /* ───────────── puros ───────────── */
@@ -428,7 +428,7 @@ function soltar(e, cancel) {
   const p = canvasPoint(e);
   ui.mover(p.x, p.y, false); lobby.mover(p.x, p.y, false);
   if (e.pointerType === 'touch') { ui.mover(-999, -999, false); lobby.mover(-999, -999, false); }
-  if (k === 'carta') { if (cancel) carta.up(e.pointerId, -9999, -9999); else carta.up(e.pointerId, p.x, p.y); return; }
+  if (k === 'carta') { if (cancel && e.pointerType !== 'touch') carta.up(e.pointerId, -9999, -9999); else carta.up(e.pointerId, p.x, p.y); return; }   // táctil: un cancel tras unos px de arrastre (Android) cuenta como soltar donde estaba el dedo
   if (cancel) { if (k === 'cam') cam.cancelar(); return; }
   if (k === 'lobby') lobby.tap(p.x, p.y);
   else if (k === 'ui') ui.tap(p.x, p.y);

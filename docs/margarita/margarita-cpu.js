@@ -18,7 +18,7 @@ function dado(S, e, s, rng) {
   function has(k) { return e.opc.indexOf(k) > 0; }
   var k = null;
   if (has('mototaxi') && ok && d > 6) k = 'mototaxi';
-  else if (has('trucado') && ok && d >= 1 && d <= 10) k = 'trucado';
+  else if (has('trucado') && ok && d >= 1 && d <= 6) k = 'trucado';
   else if (has('colearse') && rivales(S, s).some(function (o) { return R().distVenta(S, o) + 8 < d; })) k = 'colearse';
   else if (has('guarapo') && (ok || rng.next() < .4)) k = 'guarapo';
   else if (has('cafe') && (ok || rng.next() < .4)) k = 'cafe';
@@ -26,7 +26,7 @@ function dado(S, e, s, rng) {
 }
 var POL = {
   DADO: dado,
-  TRUCADO: function (S, e, s) { return { t: 'PASOS', n: clamp(R().distVenta(S, s), 1, 10) }; },
+  TRUCADO: function (S, e, s) { return { t: 'PASOS', n: clamp(R().distVenta(S, s), 1, 6) }; },
   CRUCE: function (S, e, s, rng) {
     var o = e.opc, bs = S.pj[s].bs, quiere = S.isla.senora === o.a;
     return { t: 'CRUZAR', si: quiere ? bs >= o.fee : bs >= o.fee + 25 && rng.next() < .25 };
@@ -40,6 +40,10 @@ var POL = {
   FERRY: function (S, e, s, rng) { return { t: 'FERRY', si: rng.next() < .35 }; },
   DESVIO: function (S, e, s, rng) {
     var o = e.opc, ok = o.venta ? S.pj[s].bs >= 14 || rng.next() < .3 : rng.next() < .25;
+    if (S.pj[s].bs >= 20 && S.isla.puesto !== undefined) {   // con plata para la empanada: la ruta que deja más cerca del puesto de la señora (distancia del tablero)
+      var G = R().grafo, d0 = G.distancia(o.rutas[0].a, S.isla.puesto), d1 = G.distancia(o.rutas[1].a, S.isla.puesto);
+      if (d0 !== d1) return { t: 'RUTA', a: o.rutas[d0 < d1 ? 0 : 1].a };
+    }
     return { t: 'RUTA', a: o.rutas[ok ? 0 : 1].a };
   },
   EMPANADA: function () { return { t: 'COMPRAR', si: true }; },
@@ -67,7 +71,7 @@ function azar(S, e, s, rng) {
   var o = e.opc, si = rng.next() < .5;
   switch (e.k) {
     case 'DADO': return si && o.length > 1 ? { t: 'USAR', item: rng.pick(o.slice(1)) } : { t: 'TIRAR' };
-    case 'TRUCADO': return { t: 'PASOS', n: rng.int(1, 10) };
+    case 'TRUCADO': return { t: 'PASOS', n: rng.int(1, 6) };
     case 'PEAJE': return { t: 'PAGAR', bs: o.fee };
     case 'DESVIO': return { t: 'RUTA', a: rng.pick(o.rutas).a };
     case 'BODEGA': return { t: 'COMPRAR', item: si ? rng.pick(o).item : null };

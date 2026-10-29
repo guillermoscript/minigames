@@ -111,14 +111,14 @@ test('Margarita en línea: 4 pantallas, minijuego de ronda y bronca, una se cae 
   await R.advance(500);
   for (const j of joins) assert.equal((await j).status, 200, 'cada pantalla entra con su sesión guardada');
 
-  /* ── la partida: pasos de 100 ms de reloj virtual; 'c' se cae en la ronda 2 y vuelve 90 s después ── */
+  /* ── la partida: pasos de 100 ms de reloj virtual; 'c' se cae en la ronda 2 y vuelve 150 s después (con dados 1–6 hay menos avisos por turno: 2 plazos perdidos tardan más) ── */
   let caidaAt = null;
   for (let i = 0; i < 20000 && srv.board.f !== 'fin'; i++) {
     await R.advance(100);
     for (const s in P4) P4[s].paso();
     if (caidaAt === null && srv.board.r >= 2 && srv.board.f === 'turno') { caidaAt = R.t; P4.c.caida = true; P4.c.N.destroy(); }
     if (srv.board.pj.c.cpu === 'afk') vistos.afkC = true;
-    if (caidaAt !== null && !vistos.vuelveC && R.t - caidaAt > 90000) {
+    if (caidaAt !== null && !vistos.vuelveC && R.t - caidaAt > 150000) {
       vistos.vuelveC = true;
       P4.c = conectar('c', 200);
       const r = await Promise.race([P4.c.N.join('MARG', {}), R.advance(500).then(() => null)]);

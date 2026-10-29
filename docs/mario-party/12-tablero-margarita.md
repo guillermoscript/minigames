@@ -37,7 +37,7 @@ y Bowser se va al sitio que Toad dejó: la estrella cambia de isla y todos recal
 | Hongo | 3 | Hongo rojo = tiras otra vez · hongo venenoso = pierdes el próximo turno |
 | Bowser | 2 | Bowser te hace algo malo (quita monedas, etc.) |
 
-**Turno (estándar MP1):** los 4 tiran el dado (1–10) uno tras otro → al terminar la ronda, **minijuego de 4**.
+**Turno (estándar MP1):** los 4 tiran el dado (1–6) uno tras otro → al terminar la ronda, **minijuego de 4**.
 El formato sale del color de la casilla donde quedó cada uno: 4 iguales = todos contra todos;
 3 vs 1 = 1v3; 2 y 2 = 2v2 (casillas verdes/especiales sortean color). Ganar da +10 monedas.
 MP1 no tiene objetos: más sencillo todavía.
@@ -93,7 +93,7 @@ Reparto por isla (55 total): ~17 azules por isla, roja 1–2, 3–4 peñeros, 1 
 ## 4 · Qué hace el prototipo (v0)
 
 1. Tablero 2D 16-bit en un canvas: las dos islas, el mar animado, Coche en el centro.
-2. 4 fichas (TÚ + 3 CPU, el elenco de siempre: mamá, abuela…), dado 1–10, la ficha **salta casilla por casilla** con animación.
+2. 4 fichas (TÚ + 3 CPU, el elenco de siempre: mamá, abuela…), dado 1–6, la ficha **salta casilla por casilla** con animación.
 3. Todas las casillas de la tabla funcionando, más el peaje del Fiscal y el peñero que mueve la estrella.
 4. Fin de ronda → minijuego de 4 con el formato según colores (un `fiesta-juego-*` corriendo con `LIVE.practice`).
 5. Casilla de microjuego → un microjuego de campaña de 1 jugador.
@@ -123,7 +123,7 @@ La Restinga como carretera sobre el istmo y la lancha por la laguna con manglare
 |---|---|---|
 | ☀️ Día / 🌅 Atardecer / 🌙 Noche | Ciclo de 4 rondas (día, día, atardecer, noche) | De noche la lancha no sale y el peaje de La Restinga es doble. Mapa oscuro con luces |
 | 🎡 «¡QUÉ VAINA!» (casilla V) | Al caer en ella | Ruleta de la isla: |
-| · 🌧️ Aguacero | 2 rondas | Dado 1–6, las rojas quitan 6. Lluvia y rayos |
+| · 🌧️ Aguacero | 2 rondas | Dado 1–3, las rojas quitan 6. Lluvia y rayos |
 | · 🚧 Obras | Hasta otra vaina | Cierra o abre el atajo de esa isla |
 | · 🌊 Mar de leva | 2 rondas | La lancha no sale |
 | · 📸 Turistas | 2 rondas | Las azules dan +2 de propina |
@@ -138,7 +138,7 @@ La Restinga como carretera sobre el istmo y la lancha por la laguna con manglare
 | Mario Party | Margarita | Detalle |
 |---|---|---|
 | Cámara que sigue al jugador | 🎥 AUTO / 🗺️ MAPA / ✋ LIBRE | Zoom 2x al que juega, vista general en los anuncios. Rueda/pellizco = zoom, arrastrar = mover |
-| Objetos (máx. 3) | ☕ Cafecito (2 dados), 🥤 Guarapo (3 dados), 🎯 Dado trucado (1–10), 🤝 Palanca (peaje gratis), 🔀 Colearse (cambias de puesto), 🛵 Mototaxi (directo a las empanadas) | Se usan antes de tirar |
+| Objetos (máx. 3) | ☕ Cafecito (2 dados), 🥤 Guarapo (3 dados), 🎯 Dado trucado (1–6), 🤝 Palanca (peaje gratis), 🔀 Colearse (cambias de puesto), 🛵 Mototaxi (directo a las empanadas) | Se usan antes de tirar |
 | Tienda | 🏪 La Bodega del Portu (Porlamar y Boca de Río) | Se activa al pasar |
 | Banco de Koopa | 🏦 El San (Santa Ana) | Al pasar pagas 5 Bs al pote; si caes justo, te lo llevas |
 | Boo (robar) | 🦹 El Pícaro del Puerto | 5 Bs: roba 5–15 Bs a un rival · 30 Bs: roba una empanada |

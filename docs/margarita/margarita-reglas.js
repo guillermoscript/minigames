@@ -34,7 +34,7 @@ var PLAZO_DE = { DADO: 'DADO', TRUCADO: 'DADO', CRUCE: 'RUTA', FERRY: 'RUTA', DE
 var T = { cpu: 400, orden: 3000, carta: 4500 + 15000, cuenta: 3500, cierre: 3000, res: 5000, final: 4000 };
 // duración de la cinemática de cada efecto (el plazo del aviso siguiente cuenta desde que termina): los decir() de margarita.js
 var FX_MS = { orden: 2500, ronda: 1500, turno: 800, dado: 900, hop: 160, mon: 500, emp: 1600, item: 1200, evento: 1300, cae: 300,
-  cruza: 900, peaje: 1200, penero: 4600, noticia: 2400, vaina: 3200, triple: 3000, rifa: 2600, bolsa: 2000, isla: 1100,
+  cruza: 900, peaje: 1200, penero: 4600, mudanza: 3600, noticia: 2400, vaina: 3200, triple: 3000, rifa: 2600, bolsa: 2000, isla: 1100,
   mjIni: 4000, mjRes: 2200, bonusFin: 1500, fin: 3000, resp: 0 };
 var RING_MAX = 6000, RING_N = 16, LOG_N = 30;
 
@@ -42,6 +42,7 @@ var ITEMS = { cafe: { precio: 6, dados: 2 }, guarapo: { precio: 12, dados: 3 }, 
   colearse: { precio: 10 }, mototaxi: { precio: 22 } };
 var ITEM_IDS = ['cafe', 'guarapo', 'trucado', 'palanca', 'colearse', 'mototaxi'];
 var LLENO = 3;
+var DADO_MAX = 6, DADO_LLUVIA = 3;   // dado normal 1–6; con aguacero 1–3
 var HORAS = ['dia', 'dia', 'tarde', 'noche'];
 var VAINAS = ['aguacero', 'obras', 'leva', 'turistas', 'apagon'];
 var RIFA = [['nada', 40], ['objeto', 30], ['15', 17], ['30', 9], ['emp', 4]];
@@ -64,7 +65,8 @@ function lanchaCerrada(N) { return N.isla.kraken ? 'kraken' : deNoche(N) ? 'noch
 function feeDe(N, id) { var f = N.isla.peajes[id]; return id === 'restinga' && deNoche(N) ? Math.min(50, f * 2) : f; }
 function islaDe(N, s) { var n = NOD[N.pj[s].en]; return n.isla === 'X' ? (n.cruce === 'lancha' ? 'W' : 'O') : n.isla; }
 function porIsla(N, k) { return seats(N).filter(function (s) { return islaDe(N, s) === k || (k === 'O' && NOD[N.pj[s].en].isla === 'C'); }); }
-function distVenta(N, s) { return N.isla.senora ? G.distancia(N.pj[s].en, PUESTOS[N.isla.senora].nodo) : 99; }
+function distVenta(N, s) { return N.isla.puesto !== undefined ? G.distancia(N.pj[s].en, N.isla.puesto) : 99; }
+function puestoDe(N) { return G.PUESTO_POR_NODO[N.isla.puesto]; }   // el puesto actual de la Empanadera: {k, x, y, nodo, isla, lugar}
 function precio(N, k) { return N.isla.oferta ? Math.ceil(ITEMS[k].precio / 2) : ITEMS[k].precio; }
 function carnavalR(N) { return N.tot >= 4 ? Math.ceil(N.tot / 2) : 0; }
 function finalR(N) { return N.tot >= 6 ? N.tot - 2 : N.tot + 1; }
@@ -81,7 +83,8 @@ var AP = {
   emp: function (N, f) { N.pj[f.s].emp = f.tot; log(N, N.pj[f.s].name + (f.d > 0 ? ' +' : ' ') + f.d + ' empanada'); },
   item: function (N, f) { N.pj[f.s].items = f.items.slice(); },
   isla: function (N, f) { N.isla[f.campo] = clon(f.v); },
-  penero: function (N, f) { N.isla.senora = f.a; N.isla.bacha = f.de; },
+  penero: function (N, f) { N.isla.senora = f.a; N.isla.bacha = f.de; N.isla.puesto = f.puesto; },
+  mudanza: function (N, f) { N.isla.puesto = f.a; N.isla.senora = f.isla; N.isla.bacha = f.isla === 'O' ? 'W' : 'O'; },   // compra: la Empanadera se muda de puesto
   swap: function (N, f) { var a = N.pj[f.a], b = N.pj[f.b], x = a[f.campo]; a[f.campo] = b[f.campo]; b[f.campo] = x; },   // el Triple: sin tocar bono.max
   evento: function (N, f) { log(N, (f.s ? N.pj[f.s].name + ': ' : '') + f.id); },
   noticia: function (N, f) { log(N, 'ÚLTIMA HORA: ' + f.id); },
@@ -140,8 +143,8 @@ function seguir(Z) {
   throw new Error('margarita: seguir() sin salida');
 }
 function rodar(Z, s, n, de) {
-  var N = Z.N, max = N.isla.lluvia ? 6 : 10, dd = [], tot = 0;
-  for (var i = 0; i < n; i++) { var v = Z.r.int(1, max); dd.push(v); tot += v; }
+  var N = Z.N, max = N.isla.lluvia ? DADO_LLUVIA : DADO_MAX, dd = [], tot = 0;   // nunca más de 6 pasos; con varios dados (café/guarapo) cuenta el MEJOR, no la suma
+  for (var i = 0; i < n; i++) { var v = Z.r.int(1, max); dd.push(v); tot = Math.max(tot, v); }
   emit(Z, { k: 'dado', s: s, v: tot, dados: dd, max: max, de: de });
   N.t.resto = tot; N.t.extra = 0; N.t.q.unshift({ k: 'mover' }, { k: 'caer' });
 }
@@ -166,10 +169,7 @@ var TAREA = {
     isla(Z, 'bolsas', I.bolsas.filter(function (x) { return x !== b; }));
     mon(Z, s, b.bs, b.cofre ? 'cofre' : 'cartera'); return false;
   },
-  puesto: function (Z, s, x) {
-    var en = Z.N.pj[s].en, k = x.isla || (PUESTOS.O.nodo === en ? 'O' : PUESTOS.W.nodo === en ? 'W' : null);
-    return k ? puesto(Z, s, k) : false;
-  },
+  puesto: function (Z, s) { return puesto(Z, s, Z.N.pj[s].en); },
   lugar: function (Z, s) { var l = NOD[Z.N.pj[s].en].lugar; return l && LUGAR[l] ? LUGAR[l](Z, s) : false; },
   criaturas: function (Z, s) {
     var N = Z.N, I = N.isla, en = N.pj[s].en;
@@ -199,7 +199,7 @@ function bifurcacion(Z, s, n) {
   if (!n.peaje) {
     var costa = sal[0], atajo = sal[1], k = n.isla;
     if (I.obras[k]) { evento(Z, s, 'atajoCerrado', { isla: k }); return costa; }
-    abrir(Z, 'DESVIO', { rutas: [{ a: costa, ruta: 'costa' }, { a: atajo, ruta: 'atajo' }], venta: I.senora === k ? PUESTOS[k].lugar : null });
+    abrir(Z, 'DESVIO', { rutas: [{ a: costa, ruta: 'costa' }, { a: atajo, ruta: 'atajo' }], venta: I.senora === k ? puestoDe(Z.N).lugar : null });
     return -1;
   }
   var P = n.peaje, sg = sal[0], cruza = sal[1], fee = feeDe(N, P.id), cerrada = P.id === 'lancha' ? lanchaCerrada(N) : '';
@@ -210,12 +210,14 @@ function bifurcacion(Z, s, n) {
 }
 
 /* ───── la señora de las empanadas y el Bachaquero ───── */
-function puesto(Z, s, k) {
+// `en` = casilla donde está el jugador: si es el puesto de la Empanadera, vende; si es el del Bachaquero (puesto fijo de la otra isla), cobra
+function puesto(Z, s, en) {
   var N = Z.N, p = N.pj[s];
-  if (N.isla.senora === k) {
+  if (N.isla.puesto === en) {
     if (p.bs < 20) { evento(Z, s, 'empanadaCara'); return false; }
-    return abrir(Z, 'EMPANADA', { precio: 20, isla: k });
+    return abrir(Z, 'EMPANADA', { precio: 20, isla: N.isla.senora, lugar: puestoDe(N).lugar });
   }
+  if (PUESTOS[N.isla.bacha].nodo !== en) return false;
   var cobra = Math.min(30, p.bs);
   evento(Z, s, 'bachaquero', { cobra: cobra }); mon(Z, s, -cobra, 'bachaquero'); p.pimpinas++;
   return false;
@@ -304,7 +306,28 @@ function tesoro(Z, s) {
   if (Z.r.next() < .5 && darItem(Z, s, Z.r.pick(ITEM_IDS), 'tesoro')) return;
   mon(Z, s, 15 * (Z.N.isla.final ? 2 : 1), 'tesoro');
 }
-function penero(Z) { var a = Z.N.isla.senora; emit(Z, { k: 'penero', de: a, a: a === 'O' ? 'W' : 'O' }); }
+// A dónde se muda la Empanadera: otro puesto (nunca el de ahora) a más de MIN_PUESTO pasos de quien está (el dado llega a 6: no se recompra en
+// el mismo turno). Para que sea una CARRERA de todos, entre los candidatos se queda con los CERCANOS_PUESTO que le quedan más a mano al grupo
+// (distancia media de los jugadores por el tablero) y sortea entre ellos con el RNG del reductor: igual en cliente y servidor.
+var MIN_PUESTO = 6, CERCANOS_PUESTO = 3;
+function destinoPuesto(Z, s, otraIsla) {
+  var N = Z.N, I = N.isla, en = N.pj[s].en, ss = seats(N);
+  var L = G.PUESTOS_EMP.filter(function (c) { return c.nodo !== I.puesto && (!otraIsla || c.isla !== I.senora); });
+  var lejos = L.filter(function (c) { return G.distancia(en, c.nodo) > MIN_PUESTO; });
+  if (!lejos.length) return Z.r.pick(L);
+  function media(c) { var t = 0; ss.forEach(function (x) { t += Math.min(60, G.distancia(N.pj[x].en, c.nodo)); }); return t / ss.length; }
+  var orden = lejos.map(function (c) { return { c: c, m: media(c) }; }).sort(function (a, b) { return a.m - b.m || a.c.nodo - b.c.nodo; });
+  return Z.r.pick(orden.slice(0, CERCANOS_PUESTO)).c;
+}
+function mudanza(Z, s, por) {
+  var I = Z.N.isla, c = destinoPuesto(Z, s, false);
+  emit(Z, { k: 'mudanza', s: s, de: I.puesto, a: c.nodo, isla: c.isla, lugar: c.lugar, por: por });
+}
+// El peñero (casilla E): se lleva a la señora a un puesto de la OTRA isla (el Bachaquero pasa a la que deja)
+function penero(Z, s) {
+  var I = Z.N.isla, c = destinoPuesto(Z, s, true);
+  emit(Z, { k: 'penero', de: I.senora, a: c.isla, desde: I.puesto, puesto: c.nodo, lugar: c.lugar });
+}
 function triple(Z) {
   var N = Z.N, a = Z.r.pick(seats(N)), b = Z.r.pick(rivales(N, a)), c = Z.r.int(0, 4), d;
   emit(Z, { k: 'triple', a: a, b: b, c: c });
@@ -533,14 +556,14 @@ var RESP = {
     if (a.t !== 'USAR') return 'accion';
     var k = a.item; if (e.opc.indexOf(k) < 1) return 'opcion';
     cierra(Z); quitar(Z, s, k, 'usa');
-    if (k === 'mototaxi') { hop(Z, s, PUESTOS[N.isla.senora].nodo, 'moto'); t.q.unshift({ k: 'puesto', isla: N.isla.senora }); return null; }   // sin caer
+    if (k === 'mototaxi') { hop(Z, s, N.isla.puesto, 'moto'); t.q.unshift({ k: 'puesto' }); return null; }   // sin caer
     if (k === 'colearse') { var o = Z.r.pick(rivales(N, s)), x = N.pj[s].en, y = N.pj[o].en; emit(Z, { k: 'colearse', s: s, con: o }); hop(Z, s, y, 'cole'); hop(Z, o, x, 'cole'); rodar(Z, s, 1, 'd10'); return null; }
-    if (k === 'trucado') { abrir(Z, 'TRUCADO', { min: 1, max: 10 }); return null; }
+    if (k === 'trucado') { abrir(Z, 'TRUCADO', { min: 1, max: DADO_MAX }); return null; }
     rodar(Z, s, ITEMS[k].dados, k); return null;
   },
   TRUCADO: function (Z, s, a) {
-    if (a.t !== 'PASOS') return 'accion'; if (!entero(a.n, 1, 10)) return 'opcion';
-    cierra(Z); emit(Z, { k: 'dado', s: s, v: a.n, dados: [a.n], max: 10, de: 'trucado' });
+    if (a.t !== 'PASOS') return 'accion'; if (!entero(a.n, 1, DADO_MAX)) return 'opcion';
+    cierra(Z); emit(Z, { k: 'dado', s: s, v: a.n, dados: [a.n], max: DADO_MAX, de: 'trucado' });
     Z.N.t.resto = a.n; Z.N.t.q.unshift({ k: 'mover' }, { k: 'caer' }); return null;
   },
   CRUCE: function (Z, s, a, e, c) {
@@ -574,7 +597,7 @@ var RESP = {
   },
   EMPANADA: function (Z, s, a) {
     if (a.t !== 'COMPRAR') return 'accion';
-    if (a.si) { if (Z.N.pj[s].bs < 20) return 'monedas'; cierra(Z); mon(Z, s, -20, 'empanada'); emp(Z, s, 1, 'senora'); return null; }
+    if (a.si) { if (Z.N.pj[s].bs < 20) return 'monedas'; cierra(Z); mon(Z, s, -20, 'empanada'); emp(Z, s, 1, 'senora'); mudanza(Z, s, 'compra'); return null; }
     cierra(Z); return null;
   },
   BODEGA: function (Z, s, a, e) {
@@ -654,7 +677,7 @@ function crear(semilla, cfg, asientos, ahora) {
       pimpinas: 0, bono: { mj: 0, max: 10, ev: 0 }, sec: [], cpu: cpu, afk: 0, toma: 0 };
   }
   var S = { tab: 'margarita', f: 'orden', r: 0, tot: c.tot, cfg: c, orden: [], t: null, esp: null, pj: pj,
-    isla: { senora: 'O', bacha: 'W', peajes: { restinga: 1, lancha: 1 }, san: 0, bolsas: [], hora: 'dia', lluvia: 0, leva: 0, turistas: 0, apagon: false,
+    isla: { puesto: G.PUESTO_INICIAL.nodo, senora: 'O', bacha: 'W', peajes: { restinga: 1, lancha: 1 }, san: 0, bolsas: [], hora: 'dia', lluvia: 0, leva: 0, turistas: 0, apagon: false,
       obras: { O: false, W: false }, carnaval: false, final: false, sinAgua: null, kraken: 0, sirena: null, oferta: 0, silbon: null, ultDuelo: null },
     mj: null, mk: 0, podio: null, ganador: null, nextAt: now + T.orden, ver: 1, fx: [], log: [] };
   var P = { rng: r.estado, semilla: semilla, aid: {}, cpuAt: null, recientes: [] };

@@ -111,6 +111,29 @@ lugar('canon', 'agua', 590, 176, -16, -2, 'EL CAÑÓN DE PAMPATAR');
 lugar('monos', 'asuncion', 400, 152, 6, -14, 'LOS MONOS DEL COPEY');
 lugar('calabozo', 'asuncion', 436, 148, 2, -16, 'EL CALABOZO DE SANTA ROSA');
 lugar('matasiete', 'asuncion', 464, 180, 10, -10, 'EL CERRO MATASIETE');
+/* los puestos de la Empanadera (la ESTRELLA del Mario Party): al comprarle se muda a otro de estos. Fuente de verdad en el reductor:
+   S.isla.puesto = id de nodo (uno de estos); S.isla.senora = su isla ('O'|'W'), derivada. Casillas azules sin lugar, ya existentes. */
+function libre(segId, x, y) {
+  var b = null, d = 1e9; SEGS[segId].ids.forEach(function (i) { var n = nodos[i], e = hyp(n.x - x, n.y - y); if (n.t === 'B' && !n.lugar && !n.peaje && !n.cruce && e < d) { d = e; b = n; } }); return b;
+}
+var PUESTOS_EMP = [], PUESTO_POR_NODO = {};
+function puestoEmp(k, lugar, seg, x, y, dx, dy, fijo) {
+  var n = fijo || libre(seg, x, y); n.t = 'B';
+  var P = fijo ? { k: k, x: PUESTOS[fijo === nAgua ? 'O' : 'W'].x, y: PUESTOS[fijo === nAgua ? 'O' : 'W'].y, nodo: n.id, isla: n.isla, lugar: lugar }
+    : { k: k, x: n.x + dx, y: n.y + dy, nodo: n.id, isla: n.isla, lugar: lugar };
+  PUESTOS_EMP.push(P); PUESTO_POR_NODO[n.id] = P; return P;
+}
+puestoEmp('agua', PUESTOS.O.lugar, 'agua', 0, 0, 0, 0, nAgua);
+puestoEmp('arenas', PUESTOS.W.lugar, 'arenas', 0, 0, 0, 0, nArenas);
+puestoEmp('juan', 'JUAN GRIEGO', 'o1', 322, 132, 14, 4);
+puestoEmp('asuncion', 'LA ASUNCIÓN', 'asuncion', 420, 150, 12, 6);
+puestoEmp('pampatar', 'PAMPATAR', 'agua', 598, 150, -16, 2);
+puestoEmp('porlamar', 'PORLAMAR', 'o4', 484, 280, 2, 14);
+puestoEmp('piedras', 'PUNTA DE PIEDRAS', 'o4b', 346, 288, -2, 14);
+puestoEmp('sanfco', 'SAN FRANCISCO', 'arenas', 80, 176, 14, 4);
+puestoEmp('cerro', 'CERRO MACANAO', 'cerro', 110, 214, -16, 2);
+puestoEmp('boca', 'BOCA DE RÍO', 'w1', 150, 292, 2, 14);
+var PUESTO_INICIAL = PUESTOS_EMP.filter(function (c) { return c.k === 'piedras'; })[0];   // arranca en Punta de Piedras: a 8 pasos de la salida (Porlamar), así la primera carrera empieza en los primeros turnos
 var BOTE = {
   O: [[PUESTOS.O.x, PUESTOS.O.y - 22], [470, 44], [330, 50], [252, 118], [150, 100], [60, 140], [8, 190], [4, 236], [PUESTOS.W.x - 30, PUESTOS.W.y]]
 };
@@ -134,7 +157,7 @@ function distancia(de, a) {
 }
 var POR_LUGAR = {}; NPCS.forEach(function (N) { POR_LUGAR[N.nodo] = N; });
 
-M.grafo = { nodos: nodos, J: J, SEGS: SEGS, TRAZOS: TRAZOS, PEAJES: PEAJES, ISLAS: ISLAS, PUESTOS: PUESTOS, COCHE: COCHE, NPCS: NPCS, LUGARES: LUGARES,
+M.grafo = { PUESTO_INICIAL: PUESTO_INICIAL, PUESTOS_EMP: PUESTOS_EMP, PUESTO_POR_NODO: PUESTO_POR_NODO, nodos: nodos, J: J, SEGS: SEGS, TRAZOS: TRAZOS, PEAJES: PEAJES, ISLAS: ISLAS, PUESTOS: PUESTOS, COCHE: COCHE, NPCS: NPCS, LUGARES: LUGARES,
   PREV: PREV, POR_LUGAR: POR_LUGAR, rutaBote: rutaBote, lugarCerca: lugarCerca, distancia: distancia, cercano: cercano, sd: sd };
 if (typeof module !== 'undefined' && module.exports) module.exports = M.grafo;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -8,8 +8,7 @@ function chooseClassic() { menuPage = 0; track('world_select', { world: 'classic
 const langQ = () => '?lang=' + encodeURIComponent(I18N.lang);
 function chooseVenezuela() { EGGS.stop(); track('world_select', { world: 'venezuela' }); kitLeave('worlds/venezuela/' + langQ(), MCUI.WORLD.venezuela); }
 function chooseFiesta() { EGGS.stop(); track('world_select', { world: 'fiesta' }); kitLeave('worlds/venezuela/fiesta.html' + langQ(), MCUI.WORLD.fiesta); }
-// Margarita's party board still lives in docs/ (not in the production build): playable on a local dev server, COMING SOON elsewhere.
-const LOCAL_DEV = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+// Margarita's party board lives in docs/margarita and ships to docs/ in the production image (scripts/sync-world-assets.sh).
 function chooseMargarita() { EGGS.stop(); track('world_select', { world: 'margarita' }); kitLeave('docs/margarita/' + langQ(), MCUI.WORLD.margarita); }
 const comingSoon = () => MCUI.toast('ALMOST THERE! WE\'RE STILL BUILDING IT', 'gold');
 function readJSON(key) { try { return JSON.parse(localStorage.getItem(key)) || null; } catch (e) { return null; } }
@@ -28,11 +27,11 @@ function worldList() {
     { id: 'w-fiesta', name: 'LA FIESTA', desc: 'BOARD GAME WITH FRIENDS', color: MCUI.WORLD.fiesta, shipped: true, fn: chooseFiesta,
       foot: roomOk ? t('ROOM {code}', { code: room.code }) : '', players: '2-4', online: true,
       art: (cx, cy, tm, f) => pixelBoard(cx, cy, tm, f) },
-    { id: 'w-margarita', name: 'MARGARITA', desc: 'ISLAND BOARD VS 3 CPUS', color: MCUI.WORLD.margarita, shipped: false, fn: chooseMargarita,
+    { id: 'w-margarita', name: 'MARGARITA', desc: 'ISLAND BOARD VS 3 CPUS', color: MCUI.WORLD.margarita, shipped: true, fn: chooseMargarita,
       players: '1+3 CPU', online: false,
       art: (cx, cy, tm, f) => { ctx.save(); ctx.translate(cx, cy - 46 - (f ? Math.floor(Math.abs(Math.sin(tm * 4)) * 2) * 4 : 0)); ctx.scale(.7, .7); pixelIsland(0, 0); ctx.restore(); } },
   ];
-  worlds.forEach(w => { w.playable = w.shipped || LOCAL_DEV; });
+  worlds.forEach(w => { w.playable = w.shipped; });
   return worlds;
 }
 function worldKey(e) {

@@ -15,5 +15,5 @@ cp "$source_dir"/fiesta-*.js "$source_dir/fiesta.html" "$target_dir/"
 if [ -f "$1/docs/margarita/index.html" ]; then
   mkdir -p "$2/docs/margarita" "$2/docs/style-lab"
   cp "$1/docs/margarita/index.html" "$1/docs/margarita"/*.js "$2/docs/margarita/"
-  cp "$source_dir/engine.js" "$source_dir/campana.js" "$source_dir/juegos-bus.js" "$source_dir"/juego-*.js "$source_dir"/fiesta-*.js "$source_dir/fiesta.html" "$2/docs/style-lab/"
+  cp "$source_dir/engine.js" "$source_dir/campana.js" "$source_dir/juegos-bus.js" "$source_dir"/juego-*.js "$source_dir"/fiesta-*.js "$source_dir/fiesta.html" "$source_dir/jugar.html" "$2/docs/style-lab/"
 fi

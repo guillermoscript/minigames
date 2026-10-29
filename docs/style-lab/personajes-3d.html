@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Personajes 3D</title>
+<!-- Visor del elenco 3D (fiesta-3d-pj.js): todos en fila o uno de cerca; cada animación, gesto y expresión con un botón.
+     Arrastra para girar la cámara, rueda para acercar. Sin el motor: renderer propio. -->
+<style>
+  @font-face { font-family:'Press Start 2P'; src:url(../../fonts/press-start-2p-latin.woff2) format('woff2'); font-display:block; }
+  :root { --ink:#14101c; --paper:#fffdf2; --gold:#FFE14D; --panel:#252c4b; --info:#4DB8FF; }
+  html,body { margin:0; height:100%; background:#0d1b2a; color:var(--paper); font-family:'Press Start 2P',monospace; font-size:10px; overflow:hidden; }
+  #v { position:fixed; inset:0; width:100%; height:100%; display:block; touch-action:none; }
+  #ui { position:fixed; left:0; right:0; bottom:0; background:rgba(20,16,28,.86); border-top:4px solid var(--ink); padding:8px 10px; display:flex; flex-direction:column; gap:6px; max-height:46vh; overflow:auto; }
+  .fila { display:flex; flex-wrap:wrap; gap:5px; align-items:center; }
+  .fila b { color:var(--info); min-width:86px; font-size:9px; }
+  button { font-family:inherit; font-size:9px; border:3px solid var(--ink); border-radius:0; background:var(--paper); color:var(--ink); padding:.5em .6em; cursor:pointer; }
+  button.on { background:var(--gold); }
+  .grupo { display:flex; flex-wrap:wrap; gap:4px; align-items:center; margin:2px 0; }
+  .grupo b { color:var(--info); min-width:86px; font-size:9px; }
+  .grupo i { color:#ff9ab8; font-style:normal; font-size:8px; min-width:86px; }
+  .et { color:#9fb0d8; font-size:8px; }
+  input[type=range] { width:90px; }
+  button.mini { font-size:8px; padding:.4em .5em; }
+  button.mini.nuevo { border-color:#ff5c8a; }
+  button.mini.oculto, .grupo.oculto { display:none; }
+  input[type=search] { font-family:inherit; font-size:9px; padding:.5em .6em; border:3px solid var(--ink); background:var(--paper); color:var(--ink); width:190px; }
+  .chip { font-size:8px; padding:.35em .5em; border:2px solid var(--ink); background:#2c3558; color:#9fb0d8; } .chip.ok { background:#2f9d5a; color:#fff; } .chip.no { background:#b23a48; color:#fff; }
+  #cartel { position:fixed; left:12px; top:30px; right:12px; font-size:10px; color:var(--paper); text-shadow:2px 2px 0 var(--ink); pointer-events:none; line-height:1.5; }
+  #cartel b { color:var(--gold); }
+  h1 { position:fixed; left:12px; top:4px; margin:0; font-size:13px; color:var(--gold); text-shadow:2px 2px 0 var(--ink); pointer-events:none; }
+</style>
+</head>
+<body>
+<canvas id="v"></canvas>
+<h1>PERSONAJES 3D</h1>
+<div id="cartel"></div>
+<div id="ui">
+  <div class="fila" id="quien"><b>QUIÉN</b></div>
+  <div class="fila" id="filtro"><b>BUSCAR</b><input type="search" id="busca" placeholder="nombre o descripción…"><button id="soloNuevas">SOLO NUEVAS</button><button id="secuencia">SECUENCIA (REVISAR TODO)</button><span class="et" id="cuenta"></span></div>
+  <div class="fila" id="modulos"><b>MÓDULOS</b></div>
+  <div id="anims"></div>
+  <div id="unos"></div>
+  <div class="fila" id="caras"><b>CARA</b></div>
+  <div class="fila" id="fisica"><b>FÍSICA</b><span class="et">DIRECCIÓN</span></div>
+  <div class="fila" id="mov"><b>MOVER</b><span class="et">VELOCIDAD</span><input type="range" id="vel" min="0" max="7" step="0.1" value="0"><span id="velv" class="et">0.0</span><button id="anda">RECORRIDO</button><span class="et">MIRAR</span><input type="range" id="mira" min="-1" max="1" step="0.05" value="0"><button id="mirac">A LA CÁMARA</button></div>
+  <div class="fila" id="fxs"><b>EFECTOS</b></div>
+  <div class="fila"><b>VER</b><button id="prop" class="on">OBJETO</button><button id="gira">GIRAR SOLOS</button><button id="borde" class="on">CONTORNO</button><button id="pausa">PAUSA</button><button id="lenta">CÁMARA LENTA</button></div>
+</div>
+<script src="../../js/vendor/three.min.js"></script>
+<script src="fiesta-3d.js"></script>
+<script src="fiesta-3d-pj.js"></script>
+<script src="fiesta-3d-ragdoll.js"></script>
+<script src="fiesta-3d-ik.js"></script>
+<script src="fiesta-3d-ropa.js"></script>
+<script>
+'use strict';
+const V3 = FIESTA.V3, PJ = V3.PJ, $ = (id) => document.getElementById(id);
+const cv = $('v'), ren = new THREE.WebGLRenderer({ canvas: cv, antialias: true });
+ren.shadowMap.enabled = true; ren.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene(); scene.background = V3.cielo('#5ab8ff', '#cfeeff');
+const cam = new THREE.PerspectiveCamera(30, 1, .1, 200);
+const hemi = new THREE.HemisphereLight(0xffffff, 0x9a8a70, .55), sol = new THREE.DirectionalLight(0xfff2d8, .7);
+sol.position.set(-6, 12, 9); sol.castShadow = true; sol.shadow.mapSize.set(2048, 2048);
+Object.assign(sol.shadow.camera, { left: -12, right: 12, top: 8, bottom: -8 }); sol.shadow.bias = -.0005;
+scene.add(hemi, sol);
+const piso = new THREE.Mesh(new THREE.CircleGeometry(16, 40), V3.toon('#e3c79a')); piso.rotation.x = -Math.PI / 2; piso.receiveShadow = true; scene.add(piso);
+const tarima = V3.malla(new THREE.CylinderGeometry(9.5, 9.8, .3, 40), '#ff7a6a', { recibe: true, g: .01 }); tarima.position.y = .15; scene.add(tarima);
+
+const ids = PJ.ids(), pjs = ids.map((id, i) => {
+  const p = PJ.crear(id); p.g.position.set((i - (ids.length - 1) / 2) * 1.9, .3, 0); scene.add(p.g); return p;
+});
+let foco = -1, anim = 'quieto', cara = 'normal', yaw = 0, pitch = .28, dist = 17, giraSolos = false;
+
+function boton(cont, txt, fn, clave) { const b = document.createElement('button'); b.textContent = txt; b.dataset.k = clave; b.onclick = () => fn(b); $(cont).appendChild(b); return b; }
+function marcar(cont, k) { for (const b of $(cont).querySelectorAll('button')) b.classList.toggle('on', b.dataset.k === k); }
+boton('quien', 'TODOS', () => { foco = -1; marcar('quien', 'todos'); }, 'todos');
+ids.forEach((id, i) => boton('quien', PJ.ELENCO[id].n, () => { foco = i; marcar('quien', id); }, id));
+/* animaciones y gestos agrupados por categoría (V3.PJ.DESC), cada botón con su descripción de una línea */
+const nuevo = (tipo, n) => !!(PJ.NUEVOS && PJ.NUEVOS[tipo] && PJ.NUEVOS[tipo].indexOf(n) >= 0);
+function cartel(tipo, n) { $('cartel').innerHTML = '<b>' + (tipo === 'anim' ? 'ANIMACIÓN' : 'GESTO') + ' ' + n.toUpperCase() + '</b>' + (nuevo(tipo, n) ? ' (NUEVA)' : '') + '<br>' + PJ.DESC[tipo][n][1]; }
+function grupos(cont, titulo, tipo, lista, fn, clave) {
+  const cab = document.createElement('div'); cab.className = 'grupo'; cab.innerHTML = '<b>' + titulo + '</b>'; $(cont).appendChild(cab);
+  const orden = []; lista.forEach((n) => { const g = PJ.DESC[tipo][n][0]; if (orden.indexOf(g) < 0) orden.push(g); });
+  orden.forEach((gr) => {
+    const fila = document.createElement('div'); fila.className = 'grupo'; fila.innerHTML = '<i>' + gr.toUpperCase() + '</i>'; $(cont).appendChild(fila);
+    lista.filter((n) => PJ.DESC[tipo][n][0] === gr).forEach((n) => { const b = document.createElement('button'); b.className = 'mini'; b.textContent = n.toUpperCase(); b.title = PJ.DESC[tipo][n][1]; b.dataset.k = n; b.dataset.t = tipo; b.dataset.q = (n + ' ' + PJ.DESC[tipo][n][1] + ' ' + gr).toLowerCase(); if (nuevo(tipo, n)) b.classList.add('nuevo'); b.onclick = () => { cartel(tipo, n); fn(n); }; fila.appendChild(b); });
+  });
+}
+const sel = () => foco >= 0 ? [pjs[foco]] : pjs;
+grupos('anims', 'ANIMACIÓN', 'anim', PJ.ANIMS, (a) => { anim = a; recorrido = false; pjs.forEach((p) => p.anim(a, { vel: velAnim() })); marcar('anims', a); }, 'a');
+grupos('unos', 'GESTO', 'uno', PJ.UNOS, (a) => { sel().forEach((p, i) => setTimeout(() => p.uno(a), foco >= 0 ? 0 : i * 90)); }, 'u');
+PJ.CARAS.forEach((c) => boton('caras', c.toUpperCase(), () => { cara = c; pjs.forEach((p) => p.cara(c)); marcar('caras', c); }, c));
+const velAnim = () => 1;
+/* búsqueda y filtro: oculta los botones que no coinciden (y los grupos que se quedan vacíos) */
+let soloNuevas = false;
+function filtrar() {
+  const q = $('busca').value.trim().toLowerCase(); let n = 0, total = 0;
+  document.querySelectorAll('button.mini').forEach((b) => { total++; const ok = (!q || b.dataset.q.indexOf(q) >= 0) && (!soloNuevas || b.classList.contains('nuevo')); b.classList.toggle('oculto', !ok); if (ok) n++; });
+  document.querySelectorAll('#anims .grupo, #unos .grupo').forEach((g) => { if (g.querySelector('b')) return; g.classList.toggle('oculto', !g.querySelector('button.mini:not(.oculto)')); });
+  $('cuenta').textContent = n + ' / ' + total;
+}
+$('busca').oninput = filtrar; $('soloNuevas').onclick = (e) => { soloNuevas = !soloNuevas; e.target.classList.toggle('on', soloNuevas); filtrar(); }; filtrar();
+/* estado de los módulos de los otros agentes: ¿cargó el script? (la web local responde 200) y cuántos ganchos tiene V3.PJ.EXT */
+['ragdoll', 'ik', 'ropa'].forEach((m) => { const c = document.createElement('span'); c.className = 'chip'; c.textContent = m.toUpperCase() + ' …'; $('modulos').appendChild(c);
+  fetch('fiesta-3d-' + m + '.js', { method: 'HEAD' }).then((r) => { c.className = 'chip ' + (r.ok ? 'ok' : 'no'); c.textContent = m.toUpperCase() + (r.ok ? ' CARGADO' : ' NO ESTÁ'); }).catch(() => { c.className = 'chip no'; c.textContent = m.toUpperCase() + ' NO ESTÁ'; }); });
+{ const c = document.createElement('span'); c.className = 'chip ' + (PJ.EXT.length ? 'ok' : ''); c.textContent = 'GANCHOS V3.PJ.EXT: ' + PJ.EXT.length; $('modulos').appendChild(c); }
+/* secuencia: recorre TODAS las animaciones (3 s) y gestos con el personaje elegido (o todos), con el cartel de lo que se ve; segundo clic la detiene */
+let seq = null;
+$('secuencia').onclick = (e) => {
+  if (seq) { clearTimeout(seq.t); seq = null; e.target.classList.remove('on'); return; }
+  e.target.classList.add('on'); const lista = PJ.ANIMS.map((n) => ['anim', n]).concat(PJ.UNOS.map((n) => ['uno', n])); let i = 0;
+  const paso = () => { if (!seq) return; const [tipo, n] = lista[i % lista.length]; i++; cartel(tipo, n);
+    if (tipo === 'anim') { anim = n; recorrido = false; pjs.forEach((p) => p.anim(n, { vel: velAnim() })); marcar('anims', n); } else { pjs.forEach((p) => p.anim('quieto')); sel().forEach((p) => p.uno(n)); }
+    seq.t = setTimeout(paso, tipo === 'anim' ? 3000 : 2400); };
+  seq = {}; paso();
+};
+/* física: dirección del golpe (mundo: x a la derecha de la pantalla, z hacia la cámara), fuerza, impacto y volar */
+let dir = [1, 0], fuerza = 1.2;
+[['←', -1, 0], ['→', 1, 0], ['↑ (lejos)', 0, -1], ['↓ (a cámara)', 0, 1]].forEach(([n, x, z]) => { const b = boton('fisica', n, () => { dir = [x, z]; marcar('fisica', n); }, n); b.classList.toggle('on', x === 1); });
+const fz = document.createElement('input'); fz.type = 'range'; fz.min = .2; fz.max = 4; fz.step = .1; fz.value = fuerza; const fzv = document.createElement('span'); fzv.className = 'et'; fzv.textContent = 'FUERZA ' + fuerza.toFixed(1);
+fz.oninput = () => { fuerza = +fz.value; fzv.textContent = 'FUERZA ' + fuerza.toFixed(1); }; $('fisica').append(fz, fzv);
+boton('fisica', 'IMPACTO', () => sel().forEach((p) => p.impacto(dir[0], dir[1], fuerza)), 'imp');
+boton('fisica', 'VOLAR', () => sel().forEach((p) => p.volar(dir[0], dir[1], fuerza)), 'vol');
+boton('fisica', 'RÁFAGA', () => sel().forEach((p, i) => setTimeout(() => p.impacto(dir[0], dir[1], fuerza), i * 120)), 'raf');
+boton('fisica', 'GOLPE CABEZA', () => sel().forEach((p) => p.ragdoll && p.ragdoll.golpe('cabeza', dir, fuerza)), 'gc');
+boton('fisica', 'GOLPE PIERNA', () => sel().forEach((p) => p.ragdoll && p.ragdoll.golpe('piernaI', dir, fuerza)), 'gp');
+boton('fisica', 'GOLPE BRAZO', () => sel().forEach((p) => p.ragdoll && p.ragdoll.golpe('brazoD', dir, fuerza)), 'gb');
+boton('fisica', 'MUÑECO', () => sel().forEach((p) => p.ragdoll && p.ragdoll.activar({ dx: dir[0], dz: dir[1], fuerza })), 'mu');
+boton('fisica', 'SOLTAR', () => sel().forEach((p) => p.ragdoll && p.ragdoll.soltar()), 'so');
+PJ.FXS.forEach((n) => { const b = boton('fxs', n.toUpperCase(), () => { const on = !b.classList.contains('on'); b.classList.toggle('on', on); sel().forEach((p) => p.fx(n, on)); }, n); b.title = PJ.DESC.fx[n]; });
+/* recorrido: el personaje elegido (o todos) corre en círculo a la velocidad del slider moviendo g.position; los pies deben ir pegados al piso */
+let recorrido = false, velM = 0; const TAU_ = Math.PI * 2, angs = pjs.map((p, i) => i * TAU_ / pjs.length);
+$('vel').oninput = () => { velM = +$('vel').value; $('velv').textContent = velM.toFixed(1); };
+$('anda').onclick = (e) => { recorrido = !recorrido; e.target.classList.toggle('on', recorrido); if (!recorrido) pjs.forEach((p, i) => { p.g.position.set((i - (ids.length - 1) / 2) * 1.9, .3, 0); p.rumbo(0); p.anim('quieto'); }); };
+$('mira').oninput = () => { const v = +$('mira').value; sel().forEach((p) => p.mirar(v, 0)); mirando = v !== 0; };
+$('mirac').onclick = () => { mirando = 'cam'; };
+let mirando = false, pausa = false, lenta = 1;
+$('pausa').onclick = (e) => { pausa = !pausa; e.target.classList.toggle('on', pausa); };
+$('lenta').onclick = (e) => { lenta = lenta === 1 ? .2 : 1; e.target.classList.toggle('on', lenta !== 1); };
+marcar('quien', 'todos'); marcar('anims', 'quieto'); marcar('caras', 'normal');
+$('prop').onclick = (e) => { const on = !e.target.classList.contains('on'); e.target.classList.toggle('on', on); pjs.forEach((p) => p.prop(on)); };
+$('gira').onclick = (e) => { giraSolos = !giraSolos; e.target.classList.toggle('on', giraSolos); if (!giraSolos) pjs.forEach((p) => p.rumbo(0)); };
+$('borde').onclick = (e) => { const on = !e.target.classList.contains('on'); e.target.classList.toggle('on', on); scene.traverse((o) => { if (o.userData.borde) o.visible = on; }); };
+
+/* cámara: arrastrar gira, rueda acerca; con foco se va al personaje */
+let arr = null;
+cv.addEventListener('pointerdown', (e) => { arr = { x: e.clientX, y: e.clientY, yaw, pitch }; cv.setPointerCapture(e.pointerId); });
+cv.addEventListener('pointermove', (e) => { if (!arr) return; yaw = arr.yaw - (e.clientX - arr.x) * .008; pitch = Math.max(-.1, Math.min(1.2, arr.pitch + (e.clientY - arr.y) * .006)); });
+cv.addEventListener('pointerup', () => { arr = null; });
+cv.addEventListener('wheel', (e) => { dist = Math.max(3, Math.min(30, dist * (1 + Math.sign(e.deltaY) * .1))); e.preventDefault(); }, { passive: false });
+const mira = new THREE.Vector3(0, 1.3, 0), mira0 = new THREE.Vector3();
+let last = performance.now(), distF = dist, tope = 6;
+
+function frame(ts) {
+  const dt = Math.min(.05, (ts - last) / 1000); last = ts;
+  const w = innerWidth, h = innerHeight - $('ui').offsetHeight * .5;
+  if (cv.width !== Math.round(w * devicePixelRatio) || cv.height !== Math.round(innerHeight * devicePixelRatio)) ren.setPixelRatio(Math.min(2, devicePixelRatio)), ren.setSize(w, innerHeight, false);
+  cam.aspect = w / innerHeight; cam.updateProjectionMatrix();
+  const dtf = pausa ? 0 : dt * lenta;
+  if (recorrido) pjs.forEach((p, i) => { if (foco >= 0 && i !== foco) return; const R = foco >= 0 ? 3.5 : 6; angs[i] += dtf * velM / R; const a = angs[i];
+      if (velM > .05) { p.g.position.set(Math.cos(a) * R, .3, Math.sin(a) * R); p.rumbo(Math.atan2(-Math.sin(a), Math.cos(a))); }
+      p.anim(velM < .1 ? 'quieto' : velM < 3.3 ? 'caminar' : 'correr', { vel: Math.min(1, velM / 6) }); });
+  pjs.forEach((p, i) => { if (giraSolos) p.rumbo(ts / 1000 * .8 + i); if (mirando === 'cam') p.mirarA(cam.position); else if (!mirando) p.mirar(Math.sin(ts / 1300 + i) * .6, 0); p.update(dtf); });
+  const objetivo = foco >= 0 ? pjs[foco].g.position.clone().add(new THREE.Vector3(0, 1.35, 0)) : mira0.set(0, 1.3, 0);
+  mira.lerp(objetivo, Math.min(1, dt * 5));
+  distF += ((foco >= 0 ? Math.min(dist, tope) : dist) - distF) * Math.min(1, dt * 5);
+  cam.position.set(mira.x + Math.sin(yaw) * Math.cos(pitch) * distF, mira.y + Math.sin(pitch) * distF - .6, mira.z + Math.cos(yaw) * Math.cos(pitch) * distF);
+  cam.lookAt(mira.x, mira.y - .25, mira.z);
+  ren.render(scene, cam);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+/* ganchos para las capturas automáticas (docs/style-lab/pruebas/personajes-3d-capturas.js) */
+window.VISOR = { pjs, scene, cam, set: (o) => {
+  if ('foco' in o) foco = o.foco; if ('yaw' in o) yaw = o.yaw; if ('pitch' in o) pitch = o.pitch; if ('dist' in o) dist = o.dist; if ('pausa' in o) pausa = o.pausa;
+  mira.copy(foco >= 0 ? pjs[foco].g.position.clone().add(new THREE.Vector3(0, 1.35, 0)) : mira0.set(0, 1.3, 0)); if ('tope' in o) tope = o.tope; distF = foco >= 0 ? Math.min(dist, tope) : dist;
+  if ('solo' in o) pjs.forEach((q, j) => { q.g.visible = o.solo < 0 || j === o.solo; });
+  if (o.ui === false) { $('ui').style.display = 'none'; document.querySelector('h1').style.display = 'none'; } } };
+</script>
+</body>
+</html>

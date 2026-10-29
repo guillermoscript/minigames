@@ -69,8 +69,8 @@ function mkPaga(){
 
   function drawDobla(){
     const lose=g.result==='lose',e=g.endT,k=clamp(g.t/T1,0,1),pop=lose?ease(clamp(e/.2,0,1)):0,cx=BX+ox+(nud>.3?Math.sin(now*60)*5:0),cy=BY+oy,done=nf>=NF;
-    wash(0,0,800,600,'#f6e3b4','#ecd29a');
-    rr(0,92,800,36,0,'#d9dce6',0);line([[0,128],[800,128]],4,INK);txt('NO SE ACEPTAN BILLETES MOCHOS',560,110,13,INK,0,true);
+    wash(gameLeft(),0,GAME_VIEW.width,600,'#f6e3b4','#ecd29a');
+    rr(gameLeft(),92,GAME_VIEW.width,36,0,'#d9dce6',0);line([[gameLeft(),128],[gameRight(),128]],4,INK);txt('NO SE ACEPTAN BILLETES MOCHOS',560,110,13,INK,0,true);
     /* el parabrisas al fondo, con la gallina de siempre en el tablero */
     rr(290,142,480,146,14,'#5a4a78',4.5);
     ctx.save();path(rrP(298,150,464,130,8));ctx.clip();wash(298,150,464,130,'#8fd8ff','#e8f8ff');
@@ -104,8 +104,8 @@ function mkPaga(){
   function drawBus(){
     const win=g.result==='win',lose=g.result==='lose',e=g.endT,visto=lose&&kind==='visto',mad=lose&&(kind==='grab'||visto),ojo=!g.result&&mira===1,ve=!g.result&&mira===2,rem=caught?clamp((g.t-tC)/(g.dur-tC),0,1):0;
     ctx.save();if(mad&&e<.35)ctx.translate(Math.sin(now*70)*4*(1-e/.35),0);
-    wash(0,0,800,600,'#f6e3b4','#ecd29a');
-    rr(0,92,800,36,0,'#d9dce6',0);line([[0,128],[800,128]],4,INK);txt('NO SE ACEPTAN BILLETES MOCHOS',440,110,13,INK,0,true);
+    wash(gameLeft(),0,GAME_VIEW.width,600,'#f6e3b4','#ecd29a');
+    rr(gameLeft(),92,GAME_VIEW.width,36,0,'#d9dce6',0);line([[gameLeft(),128],[gameRight(),128]],4,INK);txt('NO SE ACEPTAN BILLETES MOCHOS',440,110,13,INK,0,true);
     line([[250,150],[650,150]],8,'#c4cad6');
     for(let i=0;i<4;i++){const x=290+i*104,sw=Math.sin(now*2+i)*2;line([[x,150],[x+sw,178]],4,'#3b3550');line(closeP(ellP(x+sw,190,10,12,10)),4,'#ffd23f');}
     /* el frente queda a la izquierda: parabrisas y ventanas con la calle pasando */
@@ -120,7 +120,7 @@ function mkPaga(){
     bust(Object.assign({},FACES[2],{x:452,y:440,s:.6,th:90,bw:50,mood:mad&&e>.3?'o':'sleep',rot:mad?0:Math.sin(now*2)*.05}));
     if(!mad)txt('z',492,356+Math.sin(now*3)*5,20,'#ffffff',.2);
     for(let i=0;i<3;i++)rr(270+i*126,484,112,42,12,'#2f7fe0',4);
-    rr(0,FY,800,80,0,'#5a5274',0);line([[0,FY],[800,FY]],5,INK);for(let i=0;i<9;i++)rr(i*95-10,FY+34,56,6,3,'#6f6790',0);
+    rr(gameLeft(),FY,GAME_VIEW.width,80,0,'#5a5274',0);line([[gameLeft(),FY],[gameRight(),FY]],5,INK);for(let i=0;i<9;i++)rr(i*95-10,FY+34,56,6,3,'#6f6790',0);
     /* la puerta de atrás, abierta y con la calle corriendo */
     rr(654,140,146,FY-132,10,'#2d2640',4.5);
     ctx.save();path(rrP(664,150,128,FY-150,6));ctx.clip();wash(664,150,128,300,'#8fd8ff','#e8f8ff');
@@ -160,9 +160,9 @@ function mkPaga(){
   /* ganaste: ya estás en la acera y la camionetica se va con el colector asomado (el grito llega tarde) */
   function drawCalle(){
     const e=g.endT-.32,bx=70-40*e-300*e*e,hop=Math.abs(Math.sin(e*8))*24*Math.max(0,1-e*.45),MX=650,MY=402-hop;
-    wash(0,0,800,430,'#8fd8ff','#e8f8ff');ell(700,160,34,34,'#ffe14d',0);
+    wash(gameLeft(),0,GAME_VIEW.width,430,'#8fd8ff','#e8f8ff');ell(700,160,34,34,'#ffe14d',0);
     [[20,210,150,220,'#ffb36b'],[190,170,130,260,'#a9a0ff'],[340,220,170,210,'#ff9ec7'],[530,190,140,240,'#6ecf8f'],[690,230,130,200,'#ffd23f']].forEach(([x,y,ww,hh,c])=>{rr(x,y,ww,hh,6,c,3.5);for(let i=0;i<3;i++)rr(x+14+i*(ww/3.4),y+20,ww/5,26,4,'#ffffff',2.5);});
-    rr(0,430,800,100,0,'#4d4a6e',0);rr(0,424,800,10,0,'#d8d2c4',0);for(let i=0;i<5;i++)rr(i*180-30,486,90,8,4,'#ffe14d',0);
+    rr(gameLeft(),430,GAME_VIEW.width,100,0,'#4d4a6e',0);rr(gameLeft(),424,GAME_VIEW.width,10,0,'#d8d2c4',0);for(let i=0;i<5;i++)rr(i*180-30,486,90,8,4,'#ffe14d',0);
     ctx.save();ctx.translate(bx,Math.sin(now*34)*1.4);
     for(let i=0;i<3;i++){const u=(now*1.6+i/3)%1;ctx.save();ctx.globalAlpha=.5*(1-u);ell(540+u*70,444-u*30,12+u*22,10+u*16,'#d8d2c4',0);ctx.restore();}
     rr(0,190,520,262,38,'#ff6b3d',5);rr(0,190,520,34,26,'#fff3c4',4);rr(2,376,516,34,0,'#ffd23f',0);rr(2,410,516,12,0,'#2f7fe0',0);line([[2,376],[518,376]],4,INK);line([[2,422],[518,422]],4,INK);
@@ -174,7 +174,7 @@ function mkPaga(){
       arms:[{side:1,a:2.4+Math.sin(now*20)*.3,len:84,w:20,hand:e<.45?(hx,hy)=>{ctx.save();ctx.translate(hx+10,hy-30);ctx.rotate(Math.sin(now*40)*.1);ctx.scale(.4,.4);billete();ctx.restore();}:null},{side:-1,a:-1.2,len:60,w:20}]}));
     for(const wx of[104,330]){ell(wx,460,42,42,'#14101c',3);ell(wx,460,17,17,'#c9ced6',3);}
     ctx.restore();
-    rr(0,520,800,90,0,'#d8d2c4',0);line([[0,520],[800,520]],5,INK);pole(64,330,596);rr(22,300,84,44,8,'#2f7fe0',4.5);txt('PARADA',64,322,15,'#ffffff',0,true);dog(150,590,1);
+    rr(gameLeft(),520,GAME_VIEW.width,90,0,'#d8d2c4',0);line([[gameLeft(),520],[gameRight(),520]],5,INK);pole(64,330,596);rr(22,300,84,44,8,'#2f7fe0',4.5);txt('PARADA',64,322,15,'#ffffff',0,true);dog(150,590,1);
     /* tú, y el billete mocho que se le va de la mano y te vuelve */
     const HX=MX-120,HY2=MY-104,u=clamp((e-.45)/.8,0,1);
     bust(Object.assign({},TU,{x:MX,y:MY,s:1,th:110,legs:['#2f3a7a','#ffffff',60],mood:got?'grin':'happy',look:-1,rot:Math.sin(e*8)*.05,

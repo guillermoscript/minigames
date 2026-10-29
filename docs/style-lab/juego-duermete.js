@@ -105,8 +105,8 @@ function mkDuermete(){
       const fake=x=>!g.result&&tg&&gz.st==='off'&&g.t<looks[0].a&&Math.abs(tg[0]-x)<44;
       ctx.save();if(cough>.1||(stare&&e<.8))ctx.translate(Math.sin(now*70)*2.5,Math.sin(now*53)*1.5);
       /* el bus por dentro */
-      wash(0,0,800,600,'#f6e3b4','#ecd29a');
-      rr(0,92,800,36,0,'#d9dce6',0);line([[0,128],[800,128]],4,INK);txt('ASIENTO PREFERENCIAL ▼',PX,110,14,INK,0,true);
+      wash(gameLeft(),0,GAME_VIEW.width,600,'#f6e3b4','#ecd29a');
+      rr(gameLeft(),92,GAME_VIEW.width,36,0,'#d9dce6',0);line([[gameLeft(),128],[gameRight(),128]],4,INK);txt('ASIENTO PREFERENCIAL ▼',PX,110,14,INK,0,true);
       line([[0,150],[578,150]],8,'#c4cad6');
       for(let i=0;i<5;i++){const x=64+i*112,sw=Math.sin(now*2+i)*2;line([[x,150],[x+sw,172]],4,'#3b3550');line(closeP(ellP(x+sw,183,9,11,10)),4,'#ffd23f');}
       /* ventanas: por la calle pasa un chivo en moto */
@@ -123,7 +123,7 @@ function mkDuermete(){
       rr(706,140,94,AY-132,10,'#2d2640',4.5);
       ctx.save();path(rrP(714,150,80,AY-150,6));ctx.clip();wash(714,150,80,260,'#8fd8ff','#e8f8ff');rr(714,392,80,AY-392,0,'#d8d2c4',0);line([[714,392],[794,392]],4,INK);ctx.restore();
       rr(708,96,90,30,8,'#c4283a',3.5);txt('SUBIDA',753,112,15,'#ffffff',0,true);
-      rr(0,AY,800,148,0,'#5a5274',0);line([[0,AY],[800,AY]],5,INK);for(let i=0;i<9;i++)rr(i*95-30,AY+22,56,6,3,'#6f6790',0);
+      rr(gameLeft(),AY,GAME_VIEW.width,148,0,'#5a5274',0);line([[gameLeft(),AY],[gameRight(),AY]],5,INK);for(let i=0;i<9;i++)rr(i*95-30,AY+22,56,6,3,'#6f6790',0);
       rr(706,AY-6,94,14,4,'#ffd23f',3.5);
       /* los puestos del fondo: todos ocupados (uno, por una bombona con su cinturón) */
       for(const x of[SL,176,454,S2,S3])seat(x);

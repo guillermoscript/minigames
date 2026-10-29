@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>MiniCaos · laboratorio: minijuegos versus</title>
+<style>body{margin:0;background:#0f0b1a;color:#fff;font:600 14px system-ui,sans-serif;padding:16px}</style></head>
+<body>cargando el laboratorio…
+<script>
+/* Banco de pruebas de los minijuegos VERSUS de LA FIESTA (2-4 jugadores a la vez). No edita index.html.
+   ?juego=<id> (con o sin prefijo vs-) · ?modo=ffa|2v2|1v3 · ?n=2..4 jugadores · ?humanos=0..4 (el resto son CPU) · ?nivel=1..3 · ?seed=N · ?solo=0..3 (1v3)
+   Teclas: P1 A/S · P2 F/G · P3 J/K · P4 ◄/►. En pantalla táctil, los pads de abajo. */
+fetch('index.html',{cache:'no-store'}).then(r=>r.text()).then(h=>{
+  const v=Date.now();
+  document.open();
+  document.write(h.replace('</body>','<script src="juegos-bus.js?v='+v+'" data-juego="-"><\/script><script src="fiesta-vs.js?v='+v+'"><\/script><script src="juegos-vs-lista.js?v='+v+'"><\/script><script>(window.JUEGOS_VS||[]).concat((new URLSearchParams(location.search).get("extra")||"").split(",").filter(Boolean)).filter((k,i,a)=>a.indexOf(k)===i).forEach(k=>document.write(\'<script src="juego-f-\'+k+\'.js?v='+v+'"><\/\'+\'script>\'))<\/script></body>'));
+  document.close();
+}).catch(e=>{document.body.textContent='No pude cargar index.html: '+e;});
+</script></body></html>

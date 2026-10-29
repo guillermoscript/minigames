@@ -50,6 +50,27 @@ function tienda(S,v,s,rng,err){
   l.sort(function(a,b){return PRIO.indexOf(a.item)-PRIO.indexOf(b.item);});
   return{t:'COMPRAR',item:l[0].item,eid:e.id};
 }
+// ELIGE: utilidad simple por aviso (doc 12). El nivel 1-2 a veces elige una opción habilitada al azar.
+function elige(S,v,s,rng,err){
+  var e=v.esp,p=S.pj[s],ok=e.opc.filter(function(o){return!o.off;}),id=e.def,pr=R().precioPara(S,s),d=dEst(S,p.nodo);
+  function hay(i){return ok.filter(function(o){return o.id===i;})[0]||null;}
+  if(rng.next()<err)return{t:'ELIGE',id:rng.pick(ok).id,eid:e.id};
+  if(e.que==='galipan'){var mejor=null,rk=99;ok.forEach(function(o){if(o.id.indexOf('o:')!==0)return;var q=PRIO.indexOf(o.id.slice(2));if(q>=0&&q<rk){rk=q;mejor=o;}});
+    if(mejor&&rk<=2&&p.mon-2>=pr)id=mejor.id;else id='m4';}
+  else if(e.que==='morrocoy'){var bl=null,bd=d-2;ok.forEach(function(o){if(o.id.indexOf('l:')!==0)return;var dd=R().dist(o.id.slice(2),R().estrellasEn(S)[0]);R().estrellasEn(S).forEach(function(x){dd=Math.min(dd,R().dist(o.id.slice(2),x));});
+      if(dd<bd&&p.mon-3>=Math.min(pr,p.mon)){bd=dd;bl=o;}});id=bl&&d-bd>=3?bl.id:'playa';}
+  else if(e.que==='catatumbo1'){var ri=rival(S,s,ok.filter(function(o){return o.id.indexOf('r:')===0;}).map(function(o){return o.id.slice(2);}));
+    id=ri&&p.mon>=pr+10&&S.pj[ri].est>=p.est?'r:'+ri:'azar';}
+  else if(e.que==='catatumbo2')id='mon';
+  else if(e.que==='pampatar'){var cand=ok.filter(function(o){return o.id!=='no';}).map(function(o){return o.id.slice(2);}),ri2=rival(S,s,cand);id=ri2?'n:'+ri2:'no';}
+  else if(e.que==='noronqui')id=hay('si')&&p.mon>=pr+25?'si':'no';
+  else if(e.que==='saltoangel')id=hay('si')&&p.mon>=pr+35?'si':'no';
+  else if(e.que==='mochima')id=hay('islas')&&d>=8?'islas':'playa';
+  else if(e.que==='sanantonio')id=p.mon<=15?'cambio':'pagar';
+  else if(e.que==='isla'){var oo=ok.filter(function(o){return o.id.indexOf('o:')===0&&PRIO.indexOf(o.id.slice(2))>=0&&PRIO.indexOf(o.id.slice(2))<=2;})[0];id=oo?oo.id:'mon';}
+  else if(e.que==='guri')id='no';
+  return{t:'ELIGE',id:hay(id)?id:e.def,eid:e.id};
+}
 function decide(S,v,s,rng){
   v=v||R().vista(S,s);
   if(!v.mio)return v.listo?{t:'LISTO'}:null;
@@ -59,6 +80,7 @@ function decide(S,v,s,rng){
   if(e.k==='RUTA')return ruta(S,v,s,rng,err);
   if(e.k==='ESTRELLA')return{t:'ESTRELLA',si:S.pj[s].mon>=e.opc[0].precio,eid:e.id};
   if(e.k==='TIENDA')return tienda(S,v,s,rng,err);
+  if(e.k==='ELIGE')return elige(S,v,s,rng,err);
   if(e.k==='OBJETIVO')return{t:'OBJETIVO',a:rival(S,s,e.opc)||e.opc[0],eid:e.id};
   return null;
 }

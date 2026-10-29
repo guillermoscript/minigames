@@ -66,7 +66,7 @@ const BONUS = { minijuegos: 'REY DEL MINIJUEGO', ricachon: 'EL RICACHÓN', pasos
 const BONUS_D = { minijuegos: 'ganó más minijuegos', ricachon: 'llegó a tener más real', pasos: 'caminó más casillas',
   eventos: 'cayó en más eventos', rojas: 'pisó más rojas', compras: 'compró más cosas' };
 const TIPO = { ffa: 'TODOS CONTRA TODOS', '2v2': '2 VS 2', '1v3': '1 VS 3', '1v1': '¡DUELO!' };
-const PLAZO0 = { DADO: 20000, RUTA: 12000, TIENDA: 15000, ESTRELLA: 10000, OBJETIVO: 12000, COMMIT: 12000 };
+const PLAZO0 = { DADO: 20000, RUTA: 12000, TIENDA: 15000, ESTRELLA: 10000, OBJETIVO: 12000, ELIGE: 15000, COMMIT: 12000 };
 const ERR = [
   [/character taken/i, '¡Ese personaje ya lo agarraron!'], [/room not found|not found/i, 'Esa sala no existe, pana'],
   [/unreachable/i, 'No hay señal con el servidor'], [/stale prompt|stale board/i, 'Se te pasó el tiempo, mi pana'],
@@ -300,6 +300,10 @@ function textoRuleta(f, S) {
 }
 const TXT_EVENTO = { billete: '¡BILLETE!', cola: 'COLA EN EL BANCO', regalo: 'REGALO DE LA VECINA', fresas: '¡FRESAS CON CREMA!', propina: 'PROPINA',
   relampago: '¡RELÁMPAGO!', apagon: '¡SE FUE LA LUZ!', luz: 'VOLVIÓ LA LUZ', ultimos5: '¡ÚLTIMOS 5!', hamaca: 'LA HAMACA', ahorita: 'AHORITA',
+  curvas: '¡CUÁNTAS CURVAS!', avanza: '¡SIGUE!', gaita: '¡GAITAZO!', selfie: 'SELFIE EN EL PICO', paramo: 'EL PÁRAMO', feria: 'LA FERIA', coleo: '¡COLEA EL TORO!',
+  anguila: 'ANGUILA ELÉCTRICA', calipso: 'CALIPSO', dino: 'EL MUNDO PERDIDO', oscuro: 'A OSCURAS', tambores: 'TAMBORES', snorkel: 'SNORKEL', colea: '¡TE COLASTE!',
+  galipan: 'FRESAS CON CREMA', morrocoy: 'CAYO SOMBRERO', rayo: '¡EL RAYO!', canon: '¡CAÑONAZO!', vip: 'SERVICIO VIP', isla: 'LA ISLA', premium: '¡ESTRELLA PREMIUM!',
+  playa: 'MOCHIMA', cambio: 'CASA DE CAMBIO', turnoguri: 'VIGILANTE DE GURI',
   recibo: 'RECIBO PAGADO', lastima: 'DON CORTE', dato: 'EL DATO', pelaos: 'DUELO DE PELAOS', rey: '¡REY DE LA RUMBA!' };
 /* El aviso que me toca, como datos (puro): {k, titulo, sub?, botones:[{id, label, sub?, intent, off?, item?, s?, sel?}], s?, hasta?}.
    local = estado del submenú: {modo:'objetivo'|'medida', slot, item} y {sel} (artículo marcado en la tienda). */
@@ -364,6 +368,10 @@ function modeloAviso(S, yo, local) {
       { id: 'si', label: '¡SÍ, DAME!', intent: { k: 'act', a: { t: 'ESTRELLA', si: true } }, off: p.mon < pr, sub: p.mon < pr ? 'No te alcanzan las monedas' : null, grande: true, key: 'Enter' },
       { id: 'no', label: 'NO, GRACIAS', intent: { k: 'act', a: { t: 'ESTRELLA', si: false } }, key: 'Escape' }] });
   }
+  if (e.k === 'ELIGE') {
+    return Object.assign(base, { titulo: e.tit || '¿Qué haces?', sub: e.sub || null, botones: (e.opc || []).map((o, i) => ({ id: 'el:' + o.id, label: o.txt, sub: o.sub || null, off: !!o.off,
+      intent: { k: 'act', a: { t: 'ELIGE', id: o.id } }, key: 'Digit' + (i + 1) })) });
+  }
   if (e.k === 'OBJETIVO') {
     return Object.assign(base, { titulo: '¡DUELO! ¿A quién retas?', sub: 'El que gane se lleva la apuesta',
       botones: (e.opc || []).map((s) => ({ id: 'obj:' + s, label: nombreDe(S, s), s, intent: { k: 'act', a: { t: 'OBJETIVO', a: s } } })) });
@@ -373,7 +381,7 @@ function modeloAviso(S, yo, local) {
 function textoEspera(S, e) {
   const n = nombreDe(S, e.s);
   return ({ DADO: n + ' va a tirar el dado…', RUTA: n + ' está pensando por dónde agarrar 🤔', TIENDA: n + ' está en el abasto 🛒',
-    ESTRELLA: '¿' + n + ' comprará la estrella?', OBJETIVO: n + ' está eligiendo a quién retar…' })[e.k] || n + ' está pensando…';
+    ESTRELLA: '¿' + n + ' comprará la estrella?', OBJETIVO: n + ' está eligiendo a quién retar…', ELIGE: n + ' está decidiendo…' })[e.k] || n + ' está pensando…';
 }
 
 /* ───────────── dibujo (solo navegador: usa las primitivas globales de engine.js) ───────────── */
@@ -684,6 +692,10 @@ function crear(opts) {
     const q0 = U.pos[s] || (U.pos[s] = {}); q0.x = r.x; q0.y = r.y; q0.w = r.w; q0.h = r.h; q0.mx = mx + 8; q0.my = my0; q0.ex = tx + 9; q0.ey = my0;
     const os = p.obj || [], sz = c ? 18 : 15;                // los 3 objetos (públicos, doc 07 D4)
     for (let i = 0; i < 3; i++) { const ox = tx + i * (sz + 5), oy = r.y + r.h - sz - 5; rr(ox, oy, sz, sz, 4, os[i] ? '#fffdf2' : 'rgba(255,255,255,.12)', 2); if (os[i]) icItem(os[i])(ox + sz / 2, oy + sz / 2, sz * .36); }
+    { const ch = [], st = p.st || {};                                            // estados que afectan tu próxima tirada / ruta (doc 12)
+      if (st.senal) ch.push(['📵 1-3', '#ff9bb0']); if (st.lim3) ch.push(['🐌 1-3', '#ff9bb0']); if (st.lim5) ch.push(['🌀 1-5', '#ffb86b']);
+      if (st.bonus2) ch.push(['⚡ +2', '#7dffa0']); if (st.oscuro) ch.push(['🕯 oscuro', '#b49cff']);
+      let cx0 = r.x + r.w - 8; ch.slice(0, 2).forEach((q) => { const w = Math.max(40, tw2(q[0], 11) + 12); cx0 -= w; rr(cx0, r.y + r.h - 22, w, 16, 7, q[1], 2.5); T(q[0], cx0 + w / 2, r.y + r.h - 14, 11, INKC, w - 4, true); cx0 -= 4; }); }
     // insignia de estado (CPU / zzz AFK / SIN SEÑAL) en el borde de abajo del retrato: no tapa los 3 objetos ni el nombre
     { const bx = px, by = r.y + 5 + ph - 7;
       if (p.cpu) { const lbl = p.cpu === 'afk' ? 'zzz' : 'CPU', bw = p.cpu === 'afk' ? 36 : 38; rr(bx - bw / 2, by - 8, bw, 16, 7, p.cpu === 'afk' ? '#b49cff' : '#c9c5d6', 2.5); T(lbl, bx, by, 11, INKC, bw - 4, true); }
@@ -715,7 +727,7 @@ function crear(opts) {
   }
   // pie del panel: atajos de teclado en una pastilla encima del panel (no registra botones ni toca el mapa); en móvil no hace falta
   const PISTA = { DADO: 'Espacio = tirar · 1-5 emotes', COMMIT: 'Espacio = tirar', LISTO: 'Espacio = listo', TIENDA: '1-9 = marcar · Enter = comprar · Esc = no', ESTRELLA: 'Enter = sí · Esc = no',
-    RUTA: 'Toca una flecha del mapa', OBJETIVO: 'Elige a quién retar', AFK: 'Espacio = volver' };
+    RUTA: 'Toca una flecha del mapa', OBJETIVO: 'Elige a quién retar', ELIGE: '1-4 = elegir', AFK: 'Espacio = volver' };
   function pista(m, L, y, vm) {
     const s = PISTA[m.k]; if (!s || L.compacto || !vm.yo) return;
     const w = Math.min(L.panel.w, tw2(s, 13) + 30); rr(L.cx - w / 2, y - 26, w, 22, 11, '#1f1b33', 0); T(s, L.cx, y - 15, 13, '#ffffff', w - 16, true);   // opaco: con alfa, garabato/tinta lo pintan crema y el texto blanco no se lee

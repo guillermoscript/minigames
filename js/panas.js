@@ -16,9 +16,10 @@ async function panasJoin() {
   if (code.length !== 4) { party.msg = 'TYPE THE 4-LETTER ROOM CODE'; party.msgCol = '#FF4D4D'; return; }
   if (party.busy) return;
   party.msg = 'ONE MOMENT...'; party.msgCol = '#fff';
-  let kind = 'party';
-  try { const r = await fetch(API_BASE + '/api/party/kind/' + code); if (r.ok) kind = (await r.json()).kind || 'party'; } catch (e) {}   // unknown: the normal join explains the error
+  let kind = 'party', tab = '';
+  try { const r = await fetch(API_BASE + '/api/party/kind/' + code); if (r.ok) { const k = await r.json(); kind = k.kind || 'party'; tab = k.tab || ''; } } catch (e) {}   // unknown: the normal join explains the error
   if (inCode) inCode.blur();
+  if (kind === 'fiesta' && tab === 'margarita') { track('party_join_route', { kind: 'margarita' }); party.msg = ''; kitLeave('docs/margarita/?r=' + code + '&lang=' + encodeURIComponent(I18N.lang), MCUI.WORLD.margarita); return; }   // the island board (doc 14)
   if (kind === 'fiesta') { track('party_join_route', { kind }); party.msg = ''; kitLeave('worlds/venezuela/fiesta.html?r=' + code + '&lang=' + encodeURIComponent(I18N.lang), MCUI.WORLD.fiesta); return; }
   partyJoin(code);
 }

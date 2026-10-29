@@ -489,7 +489,8 @@ const REACT_MODES = ["cards"];
 const GUESS_SIDES = ["left", "right"];
 /* Live relay for DUO inputs, spectator snapshots in every mode and lantern light positions.
    Payloads are authenticated and forwarded, never stored in the room record. */
-function sigPayload(room, id, round, m, now, limiter) {
+function sigPayload(room, id, round, m, now, limiter, sc) {
+  if (room && room.mode === FIESTA) return MJ().fiestaSig(room, id, sc, m, now, limiter);   // LA FIESTA (M2): alcances 'b' y 'm:<k>', antes del chequeo de ronda clásica
   if (!MODES.includes(room.mode) || room.state !== "round" || round !== room.round) fail("Round is over", 409);
   const p = player(room, id), ghost = elimination(room) && !!p && p.lives <= 0;
   if (!p || p.left || (ghost && !(Array.isArray(m) && m.length === 1 && m[0] && m[0].t === "sab"))) fail("Not in this round", 403);   // an eliminated player may send nothing but one sabotage
@@ -569,4 +570,266 @@ function vsigPayload(room, id, to, k, d) {
 /* what clients may see (the record itself hides `keys`; this is for tests and logs) */
 const publicRoom = (room) => { const o = Object.assign({}, room); delete o.keys; return o; };
 
-module.exports = { fail, MAX_PLAYERS, ROUNDS, LIVES, AWARD, GAMES, GAME_IDS, SOLO_IDS, DUO_IDS, duoIdsFor, seatsOf, takeRoomGame, TURN_IDS, takeTurnGame, MODES, roleOf, cleanMode, drawCard, stealCard, pump, turnMode, sigPayload, SAB_KINDS, GHOST_KINDS, SAB_MODES, GHOST_MODES, RACE_MODES, RACE_GAP_MS, RACE_HIT_GAP_MS, RACE_ROUND_MAX, CHEER_KINDS, CHEER_MODES, CHEER_GAP_MS, CHEER_ROUND_MAX, REACT_KINDS, REACT_MODES, GUESS_SIDES, PRE_MS_CARDS, GHOST_GAP_MS, GHOST_HIT_GAP_MS, GHOST_ROUND_MAX, SAB_GAP_MS, SAB_HIT_GAP_MS, REACT_BURST, REACT_REFILL_MS, PRE_MS, sabAllowed, SIG_MAX, SIG_FRAME_MAX, PRE_MS_TURN, vsigPayload, VSIG_MAX, PartyError, cleanName, cleanCode, makeCode, active, newRoom, addPlayer, auth, leave, setMode, start, again, report, tick, advance, roundMs, publicRoom };
+/* ───── LA FIESTA (docs/mario-party/07-multijugador-online.md §3-4): modo tipo Mario Party sobre el MISMO registro `rooms`.
+   No va en MODES: esos son los modos de la app clásica (party-menu.test.js los compara con su menú, y setMode/start no saben de él).
+   Las reglas del tablero viven en el reductor puro docs/style-lab/fiesta-reglas.js; scripts/sync-fiesta-rules.sh lo copia (con
+   fiesta-rng, fiesta-mapa-venezuela y fiesta-cpu) a pb_hooks/ al construir la imagen y en pocketbase/dev.sh. Se carga perezoso, así
+   que los modos clásicos no pagan el mapa ni se caen si faltara la copia.
+   Dos tableros sobre la misma sala (doc 14): board.tab === 'margarita' (texto) corre docs/margarita/margarita-reglas.js; si no, Venezuela
+   (ahí board.tab es el objeto del minijuego). reglas(room) despacha por tablero; reglas() a secas es Venezuela (catálogo de minijuegos,
+   personajes y puestos, que los dos comparten).
+   Registro: board = tablero PÚBLICO S (sale por SSE), ver = S.ver (monótono, +1 en cada escritura de fiesta, también en el lobby),
+   keys._f = parte privada del reductor (RNG, mazo, compromisos, aid, cpuAt): `keys` jamás sale (publicRoom y `hidden` en la colección).
+   state: lobby → play → done. extra.afkAt = {asiento: ms} desde cuándo está AFK (para la toma de asiento a los 180 s, D14). ───── */
+const FIESTA = "fiesta";
+let REGLAS = null;
+let REGLAS_M = null;
+const MARGARITA = "margarita";
+const tabDe = (x) => (typeof x === "string" ? x : x && x.board && typeof x.board.tab === "string" ? x.board.tab : "");
+const reglas = (x) => tabDe(x) === MARGARITA
+  ? REGLAS_M || (REGLAS_M = require(typeof __hooks === "string" ? `${__hooks}/margarita-reglas.js` : "../../docs/margarita/margarita-reglas.js"))
+  : REGLAS || (REGLAS = require(typeof __hooks === "string" ? `${__hooks}/fiesta-reglas.js` : "../../docs/style-lab/fiesta-reglas.js"));
+let MJm = null;   // party_mj.js: relé, juez y validación de los minijuegos en vivo (se carga perezoso, como las reglas)
+const MJ = () => MJm || (MJm = require(typeof __hooks === "string" ? `${__hooks}/party_mj.js` : "./party_mj.js")({ fail, PartyError, player, reglas, SIG_MAX, SIG_COUNT, reactLimit }));
+const slimRoom = (o) => MJ().slimRoom(o);
+const relayCache = (store) => MJ().relayCache(store);
+const elegirJuez = (mj, pj, pres, now) => MJ().elegirJuez(mj, pj, pres, now);
+const FIESTA_FORCE_MS = 20000;     // el anfitrión puede empezar sin todos listos 20 s después de que el 2.º humano marcó listo
+const FIESTA_TAKE_MS = 180000;     // un asiento AFK se puede tomar cuando su dueño lleva más de esto fuera
+const FIESTA_TICK_MAX = 8;         // vencimientos atendidos por llamada a tick
+const FIESTA_ACT = ["TIRAR", "USAR", "RUTA", "ESTRELLA", "COMPRAR", "OBJETIVO"];
+const FIESTA_CFG = { tot: [10, 15, 20], ronda: ["clasica", "relampago"], reglas: ["caos", "clasico"], cpuNivel: [1, 2, 3] };
+const ACT_RUTA = ["LISTO", "JUEZ", "VOLVER", "SALIR", "MICRO"];   // tienen su propia ruta (ready, juez, back, leave) o son solo del modo local
+/* lo que `act` deja pasar y lo que el anfitrión puede cambiar en el lobby: lo dice el reductor del tablero (Venezuela no los exporta) */
+const actsDe = (R) => (R.ACCIONES ? R.ACCIONES.filter((t) => ACT_RUTA.indexOf(t) < 0) : FIESTA_ACT);
+const cfgDe = (R) => R.CFG_VALIDA || FIESTA_CFG;
+/* errores del reductor -> [estado HTTP, mensaje] */
+const FIESTA_ERR = { turno: [403, "Not your turn"], cpu: [403, "That seat is played by the CPU"], asiento: [403, "Not your seat"],
+  eid: [409, "Stale prompt"], ver: [409, "Stale board"], fase: [409, "Not now"], cas: [409, "Judge changed"],
+  accion: [400, "Bad action"], opcion: [400, "Bad option"], slot: [400, "Bad slot"], objetivo: [400, "Bad target"], monedas: [409, "Not enough coins"] };
+const isFiesta = (room) => !!room && room.mode === FIESTA;
+const cleanAid = (s) => (typeof s === "string" && /^[A-Za-z0-9_-]{1,24}$/.test(s) ? s : "");
+function fiestaCfg(c, base, V) {
+  c = c && typeof c === "object" ? c : {}; V = V || FIESTA_CFG;
+  const o = Object.assign({}, base);
+  for (const k in V) if (c[k] !== undefined && V[k].indexOf(typeof V[k][0] === "number" ? +c[k] : c[k]) >= 0) o[k] = typeof V[k][0] === "number" ? +c[k] : c[k];
+  if (typeof c.dadosPj === "boolean" && "dadosPj" in o) o.dadosPj = c.dadosPj;
+  return o;
+}
+/* cfg.tab = 'margarita' elige el tablero de Margarita; cualquier otra cosa, Venezuela */
+function fiestaNew(code, now, cfg) {
+  const o = newRoom(code, "versus", now), R = reglas(cfg && cfg.tab === MARGARITA ? MARGARITA : "");
+  o.mode = FIESTA; o.ver = 0;
+  o.board = R.lobby(fiestaCfg(cfg, R.CFG0, cfgDe(R)));
+  return o;
+}
+const bump = (room) => { room.ver = (room.ver || 0) + 1; room.board.ver = room.ver; };
+const humansIn = (room) => room.players.filter((p) => !p.cpu);
+/* aplica UNA acción del reductor y la guarda en el registro; los errores se lanzan como PartyError (el registro no cambia) */
+function fiestaStep(room, seat, a, now, msgs) {
+  const R = reglas(room), r = R.aplicar(room.board, room.keys._f, seat, a, now);
+  if (r.error) { const m = (msgs && msgs[r.error]) || FIESTA_ERR[r.error] || [400, "Bad action"]; fail(m[1], m[0]); }
+  if (!r.dup) fiestaSave(room, r, now);
+  return r;
+}
+function fiestaSave(room, r, now) {
+  room.board = r.S; room.keys._f = r.priv; room.ver = r.S.ver;
+  room.round = r.S.tab && typeof r.S.tab === "object" ? r.S.tab.k || 0 : r.S.mk || 0;   // sube con cada minijuego (la puerta de sig del M2 lo usará)
+  room.state = r.S.f === "fin" ? "done" : "play";
+  const afk = room.extra.afkAt || (room.extra.afkAt = {});
+  for (const s in r.S.pj) { if (r.S.pj[s].cpu === "afk") { if (!afk[s]) afk[s] = now; } else delete afk[s]; }
+}
+/* el tick barato: ¿hay algo vencido? (la ruta lo mira SIN transacción antes de abrir una) */
+const fiestaDue = (room, now) => isFiesta(room) && !!room.board && room.board.f !== "lobby" && room.board.f !== "fin" && room.board.nextAt != null && now >= room.board.nextAt;
+function fiestaTick(room, now, store) {
+  if (!fiestaDue(room, now)) return 0;
+  let n = 0;
+  for (; n < FIESTA_TICK_MAX; n++) {
+    fiestaTestigo(room, now);                                    // cierre por plazo sin mjfin: gana el testigo de mayor kk (DM2-11)
+    const r = reglas(room).tick(room.board, room.keys._f, now);
+    if (r.nada) break;
+    if (r.error) fail("Server error", 500);
+    fiestaSave(room, r, now);
+    fiestaElegir(room, now, store);
+  }
+  return n;
+}
+/* DM2-11: vencido el plazo del minijuego sin veredicto del juez, si hay testigos (mjack) se cierra con el de mayor kk */
+function fiestaTestigo(room, now) {
+  const b = room.board, mj = b && b.mj;
+  if (!b || b.f !== "mj" || !mj || mj.cierre == null || now < mj.cierre) return;
+  const w = MJ().mejorTestigo(room.extra.mjw, mj.k, mj.i);
+  if (!w || !Array.isArray(w.sc) || w.sc.length !== mj.as.length) return;
+  const g = MJ().clampSc(room, w.sc, mj.cierre / 1000 - mj.startAt / 1000);
+  fiestaStep(room, "$", { t: "MJ_RESULTADO", k: mj.k, i: mj.i, sc: g.sc, cpu: [], h: null, por: "testigo", disputado: true, aj: g.aj }, now);
+}
+/* DM2-9: tras fijarse startAt se elige al juez con la presencia (RTT) del almacén; el reductor no la ve, así que la decisión entra como acción '$' */
+function fiestaElegir(room, now, store) {
+  const b = room.board, mj = b && b.mj;
+  if (!mj || mj.jz || mj.startAt == null || now >= mj.startAt || (b.f !== "carta" && b.f !== "mj")) return;
+  const pres = {};
+  if (store) mj.as.forEach((s) => { try { const v = JSON.parse(store.get("fp:" + room.code + ":" + s) || "null"); if (v && typeof v === "object") pres[s] = v; } catch (_) { /* sin dato */ } });
+  const r = elegirJuez(mj, b.pj, pres, now);
+  try { fiestaStep(room, "$", { t: "JUEZ_ELEGIR", k: mj.k, juez: r.juez, suc: r.suc }, now); }
+  catch (err) { if (!(err instanceof PartyError)) throw err; }   // sin la acción en el reductor se queda el juez provisional
+}
+/* join (doc 07 §4.1): (1) id+clave válidos = reentrada (un asiento AFK vuelve solo); (2) lobby = asiento nuevo;
+   (3) en partida = toma de un asiento CPU 'auto' o 'afk' de más de 180 s (clave nueva, hereda todo, fx `llega`); (4) si no, espectador. */
+function fiestaJoin(room, info, now, rand) {
+  const b = room.board;
+  if (info.id && info.key && player(room, info.id) && room.keys[info.id] === info.key) {
+    const q = b.pj[info.id];
+    if (b.f !== "lobby" && b.f !== "fin" && q && q.cpu === "afk") fiestaStep(room, info.id, { t: "VOLVER" }, now);
+    return { you: { id: info.id, key: info.key }, back: true };
+  }
+  if (b.f === "lobby") {
+    if (room.players.length >= MAX_PLAYERS) return { spectate: true };
+    const you = addPlayer(room, info, rand);
+    b.pj[you.id] = { ch: null, name: player(room, you.id).name, cpu: null, listo: false };
+    if (info.ch && fiestaChOk(info.ch) && !fiestaChTaken(room, info.ch, you.id)) b.pj[you.id].ch = info.ch;
+    bump(room);
+    return { you };
+  }
+  if (b.f === "fin") return { spectate: true };
+  const afk = room.extra.afkAt || {};
+  const free = (s) => { const q = b.pj[s]; return !!q && (q.cpu === "auto" || (q.cpu === "afk" && now - (afk[s] || now) > FIESTA_TAKE_MS)); };
+  let s = null;
+  if (info.seat) { if (!free(info.seat)) fail("That seat is not free", 409); s = info.seat; }
+  else s = SLOTS.find(free) || null;
+  if (!s) return { spectate: true };
+  const p = player(room, s);
+  let name = cleanName(info.name) || "PANA", base = name, n = 2;
+  while (room.players.some((x) => x.id !== s && x.name === name)) name = base.slice(0, 13) + n++;
+  const key = makeKey(rand);
+  fiestaStep(room, "$", { t: "TOMAR_ASIENTO", s: s, name: name, ch: info.ch }, now);
+  p.name = name; p.left = false; delete p.cpu;
+  room.keys[s] = key; delete room.keys["u:" + s];               // la clave del dueño anterior deja de valer
+  return { you: { id: s, key }, took: true };
+}
+const fiestaChOk = (ch) => reglas().PERSONAJES.some((x) => x.id === ch);
+const fiestaChTaken = (room, ch, id) => Object.keys(room.board.pj).some((s) => s !== id && room.board.pj[s].ch === ch);
+function fiestaLobby(room) { if (room.board.f !== "lobby") fail("Game already started", 409); }
+function fiestaListoAt(room, now) {
+  const n = humansIn(room).filter((p) => room.board.pj[p.id] && room.board.pj[p.id].listo).length;
+  if (n < 2) room.board.listoAt = 0; else if (!room.board.listoAt) room.board.listoAt = now;
+}
+function fiestaStart(room, id, now, rand) {
+  if (room.host !== id) fail("Only the host can start", 403);
+  fiestaLobby(room);
+  const b = room.board, hum = humansIn(room);
+  if (hum.length < 2) fail("Need at least 2 players", 409);
+  const all = hum.every((p) => p.id === id || (b.pj[p.id] && b.pj[p.id].listo));
+  if (!all && !(b.listoAt && now - b.listoAt >= FIESTA_FORCE_MS)) fail("Not everybody is ready", 409);
+  const asientos = SLOTS.map((s) => { const p = player(room, s); return p ? { name: p.name, ch: b.pj[s] ? b.pj[s].ch : null } : { cpu: "auto" }; });
+  const r = reglas(room).crear(1 + Math.floor(rand() * 2147483646), b.cfg, asientos, now);
+  const S = r.S;
+  S.ver = (room.ver || 0) + 1;                                     // ver nunca baja: los clientes ordenan por él
+  if (S.esp) S.esp.id = S.ver;                                     // D17: el aviso lleva el ver que lo creó
+  const used = room.players.map((p) => p.color);
+  for (const s of SLOTS) if (!player(room, s)) {                  // relleno con CPU hasta 4 (sin clave: nadie puede hablar por ellas)
+    const color = COLORS.find((c) => used.indexOf(c) < 0) || COLORS[0]; used.push(color);
+    room.players.push({ id: s, name: S.pj[s].name, color, score: 0, left: false, cpu: true });
+  }
+  room.players.sort((a, b2) => SLOTS.indexOf(a.id) - SLOTS.indexOf(b2.id));
+  room.extra = { afkAt: {} }; room.total = S.tot; room.round = 0;
+  fiestaSave(room, { S, priv: r.priv }, now);
+}
+/* todas las acciones de una sala fiesta (la ruta ya autenticó id+clave, salvo join y tick). Devuelve lo que se suma a la respuesta
+   ({you}, {spectate}, {priv}, {del} = borrar la sala). */
+function fiesta(room, action, body, now, rand, info, store) {
+  const id = String(body.id || ""), b = room.board;
+  if (action === "join") return fiestaJoin(room, info || body, now, rand);
+  if (action === "tick") { fiestaTick(room, now, store); return {}; }
+  if (action === "pick") {
+    fiestaLobby(room);
+    const ch = body.ch == null ? null : String(body.ch);
+    if (ch !== null && !fiestaChOk(ch)) fail("Unknown character", 400);
+    if (ch !== null && fiestaChTaken(room, ch, id)) fail("Character taken", 409);
+    if (b.pj[id].ch !== ch) { b.pj[id].ch = ch; bump(room); }
+    return {};
+  }
+  if (action === "cfg") {
+    if (room.host !== id) fail("Only the host can do that", 403);
+    fiestaLobby(room);
+    const c = fiestaCfg(body.cfg && typeof body.cfg === "object" ? body.cfg : body, b.cfg, cfgDe(reglas(room)));
+    if (JSON.stringify(c) !== JSON.stringify(b.cfg)) { b.cfg = c; bump(room); }
+    return {};
+  }
+  if (action === "ready") {
+    if (b.f === "lobby") {
+      const on = body.on !== false;
+      if (!!b.pj[id].listo !== on) { b.pj[id].listo = on; fiestaListoAt(room, now); bump(room); }
+      return {};
+    }
+    if (b.f !== "carta") fail("Not now", 409);
+    if (body.on !== false) { fiestaStep(room, id, { t: "LISTO" }, now); fiestaElegir(room, now, store); }
+    return {};
+  }
+  if (action === "start") { fiestaStart(room, id, now, rand); return {}; }
+  if (action === "act") {
+    if (b.f === "lobby") fail("Game not started", 409);
+    const a = body.a, aid = cleanAid(body.aid);
+    if (!a || typeof a !== "object" || actsDe(reglas(room)).indexOf(a.t) < 0 || JSON.stringify(a).length > 512) fail("Bad action", 400);
+    if (!aid) fail("Bad action id", 400);
+    const x = Object.assign({}, a, { eid: typeof body.eid === "number" ? body.eid : -1, aid });   // D17: sin eid = aviso viejo (409), salvo aid repetido
+    delete x.ver; if (typeof body.ver === "number") x.ver = body.ver;
+    const r = fiestaStep(room, id, x, now);
+    return r.dup ? { dup: true } : {};
+  }
+  if (action === "commit") {
+    if (b.f === "lobby") fail("Game not started", 409);
+    const aid = cleanAid(body.aid);
+    if (!aid) fail("Bad action id", 400);
+    if (body.k !== "orden") fail("Bad commit", 400);              // M0.5: solo el dado de orden; el valor lo saca el RNG oculto (v se ignora)
+    const r = fiestaStep(room, id, { t: "COMMIT", k: "orden", aid, eid: typeof body.eid === "number" ? body.eid : null }, now);
+    return r.dup ? { dup: true } : {};
+  }
+  if (action === "mine") {
+    if (b.f === "lobby") return { priv: null };
+    const v = reglas(room).vista(b, id, room.keys._f);
+    return { priv: v.priv || null, mio: v.mio };
+  }
+  if (action === "back") {
+    if (b.f === "lobby" || b.f === "fin") fail("Not now", 409);
+    fiestaStep(room, id, { t: "VOLVER" }, now, { asiento: [409, "You are not away"] });
+    return {};
+  }
+  if (action === "leave") {
+    if (b.f === "lobby") {
+      room.players = room.players.filter((p) => p.id !== id);
+      delete room.keys[id]; delete room.keys["u:" + id]; delete b.pj[id];
+      if (!room.players.length) return { del: true };
+      if (room.host === id || !player(room, room.host)) room.host = room.players[0].id;
+      fiestaListoAt(room, 0); bump(room);
+      return {};
+    }
+    if (store && store.remove) { store.remove("fp:" + room.code + ":" + id); store.remove("fs:" + room.code + ":" + id); }
+    if (b.f !== "fin" && b.pj[id] && b.pj[id].cpu === null) fiestaStep(room, id, { t: "SALIR" }, now);   // D13: salir = AFK, la clave se queda
+    const live = humansIn(room).filter((p) => room.board.pj[p.id] && room.board.pj[p.id].cpu === null);
+    if (room.host === id && live.length) room.host = live[0].id;
+    return {};
+  }
+  if (action === "juez") {
+    if (b.f === "lobby") fail("Not now", 409);
+    if (b.mj && b.mj.as.indexOf(id) < 0) fail("Not your seat", 403);
+    if (b.mj && body.q != null && body.q !== b.mj.i) fail("Judge changed", 409);
+    if (b.mj && store && b.mj.juez !== id) MJ().relevoPermitido(room, id, now, store);   // sin juez vivo no hay relevo (409): un tramposo no puede quitárselo a uno que sigue enviando
+    fiestaStep(room, id, { t: "JUEZ", k: body.k, e: body.e, q: body.q }, now);
+    return {};
+  }
+  if (action === "mjfin") {
+    const v = MJ().validarFin(room, id, body, now);
+    fiestaStep(room, "$", { t: "MJ_RESULTADO", k: b.mj.k, i: b.mj.i, sc: v.sc, cpu: v.cpu, h: v.h, por: v.por || "juez", disputado: v.disputado, aj: v.aj }, now);
+    return { ok: true, aj: v.aj };
+  }
+  if (action === "mjack") {
+    const a = MJ().validarAck(room, id, body, now), mj = b.mj;
+    let w = room.extra.mjw;
+    if (!w || w.k !== mj.k || w.i !== mj.i) w = room.extra.mjw = { k: mj.k, i: mj.i, w: {} };
+    w.w[id] = a;
+    return { ok: true };
+  }
+  fail("Unknown action", 404);
+}
+
+module.exports = { slimRoom, relayCache, elegirJuez, FIESTA, MARGARITA, tabDe, isFiesta, fiestaNew, fiestaJoin, fiestaTick, fiestaDue, fiesta, fiestaCfg, FIESTA_FORCE_MS, FIESTA_TAKE_MS, reglas, fail, MAX_PLAYERS, ROUNDS, LIVES, AWARD, GAMES, GAME_IDS, SOLO_IDS, DUO_IDS, duoIdsFor, seatsOf, takeRoomGame, TURN_IDS, takeTurnGame, MODES, roleOf, cleanMode, drawCard, stealCard, pump, turnMode, sigPayload, SAB_KINDS, GHOST_KINDS, SAB_MODES, GHOST_MODES, RACE_MODES, RACE_GAP_MS, RACE_HIT_GAP_MS, RACE_ROUND_MAX, CHEER_KINDS, CHEER_MODES, CHEER_GAP_MS, CHEER_ROUND_MAX, REACT_KINDS, REACT_MODES, GUESS_SIDES, PRE_MS_CARDS, GHOST_GAP_MS, GHOST_HIT_GAP_MS, GHOST_ROUND_MAX, SAB_GAP_MS, SAB_HIT_GAP_MS, REACT_BURST, REACT_REFILL_MS, PRE_MS, sabAllowed, SIG_MAX, SIG_FRAME_MAX, PRE_MS_TURN, vsigPayload, VSIG_MAX, PartyError, cleanName, cleanCode, makeCode, active, newRoom, addPlayer, auth, leave, setMode, start, again, report, tick, advance, roundMs, publicRoom };

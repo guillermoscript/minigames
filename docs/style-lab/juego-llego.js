@@ -76,7 +76,7 @@ function mkLlego(){
     draw(){
       const win=g.result==='win',esPl=g.kind==='planta',pronto=g.kind==='pronto'||esPl,tarde=g.kind==='tarde',e=fin,fl=amago();
       const luz=on?clamp((g.t-T)/.8,0,1):0,noche=on?.6*(1-clamp((g.t-T)/.25,0,1)):.6;
-      ctx.save();path([[0,0],[800,0],[800,576],[0,576]]);ctx.clip();
+      ctx.save();path([[gameLeft(),0],[gameRight(),0],[gameRight(),576],[gameLeft(),576]]);ctx.clip();
       AP.barrio(fl?.18:luz);
       if(pl)planta(CASA);
       farol(on?clamp((g.t-T)/.15,0,1):0);
@@ -92,7 +92,7 @@ function mkLlego(){
       /* la noche encima, con el charquito de luz de cada vela */
       AP.oscuro(noche,GENTE.filter(q=>q[4]).map(([,x,,,sd])=>({x:x+sd*36,y:514,r:72,c:'#ffb040'})).concat(pl?[{x:CASA[0]+CASA[2]/2,y:CASA[1]+110,r:150,c:'#ffe14d'},{x:CASA[3],y:462,r:64}]:[]));
       /* el fogonazo: llegó de verdad */
-      if(on&&!pronto&&g.t-T<.35){ctx.save();ctx.globalAlpha=.8*(1-(g.t-T)/.35);rr(0,0,800,576,0,'#fff8d0',0);ctx.restore();}
+      if(on&&!pronto&&g.t-T<.35){ctx.save();ctx.globalAlpha=.8*(1-(g.t-T)/.35);rr(gameLeft(),0,GAME_VIEW.width,576,0,'#fff8d0',0);ctx.restore();}
       if(pl&&!on)ronca(CASA,g.t-tp);
       if(!g.result){tag(400,284);
         if(!on&&!fl&&g.t>.2){ctx.save();ctx.globalAlpha=.6+Math.sin(now*5)*.3;txt('...',400,130,46,'#ffffff');ctx.restore();}}
@@ -101,7 +101,7 @@ function mkLlego(){
       else if(pronto&&e>.15)globo('¿...?',262,314,26,248,370,(e-.15)*6);
       if(pronto&&!esPl&&e>.5)globo('¿...?',600,316,22,572,372,(e-.5)*6);
       if(tarde&&e>.1)globo('¡LLEGÓ!',612,312,24,572,370,(e-.1)*6);
-      ctx.restore();line([[0,576],[800,576]],4,INK);
+      ctx.restore();line([[gameLeft(),576],[gameRight(),576]],4,INK);
       drawP();
     }};
   return g;

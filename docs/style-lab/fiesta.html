@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0b0b14">
+<link rel="icon" href="data:,">
+<title>MiniCaos · LA FIESTA</title>
+<style>
+html,body{margin:0;height:100%;overflow:hidden;background:#0b0b14;display:flex;align-items:center;justify-content:center;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;overscroll-behavior:none}
+/* fiesta-main.js fija el tamaño en px: alto lógico 600 y ancho según la ventana (4:3 hasta ~2.17:1) */
+canvas{display:block;width:min(100vw,133.333vh);height:auto;aspect-ratio:auto;touch-action:none;-webkit-tap-highlight-color:transparent}
+</style>
+</head>
+<body>
+<canvas id="c" width="800" height="600" aria-label="MiniCaos · LA FIESTA"></canvas>
+<!-- LA FIESTA (doc 07 D16, §5.1): lista ESTÁTICA propia, igual en el laboratorio y en producción (worlds/venezuela/fiesta.html).
+     Sin campana.js (una sola máquina de estado: fiesta-main.js) y sin lab-ui.js (solo laboratorio). Orden (M2-SPEC §5.6): motor → bus (elenco) →
+     reglas (rng, mapa, reductor, CPU) → red → director → minijuegos en vivo (runtime + 3 juegos) → cámara → tablero → HUD → lobby (necesita el HUD)
+     → carta (ruleta/tarjeta/podio, necesita el HUD) → main. Los juego-*.js del bus se suman aquí solo cuando un minijuego en vivo los reutilice para su arte.
+     El Dockerfile reescribe los ?v=. -->
+<script src="engine.js?v=1792000000"></script>
+<script src="juegos-bus.js?v=1792000000" data-juego="-"></script>
+<script src="fiesta-rng.js?v=1792000000"></script>
+<script src="fiesta-mapa-venezuela.js?v=1792000000"></script>
+<script src="fiesta-reglas.js?v=1792000000"></script>
+<script src="fiesta-cpu.js?v=1792000000"></script>
+<script src="fiesta-net.js?v=1792000000"></script>
+<script src="fiesta-director.js?v=1792000000"></script>
+<script src="fiesta-live.js?v=1792000000"></script>
+<script src="../../js/vendor/three.min.js"></script>
+<script src="fiesta-3d.js?v=1792000500"></script>
+<script src="fiesta-3d-pj.js?v=1792000500"></script>
+<script src="fiesta-pixel.js?v=1792000000"></script>
+<script src="fiesta-juego-mecate.js?v=1792000500"></script>
+<script src="fiesta-juego-domino.js?v=1792000500"></script>
+<script src="fiesta-juego-toro.js?v=1792000600"></script>
+<script src="fiesta-juego-harina.js?v=1792000500"></script>
+<script src="fiesta-juego-patilla.js?v=1792000500"></script>
+<script src="fiesta-juego-futbolito.js?v=1792000500"></script>
+<script src="fiesta-juego-cotufas.js?v=1792000500"></script>
+<script src="fiesta-juego-cava.js?v=1792000500"></script>
+<script src="fiesta-juego-alcabala.js?v=1792000500"></script>
+<script src="fiesta-juego-bombita.js?v=1792000500"></script>
+<script src="fiesta-juego-hallacas.js?v=1792000500"></script>
+<script src="fiesta-juego-bono.js?v=1792000500"></script>
+<script src="fiesta-juego-guaya.js?v=1792000500"></script>
+<script src="fiesta-juego-chancla.js?v=1792000500"></script>
+<script src="fiesta-juego-cola.js?v=1792000500"></script>
+<script src="fiesta-juego-tequeno.js?v=1792000500"></script>
+<script src="fiesta-juego-abuela.js?v=1792000500"></script>
+<script src="fiesta-juego-cerro.js?v=1792000500"></script>
+<script src="fiesta-juego-perro.js?v=1792000500"></script>
+<script src="fiesta-juego-cuerda.js?v=1792000500"></script>
+<script src="fiesta-juego-chocones.js?v=1792000500"></script>
+<script src="fiesta-juego-mudanza.js?v=1792000500"></script>
+<script src="fiesta-juego-bombillo.js?v=1792000500"></script>
+<script src="fiesta-juego-silbon.js?v=1792000500"></script>
+<script src="fiesta-juego-bolas.js?v=1792000500"></script>
+<script src="fiesta-juego-vagon.js?v=1792000500"></script>
+<script src="fiesta-personajes.js?v=1792000000"></script>
+<script src="fiesta-camara.js?v=1792000000"></script>
+<script src="fiesta-mapa-arte.js?v=1792000000"></script>
+<script src="fiesta-arte-mar.js?v=1792000000"></script>
+<script src="fiesta-arte-terreno.js?v=1792000000"></script>
+<script src="fiesta-arte-relieve.js?v=1792000000"></script>
+<script src="fiesta-arte-agua.js?v=1792000000"></script>
+<script src="fiesta-arte-vegetacion.js?v=1792000000"></script>
+<script src="fiesta-arte-hitos.js?v=1792000000"></script>
+<script src="fiesta-arte-nubes.js?v=1792000000"></script>
+<script src="fiesta-tablero.js?v=1792000000"></script>
+<script src="fiesta-ui.js?v=1792000000"></script>
+<script src="fiesta-lobby.js?v=1792000000"></script>
+<script src="fiesta-carta.js?v=1792000000"></script>
+<script src="fiesta-main.js?v=1792000000"></script>
+</body>
+</html>

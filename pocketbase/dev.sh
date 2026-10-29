@@ -14,6 +14,7 @@ sync_public() {
   sh "$ROOT/scripts/sync-world-assets.sh" "$ROOT" pb_public
 }
 sync_public
+sh "$ROOT/scripts/sync-fiesta-rules.sh" "$ROOT" pb_hooks   # LA FIESTA: the hooks run the same board reducer as the browser
 [ "${1:-}" = "sync" ] && exit 0
 [ -x ./pocketbase ] || { echo "pocketbase binary missing: download it from https://github.com/pocketbase/pocketbase/releases into ./pocketbase/ (see README)"; exit 1; }
 exec ./pocketbase serve --http="${HTTP:-127.0.0.1:8090}" --dir="${DIR:-./pb_data}" --publicDir=./pb_public --hooksDir=./pb_hooks --migrationsDir=./pb_migrations --indexFallback=false "$@"

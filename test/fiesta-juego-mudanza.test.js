@@ -217,7 +217,7 @@ test('balance (doc 15 §2): lados simétricos, fuerte .9+.9 gana ≥85 %, en el 
      (3000 semillas del Nv3 dan 49,7 % / 49,8 %: no hay sesgo; un bloque de 300 puede salir 58/42 por azar.) */
   let w0 = 0, w1 = 0, n = 0;
   for (const lv of [1, 2, 3]) {
-    const r = B.medir(DEF, { lv, N: 600, skill: 0.6 }); w0 += r.w0; w1 += r.w1; n += r.N;
+    const r = B.medir(DEF, { lv, N: lv === 3 ? 1200 : 600, skill: 0.6 }); w0 += r.w0; w1 += r.w1; n += r.N;
     assert.ok(Math.abs(r.w0 - r.w1) / r.N <= 0.12, `lv${lv}: eq0 ${r.w0} eq1 ${r.w1}`); assert.ok(r.emp / r.N <= 0.1, `lv${lv} empates ${r.emp}`);
     if (lv === 1) { assert.ok(r.alguno / r.N >= 0.9, 'Nv1: alguien llega en ≥90 % (' + r.alguno + ')'); assert.ok(r.tLl[0] / r.llega[0] < 35, 'y antes de 35 s'); }
     if (lv > 1) assert.ok(r.alguno / r.N >= 0.6, `lv${lv}: la carrera suele acabar (${r.alguno})`);

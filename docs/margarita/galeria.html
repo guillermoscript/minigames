@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Galería de minijuegos</title>
+<!-- Modo libre para probar en PC todos los minijuegos del tablero de Margarita: los 25 de ronda (fiesta.html, igual que los abre el
+     tablero: ?practica=ID&embed=1&tipo&rol&lv) y los 12 microjuegos de las casillas M (jugar.html). Sin tablero, sin red, sin monedas.
+     Uso: /docs/margarita/galeria.html   ·   Esc cierra el juego abierto. -->
+<style>
+  @font-face { font-family:'Press Start 2P'; src:url(../../fonts/press-start-2p-latin.woff2) format('woff2'); font-display:block; }
+  :root { --ink:#14101c; --paper:#fffdf2; --gold:#FFE14D; --panel:#252c4b; --go:#5CFF7A; --info:#4DB8FF; --bad:#FF4D4D; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; min-height:100%; background:#0d1b2a; color:var(--paper); font-family:'Press Start 2P',monospace; font-size:11px; line-height:1.6; }
+  main { max-width:1100px; margin:0 auto; padding:16px; }
+  h1 { color:var(--gold); font-size:16px; margin:.4em 0 .2em; }
+  h2 { font-size:11px; color:var(--info); margin:1.6em 0 .6em; border-bottom:4px solid var(--ink); padding-bottom:.4em; }
+  .bar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; background:var(--panel); border:4px solid var(--ink); padding:10px; margin:.8em 0; }
+  .bar label { display:flex; gap:6px; align-items:center; }
+  select, button { font-family:inherit; font-size:10px; border:4px solid var(--ink); border-radius:0; }
+  select { background:var(--paper); color:var(--ink); padding:.4em; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:10px; }
+  .card { background:var(--panel); border:4px solid var(--ink); border-top:6px solid var(--c,var(--gold)); padding:10px; display:flex; flex-direction:column; gap:8px; }
+  .card b { font-size:10px; }
+  .card small { color:#9fb3d9; font-size:8px; }
+  .card .bt { display:flex; flex-wrap:wrap; gap:6px; margin-top:auto; }
+  .card button { background:var(--gold); color:var(--ink); padding:.6em .7em; cursor:pointer; box-shadow:0 4px 0 var(--ink); }
+  .card button.alt { background:var(--info); }
+  .card .res { font-size:8px; color:var(--go); min-height:1em; }
+  #jg { position:fixed; inset:0; background:#000; display:none; flex-direction:column; z-index:9; }
+  #jg header { display:flex; gap:10px; align-items:center; padding:6px 10px; background:var(--panel); border-bottom:4px solid var(--ink); }
+  #jg header span { flex:1; color:var(--gold); }
+  #jg header button { background:var(--bad); color:var(--paper); padding:.5em .8em; cursor:pointer; }
+  #jg iframe { flex:1; border:0; width:100%; }
+</style>
+</head>
+<body>
+<main>
+  <h1>🎮 GALERÍA DE MINIJUEGOS</h1>
+  <div>Modo libre: juega cualquiera, sin tablero. Tú eres el asiento A; los demás son CPU.</div>
+  <div style="margin-top:.6em"><a href="../style-lab/personajes-3d.html" style="color:var(--gold)">🧍 VER LOS PERSONAJES 3D (animaciones y caras)</a></div>
+  <div class="bar">
+    <label>NIVEL <select id="lv"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label>
+    <label>TU PERSONAJE <select id="ch"></select></label>
+    <span id="cuenta"></span>
+  </div>
+  <div id="listas"></div>
+</main>
+<div id="jg"><header><span id="jgt"></span><button id="cerrar">✕ CERRAR (Esc)</button></header><iframe id="jgf" allow="autoplay; fullscreen"></iframe></div>
+<script>
+'use strict';
+/* mismos nombres que margarita.js (NOMBRES) y los formatos del catálogo de fiesta-reglas.js (m) */
+const RONDA = [
+  ['ffa', 'TODOS CONTRA TODOS', '#FFE14D', [
+    ['f_cola', '¡LA COLA DE LA GASOLINA!'], ['f_toro', '¡TOROS COLEADOS!', 1], ['f_tequeno', '¡TEQUEÑOS!'], ['f_harina', '¡LA ÚLTIMA HARINA!', 1],
+    ['f_cotufas', '¡LLUEVEN COTUFAS!'], ['f_cerro', '¡SUBE EL CERRO!'], ['f_bolas', '¡BOLAS CRIOLLAS!'], ['f_perro', '¡PERRO CALIENTE CON TODO!'],
+    ['f_mecate', '¡SALTA EL MECATE!', 1], ['f_chancla', '¡LLUEVEN CHANCLAS!'], ['f_vagon', '¡EL VAGÓN!'], ['f_bombita', '¡AGUA EN CARNAVAL!'],
+    ['f_abuela', '¡LA ABUELA DICE!', 1], ['f_bombillo', '¡SE VA LA LUZ!']]],
+  ['1v3', '1 CONTRA 3', '#FF4D4D', [
+    ['f_patilla', '¡BOMBAS DESDE EL BALCÓN!'], ['f_bono', '¡SE LE CAE EL BONO!'], ['f_guaya', '¡LA GUAYA DEL TELEFÉRICO!'],
+    ['f_alcabala', '¡LA ALCABALA DE MEDIANOCHE!'], ['f_silbon', '¡EL SILBÓN EN EL LLANO!']]],
+  ['2v2', '2 CONTRA 2', '#4DB8FF', [
+    ['f_futbolito', '¡FUTBOLITO DE CALLE!'], ['f_hallacas', '¡LA LÍNEA DE HALLACAS!'], ['f_cava', '¡CARGA LA CAVA!'],
+    ['f_cuerda', '¡HALA LA CUERDA!'], ['f_chocones', '¡CARRITOS CHOCONES!'], ['f_mudanza', '¡LA MUDANZA!']]]
+];
+const TRES_D = { f_bombita: 1, f_patilla: 1, f_abuela: 1, f_alcabala: 1, f_bolas: 1, f_bombillo: 1, f_bono: 1, f_cava: 1, f_cerro: 1, f_chancla: 1, f_chocones: 1, f_cola: 1, f_cotufas: 1, f_cuerda: 1, f_futbolito: 1, f_guaya: 1, f_hallacas: 1, f_harina: 1, f_mecate: 1, f_mudanza: 1, f_perro: 1, f_silbon: 1, f_tequeno: 1, f_vagon: 1, f_toro: 1 };   // los que ya tienen su versión 3D low poly (fiesta-3d.js); ?plano=1 los abre en el 2D de antes
+const MICROS = ['mango', 'hielo', 'tequenos', 'soplalo', 'baile', 'torta', 'pique', 'chancla', 'sopa', 'queso', 'parada', 'tendedero'];
+const ELENCO = [['tu', 'TÚ'], ['mama', 'MAMÁ'], ['abuela', 'LA ABUELA'], ['tio', 'EL TÍO'], ['pana', 'EL PANA']];
+const CPUS = ['mama', 'abuela', 'tio', 'pana'];
+
+const $ = (id) => document.getElementById(id), jg = $('jg'), jgf = $('jgf');
+$('ch').innerHTML = ELENCO.map(([id, n]) => `<option value="${id}">${n}</option>`).join('');
+let abierto = null, vigia = 0;
+
+function urlRonda(g, tipo, rol, plano) {
+  const n = tipo === '1v1' ? 2 : 4, ch = $('ch').value, chs = [ch].concat(CPUS.filter((c) => c !== ch)).slice(0, n);
+  const noms = chs.map((c, i) => i ? ELENCO.find((e) => e[0] === c)[1] : 'TÚ').map(encodeURIComponent);
+  return `../style-lab/fiesta.html?practica=${g}&embed=1&tipo=${tipo}&rol=${rol}&ch=${ch}&lv=${$('lv').value}&noms=${noms.join(',')}&chs=${chs.join(',')}${plano ? '&plano=1' : ''}`;
+}
+function abrir(titulo, src, card) {
+  abierto = card; $('jgt').textContent = titulo; jg.style.display = 'flex'; jgf.src = src;
+  jgf.onload = () => { try { jgf.focus(); jgf.contentWindow.focus(); } catch (e) {} };
+  clearInterval(vigia);
+  vigia = setInterval(() => {   // los microjuegos no mandan mensaje: su resultado queda en CAMP.info
+    let inf = null; try { inf = jgf.contentWindow.CAMP && jgf.contentWindow.CAMP.info; } catch (e) {}
+    if (inf && inf.result) { clearInterval(vigia); anotar(inf.result === 'win' ? '✔ GANASTE' : '✘ PERDISTE'); }
+  }, 300);
+}
+function cerrar() { clearInterval(vigia); jg.style.display = 'none'; jgf.onload = null; jgf.src = 'about:blank'; abierto = null; window.focus(); }
+function anotar(txt) { if (abierto) abierto.querySelector('.res').textContent = txt; }
+addEventListener('message', (e) => {   // fiesta.html embed avisa al terminar: pl = puesto por asiento (a = tú)
+  if (!e.data || e.data.k !== 'mj-fin') return;
+  const pl = e.data.pl || [], yo = pl[0];
+  anotar(yo == null ? 'terminado' : `PUESTO ${yo}${pl.length ? ' · todos: ' + pl.join(' ') : ''}`);
+  setTimeout(cerrar, 1800);
+});
+$('cerrar').onclick = cerrar;
+addEventListener('keydown', (e) => { if (e.key === 'Escape' && abierto) cerrar(); });
+
+function tarjeta(titulo, sub, color, botones) {
+  const c = document.createElement('div'); c.className = 'card'; c.style.setProperty('--c', color);
+  c.innerHTML = `<b>${titulo}</b><small>${sub}</small><div class="res"></div><div class="bt"></div>`;
+  for (const [l, fn, alt] of botones) { const b = document.createElement('button'); b.textContent = l; if (alt) b.className = 'alt'; b.onclick = () => fn(c); c.querySelector('.bt').appendChild(b); }
+  return c;
+}
+let total = 0;
+for (const [tipo, cab, color, juegos] of RONDA) {
+  const h = document.createElement('h2'); h.textContent = `${cab} (${juegos.length})`; $('listas').appendChild(h);
+  const g = document.createElement('div'); g.className = 'grid'; $('listas').appendChild(g);
+  for (const [id, nom, duelo] of juegos) {
+    total++;
+    const b = [];
+    if (tipo === '1v3') b.push(['SOY EL 1', (c) => abrir(nom, urlRonda(id, tipo, 'solo'), c)], ['SOY DE LOS 3', (c) => abrir(nom, urlRonda(id, tipo, 'trio'), c), 1]);
+    else b.push(['▶ JUGAR', (c) => abrir(nom, urlRonda(id, tipo, 'solo'), c)]);
+    if (duelo) b.push(['⚔️ BRONCA 1v1', (c) => abrir(nom + ' · BRONCA', urlRonda(id, '1v1', 'solo'), c), 1]);
+    if (TRES_D[id]) b.push(['2D (ANTES)', (c) => abrir(nom + ' · 2D', urlRonda(id, tipo, 'solo', 1), c), 1]);
+    g.appendChild(tarjeta(TRES_D[id] ? nom + ' 🧊 3D' : nom, id, color, b));
+  }
+}
+{
+  const h = document.createElement('h2'); h.textContent = `MICROJUEGOS DE LA CASILLA M (${MICROS.length})`; $('listas').appendChild(h);
+  const g = document.createElement('div'); g.className = 'grid'; $('listas').appendChild(g);
+  for (const id of MICROS) g.appendChild(tarjeta(id.toUpperCase(), 'microjuego · ' + id, '#5CFF7A',
+    [['▶ JUGAR', (c) => abrir(id.toUpperCase(), `../style-lab/jugar.html?juego=${id}&estilo=snes&nivel=${$('lv').value}`, c)]]));
+}
+$('cuenta').textContent = `${total} de ronda + ${MICROS.length} micro = ${total + MICROS.length}`;
+</script>
+</body>
+</html>

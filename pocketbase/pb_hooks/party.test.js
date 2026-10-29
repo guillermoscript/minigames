@@ -153,3 +153,275 @@ P.report(spectate, 'c', 1, 'lose', 1, 0, 8000);
 assert.equal(spectate.state, 'between');
 assert.equal(spectate.last.final, true);
 console.log('elimination modes OK');
+
+// --- LA FIESTA (doc 07 §3-4, M0.5): lobby, start, commit, act (409/403/aid), tick, AFK, takeover, rejoin, privacy ---
+{
+  const R = P.reglas();
+  const F = (room, action, body, now) => P.fiesta(room, action, body || {}, now || 0, rand, action === "join" ? body : null);
+  const secret = (room) => { const j = JSON.stringify(P.publicRoom(room)); assert.ok(!/"keys"|"_f"|"rng"|"semilla"|"deck"|"bonusOculta"/.test(j), "nothing private in the public room"); };
+  const sizes = (room) => { assert.ok(JSON.stringify(room.board).length < 32768, "board < 32 KB"); assert.ok(JSON.stringify(room.keys).length < 16384, "keys < 16 KB"); };
+
+  // lobby: create + join, unique character pick, host-only cfg, start needs 2 humans and everyone ready
+  const f = P.fiestaNew("FIES", 0, { tot: 10, ronda: "relampago", cpuNivel: 9 });
+  assert.equal(f.mode, "fiesta"); assert.equal(f.board.f, "lobby"); assert.equal(f.board.cfg.tot, 10); assert.equal(f.board.cfg.ronda, "relampago"); assert.equal(f.board.cfg.cpuNivel, 2);
+  assert.ok(!P.MODES.includes("fiesta"), "fiesta is not a classic room mode");
+  const A = F(f, "join", { name: "Ana", ch: "mama" }).you;
+  assert.equal(A.id, "a"); assert.equal(f.host, "a"); assert.equal(f.board.pj.a.ch, "mama");
+  throwsStatus(() => F(f, "start", { id: "a" }), 409);                       // a single human cannot start
+  const B = F(f, "join", { name: "Beto", ch: "mama" }).you;                  // mama is taken: Beto joins without a character
+  assert.equal(B.id, "b"); assert.equal(f.board.pj.b.ch, null);
+  throwsStatus(() => F(f, "pick", { id: "b", ch: "mama" }), 409);
+  throwsStatus(() => F(f, "pick", { id: "b", ch: "nadie" }), 400);
+  F(f, "pick", { id: "b", ch: "abuela" }); assert.equal(f.board.pj.b.ch, "abuela");
+  throwsStatus(() => F(f, "cfg", { id: "b", tot: 20 }), 403);
+  let v0 = f.ver; F(f, "cfg", { id: "a", tot: 15 }); assert.equal(f.board.cfg.tot, 15); assert.equal(f.ver, v0 + 1); assert.equal(f.board.ver, f.ver);
+  throwsStatus(() => F(f, "start", { id: "b" }), 403);                       // only the host
+  throwsStatus(() => F(f, "start", { id: "a" }, 1000), 409);                 // Beto is not ready
+  const back = F(f, "join", { id: "b", key: B.key }); assert.equal(back.you.id, "b"); assert.equal(f.players.length, 2);   // rejoin in the lobby keeps the seat
+  F(f, "ready", { id: "b", on: true }, 2000);
+  secret(f);
+  v0 = f.ver; F(f, "start", { id: "a" }, 3000);
+  assert.equal(f.state, "play"); assert.equal(f.board.f, "orden"); assert.ok(f.ver > v0 && f.board.ver === f.ver, "ver never goes back at start");
+  assert.equal(f.players.length, 4); assert.deepEqual(f.players.map((p) => p.id), ["a", "b", "c", "d"]);
+  assert.ok(f.players[2].cpu && f.players[3].cpu && !f.keys.c && !f.keys.d, "CPU fill to 4, without keys");
+  assert.equal(f.board.pj.a.ch, "mama"); assert.equal(f.board.pj.b.ch, "abuela"); assert.equal(f.board.pj.c.cpu, "auto");
+  assert.equal(new Set(["a", "b", "c", "d"].map((s) => f.board.pj[s].ch)).size, 4, "8-character roster, all different");
+  assert.ok(f.keys._f && typeof f.keys._f.rng === "number"); secret(f); sizes(f);
+  throwsStatus(() => F(f, "pick", { id: "a", ch: "tio" }), 409);
+  throwsStatus(() => P.auth(f, "c", ""), 403);                               // nobody speaks for a CPU seat
+
+  // the order dice: hidden commit until everybody committed
+  throwsStatus(() => F(f, "act", { id: "a", eid: f.board.esp.id, aid: "x0", a: { t: "TIRAR" } }, 3100), 409);   // not the board phase yet
+  F(f, "commit", { id: "a", k: "orden", aid: "c1", v: 99 }, 3100);
+  const mineA = F(f, "mine", { id: "a" }).priv.orden;
+  assert.ok(mineA >= 1 && mineA <= 10, "my hidden order value"); assert.equal(F(f, "mine", { id: "b" }).priv.orden, null);
+  assert.equal(f.board.f, "orden"); assert.ok(!JSON.stringify(P.publicRoom(f)).includes('"orden":{'), "the committed value is not in the board");
+  v0 = f.ver; F(f, "commit", { id: "a", k: "orden", aid: "c1" }, 3200); assert.equal(f.ver, v0, "same aid: not applied twice");
+  throwsStatus(() => F(f, "commit", { id: "a", k: "duelo", aid: "c2" }, 3200), 400);
+  F(f, "commit", { id: "b", k: "orden", aid: "c3" }, 3300);
+  assert.equal(f.board.f, "turno"); assert.equal(f.board.orden.length, 4); assert.equal(F(f, "mine", { id: "a" }).priv.orden, null);
+  const reveal = f.board.fx[f.board.fx.length - 1].fx.filter((x) => x.k === "dado" && x.de === "orden");
+  assert.equal(reveal.find((x) => x.s === "a").v, mineA, "the reveal shows the value committed earlier");
+
+  // tick: cheap when nothing is due; drive CPU turns until a human's dice prompt
+  let now = 3300;
+  const human = (s) => f.board.pj[s].cpu === null;
+  const step = () => { now = Math.max(now, f.board.nextAt || now) + 1; P.fiestaTick(f, now); };
+  assert.equal(P.fiestaDue(f, f.board.nextAt - 1), false); v0 = f.ver; P.fiestaTick(f, f.board.nextAt - 1); assert.equal(f.ver, v0);
+  for (let i = 0; i < 500 && !(f.board.f === "turno" && f.board.esp && f.board.esp.k === "DADO" && human(f.board.esp.s)); i++) step();
+  const s1 = f.board.esp.s, other = s1 === "a" ? "b" : "a", eid = f.board.esp.id;
+  throwsStatus(() => F(f, "act", { id: other, eid, aid: "w1", a: { t: "TIRAR" } }, now), 403);    // not your turn
+  throwsStatus(() => F(f, "act", { id: s1, eid: eid - 1, aid: "s1", a: { t: "TIRAR" } }, now), 409);   // stale prompt (D17)
+  throwsStatus(() => F(f, "act", { id: s1, aid: "s2", a: { t: "TIRAR" } }, now), 409);                 // no eid = stale
+  throwsStatus(() => F(f, "act", { id: s1, eid, ver: f.ver - 1, aid: "s3", a: { t: "TIRAR" } }, now), 409);   // optional strict ver
+  throwsStatus(() => F(f, "act", { id: s1, eid, aid: "s4", a: { t: "BORRAR" } }, now), 400);
+  throwsStatus(() => F(f, "act", { id: s1, eid, a: { t: "TIRAR" } }, now), 400);                       // aid required
+  v0 = f.ver; F(f, "act", { id: s1, eid, aid: "go1", a: { t: "TIRAR" } }, now);
+  assert.ok(f.ver > v0); assert.ok(f.board.fx.some((b) => b.fx.some((x) => x.k === "dado" && x.s === s1)));
+  const snap = JSON.stringify(f); assert.deepEqual(F(f, "act", { id: s1, eid, aid: "go1", a: { t: "TIRAR" } }, now), { dup: true });
+  assert.equal(JSON.stringify(f), snap, "aid retry: 200 and nothing re-applied");
+  secret(f);
+
+  // leave in game = AFK with the key kept; back / rejoin clears it
+  F(f, "leave", { id: other }, now); assert.equal(f.board.pj[other].cpu, "afk"); assert.ok(f.keys[other]); assert.equal(f.extra.afkAt[other], now);
+  F(f, "back", { id: other }, now); assert.equal(f.board.pj[other].cpu, null); assert.ok(!f.extra.afkAt[other]);
+  throwsStatus(() => F(f, "back", { id: other }, now), 409);
+  F(f, "leave", { id: other }, now);
+  const rj = F(f, "join", { id: other, key: other === "a" ? A.key : B.key, name: "x" }, now + 5);
+  assert.equal(rj.you.id, other); assert.equal(f.board.pj[other].cpu, null, "rejoin after leave takes the seat back");
+
+  // takeover: a new human gets a CPU seat (new key, inherits everything, fx llega); with none left: spectator
+  const cpuSeat = ["c", "d"].find((s) => f.board.pj[s].cpu === "auto"), coins = f.board.pj[cpuSeat].mon;
+  const T1 = F(f, "join", { name: "Carla", ch: "mama", seat: cpuSeat }, now + 10).you;
+  assert.equal(T1.id, cpuSeat); assert.equal(f.keys[cpuSeat], T1.key); assert.equal(f.players.find((p) => p.id === cpuSeat).name, "Carla");
+  assert.ok(!f.players.find((p) => p.id === cpuSeat).cpu); assert.equal(f.board.pj[cpuSeat].mon, coins); assert.notEqual(f.board.pj[cpuSeat].ch, "mama", "taken characters stay unique");
+  assert.ok(f.board.fx.some((b) => b.fx.some((x) => x.k === "llega" && x.s === cpuSeat)));
+  assert.ok(f.board.pj[cpuSeat].cpu === null || f.board.pj[cpuSeat].toma === 1, "control now or at the next safe boundary");
+  throwsStatus(() => F(f, "join", { name: "Dani", seat: cpuSeat }, now + 11), 409);              // that seat is no longer free
+  const T2 = F(f, "join", { name: "Dani" }, now + 12); assert.ok(T2.you && T2.you.id !== cpuSeat);
+  assert.deepEqual(F(f, "join", { name: "Eva" }, now + 13), { spectate: true });               // 4 humans: spectator
+  // an AFK seat can be taken only after its owner is away for more than 180 s; the old key stops working
+  F(f, "leave", { id: other }, now + 20);
+  assert.deepEqual(F(f, "join", { name: "Eva" }, now + 20 + P.FIESTA_TAKE_MS), { spectate: true });
+  const T3 = F(f, "join", { name: "Eva" }, now + 21 + P.FIESTA_TAKE_MS).you; assert.equal(T3.id, other);
+  throwsStatus(() => P.auth(f, other, other === "a" ? A.key : B.key), 403);
+  assert.ok(!f.extra.afkAt[other] || f.board.pj[other].cpu === "afk");
+  secret(f); sizes(f);
+
+  // AFK strikes: a human who never acts goes to the hammock; everybody AFK still finishes the game
+  now += 1000 + P.FIESTA_TAKE_MS;
+  const watch = T3.id;
+  for (let i = 0; i < 3000 && f.board.pj[watch].cpu !== "afk"; i++) step();
+  assert.equal(f.board.pj[watch].cpu, "afk", "2 missed dice = AFK"); assert.ok(f.extra.afkAt[watch]);
+  F(f, "back", { id: watch }, now); assert.equal(f.board.pj[watch].cpu, null);
+  let last = f.ver, steps = 0;
+  while (f.board.f !== "fin" && steps++ < 20000) { step(); assert.ok(f.ver >= last); last = f.ver; }
+  assert.equal(f.board.f, "fin"); assert.equal(f.state, "done"); assert.equal(f.board.r, f.board.tot);
+  secret(f); sizes(f);
+  assert.deepEqual(F(f, "join", { name: "Late" }, now), { spectate: true });
+  throwsStatus(() => F(f, "mjfin", { id: "a" }, now), 409);                 // no minigame in progress: nothing to finish
+  throwsStatus(() => F(f, "mjack", { id: "a" }, now), 409);
+
+  // a host may force the start 20 s after the 2nd human marked ready; lobby leave frees the seat; the last one deletes the room
+  const g = P.fiestaNew("FOR2", 0); const ga = F(g, "join", { name: "A" }).you, gb = F(g, "join", { name: "B" }).you; F(g, "join", { name: "C" });
+  F(g, "ready", { id: "a" }, 1000); F(g, "ready", { id: "b" }, 2000); assert.equal(g.board.listoAt, 2000);
+  throwsStatus(() => F(g, "start", { id: "a" }, 2000 + P.FIESTA_FORCE_MS - 1), 409);
+  F(g, "leave", { id: "c" }, 3000); assert.equal(g.players.length, 2); assert.equal(g.board.pj.c, undefined); assert.equal(g.keys.c, undefined);
+  F(g, "leave", { id: "a" }); assert.equal(g.host, "b");
+  assert.deepEqual(F(g, "leave", { id: "b" }), { del: true });
+  const h = P.fiestaNew("FOR3", 0); F(h, "join", { name: "A" }); F(h, "join", { name: "B" }); F(h, "join", { name: "C" });
+  F(h, "ready", { id: "a" }, 1000); F(h, "ready", { id: "b" }, 2000);
+  F(h, "start", { id: "a" }, 2000 + P.FIESTA_FORCE_MS); assert.equal(h.board.f, "orden"); assert.equal(h.players.filter((p) => p.cpu).length, 1);
+  assert.deepEqual(h.board.esp.quien, ["a", "b", "c"]);
+  void ga; void gb; void R;
+}
+console.log("fiesta OK");
+
+// --- LA FIESTA M2: mjfin (judge only, epoch, bounds), mjack + witness close, judge CAS, relay cache invalidation ---
+{
+  const { liveRoom } = require("../../test/helpers/fiesta-room.js");
+  const R = P.reglas();
+  const fin = (t, id, o) => Object.assign({ id: id, q: 0, e: 0, kk: 900, sc: [400, 300, 200, 100], cpu: ["c", "d"] }, o);
+
+  // the happy path: the judge's result is clamped (never rejected), `pl` is ignored, the server computes places and pays (10/6/3/1)
+  let t = liveRoom({ game: "f_domino", dur: 30 }), f = t.room, mj = f.board.mj, at = mj.startAt + 30000;
+  throwsStatus(() => t.F(f, "mjfin", fin(t, "b"), at), 409);                                   // not the judge
+  throwsStatus(() => t.F(f, "mjfin", fin(t, "a", { e: 3 }), at), 409);                         // old epoch
+  throwsStatus(() => t.F(f, "mjfin", fin(t, "a", { q: 4 }), at), 409);                         // not this game of the queue
+  throwsStatus(() => t.F(f, "mjfin", fin(t, "a", { sc: [1, 2, 3] }), at), 400);                // wrong length
+  throwsStatus(() => t.F(f, "mjfin", fin(t, "a", { sc: [1, "x", 3, 4] }), at), 400);
+  throwsStatus(() => t.F(f, "mjfin", fin(t, "a", { cpu: ["z"] }), at), 400);
+  throwsStatus(() => t.F(f, "mjfin", fin(t, "a"), mj.startAt + 5000), 409);                    // far too early for a 30 s game
+  assert.equal(f.board.f, "mj", "nothing changed by the failures");
+  const v0 = f.ver, r1 = t.F(f, "mjfin", fin(t, "a", { sc: [900, 5000, 0, -4], pl: [1, 1, 1, 1] }), at);
+  assert.equal(r1.ok, true); assert.equal(r1.aj, true, "the server had to clamp"); assert.ok(f.ver > v0);
+  assert.equal(f.board.f, "res"); assert.deepEqual(f.board.mj.res.sc, [900, 1000, 0, 0]);
+  assert.deepEqual(f.board.mj.res.puestos, [2, 1, 3, 3], "places come from compara, not from `pl`");
+  assert.deepEqual(f.board.mj.res.pagos, R.pagosMJ("ffa", [2, 1, 3, 3], f.board.r, { tot: f.board.tot, eq: [0, 1, 2, 3], solo: -1 }));
+  throwsStatus(() => t.F(f, "mjfin", fin(t, "a"), at + 10), 409);                               // a second verdict is refused
+  assert.ok(JSON.stringify(f.board).length < 16384, "board < 16 KB");
+
+  // rate bound: score <= scoreRate * (elapsed + 1.5); a short survival game with dur=4 (the e2e patch) accepts a finish at 3 s
+  t = liveRoom({ game: "f_harina", dur: 30 }); f = t.room; mj = f.board.mj;
+  assert.equal(t.F(f, "mjfin", fin(t, "a", { sc: [800, 800, 800, 800] }), mj.startAt + 28000).aj, true, "25 pts/s * 29.5 s = 737 < 800");
+  assert.deepEqual(f.board.mj.res.sc, [737, 737, 737, 737]);
+  t = liveRoom({ game: "f_mecate", dur: 4 }); f = t.room; mj = f.board.mj;
+  throwsStatus(() => t.F(f, "mjfin", fin(t, "a", { sc: [100, 90, 10, 10] }), mj.startAt + 2000), 409);   // minT = min(3, dur-1) = 3
+  const rs = t.F(f, "mjfin", fin(t, "a", { sc: [121, 119, 100, 90] }), mj.startAt + 3000);
+  assert.equal(rs.aj, false); assert.deepEqual(f.board.mj.res.sc, [121, 121, 100, 90], "survival: scores within 3 ticks (100 ms) are one cluster");
+  assert.deepEqual(f.board.mj.res.puestos, [1, 1, 3, 4]);
+
+  // mjack + the closing deadline: without a verdict the witness with the highest kk wins; without witnesses, a draw that pays nothing
+  t = liveRoom({ game: "f_domino", dur: 30 }); f = t.room; mj = f.board.mj;
+  throwsStatus(() => t.F(f, "mjack", { id: "b", q: 7, e: 0, kk: 1, h: 1, sc: [1] }, mj.startAt + 1000), 409);
+  throwsStatus(() => t.F(f, "mjack", { id: "b", q: 0, e: 0, kk: "x", h: 1, sc: [1] }, mj.startAt + 1000), 400);
+  throwsStatus(() => t.F(f, "mjack", { id: "z", q: 0, e: 0, kk: 1, h: 1, sc: [1] }, mj.startAt + 1000), 403);
+  t.F(f, "mjack", { id: "a", q: 0, e: 0, kk: 800, h: 11, sc: [10, 50, 0, 0] }, mj.startAt + 29000);
+  t.F(f, "mjack", { id: "b", q: 0, e: 0, kk: 900, h: 12, sc: [60, 20, 0, 0] }, mj.startAt + 29500);
+  assert.equal(f.extra.mjw.k, mj.k); assert.equal(Object.keys(f.extra.mjw.w).length, 2);
+  t.F(f, "tick", { id: "a" }, mj.cierre - 1); assert.equal(f.board.f, "mj");
+  t.F(f, "tick", { id: "a" }, mj.cierre + 1);
+  assert.equal(f.board.f, "res"); assert.deepEqual(f.board.mj.res.sc, [60, 20, 0, 0], "the witness with the highest kk decides"); assert.deepEqual(f.board.mj.res.puestos, [1, 2, 3, 3]);
+  t = liveRoom({ game: "f_domino", dur: 30 }); f = t.room; mj = f.board.mj;
+  t.F(f, "tick", { id: "a" }, mj.cierre + 1);
+  assert.equal(f.board.f, "res"); assert.equal(f.board.mj.res.empate, 1); assert.deepEqual(f.board.mj.res.pagos, [0, 0, 0, 0]);
+
+  // judge CAS (route `juez`): two claimants of the same epoch, one wins; the new judge's mjfin needs the new epoch
+  t = liveRoom({ game: "f_domino", dur: 30 }); f = t.room; mj = f.board.mj;
+  throwsStatus(() => t.F(f, "juez", { id: "b", k: mj.k, e: 0, q: 3 }, mj.startAt + 2000), 409);   // stale game of the queue
+  throwsStatus(() => t.F(f, "juez", { id: "b", k: mj.k, e: 0, q: 0 }, mj.startAt + 2000), 409);   // the judge is not known to be dead: no takeover
+  t.store.set("fs:" + f.code + ":a", String(mj.startAt + 3500));                                   // the judge spoke 0.5 s ago: still alive
+  throwsStatus(() => t.F(f, "juez", { id: "b", k: mj.k, e: 0, q: 0 }, mj.startAt + 4000), 409);
+  t.F(f, "juez", { id: "b", k: mj.k, e: 0, q: 0 }, mj.startAt + 4600);                              // silent for > 1 s and b is the first successor
+  assert.equal(f.board.mj.juez, "b"); assert.equal(f.board.mj.e, 1);
+  throwsStatus(() => t.F(f, "juez", { id: "a", k: mj.k, e: 0 }, mj.startAt + 4601), 409);        // the other one lost the race
+  throwsStatus(() => t.F(f, "mjfin", fin(t, "a", { e: 0 }), mj.startAt + 30000), 409);           // old judge, old epoch
+  throwsStatus(() => t.F(f, "mjfin", fin(t, "b", { e: 0 }), mj.startAt + 30000), 409);           // new judge, old epoch
+  assert.equal(t.F(f, "mjfin", fin(t, "b", { e: 1 }), mj.startAt + 30000).ok, true);
+}
+console.log("fiesta M2 server OK");
+
+// --- Margarita on LA FIESTA rooms (doc 14 M2): reglas(room) picks the board, create with tab, cfg, act, SECRETO, tick, AFK, takeover, minigame verdict ---
+{
+  const { memStore } = require("../../test/helpers/fiesta-room.js");
+  const store = memStore();
+  const F = (room, action, body, now) => P.fiesta(room, action, body || {}, now || 0, rand, action === "join" ? body : null, store);
+  const secret = (room) => { const j = JSON.stringify(P.publicRoom(room)); assert.ok(!/"keys"|"_f"|"rng"|"semilla"|"recientes"/.test(j), "nothing private in the public room"); };
+  const VE = P.reglas(), MA = P.reglas({ board: { tab: "margarita" } });
+
+  // dispatch: Venezuela by default (its board.tab is the minigame object), Margarita only for the string tab
+  assert.notEqual(VE, MA); assert.equal(MA.lobby().tab, "margarita");
+  assert.equal(P.reglas(P.fiestaNew("VENE", 0)), VE); assert.equal(P.reglas({ board: { tab: { k: 3 } } }), VE); assert.equal(P.reglas("margarita"), MA);
+  assert.equal(P.fiestaNew("VENE", 0, { tab: "nada" }).board.tab, undefined, "an unknown tab is Venezuela");
+
+  // create: only CFG_VALIDA passes; online stays random order, real minigames, no MICRO
+  const m = P.fiestaNew("MARG", 0, { tab: "margarita", tot: 15, cpuNivel: 9, ronda: "relampago", micro: true, sinMJ: true, orden: "fijo", n: 2, dadosPj: true });
+  assert.equal(m.mode, "fiesta"); assert.equal(m.board.tab, "margarita"); assert.equal(m.board.f, "lobby"); assert.equal(P.reglas(m), MA);
+  assert.deepEqual(m.board.cfg, Object.assign({}, MA.CFG0, { tot: 15 }), "only tot/cpuNivel can change, and only to valid values");
+  const A = F(m, "join", { name: "Ana", ch: "mama" }).you, B = F(m, "join", { name: "Beto", ch: "abuela" }).you;
+  throwsStatus(() => F(m, "cfg", { id: "b", tot: 20 }), 403);
+  F(m, "cfg", { id: "a", tot: 20, cpuNivel: 3, micro: true }); assert.equal(m.board.cfg.tot, 20); assert.equal(m.board.cfg.cpuNivel, 3); assert.equal(m.board.cfg.micro, false);
+  F(m, "cfg", { id: "a", tot: 10 });
+  F(m, "ready", { id: "b" }, 1000); F(m, "start", { id: "a" }, 2000);
+  assert.equal(m.state, "play"); assert.equal(m.board.tab, "margarita"); assert.equal(m.board.f, "orden"); assert.equal(m.board.tot, 10);
+  assert.deepEqual(m.players.map((p) => p.id), ["a", "b", "c", "d"]); assert.equal(m.board.pj.c.cpu, "auto"); assert.ok(!m.keys.c);
+  assert.equal(m.board.pj.a.ch, "mama"); assert.equal(m.board.pj.b.name, "Beto"); assert.equal(m.board.pj.a.bs, 10);
+  secret(m); assert.ok(JSON.stringify(m.board).length < 32768, "board < 32 KB");
+  throwsStatus(() => F(m, "commit", { id: "a", k: "orden", aid: "c1" }, 2100), 409);         // Margarita has no hidden order dice
+
+  // ticks run the order and the CPU turns until a human has the dice
+  let now = 2000;
+  const human = (s) => m.board.pj[s].cpu === null;
+  const step = () => { now = Math.max(now, m.board.nextAt || now) + 1; P.fiestaTick(m, now, store); };
+  for (let i = 0; i < 2000 && !(m.board.f === "turno" && m.board.esp && m.board.esp.k === "DADO" && human(m.board.esp.s)); i++) step();
+  const s1 = m.board.esp.s, other = s1 === "a" ? "b" : "a", eid = m.board.esp.id;
+  throwsStatus(() => F(m, "act", { id: other, eid, aid: "w1", a: { t: "TIRAR" } }, now), 403);               // not your turn
+  throwsStatus(() => F(m, "act", { id: s1, eid: eid - 1, aid: "s1", a: { t: "TIRAR" } }, now), 409);         // stale prompt
+  for (const t of ["ESTRELLA", "LISTO", "JUEZ", "VOLVER", "SALIR", "MICRO"]) throwsStatus(() => F(m, "act", { id: s1, eid, aid: "x" + t, a: { t } }, now), 400);   // Venezuela's, or their own route, or local-only
+  throwsStatus(() => F(m, "act", { id: s1, eid, aid: "u1", a: { t: "USAR", item: "cafe" } }, now), 400);     // an item you do not have
+
+  // SECRETO: any seat, any time; pays once per secret
+  const bs0 = m.board.pj[other].bs;
+  F(m, "act", { id: other, aid: "sec0", a: { t: "SECRETO", n: 0 } }, now); F(m, "act", { id: other, aid: "sec0b", a: { t: "SECRETO", n: 0 } }, now);
+  assert.equal(m.board.pj[other].bs, bs0 + 3); assert.deepEqual(m.board.pj[other].sec, [0]);
+  throwsStatus(() => F(m, "act", { id: other, aid: "sec9", a: { t: "SECRETO", n: 99 } }, now), 400);
+
+  let v0 = m.ver; F(m, "act", { id: s1, eid: m.board.esp.id, aid: "go1", a: { t: "TIRAR" } }, now);
+  assert.ok(m.ver > v0 && m.board.ver === m.ver); assert.ok(m.board.fx.some((b) => b.fx.some((x) => x.k === "dado" && x.s === s1)));
+  const snap = JSON.stringify(m); assert.deepEqual(F(m, "act", { id: s1, eid, aid: "go1", a: { t: "TIRAR" } }, now), { dup: true });
+  assert.equal(JSON.stringify(m), snap, "aid retry: nothing re-applied");
+  assert.deepEqual(F(m, "mine", { id: s1 }), { priv: null, mio: !!(m.board.esp && m.board.esp.s === s1) });
+
+  // leave = AFK (key kept), back clears it; a new human takes a CPU seat with everything it had; the 4th is a spectator
+  F(m, "leave", { id: other }, now); assert.equal(m.board.pj[other].cpu, "afk"); assert.equal(m.extra.afkAt[other], now);
+  F(m, "back", { id: other }, now); assert.equal(m.board.pj[other].cpu, null); assert.ok(!m.extra.afkAt[other]);
+  const cpuSeat = ["c", "d"].find((s) => m.board.pj[s].cpu === "auto"), bsC = m.board.pj[cpuSeat].bs;
+  const T1 = F(m, "join", { name: "Carla", seat: cpuSeat }, now + 1).you;
+  assert.equal(T1.id, cpuSeat); assert.equal(m.board.pj[cpuSeat].bs, bsC); assert.ok(m.board.fx.some((b) => b.fx.some((x) => x.k === "llega" && x.s === cpuSeat)));
+  F(m, "join", { name: "Dani" }, now + 2);
+  assert.deepEqual(F(m, "join", { name: "Eva" }, now + 3), { spectate: true });
+
+  // a minigame with humans: everybody LISTO, the judge's verdict pays through the shared minigame code (party_mj.js)
+  const live = () => ["a", "b", "c", "d"].filter((s) => m.board.pj[s].cpu === null);
+  const ready = () => { for (const s of ["a", "b", "c", "d"]) if (m.board.pj[s].cpu === "afk") F(m, "back", { id: s }, now); };
+  for (let i = 0; i < 20000 && !(m.board.f === "carta" && m.board.mj && m.board.mj.as.some((s) => live().indexOf(s) >= 0)); i++) { ready(); step(); }
+  assert.equal(m.board.f, "carta"); const mk = m.board.mj.k;
+  assert.equal(m.round, mk, "room.round follows the minigame counter");
+  for (const s of m.board.mj.as) if (m.board.pj[s].cpu === null) F(m, "ready", { id: s }, now);
+  assert.equal(m.board.f, "mj"); const mj = m.board.mj, g = mj.cola[mj.i];
+  const sc = mj.as.map((s, i) => 100 - i * 10), cpu = mj.as.filter((s) => m.board.pj[s].cpu !== null);
+  const notJudge = mj.as.find((s) => s !== mj.juez && live().indexOf(s) >= 0);
+  if (notJudge) throwsStatus(() => F(m, "mjfin", { id: notJudge, q: mj.i, e: mj.e, kk: 9, sc, cpu }, mj.startAt + g.dur * 1000), 409);   // only the judge closes it
+  assert.equal(F(m, "mjfin", { id: mj.juez, q: mj.i, e: mj.e, kk: 9, sc, cpu }, mj.startAt + g.dur * 1000).ok, true);
+  assert.equal(m.board.f, "res"); assert.equal(m.board.mj.k, mk);
+  assert.ok(m.board.fx.some((b) => b.fx.some((x) => x.k === "mjRes" && x.mk === mk)), "the result went through the Margarita reducer");
+
+  // to the end: humans go AFK by strikes or come back; minigames with nobody judging close on their deadline
+  let last = m.ver, steps = 0;
+  while (m.board.f !== "fin" && steps++ < 40000) { step(); assert.ok(m.ver >= last); last = m.ver; }
+  assert.equal(m.board.f, "fin"); assert.equal(m.state, "done"); assert.equal(m.board.r, m.board.tot); assert.ok(m.board.ganador);
+  secret(m); assert.ok(JSON.stringify(m.board).length < 32768, "board < 32 KB at the end");
+  assert.deepEqual(F(m, "join", { name: "Late" }, now), { spectate: true });
+  void A; void B;
+}
+console.log("margarita OK");

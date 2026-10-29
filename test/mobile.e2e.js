@@ -39,6 +39,7 @@ const executablePath=process.env.CHROMIUM_EXECUTABLE||path.join(folder,fs.readdi
       await fillsScreen('#c');await fillsScreen('#camp-ov');
     }
     await page.setViewportSize({width:390,height:844});
+    await page.waitForFunction(()=>Math.abs(view.getBoundingClientRect().width/view.getBoundingClientRect().height-4/3)<.01,null,{polling:50});
     const portrait=await page.locator('#c').boundingBox();
     assert.ok(Math.abs(portrait.width/portrait.height-4/3)<.01);
     await page.setViewportSize({width:844,height:390});await fillsScreen('#c');

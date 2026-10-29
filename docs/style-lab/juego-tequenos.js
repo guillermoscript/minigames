@@ -91,17 +91,17 @@ function mkTequenos(){
     draw(){
       const win=g.result==='win',lose=g.result==='lose',e=g.endT,mv=!g.result,st=Math.sin(now*11),ty=TY+(mv?st*2.5:0);
       const van=PR.some(p=>p.q),idos=it.filter(c=>!c.on).length;
-      ctx.save();path([[0,0],[800,0],[800,576],[0,576]]);ctx.clip();/* la franja de abajo queda libre para la ayuda */
+      ctx.save();path([[gameLeft(),0],[gameRight(),0],[gameRight(),576],[gameLeft(),576]]);ctx.clip();/* la franja de abajo queda libre para la ayuda */
       /* la sala: pared, banderines, el cartel que nadie respeta y los globos */
-      wash(0,0,800,600,'#cdeeb4','#e6f7d3');
-      line([[0,98],[800,98]],3,INK);for(let i=0;i<12;i++)poly([[8+i*67,98],[52+i*67,98],[30+i*67,128]],CONF[i%4],3);
+      wash(gameLeft(),0,GAME_VIEW.width,600,'#cdeeb4','#e6f7d3');
+      line([[gameLeft(),98],[gameRight(),98]],3,INK);for(let i=0;i<12;i++)poly([[8+i*67,98],[52+i*67,98],[30+i*67,128]],CONF[i%4],3);
       rr(566,150,206,62,6,'#fffdf2',3.5);txt('TEQUEÑOS:',669,168,14,INK,0,true);txt('UNO POR PERSONA',669,192,17,'#c4283a',0,true);
       [[44,176,0],[82,150,1],[118,184,3]].forEach(([x,y,c])=>{const by=y+Math.sin(now*2+c)*3;line([[x,by+26],[34,404]],2.5,'#5a5274');ell(x,by,21,27,CONF[c],3.5);});
       /* la mesa de la torta: la gallina ya empezó sin esperar a nadie */
       rr(8,404,276,14,5,'#fffdf2',3.5);rr(20,418,252,62,0,'#ff9ec7',3);
       rr(50,356,96,48,8,'#ffe9c4',3.5);rr(50,356,96,16,8,'#ff5ca8',3);for(let i=0;i<3;i++){line([[74+i*24,356],[74+i*24,340]],4,'#3fb0ff');ell(74+i*24,334,4,6,'#ffd23f',2);}
       const pk=Math.max(0,Math.sin(now*7));gallina(204,384,.62,g.result?0:-pk*.42,rara);if(mv&&pk>.8)ell(158,398,3,2.5,'#ffe9c4',0);
-      rr(0,470,800,130,0,'#c9774f',0);line([[0,470],[800,470]],4,INK);for(let i=0;i<7;i++)line([[i*130+40,470],[i*150-30,600]],2.5,'#a85f3c');
+      rr(gameLeft(),470,GAME_VIEW.width,130,0,'#c9774f',0);line([[gameLeft(),470],[gameRight(),470]],4,INK);for(let i=0;i<7;i++)line([[i*130+40,470],[i*150-30,600]],2.5,'#a85f3c');
       /* la tía y la bandeja: fondo, servilleta de papel (con la grasa de los que ya no están), tequeños y borde */
       bust(Object.assign({},TIA,{x:cx,y:TY-90-(mv?Math.abs(st)*5:0),rot:mv?st*.025:0,look:win?Math.sign(TX-cx)||1:1,down:lose?1:0,
         mood:win?(e<.9?'o':'angry'):lose?'worry':g.t<1.1?'grin':van?'o':idos>=2?'worry':'happy',talk:mv&&g.t<1.1?Math.abs(Math.sin(now*16)):0,sweat:lose?2:idos>=2?1:0,
@@ -160,7 +160,7 @@ function mkTequenos(){
       if(win&&e>.3)bubble(196,408,'¡TÍAAA, AGARRÓ DOS!',17,PR[1].x+8,452);
       if(win&&e>.9){const sg=cx>320?-1:1;bubble(cx+sg*150,168,'¡ERA UNO!',22,cx+sg*50,202);}
       if(lose&&e>.75)bubble(PR[2].x+66,406,'¿IBAS A QUERER?',19,PR[2].x+20,450);
-      ctx.restore();line([[0,576],[800,576]],4,INK);
+      ctx.restore();line([[gameLeft(),576],[gameRight(),576]],4,INK);
       drawP();
     }};
   return g;

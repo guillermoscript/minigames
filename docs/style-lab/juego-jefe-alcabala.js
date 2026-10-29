@@ -26,7 +26,7 @@ const velo=(a,f)=>{if(a<=.01)return;ctx.save();ctx.globalAlpha=Math.min(1,a);f()
 const GUARDIA={skin:'#b87b50',shirt:'#3d4a5c',pat:'stripes',sh2:'#e6ff4d',cap:'#2b3442',brow:'thick',hairCol:'#14101c',bw:58,hw:42,hh:42};
 const NOCHE=['#12102c','#2a2752'];
 
-function cielo(h){wash(0,0,800,h,NOCHE[0],NOCHE[1]);for(let i=0;i<16;i++)ell((i*137+60)%800,104+(i*53)%120,1.7,1.7,'#ffffff',0);ell(700,138,22,22,'#fff6c8',0);ell(708,132,18,18,NOCHE[0],0);}
+function cielo(h){wash(gameLeft(),0,GAME_VIEW.width,h,NOCHE[0],NOCHE[1]);for(let i=0;i<16;i++)ell((i*137+60)%800,104+(i*53)%120,1.7,1.7,'#ffffff',0);ell(700,138,22,22,'#fff6c8',0);ell(708,132,18,18,NOCHE[0],0);}
 function cono(x,y,s){rr(x-22*s,y-7*s,44*s,10*s,3,'#ff7a1a',Math.min(3,s*3));poly([[x-15*s,y-6*s],[x+15*s,y-6*s],[x+4*s,y-58*s],[x-4*s,y-58*s]],'#ff7a1a',Math.min(3.5,s*3.5));
   poly([[x-11.5*s,y-22*s],[x+11.5*s,y-22*s],[x+8.5*s,y-36*s],[x-8.5*s,y-36*s]],'#ffffff',0);}
 /* la linterna: (x, y) = la mano; el foco mira hacia +x antes de girar */
@@ -124,7 +124,7 @@ function mkAlcabala(){
   /* ── dibujo: fase 1 ── */
   function d1(){const k=clamp(pt/FASES[0].dur,0,1),VX=490,hi=1-an.luz,lose=g.result==='lose';
     cielo(430);poly([[150,252],[260,214],[380,244],[520,206],[680,240],[800,220],[800,262],[150,262]],'#1d1a3c',0);
-    rr(0,250,800,180,0,'#23203a',0);poly([[VX-46,250],[VX+46,250],[VX+470,430],[VX-470,430]],'#35324a',0);
+    rr(gameLeft(),250,GAME_VIEW.width,180,0,'#23203a',0);poly([[VX-46,250],[VX+46,250],[VX+470,430],[VX-470,430]],'#35324a',0);
     for(const sg of[-1,1])line([[VX+sg*46,250],[VX+sg*470,430]],4,'#d8d2c4');
     for(let i=0;i<5;i++){const u=(i/5+road)%1,y=250+u*u*180,w=2+u*9;for(const sg of[-1,1])ell(VX+sg*(40+u*u*366),y,w,w*.6,'#ffb300',0);}
     /* los faros: en altas alumbran hasta al guardia */
@@ -138,12 +138,12 @@ function mkAlcabala(){
     if(barre>0){const a=-PI/2+Math.sin(barre*TAU)*1.1;line([[480,428],[480+Math.cos(a)*250,428+Math.sin(a)*250]],9,INK);}
     /* la ventana del chofer, con su papel ahumado: baja con el botón */
     const wy=104+an.vid*300;velo(.86,()=>poly([[0,wy],[150-(wy-104)*.093,wy],[122,404],[0,404]],'#0c0a14',0));if(an.vid<.97)line([[0,wy],[150-(wy-104)*.093,wy]],3,'#8f8fa8');
-    poly([[150,96],[190,96],[152,410],[114,410]],'#1c1a2a',4);rr(-10,-10,820,108,0,'#1c1a2a',0);line([[0,98],[800,98]],4,INK);
+    poly([[150,96],[190,96],[152,410],[114,410]],'#1c1a2a',4);rr(gameLeft()-10,-10,GAME_VIEW.width+20,108,0,'#1c1a2a',0);line([[gameLeft(),98],[gameRight(),98]],4,INK);
     const sw=Math.sin(now*2.6)*(.12+shake*.3);line([[640,98],[640+Math.sin(sw)*70,98+Math.cos(sw)*70]],2.5,'#c9ced6');ell(640+Math.sin(sw)*90,98+Math.cos(sw)*90,22,22,'#d9dce6',3);ell(640+Math.sin(sw)*90,98+Math.cos(sw)*90,6,6,'#3a3350',2);
-    rr(-20,404,840,230,36,'#2a2540',4.5);rr(0,408,800,12,6,'#3a3456',0);
+    rr(gameLeft()-20,404,GAME_VIEW.width+40,230,36,'#2a2540',4.5);rr(gameLeft(),408,GAME_VIEW.width,12,6,'#3a3456',0);
     line(closeP(ellP(120,606,150,150,30)),32,'#14101c');line(closeP(ellP(120,606,150,150,30)),18,'#3b3550');ell(14,512,25,21,TU.skin,4);ell(232,520,25,21,TU.skin,4);
     /* sin la luz interior, adentro no se ve nada (los botones tienen su lucecita) */
-    velo(.55*(1-an.int),()=>{rr(0,404,800,196,0,'#000000',0);rr(0,0,800,98,0,'#000000',0);});
+    velo(.55*(1-an.int),()=>{rr(gameLeft(),404,GAME_VIEW.width,196,0,'#000000',0);rr(gameLeft(),0,GAME_VIEW.width,98,0,'#000000',0);});
     rr(424,86,92,24,10,an.int>.5?'#fff3a8':'#4a4660',3.5);velo(.14*an.int,()=>ell(470,330,440,250,'#fff3a8',0));
     for(const b of BT){const sw=b.id in st,ok=sw&&st[b.id],z=b.pop*5;
       rr(b.x-66-z,b.y-31-z,132+z*2,62+z*2,14,sw?(ok?'#5cff7a':'#ffd23f'):'#c9ced6',4);
@@ -156,7 +156,7 @@ function mkAlcabala(){
 
   /* ── dibujo: fase 2 ── */
   function d2(){const k=clamp(pt/FASES[1].dur,0,1),lose=g.result==='lose';
-    wash(0,0,800,600,'#2a2540','#1e1a30');rr(24,170,752,400,26,'#14101c',5);rr(40,186,720,368,16,'#3a3350',0);velo(.3,()=>rr(40,186,720,36,0,'#000000',0));
+    wash(gameLeft(),0,GAME_VIEW.width,600,'#2a2540','#1e1a30');rr(24,170,752,400,26,'#14101c',5);rr(40,186,720,368,16,'#3a3350',0);velo(.3,()=>rr(40,186,720,36,0,'#000000',0));
     rr(16,558,768,36,10,'#4a4466',4);
     for(const f of FK)papel(f.id,f.x+Math.sin(now*40)*f.wob*6,f.y,f.rot,1);
     for(const d of DOC)if(!d.found)papel(d.id,d.x,d.y,d.rot,1);
@@ -176,14 +176,14 @@ function mkAlcabala(){
 
   /* ── dibujo: fase 3 ── */
   function d3(){const win=g.result==='win',lose=g.result==='lose',hot=nerv>.6,gx=250-(win?26*ease(clamp(fin/.4,0,1)):0),GS=1.32;
-    cielo(470);rr(0,360,800,120,0,'#23203a',0);line([[0,360],[800,360]],4,'#35324a');for(let i=0;i<3;i++)cono(60+i*96,440-i*8,.9);
+    cielo(470);rr(gameLeft(),360,GAME_VIEW.width,120,0,'#23203a',0);line([[gameLeft(),360],[gameRight(),360]],4,'#35324a');for(let i=0;i<3;i++)cono(60+i*96,440-i*8,.9);
     const a=win?2.3+Math.sin(fin*10)*.45:1.5+Math.sin(now*3)*.03;
     bust(Object.assign({},GUARDIA,{x:gx,y:330,s:GS,th:260,mood:win?'smile':lose||hot?'angry':beat>.3?'o':'calm',look:1,talk:lose?Math.abs(Math.sin(now*16)):0,
       arms:[{side:1,a,len:win?92:70,w:24,hand:(hx,hy)=>linterna(hx,hy,PI/2-a,1.5)},{side:-1,a:-.15,len:90,w:24}]}));
     const lx=gx+GS*(GUARDIA.bw*.78+70*Math.sin(a))+56,ly=330+GS*(4+70*Math.cos(a));
     if(!win){velo(.16,()=>poly([[lx-10,ly-24],[800,96],[800,470],[lx-10,ly+24]],'#fff6c8',0));velo(.5,()=>ell(lx,ly,84+Math.sin(now*13)*5,84,'#fff6c8',0));velo(.9,()=>ell(lx,ly,32,32,'#ffffff',0));}
     /* la puerta del carro por dentro, el paral y el espejo donde te ves la cara */
-    rr(-10,452,600,160,0,'#2a2540',4.5);rr(0,456,580,10,5,'#3a3456',0);rr(564,90,34,390,6,'#1c1a2a',4);rr(598,90,212,520,0,'#2a2540',0);rr(-10,-10,820,108,0,'#1c1a2a',0);line([[0,98],[800,98]],4,INK);
+    rr(-10,452,600,160,0,'#2a2540',4.5);rr(0,456,580,10,5,'#3a3456',0);rr(564,90,34,390,6,'#1c1a2a',4);rr(598,90,212,520,0,'#2a2540',0);rr(gameLeft()-10,-10,GAME_VIEW.width+20,108,0,'#1c1a2a',0);line([[gameLeft(),98],[gameRight(),98]],4,INK);
     rr(606,116,180,170,18,'#8f8fa8',4.5);ctx.save();path(rrP(614,124,164,154,12));ctx.clip();wash(614,124,164,154,'#3a3350','#2a2540');
     bust(Object.assign({},TU,{x:696,y:262+(hot&&!g.result?Math.sin(now*44)*2:0),s:.84,th:60,look:-1,mood:win?'happy':lose?'panic':stut>.2?'yell':hot?'panic':nerv>.3?'worry':'smile',talk:stut,sweat:win?0:nerv>.3?2:1}));
     if(!win)velo(.22,()=>ell(650,170,90,80,'#fffbe0',0));ctx.restore();tag(642,304);
@@ -209,7 +209,7 @@ function mkAlcabala(){
     [608,484,(x,y)=>{rr(x-104,y-28,208,28,10,'#ffb3d0',4);for(let i=0;i<6;i++)line([[x-84+i*34,y-26],[x-84+i*34,y-2]],3,'#ffffff');}],
     [600,456,(x,y)=>{line([[x-14,y-52],[x-30,y-78]],3,INK);line([[x+10,y-52],[x+28,y-80]],3,INK);rr(x-34,y-54,68,54,8,'#6b4f2a',4);rr(x-26,y-46,40,38,6,'#7fe0d0',3);ell(x+24,y-36,4,4,'#ffd23f',2);}]];
   function dMal(u){
-    cielo(430);rr(0,420,800,180,0,'#35324a',0);line([[0,420],[800,420]],4,INK);rr(0,566,800,34,0,'#3f5a3a',0);for(let i=0;i<4;i++)cono(40+i*50,430-i*3,.5);
+    cielo(430);rr(gameLeft(),420,GAME_VIEW.width,180,0,'#35324a',0);line([[gameLeft(),420],[gameRight(),420]],4,INK);rr(gameLeft(),566,GAME_VIEW.width,34,0,'#3f5a3a',0);for(let i=0;i<4;i++)cono(40+i*50,430-i*3,.5);
     /* el carro, con la maleta abierta */
     ell(140,560,36,36,'#14101c',4);ell(140,560,14,14,'#8f8fa8',3);ell(350,560,36,36,'#14101c',4);ell(350,560,14,14,'#8f8fa8',3);
     rr(124,372,236,90,28,'#c4283a',5);rr(144,386,196,56,14,'#5a4a78',3.5);rr(60,440,380,116,34,'#c4283a',5);
@@ -263,7 +263,7 @@ function mkAlcabala(){
       if(g.result==='lose'&&fin>.9)dMal(fin-.9);else[d1,d2,d3][ph]();
       ctx.restore();
       if(!g.result){for(let i=0;i<3;i++)ell(574+i*22,76,7,7,i<ph?'#5cff7a':i===ph?'#ffd23f':'#fff3c4',3);
-        if(gap>0){velo(gap/GAP*1.6,()=>{rr(0,250,800,96,0,'#14101c',0);txt('FASE '+(ph+1)+' DE 3',400,298,44,'#ffd23f');});}}
+        if(gap>0){velo(gap/GAP*1.6,()=>{rr(gameLeft(),250,GAME_VIEW.width,96,0,'#14101c',0);txt('FASE '+(ph+1)+' DE 3',400,298,44,'#ffd23f');});}}
       drawP();
     }};
   return g;

@@ -70,7 +70,7 @@ function mkNevera(){
       else{o=Math.min(1.2,o+dt*1.4);charco=Math.min(1.6,charco+dt*.5);}},
     draw(){
       const win=g.result==='win',lose=g.result==='lose',e0=fin,k=clamp(o,0,1);
-      ctx.save();path([[0,0],[800,0],[800,576],[0,576]]);ctx.clip();
+      ctx.save();path([[gameLeft(),0],[gameRight(),0],[gameRight(),576],[gameLeft(),576]]);ctx.clip();
       /* la cocina: el bombillo apagado, el mesón con la vela y la olla */
       AP.cocina(true);AP.bombillo(470,118,0);
       rr(540,342,270,134,6,'#b5805a',4);rr(528,326,290,18,4,'#e8e8ee',3.5);
@@ -103,7 +103,7 @@ function mkNevera(){
         line([[663+106*.66,518],[663+106*.66,546]],2.5,'#ffffff');}
       if(win&&e0>.75)bubble(520,300,'¡SE SALVÓ EL QUESO!',20,X+62,Y-70);
       if(lose&&e0>.5)bubble(600,180,'¡AY, MI PERNIL!',22,X+40,Y-110);
-      line([[0,576],[800,576]],4,INK);
+      line([[gameLeft(),576],[gameRight(),576]],4,INK);
       drawP();
     }};
   return g;

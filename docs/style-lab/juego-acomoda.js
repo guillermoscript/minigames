@@ -147,10 +147,10 @@ function mkAcomoda(){
       const win=g.result==='win',e=g.endT,kd=g.kind,k=clamp(g.t/g.dur,0,1),gp=R.x-L.x,m=(L.x+R.x)/2;
       const fall=kd==='ranura',dura=kd==='dura',cry=kd==='time',hush=fall&&e>=.42,bp=mt/STEP,pul=music?Math.max(0,1-(bp%2)):0;
       /* el patio: pared, piso de terracota y las luces de la miniteca barriendo */
-      rr(0,0,800,12,0,PARED,0);wash(0,6,800,346,PARED,PARED2);
-      rr(0,350,800,250,0,PISO,0);line([[0,350],[800,350]],4,INK);
-      for(let i=0;i<10;i++)line([[i*96-20,350],[i*150-290,600]],2,PISO2);for(const y of[396,474])line([[0,y],[800,y]],2,PISO2);
-      rr(0,574,800,26,0,'#fff3dc',0);line([[0,574],[800,574]],3.5,INK);
+      rr(gameLeft(),0,GAME_VIEW.width,12,0,PARED,0);wash(gameLeft(),6,GAME_VIEW.width,346,PARED,PARED2);
+      rr(gameLeft(),350,GAME_VIEW.width,250,0,PISO,0);line([[gameLeft(),350],[gameRight(),350]],4,INK);
+      for(let i=0;i<10;i++)line([[i*96-20,350],[i*150-290,600]],2,PISO2);for(const y of[396,474])line([[gameLeft(),y],[gameRight(),y]],2,PISO2);
+      rr(gameLeft(),574,GAME_VIEW.width,26,0,'#fff3dc',0);line([[gameLeft(),574],[gameRight(),574]],3.5,INK);
       if(music){ctx.save();ctx.globalAlpha=.15;for(let i=0;i<2;i++){const bx=400+Math.sin(now*1.6+i*2.6)*310;poly([[393,146],[407,146],[bx+64,350],[bx-64,350]],LUZ[(i*2+Math.floor(bp/4))%4],0);}ctx.restore();}
       rr(160,94,480,28,6,'#ffd23f',3.5);txt('MINITECA «LA BULLA TOTAL» · PURO ÉXITO VIEJO',400,109,13,INK,0,true);
       rr(20,96,122,44,8,'#14101c',3.5);txt('3:00 AM',81,119,22,'#ff4d5e',0,true);

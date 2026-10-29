@@ -94,7 +94,7 @@ function mkInscribe(){
       const pin=i=>1+.3*Math.max(0,1-(g.t-i.t0)/.07);
       ctx.save();if(lose&&e<.4)ctx.translate(Math.sin(now*60)*6*(1-e/.4),0);else if(stamp&&e<1.12)ctx.translate(0,Math.sin(now*70)*4);
       /* el cuarto a las 3 a. m.: por la ventana, el gallo que no sabe qué hora es */
-      wash(0,0,800,600,'#3b3157','#2a2342');
+      wash(gameLeft(),0,GAME_VIEW.width,600,'#3b3157','#2a2342');
       rr(626,98,164,146,8,'#5a4a78',4.5);
       ctx.save();path(rrP(634,106,148,130,4));ctx.clip();rr(634,106,148,130,0,'#1d2452',0);
       ell(756,130,13,13,'#fff3c4',0);for(const[x,y]of[[650,122],[688,114],[722,146],[664,156],[770,170]])ell(x,y,2,2,PAPEL,0);
@@ -153,7 +153,7 @@ function mkInscribe(){
           :[{side:-1,a:-2.45+(mood==='calm'?Math.sin(now*1.5)*.08:tr),len:60,w:21,hand:mug},{side:1,a:.25,len:70,w:21}]}));
       if(!g.result)tag(700,312);
       /* el escritorio con su teclado y su ratón */
-      rr(0,534,800,66,0,'#cf9f68',0);line([[0,534],[800,534]],5,INK);
+      rr(gameLeft(),534,GAME_VIEW.width,66,0,'#cf9f68',0);line([[gameLeft(),534],[gameRight(),534]],5,INK);
       rr(140,540,320,30,6,BEIGE,3.5);for(let i=0;i<2;i++)rr(150,546+i*10,300,6,2,BEIGE2,0);
       ell(520,556+clk*2,22,14-clk*3,BEIGE,3.5);line([[520,543+clk*4],[520,552+clk*2]],2.5,INK);
       /* ganaste: el monitor imprime el comprobante verde, pantalla abajo */

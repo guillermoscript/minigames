@@ -112,18 +112,18 @@ function mkCava(){
       const fl=(x0,y0,x1,y1,ph)=>{const u=ease(clamp((e2-.3)/1.2,0,1));return[lerp(x0,x1,u)+Math.sin(now*3+ph)*5*u,lerp(y0,y1,u)-12*clamp(e2/.14,0,1)*(1-u)+Math.sin(now*5+ph)*4,Math.sin(now*4+ph)*.14];};
       ctx.save();if(hit&&shake>0)ctx.translate(0,Math.sin(now*55)*5*shake);
       /* cielo, los cerros de Choroní, palmas, el cartel y las gaviotas */
-      wash(0,0,800,260,'#8fd8ff','#e8f8ff');
+      wash(gameLeft(),0,GAME_VIEW.width,260,'#8fd8ff','#e8f8ff');
       poly([[-10,200],[-10,132],[80,100],[190,138],[320,104],[450,142],[590,108],[700,136],[810,112],[810,200]],'#3aa86a',4);
       palma(30,214,112,18);palma(776,214,122,-14);
       rr(612,112,184,42,6,'#c98a4e',4);txt('PLAYA GRANDE',704,126,15,'#fffdf2',0,true);txt('CHORONÍ',704,143,12,'#ffe14d',0,true);
       for(let i=0;i<3;i++){const gx=[176,368,534][i]+Math.sin(now*.7+i*2)*22+(al?Math.sin(now*40+i)*4:0),gy=[128,114,132][i]+Math.cos(now*.9+i)*5;
         gaviota(gx,gy,al?1.35:1,Math.sin(now*(al?30:6)+i));if(al)txt('¡!',gx+32,gy-12,22,'#ff4d5e',.2);}
       /* arena seca arriba, arena mojada abajo y la raya de la marea alta (algas y conchas) */
-      rr(-10,184,820,430,0,ARENA,0);line([[-10,184],[810,184]],4,INK);rr(-10,LINE,820,300,0,'#e9cb8e',0);
-      if(hit||wet<YR-4)rr(-10,hit?LINE+4:wet,820,300,0,'#d6b677',0);
+      rr(gameLeft()-10,184,GAME_VIEW.width+20,430,0,ARENA,0);line([[-10,184],[810,184]],4,INK);rr(gameLeft()-10,LINE,GAME_VIEW.width+20,300,0,'#e9cb8e',0);
+      if(hit||wet<YR-4)rr(gameLeft()-10,hit?LINE+4:wet,GAME_VIEW.width+20,300,0,'#d6b677',0);
       for(let i=0;i<14;i++){const x=24+i*58+(i%3)*9,y=LINE+Math.sin(i*2.3)*5;if(i%3===1)ell(x,y,8,5,'#ff9ec7',2.5);else line([[x-12,y+3],[x-3,y-3],[x+8,y+2]],4,'#3aa86a');}
       txt('▲ ARENA SECA ▲',104,LINE-13,12,'#a8843f',0,true);
-      if(al&&!seated&&Math.sin(now*24)>-.2)line([[0,LINE-5],[800,LINE-5]],6,'#ffe14d');
+      if(al&&!seated&&Math.sin(now*24)>-.2)line([[gameLeft(),LINE-5],[gameRight(),LINE-5]],6,'#ffe14d');
       /* la familia bajo la sombrilla */
       const fm=win&&e2>.3?'happy':lose&&hit?'o':al?'panic':'smile',cheer=win&&e2>.6;
       line([[112,300],[120,152]],7,'#8f8fa8');poly(arcPts(120,160,102,PI,TAU,12,.56),'#ff5c8a',4);
@@ -183,7 +183,7 @@ function mkCava(){
         agua(566,'#3fb0ff',5);}
       /* el olón: la sombra por delante y la pared de agua que se levanta */
       if(cue&&!hit){const wy=606-152*(.35*q+.65*ease(q));
-        ctx.save();ctx.globalAlpha=.18;rr(-10,wy-40-170*q,820,300,0,'#14101c',0);ctx.restore();
+        ctx.save();ctx.globalAlpha=.18;rr(gameLeft()-10,wy-40-170*q,GAME_VIEW.width+20,300,0,'#14101c',0);ctx.restore();
         poly(borde(wy,10).concat([[820,640],[-20,640]]),'#2f7fe0',4.5);agua(wy+34,'#1f5fb8',0,8);
         for(let x=14;x<800;x+=62)ell(x+Math.sin(now*7+x)*6,wy+Math.sin(x*.022+now*2.6)*10-2,24,15,'#ffffff',3);
         if(!g.result)txt('¡¡OLÓN!!',150+Math.sin(now*60)*3,Math.min(516,wy-34),46,'#ff4d5e',-.06);}

@@ -119,8 +119,8 @@ function mkTranca(){
       const sdir=ch.dx>0?0:PI;
       ctx.save();if(shake>0)ctx.translate(Math.sin(now*91)*9*shake,Math.cos(now*77)*7*shake);
       /* el patio: cemento, la cava y la gallina de siempre */
-      wash(0,0,800,600,'#e2c7a0','#cfa97c');
-      for(let i=1;i<6;i++)line([[i*134,88],[i*134,600]],2,'#c09a6c');for(let j=0;j<4;j++)line([[0,150+j*130],[800,150+j*130]],2,'#c09a6c');
+      wash(gameLeft(),0,GAME_VIEW.width,600,'#e2c7a0','#cfa97c');
+      for(let i=1;i<6;i++)line([[i*134,88],[i*134,600]],2,'#c09a6c');for(let j=0;j<4;j++)line([[gameLeft(),150+j*130],[gameRight(),150+j*130]],2,'#c09a6c');
       rr(14,96,86,60,10,'#e8553d',4);rr(22,104,70,44,6,'#bfe9ff',3);for(const[x,y]of[[30,110],[62,126],[40,132]])rr(x,y,13,11,3,'#ffffff',2);
       ell(54,116,9,9,AMB,3);ell(54,116,3.5,3.5,'#3a2410',0);ell(78,136,9,9,AMB,3);ell(78,136,3.5,3.5,'#3a2410',0);
       {const hj=henJ<.6?Math.sin(PI*henJ/.6)*46:0,pk=hj?0:Math.max(0,Math.sin(now*5))*.3;ctx.save();ctx.translate(mx(724),552-hj);ctx.scale(-sg,1);ctx.rotate(pk+(hj?Math.sin(now*40)*.2:0));hen(0,0,.62,1);ctx.restore();}
@@ -198,14 +198,14 @@ function mkTranca(){
       else{const T=FI[idx],pp=Math.max(0,1-swT/.09),jit=1+k*2.2;mano(HX+Math.sin(now*31)*jit,HY0+Math.cos(now*27)*jit*.7+pp*12,1-pp*.12,Math.sin(now*5)*.03+pp*.1,T[0],T[1]);}
       ctx.restore();
       /* lo que se gritan */
-      if(win&&e>.25)bubble(mx(266),446,'¡LA COCHINAAA!',26,PBX+sg*36,by-bs*40);
+      if(win&&e>.25)bubble(mx(266),446,'¡TE TRANCAMOS!',26,PBX+sg*36,by-bs*40);
       if(tramp&&eT>.3&&eT<1.9)bubble(mx(500),212,'ESA NO VA AHÍ, TRAMPOSO',20,acu.o[0]-acu.in[0]*8,acu.o[1]-34);
       if(mesa&&eT>.35)bubble(400,214,'¡TUMBASTE LA MESA, CHAMO!',20,400,152);
-      if(ahor&&eT>.5)bubble(400,214,'¡TE AHORCAMOS LA COCHINA!',20,400,152);
+      if(ahor&&eT>.5)bubble(400,214,'¡AGARRA, SAPO!',20,400,152);
       drawP();
     }};
   return g;
 }
 
-BUS.add('tranca',{name:'¡TRANCA!',mk:mkTranca,card:'LA COCHINA',num:'66'});
+BUS.add('tranca',{name:'¡TRANCA!',mk:mkTranca,card:'EL DOMINÓ',num:'66'});
 })();

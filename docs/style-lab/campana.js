@@ -59,10 +59,7 @@ if(!save.v2){if(save.stars[3]||save.best[3]){save.stars[4]=save.stars[3];save.be
 /* ───────── página: fuera la botonera del laboratorio, canvas a pantalla completa y la capa de la app encima ───────── */
 const css=document.createElement('style');
 css.textContent='html,body{height:100%}body{padding:0!important;gap:0!important;justify-content:center;overflow:hidden;background:#0b0b14!important;user-select:none;-webkit-user-select:none}'+
-  '.bar,#help{display:none!important}#camp{position:relative;width:min(100vw,133.333vh);aspect-ratio:4/3;flex:none}'+
-  '@supports (height:100dvh){#camp{width:min(100vw,133.333dvh)}}'+
-  '@media (orientation:landscape) and (any-pointer:coarse){#camp{width:100vw;height:100vh;aspect-ratio:auto}'+
-  '@supports (height:100dvh){#camp{height:100dvh}}}'+
+  '.bar,#help{display:none!important}#camp{position:relative;flex:none}'+
   '#camp canvas{position:absolute;left:0;top:0;width:100%!important;height:100%!important;border-radius:0!important}#camp-ov{pointer-events:none;background:transparent!important}'+
   '#camp-app{position:fixed;left:0;top:0;width:100%;height:100%;border:0;background:#0b0b14;z-index:5}';
 document.head.append(css);
@@ -72,8 +69,36 @@ const pf=document.createElement('style');pf.textContent='@font-face{font-family:
 const VOL={music:.8,sfx:1};   /* los volúmenes de OPCIONES, los mismos de la portada (js/core.js) */
 try{const o=JSON.parse(localStorage.getItem('minicaos-opts-v1'));if(o){if(o.music>=0&&o.music<=1)VOL.music=o.music;if(o.sfx>=0&&o.sfx<=1)VOL.sfx=o.sfx;}}catch(e){}
 const wrap=document.createElement('div');wrap.id='camp';view.before(wrap);wrap.append(view);
-const ov=document.createElement('canvas');ov.id='camp-ov';const DPR=Math.min(2,window.devicePixelRatio||1);ov.width=W*DPR;ov.height=H*DPR;wrap.append(ov);
+const ov=document.createElement('canvas');ov.id='camp-ov';const DPR=Math.min(2,window.devicePixelRatio||1);wrap.append(ov);
 const X=ov.getContext('2d');
+/* The scene itself fills the viewport. Style buffers use the same aspect ratio;
+   characters, props and pointer coordinates share a uniform logical scale. */
+const gameFrame=document.createElement('canvas');gameFrame.width=W;gameFrame.height=H;
+const screen=view.getContext('2d');vctx=gameFrame.getContext('2d');
+let VW=W,OX=0;
+function presentGame(){
+  screen.setTransform(view.width/VW,0,0,view.height/H,OX*view.width/VW,0);
+  screen.clearRect(-OX,0,VW,H);
+  screen.imageSmoothingEnabled=style!=='snes';screen.drawImage(gameFrame,gameLeft(),0,VW,H);
+}
+function fitScreen(){
+  const previousWidth=VW;VW=H*Math.max(W/H,innerWidth/innerHeight);OX=(VW-W)/2;
+  GAME_VIEW.width=VW;GAME_VIEW.offsetX=OX;
+  resizeGameBuffers();
+  const k=Math.min(innerWidth/VW,innerHeight/H);
+  wrap.style.width=VW*k+'px';wrap.style.height=H*k+'px';
+  for(const c of [view,ov]){
+    const w=Math.round(VW*DPR),h=Math.round(H*DPR);
+    if(c.width!==w)c.width=w;if(c.height!==h)c.height=h;
+  }
+  if(window.CAMP&&Math.abs(previousWidth-VW)>.01)CAMP.resize();
+  presentGame();if(window.CAMP)render();
+}
+addEventListener('resize',fitScreen);
+document.addEventListener('fullscreenchange',fitScreen);
+document.addEventListener('webkitfullscreenchange',fitScreen);
+window.visualViewport?.addEventListener('resize',fitScreen);
+fitScreen();
 document.title=PUBLIC?'MiniCaos · Venezuela':'MiniCaos · modo niveles';
 
 /* ───────── sonido de la app (snd/noise/jingles/música de js/core.js) por el AudioContext del laboratorio ───────── */
@@ -163,10 +188,10 @@ function TW(s,x,y,size,fill,maxW,maxL){let L;
   L.slice(0,maxL).forEach((l,i)=>T(l,x,y+i*size*1.2,size,fill,'center',maxW));}
 function star(cx,cy,ro,ri,n,rot,fill,o=4){X.beginPath();for(let i=0;i<n*2;i++){const r=i%2?ri:ro,a=rot+i*Math.PI/n;X.lineTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r);}
   X.closePath();X.lineJoin='round';if(o){X.lineWidth=o*2;X.strokeStyle=INK;X.stroke();}X.fillStyle=fill;X.fill();}
-function rays(color,ray,t){X.fillStyle=color;X.fillRect(0,0,W,H);X.fillStyle=ray;const n=16,rot=t*.12;
+function rays(color,ray,t){X.fillStyle=color;X.fillRect(-OX,0,VW,H);X.fillStyle=ray;const n=16,rot=t*.12;
   for(let i=0;i<n;i++){const a0=rot+i*Math.PI*2/n,a1=a0+Math.PI/n;X.beginPath();X.moveTo(W/2,H/2);X.lineTo(W/2+Math.cos(a0)*1200,H/2+Math.sin(a0)*1200);X.lineTo(W/2+Math.cos(a1)*1200,H/2+Math.sin(a1)*1200);X.fill();}
-  const gr=X.createLinearGradient(0,0,0,H);gr.addColorStop(0,'rgba(255,255,255,.16)');gr.addColorStop(1,'rgba(20,16,28,.14)');X.fillStyle=gr;X.fillRect(0,0,W,H);
-  X.fillStyle='rgba(20,16,28,.06)';for(let y=10;y<H;y+=28)for(let x=(y/28&1)*14+6;x<W;x+=28){X.beginPath();X.arc(x,y,3,0,7);X.fill();}}
+  const gr=X.createLinearGradient(0,0,0,H);gr.addColorStop(0,'rgba(255,255,255,.16)');gr.addColorStop(1,'rgba(20,16,28,.14)');X.fillStyle=gr;X.fillRect(-OX,0,VW,H);
+  X.fillStyle='rgba(20,16,28,.06)';for(let y=10;y<H;y+=28)for(let x=(y/28&1)*14+6-Math.ceil(OX/28)*28;x<W+OX;x+=28){X.beginPath();X.arc(x,y,3,0,7);X.fill();}}
 /* Caos, la mascota: una bombita encendida (igual que en la app). x = centro, y = pies, u = unidad */
 function caos(x,y,u,o={}){const col=o.col||OR,ol=Math.max(3,u*.5),mood=o.mood;
   const wave=mood==='happy'?Math.sin(now*14)*1.4*u:0;
@@ -343,14 +368,14 @@ function livesRow(x,y,u,gap){for(let i=0;i<4;i++){const cx=x+i*gap;
 function stars3(cx,cy,n,size,gap){for(let i=0;i<3;i++)star(cx+(i-1)*gap,cy,size,size*.45,5,-Math.PI/2,i<n?'#FFE14D':'#4a4558',3);}
 /* la mecha de la bomba: se quema de izquierda a derecha hasta la bomba; al final tiembla y cuenta los segundos */
 function fuse(){const f=fuseF,done=!!G.result,danger=!done&&fuseLeft<2;
-  const col=f<.5?'#5CFF7A':f<.75?'#FFE14D':'#FF4D4D',x0=24,x1=W-70,sx=x0+(x1-x0)*f,y=H-20+(danger?(Math.random()-.5)*4:0);
-  X.fillStyle=NIV[nivel-1].banda;X.fillRect(0,H-40,W,40);
+  const col=f<.5?'#5CFF7A':f<.75?'#FFE14D':'#FF4D4D',x0=24-OX,x1=W+OX-70,sx=x0+(x1-x0)*f,y=H-20+(danger?(Math.random()-.5)*4:0);
+  X.fillStyle=NIV[nivel-1].banda;X.fillRect(-OX,H-40,VW,40);
   X.fillStyle=INK;X.fillRect(x0-4,y-10,x1-x0+8,20);X.fillStyle='#3a3550';X.fillRect(x0,y-6,x1-x0,12);
   X.globalAlpha=danger&&Math.sin(now*26)>.4?.6:1;X.fillStyle=col;X.fillRect(sx,y-6,x1-sx,12);X.fillStyle='rgba(255,255,255,.4)';X.fillRect(sx,y-6,x1-sx,3);X.globalAlpha=1;
   if(!done)star(sx,y,14+Math.random()*6,5,8,now*10,NIV[nivel-1].chispa,3);
   const shk=f>.75&&!done?(Math.random()-.5)*5:0;
-  circ(W-40+shk,y,16,f>.85&&!done&&Math.sin(now*30)>0?'#ff3b3b':'#2b2b3a',4);X.fillStyle='#fff';X.fillRect(W-47+shk,y-8,5,5);
-  if(danger)T(Math.ceil(fuseLeft)+'',W-40,y-36-Math.abs(Math.sin(now*10))*6,30,'#FF4D4D');}
+  circ(W+OX-40+shk,y,16,f>.85&&!done&&Math.sin(now*30)>0?'#ff3b3b':'#2b2b3a',4);X.fillStyle='#fff';X.fillRect(W+OX-47+shk,y-8,5,5);
+  if(danger)T(Math.ceil(fuseLeft)+'',W+OX-40,y-36-Math.abs(Math.sin(now*10))*6,30,'#FF4D4D');}
 function chips(y,h){const all=ESTILOS.concat([['mezcla','MEZCLA']]),w=104,g=6,x0=(W-(all.length*w+(all.length-1)*g))/2;
   all.forEach(([k,n],i)=>button(x0+i*(w+g),y,w,h,n,()=>estilo(k),{fill:save.estilo===k?'#FFE14D':'#fff',size:15,depth:4,o:4}));}
 
@@ -368,9 +393,9 @@ function placaNivel(x,y,largo){const s='NIVEL '+nivel+(largo?' · '+NIV[nivel-1]
   X.fillStyle=NIV[nivel-1].hud;X.fillRect(x,y,w,h);X.fillStyle='rgba(255,255,255,.22)';X.fillRect(x,y,w,3);icono(x+(largo?18:14),y+h/2,largo?9:7,nivel);T(s,x+(largo?36:28),y+h/2+1,largo?17:14,'#fff','left');}
 function tabsNivel(x,y,h){[1,2,3].forEach(n=>{const bx=x+(n-1)*79;button(bx,y,70,h,'NIV '+n,()=>{nivel=n;},{size:16,depth:4,o:4,fill:nivel===n?'#FFE14D':'#fff'});
   if(CANDADOS&&n>1&&!ETAPAS.some((e,i)=>abierto(i,n))){X.fillStyle='rgba(20,16,28,.5)';X.fillRect(bx,y,70,h);}});}
-function estrellitas(){for(let i=0;i<46;i++){const x=(i*197.3+31)%W,y=(i*113.7+17)%H,k=.35+.65*Math.abs(Math.sin(now*(1.1+i%5*.4)+i));X.globalAlpha=k*.8;X.fillStyle=i%7?'#fff':'#FFE14D';const r=i%9?2:3;X.fillRect(x-r/2,y-r/2,r,r);}X.globalAlpha=1;}
+function estrellitas(){for(let i=0;i<Math.ceil(46*VW/W);i++){const x=(i*197.3+31)%VW-OX,y=(i*113.7+17)%H,k=.35+.65*Math.abs(Math.sin(now*(1.1+i%5*.4)+i));X.globalAlpha=k*.8;X.fillStyle=i%7?'#fff':'#FFE14D';const r=i%9?2:3;X.fillRect(x-r/2,y-r/2,r,r);}X.globalAlpha=1;}
 function fondoNivel(a,b){rays(a,b,now);if(nivel===3)estrellitas();
-  else if(nivel===2){const g=X.createLinearGradient(0,H*.45,0,H);g.addColorStop(0,'rgba(255,120,50,0)');g.addColorStop(1,'rgba(255,120,50,.32)');X.fillStyle=g;X.fillRect(0,H*.45,W,H*.55);}}
+  else if(nivel===2){const g=X.createLinearGradient(0,H*.45,0,H);g.addColorStop(0,'rgba(255,120,50,0)');g.addColorStop(1,'rgba(255,120,50,.32)');X.fillStyle=g;X.fillRect(-OX,H*.45,VW,H*.55);}}
 function ambiente(){   /* sobre el juego: el resplandor del atardecer baja de arriba; de noche se cierra la viñeta */
   if(nivel===2){const g=X.createLinearGradient(0,0,0,190);g.addColorStop(0,'rgba(255,120,50,.24)');g.addColorStop(1,'rgba(255,120,50,0)');X.fillStyle=g;X.fillRect(0,0,W,190);}
   else if(nivel===3)vignette(.3);}
@@ -436,7 +461,7 @@ function kitScreen(){const ox=kox(),tab=state==='menu'?0:state==='practice'?1:2;
 
 /* ───────── pantallas ───────── */
 function render(){
-  btns=[];X.setTransform(DPR,0,0,DPR,0,0);X.clearRect(0,0,W,H);X.save();
+  btns=[];X.setTransform(ov.width/VW,0,0,ov.height/H,OX*ov.width/VW,0);X.clearRect(-OX,0,VW,H);X.save();
   if(shakeT>0){const k=shakeT*shakeA*3;X.translate((Math.random()-.5)*k,(Math.random()-.5)*k);}
   if(state==='worlds'){
     rays('#2b2757','#322d66',now);
@@ -445,7 +470,7 @@ function render(){
       l2:'La camionetica, la casa, la rumba… y se fue la luz. Otra vez.',stars:totalEstrellas()+' / '+ETAPAS.length*9},goMenu);
     worldCard(1,410,104,360,396,{name:'CLÁSICO',bg:'#6EC6FF',cols:['#FF6B3D','#6EA8FE','#7BD88F','#F28CB1','#B49CFF'],l1:appStages+' ETAPAS · 100+ JUEGOS',
       l2:'Las etapas de siempre: bichos, teclado, reflejos, 3D, deportes…',stars:appStars+' / '+appStages*3},openClassic);
-    if(appFr&&!appOn){X.fillStyle='rgba(20,16,28,.7)';X.fillRect(0,0,W,H);T('CARGANDO MUNDO CLÁSICO…',W/2,H/2,40,'#FFE14D','center',740);btns=[];}
+    if(appFr&&!appOn){X.fillStyle='rgba(20,16,28,.7)';X.fillRect(-OX,0,VW,H);T('CARGANDO MUNDO CLÁSICO…',W/2,H/2,40,'#FFE14D','center',740);btns=[];}
     T('DENTRO DE CADA MUNDO, «MUNDOS» O ESC TE DEVUELVEN AQUÍ',W/2,548,16,'#fff','center',770);
   }else if(kitOn()){
     kitScreen();
@@ -500,12 +525,12 @@ function render(){
       fuse();
     }
     if(mode==='stage'){
-      X.fillStyle=NIV[nivel-1].hud;X.fillRect(10,36,176,40);X.fillRect(W-140,10,132,66);if(pre<=0)placaNivel(10,80);
-      livesRow(36,66,2.4,40);
-      T(isBoss?(stage.jefes.length>1?'JEFE '+(bossK+1)+'/'+stage.jefes.length:'JEFE'):(played+1)+'/'+stage.n,W-16,30,26,isBoss?'#FF4D4D':'#fff','right',116);
-      X.save();const sp=1+scorePop*.3;X.translate(W-16,62);X.scale(sp,sp);T(String(Math.round(shownScore)),0,0,22,'#FFE14D','right');X.restore();
-    }else{T('PRÁCTICA',W-16,30,22,'#fff','right');T(nombreEstilo()+' · NIV '+nivel,W-16,58,14,'#fff','right');if(pre<=0)placaNivel(10,10);}
-    button(W-78,80,66,30,mode==='practice'?'SALIR':'MENÚ',exitPlay,{size:15,fill:'rgba(255,255,255,.85)'});
+      X.fillStyle=NIV[nivel-1].hud;X.fillRect(10-OX,36,176,40);X.fillRect(W+OX-140,10,132,66);if(pre<=0)placaNivel(10-OX,80);
+      livesRow(36-OX,66,2.4,40);
+      T(isBoss?(stage.jefes.length>1?'JEFE '+(bossK+1)+'/'+stage.jefes.length:'JEFE'):(played+1)+'/'+stage.n,W+OX-16,30,26,isBoss?'#FF4D4D':'#fff','right',116);
+      X.save();const sp=1+scorePop*.3;X.translate(W+OX-16,62);X.scale(sp,sp);T(String(Math.round(shownScore)),0,0,22,'#FFE14D','right');X.restore();
+    }else{T('PRÁCTICA',W+OX-16,30,22,'#fff','right');T(nombreEstilo()+' · NIV '+nivel,W+OX-16,58,14,'#fff','right');if(pre<=0)placaNivel(10-OX,10);}
+    button(W+OX-78,80,66,30,mode==='practice'?'SALIR':'MENÚ',exitPlay,{size:15,fill:'rgba(255,255,255,.85)'});
   }else if(state==='over'){
     rays('#3b0d14','#4d1119',now);
     const gk=st<.14?2.6-1.6*easeOut(st/.14):1;
@@ -546,11 +571,11 @@ paint=function(pts,f,o=4){
   pintaLab(pts,f,o);};
 wash=function(x,y,w,h,c1,c2,o){if(NIV[nivel-1].tinte&&w*h>=60000){c1=tinte(c1);if(c2)c2=tinte(c2);}aguadaLab(x,y,w,h,c1,c2,o);};
 const pintar=paintFrame;
-paintFrame=function(){if(state!=='play'||pre>0)return;try{pintar();}catch(e){fallo(e,'draw');}};
+paintFrame=function(){if(state!=='play'||pre>0)return;try{pintar();presentGame();}catch(e){fallo(e,'draw');}};
 tick=function(dt){now+=dt;if(appOn)return;EGGS.update(dt);try{update(dt);}catch(e){fallo(e,'update');}render();};   /* con el mundo clásico abierto, aquí no se mueve nada */
 
 /* ───────── entrada: en captura, antes que el laboratorio y los juegos ───────── */
-const pos=e=>{const r=view.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*H};};
+const pos=canvasPoint;
 const despierta=()=>{try{const a=A();a.resume&&a.resume();}catch(e){}};
 function pantallaCompleta(){
   if(!('ontouchstart' in window||navigator.maxTouchPoints>0)||document.fullscreenElement||document.webkitFullscreenElement)return;
@@ -589,5 +614,8 @@ goWorlds();
 if(q.get('juego')&&GAMES[q.get('juego')])startPractice(q.get('juego'));else if(ETAPAS[+q.get('etapa')-1])startStage(+q.get('etapa')-1);
 else if(PUBLIC||q.get('mundo')==='venezuela')goMenu();else if(q.get('mundo')==='clasico')openClassic();
 window.CAMP={get state(){return state;},get info(){return{state,mode,stage:stageIdx,nivel,played,lives,score,pre,curId,isBoss,bossK,style,selectedStyle:save.estilo,SP,result:G&&G.result,endT:G&&G.endT};},
+  // A rotation starts the current round again with its new play field, without
+  // advancing the stage or taking a life. Factory bounds must match the scene.
+  resize(){if(state==='play'&&!outcome){PT.length=0;G=GAMES[curId].mk();playT=0;pre=PRE;fuseF=0;fuseLeft=9;lastCmd=G.cmd;cmdT=9;}},
   ETAPAS,JEFES,TODOS,startStage,startPractice,goMenu,goPractice,goWorlds,openClassic,closeClassic,get app(){return appFr&&appFr.contentWindow;},estilo,set lives(n){lives=n;},set played(n){played=n;},set nivel(n){nivel=Math.max(1,Math.min(3,n|0));}};
 })();

@@ -87,7 +87,7 @@ function mkEnchufa(){
       const ce=cAt(c),tm=sd=>({x:ce.x+Math.cos(rot)*OFF*sd,y:ce.y+Math.sin(rot)*OFF*sd}),o=tm(-mala),m=mala?tm(mala):null;
       const pct=win?3+(e>1.1?1:0):lose?0:Math.max(1,Math.ceil(left/g.dur*3)),rojo=!win&&pct<=1;
       const ptx=plugged?o.x:px,pty=plugged?o.y-8:py,muere=lose?clamp(e/.35,0,1):0;
-      ctx.save();path([[0,0],[800,0],[800,576],[0,576]]);ctx.clip();
+      ctx.save();path([[gameLeft(),0],[gameRight(),0],[gameRight(),576],[gameLeft(),576]]);ctx.clip();
       AP.sala({sin:'ventilador tele florero'});AP.bombillo(612,140,0);   /* la sala de ¡CHANCLA!: sin el ventilador (ahí cuelga la regleta) ni la tele y el florero (ahí estás tú) */
       regleta(ce.x,ce.y,rot,mala);
       /* tú, con el teléfono en alto */
@@ -113,7 +113,7 @@ function mkEnchufa(){
         for(const sg of[-1,1])line([[px+sg*24,py-46],[px+sg*8,py-30],[px+sg*18,py-26],[px-sg*4,py-4]],4,CHISPA);ctx.restore();}
       if(lose&&e>.45)bubble(172,146,'¡NOOO! ¡MI TELÉFONO!',19,140,288);
       if(win&&e>.5)bubble(172,146,'¡ÉPALE, SÍ HAY LUZ!',19,140,288);
-      ctx.restore();line([[0,576],[800,576]],4,INK);
+      ctx.restore();line([[gameLeft(),576],[gameRight(),576]],4,INK);
       drawP();
     }};
   return g;

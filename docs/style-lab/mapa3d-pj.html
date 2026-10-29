@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Fotos de personajes para el mapa 3D</title>
+<style>html,body{margin:0;background:#000}canvas{display:block}</style>
+<canvas id="c" width="800" height="600"></canvas>
+<script src="engine.js"></script>
+<script src="juegos-bus.js" data-juego="-"></script>
+<script src="fiesta-personajes.js"></script>
+<script>
+/* Página auxiliar de mapa3d.html: monta el motor del laboratorio (igual que pruebas/fiesta-personajes-hoja.js) y deja a mano
+   __foto(id, ánimo, t): pinta el personaje de cuerpo entero en estilo SNES sobre fondo magenta y devuelve el lienzo lógico 800×600.
+   mapa3d.html lo recorta con la clave de color y lo usa como sprite. Si algo falla queda __err y el mapa conserva sus muñequitos. */
+window.__listo = false;
+addEventListener('load', function () {
+  try {
+    window.requestAnimationFrame = function () { return 0; }; hud = function () {}; frameWW = function () {};
+    setStyle('snes'); GAME_VIEW.width = 800; GAME_VIEW.offsetX = 0; resizeGameBuffers(); view.height = 600;
+    window.__listo = true;
+  } catch (e) { window.__err = String(e && e.stack || e); }
+});
+window.__foto = function (id, mood, t) {
+  var PJ = window.FIESTA.PJ, sp = PJ.CHARS[id], s = 300 / (216 + (sp ? sp.legs[2] : 58));
+  now = t;
+  G = { draw: function () { rr(0, 0, 800, 600, 0, '#ff00ff', 0);
+      PJ.draw(ctx, id, 400, 560, s, mood, t, { modo: 'cuerpo', ancla: 'pies', sombra: false, semilla: 1 }); },
+    impact: 0, cmd: '', hint: '', t: 0, dur: 1e9, result: null };
+  paintFrame();
+  return view;
+};
+</script>

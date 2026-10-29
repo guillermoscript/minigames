@@ -71,7 +71,7 @@ function mkTransformador(){
       if(g.t>=g.dur){g.result='lose';g.why='¡SIN LUZ!';rageT=-1;sfx.thud();sfx.lose();}},
     draw(){
       const win=g.result==='win',lose=g.result==='lose',warn=rageT>=0&&rageT<=.45,rage=rageT>.45,k=clamp(win?1:v,0,1);
-      ctx.save();path([[0,0],[800,0],[800,576],[0,576]]);ctx.clip();
+      ctx.save();path([[gameLeft(),0],[gameRight(),0],[gameRight(),576],[gameLeft(),576]]);ctx.clip();
       AP.barrio(lit);poste();
       trafo(win?'dizzy':warn||rage||(bajoT<.6&&!g.result)?'zap':'angry',hurt);
       const hp=breaker(PX+(rage||bajoT<.4?Math.sin(now*70)*3:0),k,win,bajo);
@@ -108,7 +108,7 @@ function mkTransformador(){
       line([[mx+mw-4,my-6],[mx+mw-4,my+30]],4,'#ffd23f');
       if(win&&g.endT>.25){bubble(128,280,'¡LLEGÓ!',24,150,332);bubble(566,258,'¡LLEGÓ!',26,578,322);}
       if(lose&&g.endT>.3)bubble(128,280,'¡AY, NO!',22,150,332);
-      ctx.restore();line([[0,576],[800,576]],4,INK);
+      ctx.restore();line([[gameLeft(),576],[gameRight(),576]],4,INK);
       drawP();
     }};
   return g;

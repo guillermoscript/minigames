@@ -69,7 +69,7 @@ function mkMarcalo(){
     draw(){
       const win=g.result==='win',lose=!!g.result&&!win,fush=lose&&g.kind==='fush',primo=lose&&!fush,e=g.endT,c=curl(),wind=lv>=3?1-bf:0;
       /* la sala: banderines, el cartel con error, la repisa con el radio y la gallina de siempre */
-      wash(0,0,800,600,'#ffe2b8','#ffcf9c');
+      wash(gameLeft(),0,GAME_VIEW.width,600,'#ffe2b8','#ffcf9c');
       line([[0,98],[400,116],[800,98]],3,INK);
       for(let i=0;i<10;i++){const x=14+i*80,y=99+(1-Math.abs(i-4.5)/5)*15;poly([[x,y],[x+52,y],[x+26,y+36]],CONF[i%4],3);}
       rr(262,146,276,36,6,'#ffffff',3.5);txt('FELIZ CUNPLEAÑO',400,165,20,'#c4283a',-.01,true);
@@ -98,7 +98,7 @@ function mkMarcalo(){
       /* la mesa con los otros diecinueve */
       const nb=win?-clamp((e-1.15)*220,0,90):0;
       for(let i=0;i<10;i++)vaso(60+i*72,462,44,54,0);
-      rr(-10,510,820,100,0,'#8a5a3a',0);line([[-10,510],[810,510]],4,INK);rr(-10,530,820,80,0,'#fff3c4',0);for(let i=0;i<11;i++)rr(i*80-6,530,40,80,0,'#ff9ec7',0);
+      rr(gameLeft()-10,510,GAME_VIEW.width+20,100,0,'#8a5a3a',0);line([[-10,510],[810,510]],4,INK);rr(gameLeft()-10,530,GAME_VIEW.width+20,80,0,'#fff3c4',0);for(let i=0;i<11;i++)rr(i*80-6,530,40,80,0,'#ff9ec7',0);
       for(let i=0;i<10;i++)if(i!==4)vaso(96+i*72,SY-(i===5?-nb*0:0)+(i===5?nb:0),44,56,0);
       /* tu vaso */
       if(win){const k=ease(clamp(e/.3,0,1));vx=lerp(CX,SX,k);vy=lerp(YT,SY,k);vw=lerp(CW,44,k);vh=lerp(CH,56,k);}

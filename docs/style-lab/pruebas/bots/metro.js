@@ -6,6 +6,13 @@ function anden(T,cada=.3){T.S(.3);while(!T.listo()&&T.P().ph===0){T.tecla(COD[T.
 function puerta(T,cada=.1){let n=0;while(!T.listo()&&T.P().ph===1&&n++<90){T.tap(400,300);T.S(cada);}fase(T,2);}
 function viaje(T){while(!T.listo()){const q=T.P(),u=q.d+q.v*.25;T.hold(u>.03?1:0,u<-.03?1:0);T.S(1/60);}T.hold(0,0);}
 BOTS.metro={
+  ganaGestos(T){
+    while(!T.listo()&&T.P().ph===0){
+      const k=T.P().dir,dx=k==='left'?-120:k==='right'?120:0,dy=k==='up'?-120:k==='down'?120:0;
+      T.drag(400,300,400+dx,300+dy,.08);T.S(.22);
+    }
+    fase(T,1);puerta(T);viaje(T);
+  },
   gana(T){anden(T);T.foto('puerta');puerta(T);T.S(1.5);T.foto('viaje');viaje(T);},
   pierde(T){anden(T);T.S(4);},                                 /* no empuja: la puerta le muerde el bolso */
   pierdeViaje(T){anden(T);puerta(T);T.hold(1,0);T.hasta(()=>T.listo(),9);T.hold(0,0);},

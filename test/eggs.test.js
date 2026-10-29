@@ -74,3 +74,66 @@ test('failed decoding can be retried and missing clips are optional', async () =
   assert.equal(h.eggs.play('correct'), true); h.decodes[1].success('correct');
   assert.deepEqual(h.starts, ['correct']);
 });
+
+test('winning the bus driving game uses a normal win clip, without Goku', async () => {
+  const h=setup();h.eggs.begin('hueco');await h.flush();
+  h.eggs.outcome('hueco','win');
+  assert.equal(h.decodes.length,1);
+  h.decodes[0].success('win clip');
+  assert.equal(h.eggs.song(),false,'Goku is a song; the driving game should play a regular win effect');
+  assert.deepEqual(h.starts,['win clip']);
+  // Other dodging games keep their existing celebration.
+  h.eggs.stage();h.eggs.begin('sw_limbo');h.eggs.outcome('sw_limbo','win');
+  h.decodes[1].success('dodge clip');
+  assert.equal(h.eggs.song(),true);
+});
+
+test('a clip plays once per stage, and becomes available on a new attempt', async () => {
+  const h=setup();h.eggs.stage();h.eggs.begin('hello');await h.flush();
+  assert.equal(h.eggs.play('alert'),true);
+  assert.equal(h.eggs.play('alert'),false,'pending clip is reserved');
+  h.decodes[0].success('alert');
+  h.eggs.begin('hello');assert.equal(h.eggs.play('alert'),false);
+  h.eggs.stage();assert.equal(h.eggs.play('alert'),true);
+  assert.deepEqual(h.starts,['alert','alert']);
+});
+
+test('only one win and one loss egg can play in a stage, including stage clear', async () => {
+  const h=setup();h.eggs.stage();h.eggs.begin('hello');await h.flush();
+  h.eggs.outcome('hello','win');h.eggs.outcome('whack','win');
+  assert.equal(h.decodes.length,1);
+  h.decodes[0].success('win');
+  h.eggs.begin('catch');h.eggs.outcome('catch','win');h.eggs.clear(true);
+  assert.equal(h.decodes.length,1);
+  h.eggs.begin('hello');h.eggs.outcome('hello','lose');
+  h.decodes[1].success('lose');
+  h.eggs.begin('whack');h.eggs.outcome('whack','lose');
+  assert.equal(h.decodes.length,2);
+  assert.deepEqual(h.starts,['win','lose']);
+});
+
+test('winning music and the outcome share the same exclusive win slot', async () => {
+  const h=setup();h.eggs.stage();h.eggs.begin('pendrive');await h.flush();
+  assert.equal(h.eggs.music(),true);h.eggs.outcome('pendrive','win');
+  assert.equal(h.decodes.length,1);h.decodes[0].success('song');
+  h.eggs.begin('anuncio');assert.equal(h.eggs.music(),false);h.eggs.outcome('anuncio','win');
+  assert.equal(h.decodes.length,1);
+});
+
+test('cancellation and failed decoding leave the stage slots available', async () => {
+  const h=setup();h.eggs.stage();h.eggs.begin('hello');await h.flush();
+  h.eggs.outcome('hello','win');h.eggs.begin('hello');h.decodes[0].success('cancelled');
+  h.eggs.outcome('hello','win');assert.deepEqual(h.starts,['cancelled']);
+  h.eggs.stage();h.eggs.begin('hello');h.eggs.outcome('hello','lose');
+  h.decodes[1].failure();h.eggs.begin('hello');h.eggs.outcome('hello','lose');
+  h.decodes[2].success('lose');assert.deepEqual(h.starts,['cancelled','lose']);
+});
+
+test('the visual sticker appears only after playback and expires', async () => {
+  const h=setup();h.eggs.begin('hello');await h.flush();
+  const labels=[],x={save(){},restore(){},translate(){},rotate(){},scale(){},fillRect(){},strokeRect(){},fillText(s){labels.push(s);}};
+  h.eggs.play('alert');h.eggs.draw(x,800,true);assert.deepEqual(labels,[]);
+  h.decodes[0].success('alert');h.eggs.draw(x,800,true);
+  assert.deepEqual(labels,['★ EASTER EGG ★','¡VERSIÓN ESPECIAL!']);
+  labels.length=0;h.eggs.update(2.1);h.eggs.draw(x);assert.deepEqual(labels,[]);
+});

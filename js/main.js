@@ -75,8 +75,8 @@ function drawShareMenu() {
   button(130, 330, 540, 70, 'COPY LINK', shareCopy, { fill: '#B49CFF', size: 26 });
   button(250, 440, 300, 64, 'CLOSE', () => { sh.on = false; }, { size: 24 });
 }
-/* title tap / Enter: a room invite wins over a score challenge, which wins over world selection */
-function titleGo() { if (inviteOpen()) joinInvite(); else if (chOpen) acceptChallenge(); else goWorlds(); }
+/* title tap / Enter: a room invite wins over a score challenge, which wins over the main menu */
+function titleGo() { if (inviteOpen()) joinInvite(); else if (chOpen) acceptChallenge(); else goMain(); }
 function acceptChallenge() {
   const i = Math.min(CH.stage, save.unlocked - 1);          // locked stage? start from the furthest one you can play
   chOpen = false; track('challenge_accept', { from: CH.from, target: CH.score, stage: CH.stage + 1, played: i + 1 });
@@ -98,7 +98,7 @@ let stageIdx = 0, stage = STAGES[0], lives = 4, played = 0, score = 0, lastOut =
 let runLog = [];                          // this stage run, one emoji per microgame / boss try: the Wordle-style grid in shared text
 let cur = null, curId = '', tt = 0, dur = 5, outcome = null, outT = 0, tickN = 0, recent = [], isBoss = false;
 let practiceId = 'swat', practiceSp = 1, menuPage = 0, practicePage = 0;
-const PER_MENU = 6, PER_PRACTICE = 30;
+const PER_MENU = 6, PER_PRACTICE = 20;
 const pageCount = (n, per) => Math.ceil(n / per);
 let btns = [];
 /* ui juice state: hover / press, count-up score, life-loss pop, clear-screen star pops, music sync */
@@ -399,14 +399,6 @@ function drawToast(dt) {
   const k = Math.min(1, toast.t / .15), y = H - 24 - (1 - k) * 30;
   ctx.save(); ctx.globalAlpha = toast.t > 2.2 ? (2.6 - toast.t) / .4 : 1; txt(toast.s, W / 2, y, 26, toast.col, 'center', 740); ctx.restore();
 }
-function swatches(cx, cy, r, gap, sel, fn) {
-  AVATAR_COLORS.forEach((c, i) => {
-    const x = cx + (i - (AVATAR_COLORS.length - 1) / 2) * gap;
-    circ(x, cy, r, c, c === sel ? 6 : 3);
-    if (c === sel) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x, cy, r + 8, 0, 7); ctx.stroke(); }
-    btns.push({ x: x - r - 6, y: cy - r - 6, w: 2 * r + 12, h: 2 * r + 12, fn: () => fn(c) });
-  });
-}
 /* the multicolour Google "G", drawn on canvas (no external image); grey = disabled */
 function googleG(cx, cy, r, grey) {
   const lw = r * .42, rr = r - lw / 2, d = Math.PI / 180, c = grey ? ['#9a98a8', '#aaa8b6', '#8e8c9c', '#9a98a8'] : ['#EA4335', '#FBBC05', '#34A853', '#4285F4'];
@@ -417,15 +409,15 @@ function googleG(cx, cy, r, grey) {
   ctx.restore();
 }
 function placeInputs() {
-  const showName = state === 'pview' && rn.on && !!net.user, showCode = state === 'party' && party.view === 'menu', showFriend = state === 'friends' && fr.add && !!net.user;
+  const showName = state === 'pview' && rn.on && !!net.user && !!nameSlot, showCode = state === 'party' && party.view === 'menu' && !!codeSlot, showFriend = state === 'friends' && !!net.user && !!friendSlot;
   ov.style.display = showName || showCode || showFriend ? 'block' : 'none';
   inName.style.display = showName ? 'block' : 'none'; inCode.style.display = showCode ? 'block' : 'none'; inFriend.style.display = showFriend ? 'block' : 'none';
   if (!showName && !showCode && !showFriend) return;
   const r = cv.getBoundingClientRect(), k = r.width / VW;
-  const put = (el, x, y, w, h) => { const s = el.style; s.left = r.left + (x + OX) * k + 'px'; s.top = r.top + y * k + 'px'; s.width = w * k + 'px'; s.height = h * k + 'px'; s.fontSize = h * k * .5 + 'px'; };
-  if (showName) put(inName, 200, 262, 400, 52);
-  else if (showFriend) put(inFriend, 165, 82, 430, 52);
-  else put(inCode, 200, 322, 260, 64);
+  const put = (el, x, y, w, h) => { const s = el.style; s.left = r.left + (x + OX) * k + 'px'; s.top = r.top + y * k + 'px'; s.width = w * k + 'px'; s.height = h * k + 'px'; s.fontSize = h * k * .36 + 'px'; };   // Press Start 2P is wide: a third of the slot height
+  if (showName) put(inName, ...nameSlot);
+  else if (showFriend) put(inFriend, ...friendSlot);   // slots come from the kit screens (js/panas.js)
+  else put(inCode, ...codeSlot);
 }
 function hintOf(g) {
   if (!TOUCH) return t(g.hint);
@@ -466,87 +458,12 @@ function render() {
   btns = []; I18N.scope = state === 'play' ? I18N.scopeOf(curId) : '';
   const col = mode === 'stage' ? stage.col : OR;
 
-  if (state === 'worlds') {
-    drawWorlds();
-  } else if (state === 'title') {
-    bg('#7C4DFF', '#6a3de8', now);
-    const SC = ['#FFE14D', '#5CFF7A', '#4DB8FF', '#FF4D9E'];
-    for (let i = 0; i < 8; i++) { const a = now * .5 + i * Math.PI / 4; star(W / 2 + Math.cos(a) * 340, 300 + Math.sin(a) * 215, 9 + (i % 3) * 4, 4, 5, now * 2 + i, SC[i % 4], 3); }
-    const drop = easeBack(st / .6), bob = Math.sin(now * 2.2) * 8;
-    ctx.save(); ctx.translate(W / 2, 130 + bob - (1 - drop) * 200); ctx.rotate(Math.sin(now * 2) * .03); ctx.scale(.6 + .4 * drop, .6 + .4 * drop);
-    txt('MINI', 6, 8, 120, INK); txt('MINI', 0, 0, 120, '#FFE14D'); ctx.restore();
-    ctx.save(); ctx.translate(W / 2, 250 - bob * .8 - (1 - easeBack(st / .6 - .15)) * 200); ctx.rotate(-Math.sin(now * 2 + 1) * .03);
-    txt('CAOS!', 6, 8, 120, INK); txt('CAOS!', 0, 0, 120, '#fff'); ctx.restore();
-    const jump = Math.abs(Math.sin(now * 4)) * 20;
-    shadow(W / 2, 484, 80 - jump, 13 - jump * .2, .3);
-    caos(W / 2, 480 - jump, 10.5, { mood: 'happy' });
-    if (inviteOpen()) txt(t('A FRIEND INVITES YOU TO ROOM {code}', { code: PINVITE }), W / 2, 505, 21, '#5CFF7A', 'center', 760);
-    else if (chOpen) txt(t('{from} CHALLENGES YOU: BEAT {score} ON {stage}', { from: chFrom(), score: CH.score, stage: t(STAGES[CH.stage].name) }), W / 2, 505, 21, '#FFE14D', 'center', 760);
-    else txt(t('{games} MICROGAMES · {stages} STAGES · MOUSE + KEYBOARD + TOUCH', { games: PREG.length, stages: STAGES.length }), W / 2, 505, 19, '#fff', 'center', 760);
-    ctx.save(); ctx.translate(W / 2, 558); const pl = 1 + Math.sin(now * 6) * .07; ctx.scale(pl, pl);
-    txt(inviteOpen() ? (TOUCH ? 'TAP TO JOIN' : 'CLICK TO JOIN') : chOpen ? (TOUCH ? 'TAP TO ACCEPT' : 'CLICK TO ACCEPT') : TOUCH ? 'TAP TO START' : 'CLICK OR PRESS ENTER', 0, 0, 34, '#5CFF7A', 'center', 700); ctx.restore();
-    txt(muted ? 'MUTED · M = SOUND' : 'M = MUTE', 20 - OX, 28, 18, '#fff', 'left');
-    profileBtn(W + OX - 194, 12, 180, 52);
-    button(14 - OX, 48, 140, 42, LANGS.find(l => l.code === I18N.lang).name, () => I18N.next(), { size: 18, fill: '#fff' });
-    button(14 - OX, 536, 150, 50, 'INVITE', () => doShare('invite'), { size: 22, fill: '#4DB8FF' });
-    button(W + OX - 164, chOpen || inviteOpen() ? 478 : 536, 150, 50, 'FRIENDS', () => goParty('title'), { size: 22, fill: '#5CFF7A' });
-    if (chOpen || inviteOpen()) button(W + OX - 164, 536, 150, 50, 'MENU ►', () => { chOpen = false; PINVITE_USED = true; goMenu(); }, { size: 22 });
-  } else if (state === 'menu') {
-    bg('#2b2757', '#322d66', now);
-    txt('SELECT STAGE', W / 2, 40, 44, '#FFE14D');
-    STAGES.forEach((s, i) => {
-      if ((i / PER_MENU | 0) !== menuPage) return;
-      const k = i % PER_MENU, x = 20 + (k % 3) * 260, y = 95 + (k / 3 | 0) * 175, locked = i > save.unlocked - 1;
-      const pop = easeOut((st - k * .05) / .3);
-      ctx.save(); ctx.translate(0, (1 - pop) * 40); ctx.globalAlpha = pop;
-      hoverBox(x, y, 240, 155, locked ? '#5a5870' : s.bg[0], 5, 7);
-      shadow(x + 62, y + 120, 36, 7, .25);
-      if (s.intro === 'ap' && !locked) AP.person(AP.CAST.chamo, { la: [2.4 + Math.sin(now * 9) * .2, .3], ra: [.12, .1], mouth: 'yell', talk: .8, wide: 1, bob: Math.abs(Math.sin(now * 8)) * -8 }, x + 62, y + 140, .44);   // Luisito, shouting
-      else CAST.host(s.host, x + 58, y + 118 - (locked ? 0 : Math.abs(Math.sin(now * 3 + i)) * 6), s.host === 'chigui' || s.host === 'zumbi' ? 4.3 : 5.2, { col: s.col, locked });
-      txt(t('STAGE {n}', { n: i + 1 }), x + 14, y + 20, 17, '#fff', 'left');
-      const words = t(s.name).split(' ');
-      txt(words[0], x + 160, y + 58, 26, locked ? '#aaa' : '#fff', 'center', 150);
-      if (words[1]) txt(words.slice(1).join(' '), x + 160, y + 90, 26, locked ? '#aaa' : '#fff', 'center', 150);
-      if (locked) txt('LOCKED', x + 160, y + 130, 22, '#ddd');
-      else stars3(x + 160, y + 128, save.stars[i], 14, 34);
-      ctx.restore(); ctx.restore();
-      btns.push({ x, y, w: 240, h: 155, fn: () => startStage(i) });
-    });
-    const mp = pageCount(STAGES.length, PER_MENU);
-    if (mp > 1) {
-      button(20, 455, 74, 74, '◄', () => { menuPage = (menuPage + mp - 1) % mp; }, { size: 30, fill: '#FFE14D' });
-      button(706, 455, 74, 74, '►', () => { menuPage = (menuPage + 1) % mp; }, { size: 30, fill: '#FFE14D' });
-      txt(t('PAGE {n}/{total}', { n: menuPage + 1, total: mp }), W / 2, 440, 18, '#fff');
-    }
-    profileBtn(14 - OX, 10, 170, 56);
-    button(W + OX - 184, 10, 170, 56, 'RANKS', () => goBoard(), { size: 22, fill: '#FFE14D' });
-    button(110, 455, 186, 74, 'PRACTICE', goPractice, { fill: '#5CFF7A', size: 24 });
-    button(307, 455, 186, 74, 'CO-OP vs CPU', goCoop, { fill: '#6EC6FF', size: 22 });
-    button(504, 455, 186, 74, worldText('◄ MUNDOS', '◄ WORLDS'), goWorlds, { fill: '#fff', size: 24 });
-    if (!TOUCH) txt('1-6 STAGE · ◄ ► PAGE · P PRACTICE · C CO-OP · L RANKS · A PROFILE · ESC BACK', W / 2, 568, 18, '#fff', 'center', 780);
-  } else if (state === 'party') {
+  if (kitOn()) { drawKit(); placeInputs(); return; }   // title, main menu, worlds, options: js/menus.js
+
+  if (state === 'party') {
     drawParty();
   } else if (state === 'coop') {
     drawCoop();
-  } else if (state === 'practice') {
-    bg('#1f2a44', '#26335a', now);
-    txt('PRACTICE', W / 2, 38, 44, '#FFE14D');
-    button(14 - OX, 10, 130, 56, '◄ BACK', goMenu, { size: 22 });
-    button(W + OX - 184, 10, 170, 56, t('SPEED x{n}', { n: practiceSp }), () => { practiceSp = practiceSp === 1 ? 1.5 : practiceSp === 1.5 ? 2 : 1; }, { size: 22, fill: '#FFE14D' });
-    const pp = pageCount(PREG.length, PER_PRACTICE);
-    if (pp > 1) {
-      button(150, 10, 56, 56, '◄', () => { practicePage = (practicePage + pp - 1) % pp; }, { size: 24 });
-      button(W - 250, 10, 56, 56, '►', () => { practicePage = (practicePage + 1) % pp; }, { size: 24 });
-      txt(`${practicePage + 1}/${pp}`, W / 2 + 120, 38, 20, '#fff');
-    }
-    PREG.forEach((r, ri) => {
-      if ((ri / PER_PRACTICE | 0) !== practicePage) return;
-      const i = ri % PER_PRACTICE;
-      const x = 26 + (i % 6) * 126, y = 92 + (i / 6 | 0) * 92;
-      hoverBox(x, y, 118, 82, `hsl(${i * 12},70%,70%)`, 4, 5);
-      I18N.scope = I18N.scopeOf(r.id); txt(r.name, x + 59, y + 41, 20, '#fff', 'center', 106); I18N.scope = ''; ctx.restore();
-      btns.push({ x, y, w: 118, h: 82, fn: () => startPractice(r.id) });
-    });
   } else if (state === 'stagein' && stage.intro === 'mv') {
     mvIntro(st, stage, stageIdx);
   } else if (state === 'stagein' && stage.intro === 'ap') {
@@ -633,11 +550,7 @@ function render() {
     caos(W / 2, 390 + (1 - easeOut(st / .5)) * 120, 16, { col, mood: 'sad' });
     txt(t('{stage} · SCORE {n}', { stage: t(stage.name), n: Math.round(shownScore) }), W / 2, 455, 34, '#fff', 'center', 760);
     const cl = challengeLine(); if (cl) txt(cl.s, W / 2, 206, 28, cl.col, 'center', 760);
-    if (st > .4) {
-      button(40, 495, 220, 70, 'RETRY', () => startStage(stageIdx), { fill: '#5CFF7A' });
-      button(290, 495, 220, 70, 'SHARE', () => doShare('game_over'), { fill: '#4DB8FF' });
-      button(540, 495, 220, 70, 'STAGES', goMenu);
-    }
+    kitButtons(st > .4 ? [['retry', 'RETRY', () => startStage(stageIdx), 'go'], ['share', 'SHARE', () => doShare('game_over'), 'info'], ['stages', 'STAGES', goMenu, 'paper']] : [], 495);
   } else if (state === 'clear') {
     bg(stage.bg[0], stage.bg[1], now);
     const last = stageIdx === STAGES.length - 1;
@@ -658,171 +571,9 @@ function render() {
     else if (runRank && runRank.loading) txt('RANKING...', W / 2, 474 + (ccl ? 8 : 0), 26, '#FFE14D');
     else if (runRank && runRank.rank) txt(t('#{rank} ON {stage}!', { rank: runRank.rank, stage: t(stage.name) }), W / 2, 474 + (ccl ? 8 : 0), 28, '#FFE14D', 'center', 760);
     else if (runRank && runRank.queued) txt('OFFLINE · SCORE WILL BE SENT LATER', W / 2, 474 + (ccl ? 8 : 0), 20, '#ddd', 'center', 760);
-    if (st > .5) {
-      if (!last) button(40, 500, 220, 66, 'NEXT ►', afterClear, { fill: '#5CFF7A' });
-      button(last ? 110 : 290, 500, last ? 280 : 220, 66, 'SHARE', () => doShare('stage_clear'), { fill: '#4DB8FF' });
-      button(last ? 410 : 540, 500, last ? 280 : 220, 66, 'STAGES', goMenu);
-    }
+    const share = ['share', 'SHARE', () => doShare('stage_clear'), 'info'], stagesBtn = ['stages', 'STAGES', goMenu, 'paper'];
+    kitButtons(st > .5 ? (last ? [share, stagesBtn] : [['next', 'NEXT', afterClear, 'go'], share, stagesBtn]) : [], 500);
 
-  } else if (state === 'profile') {
-    bg('#2b2757', '#322d66', now);
-    txt('PROFILE', W / 2, 40, 54, '#FFE14D');
-    button(14 - OX, 10, 130, 56, '◄ BACK', back, { size: 22 });
-    caos(W / 2, 205, 6, { mood: 'happy' });
-    txt('SAVE YOUR PROGRESS · JOIN THE LEADERBOARDS', W / 2, 262, 22, '#fff', 'center', 740);
-    const ok = pf.avail === 'yes' || pf.avail === 'loading', bx = 190, by = 298, bw = 420, bh = 84;
-    if (ok && !pf.busy) hoverBox(bx, by, bw, bh, '#fff', 5); else box3(bx, by, bw, bh, ok ? '#fff' : '#bdbbc9', 5, 5);
-    googleG(bx + 56, by + bh / 2, 20, !ok);
-    ctx.font = '900 25px "Arial Black", Impact, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = ok ? INK : '#6d6a80'; ctx.fillText(t(pf.busy ? 'Waiting for Google...' : 'Sign in with Google'), bx + 96, by + bh / 2 + 2, bw - 110);
-    if (ok && !pf.busy) ctx.restore();
-    if (pf.busy) button(bx + 60, by + bh + 18, bw - 120, 46, 'CANCEL', cancelGoogle, { size: 20, fill: '#FFE14D' });
-    else if (pf.avail === 'down') { txt('CAN\'T REACH SERVER RIGHT NOW', W / 2, by + bh + 36, 22, '#FF4D4D', 'center', 740); button(300, by + bh + 62, 200, 46, 'RETRY', checkSignIn, { size: 20, fill: '#FFE14D' }); }
-    else if (pf.avail === 'no') txt('SIGN-IN NOT AVAILABLE RIGHT NOW', W / 2, by + bh + 36, 24, '#FF4D4D', 'center', 740);
-    if (!pf.busy && pf.avail !== 'no' && pf.avail !== 'down') btns.push({ x: bx, y: by, w: bw, h: bh, fn: doGoogle });
-    if (pf.msg && !pf.busy && pf.avail !== 'no' && pf.avail !== 'down') txt(pf.msg, W / 2, by + bh + 36, 20, pf.msgCol, 'center', 740);
-    hoverBox(190, 500, 420, 50, '#5CFF7A', 4);
-    txt('OR JUST PLAY AS A GUEST', W / 2, 526, 22, INK, 'center', 400); ctx.restore();
-    btns.push({ x: 190, y: 500, w: 420, h: 50, fn: back });
-    txt('GUESTS KEEP PLAYING FULLY OFFLINE · NO PASSWORD EVER', W / 2, 578, 16, '#ddd', 'center', 760);
-  } else if (state === 'board') {
-    bg('#1f2a44', '#26335a', now);
-    const n = STAGES.length + 1, tp = pageCount(n, PER_TABS), tot = lb.tab === STAGES.length, s = STAGES[lb.tab];
-    txt('LEADERBOARD', W / 2, 38, 44, '#FFE14D');
-    button(14 - OX, 10, 130, 56, '◄ BACK', back, { size: 22 });
-    if (tp > 1) {
-      button(56, 80, 56, 52, '◄', () => { lb.page = (lb.page + tp - 1) % tp; }, { size: 24, fill: '#FFE14D' });
-      button(W - 112, 80, 56, 52, '►', () => { lb.page = (lb.page + 1) % tp; }, { size: 24, fill: '#FFE14D' });
-    }
-    for (let k = 0; k < PER_TABS; k++) {
-      const i = lb.page * PER_TABS + k; if (i >= n) break;
-      button(128 + k * 90, 80, 82, 52, i === STAGES.length ? 'ALL' : String(i + 1), () => setTab(i), { size: 24, fill: i === lb.tab ? '#5CFF7A' : '#fff' });
-    }
-    txt(tot ? 'TOTAL · BEST OF EVERY STAGE' : t('STAGE {n} · {name}', { n: lb.tab + 1, name: t(s.name) }), W / 2, 168, 28, tot ? '#5CFF7A' : '#fff', 'center', 740);
-    const c = lb.cache[lb.tab] || {}, d = c.data;
-    if (d) {
-      if (!d.entries.length) txt('NO SCORES YET - BE FIRST!', W / 2, 330, 32, '#fff');
-      d.entries.forEach((e, i) => {
-        const col = i / 10 | 0, x = 20 + col * 392, y = 190 + (i % 10) * 33, mine = net.user && e.username === net.user.username;
-        box(x, y, 368, 28, mine ? '#FFE14D' : i % 2 ? '#35406a' : '#2c3659', 2);
-        txt('#' + e.rank, x + 8, y + 15, 16, mine ? INK : '#fff', 'left');
-        caos(x + 62, y + 24, 1.7, { col: e.color });
-        ctx.save(); txt(e.username, x + 82, y + 15, 17, mine ? INK : e.color, 'left', 170); ctx.restore();
-        txt(String(e.score), x + 360, y + 15, 17, mine ? INK : '#fff', 'right');
-        btns.push({ x, y, w: 368, h: 28, fn: () => openProfile(e.username) });
-      });
-      if (d.me) {
-        const inTop = d.entries.some(e => net.user && e.username === net.user.username);
-        txt(t(inTop ? 'YOU: #{rank} OF {players} · {score}' : 'YOU: #{rank} OF {players} · {score}  (OUTSIDE TOP 20)', { rank: d.me.rank, players: d.players, score: d.me.score }), W / 2, 530, 24, '#FFE14D', 'center', 760);
-      } else if (net.user) txt('YOU HAVEN\'T SET A SCORE HERE YET', W / 2, 530, 20, '#ddd');
-      else txt('GUEST · SIGN IN WITH GOOGLE (PROFILE) TO GET RANKED', W / 2, 530, 20, '#ddd');
-    } else if (c.err) {
-      txt(c.err, W / 2, 300, 30, '#FF4D4D', 'center', 740);
-      button(300, 340, 200, 56, 'RETRY', () => loadBoard(lb.tab), { size: 24, fill: '#FFE14D' });
-    } else txt('LOADING...', W / 2, 320, 36, '#fff');
-    if (!TOUCH) txt('◄ ► TAB · ESC BACK', W + OX - 12, 584, 14, '#ddd', 'right');
-    if (!net.user && !c.err) button(W + OX - 184, 10, 170, 56, 'PROFILE', goProfile, { size: 22, fill: '#5CFF7A' });
-  } else if (state === 'friends') {
-    bg('#1f2a44', '#26335a', now);
-    txt('FRIENDS', W / 2, 38, 44, '#FFE14D');
-    button(14 - OX, 10, 130, 56, '◄ BACK', back, { size: 22 });
-    if (!net.user) {
-      caos(W / 2, 215, 6, { mood: 'happy' });
-      txt('SIGN IN WITH GOOGLE TO FOLLOW PLAYERS', W / 2, 290, 26, '#fff', 'center', 740);
-      txt('FOLLOW EACH OTHER = FRIENDS', W / 2, 328, 20, '#ddd', 'center', 740);
-      button(250, 380, 300, 64, 'PROFILE', goProfile, { fill: '#5CFF7A', size: 28 });
-    } else {
-      txt('SEARCH BY PLAYER NAME', 40, 100, 17, '#ddd', 'left');
-      button(610, 82, 150, 52, fr.busy && !fr.found ? 'SEARCHING...' : 'SEARCH', doAddFriend, { size: 20, fill: '#5CFF7A' });
-      for (let i = 0; i < 3; i++) button(40 + i * 245, 145, 235, 48, t(FR_TABS[i], { n: fr.list ? frOf(i).length : '-' }), () => { fr.tab = i; fr.page = 0; }, { size: 18, fill: i === fr.tab ? '#FFE14D' : '#fff' });
-      if (fr.msg) txt(fr.msg, W / 2, 207, 18, fr.msg === 'ONE MOMENT...' ? '#fff' : '#FF4D4D', 'center', 470);
-      if (fr.found) {
-        const rel = frRel(fr.found.uid), following = !!(rel && rel.following);
-        box(40, 184, 720, 58, '#222b4c', 3);
-        txt(fr.found.username, 60, 213, 22, '#fff', 'left', 350);
-        button(570, 188, 175, 48, following ? '✓ FOLLOWING' : rel && rel.followsMe ? 'FOLLOW BACK' : 'FOLLOW',
-          () => following ? openProfile(fr.found.username) : followToggle(fr.found.uid, fr.found.username), { size: 17, fill: following ? '#FFE14D' : '#5CFF7A' });
-      }
-      const list = frOf(fr.tab), pages = pageCount(list.length, FR_PER);
-      if (fr.list) {
-        if (!list.length) {
-          txt(fr.tab === 0 ? 'NO FRIENDS YET' : fr.tab === 1 ? 'YOU\'RE NOT FOLLOWING ANYONE' : 'NOBODY FOLLOWS YOU YET', W / 2, 300, 27, '#fff', 'center', 740);
-          txt('SEARCH FOR A PLAYER ABOVE TO GET STARTED', W / 2, 338, 17, '#ddd', 'center', 740);
-        }
-        list.slice(fr.page * FR_PER, fr.page * FR_PER + FR_PER).forEach((f, i) => {
-          const y = 258 + i * 48, act = fr.tab === 2 && !f.following, w = act ? 560 : 720, mut = f.following && f.followsMe;
-          box(40, y, w, 44, i % 2 ? '#35406a' : '#2c3659', 3);
-          caos(80, y + 46, 2.2, { col: f.color });
-          ctx.save(); txt(f.username, 112, y + 22, 20, f.color, 'left', 250); ctx.restore();
-          txt(mut ? '✓ FRIENDS' : f.following ? 'FOLLOWING' : 'FOLLOWS YOU', 395, y + 22, 15, mut ? '#5CFF7A' : f.following ? '#FFE14D' : '#ddd', 'left', 140);
-          txt(String(f.total), 40 + w - 12, y + 22, 18, '#fff', 'right');
-          btns.push({ x: 40, y, w, h: 44, fn: () => openProfile(f.username) });
-          if (act) button(610, y, 150, 44, 'FOLLOW BACK', () => followToggle(f.uid, f.username), { size: 15, fill: '#5CFF7A' });
-        });
-        if (pages > 1) {
-          button(40, 530, 90, 50, '◄', () => { fr.page = (fr.page + pages - 1) % pages; }, { size: 24, fill: '#FFE14D' });
-          button(670, 530, 90, 50, '►', () => { fr.page = (fr.page + 1) % pages; }, { size: 24, fill: '#FFE14D' });
-          txt(t('PAGE {n}/{total}', { n: fr.page + 1, total: pages }), W / 2, 556, 18, '#fff');
-        }
-      } else if (fr.err) {
-        txt(fr.err, W / 2, 300, 30, '#FF4D4D', 'center', 740);
-        button(300, 340, 200, 56, 'RETRY', loadFriends, { size: 24, fill: '#FFE14D' });
-      } else txt('LOADING...', W / 2, 320, 36, '#fff');
-      if (fr.add) {
-        btns = []; ctx.fillStyle = 'rgba(10,8,24,.8)'; ctx.fillRect(-OX, 0, VW, H);
-        box(150, 150, 500, 300, '#2b2757', 6);
-        txt('ADD A FRIEND', W / 2, 195, 40, '#FFE14D');
-        txt('TYPE THEIR PLAYER NAME', W / 2, 232, 17, '#ddd');
-        button(215, 340, 170, 52, fr.busy ? '...' : 'FIND', doAddFriend, { size: 24, fill: '#5CFF7A' });
-        button(415, 340, 170, 52, 'CANCEL', closeAddFriend, { size: 24 });
-        if (fr.msg) txt(fr.msg, W / 2, 418, 18, fr.msg === 'ONE MOMENT...' ? '#fff' : '#FF4D4D', 'center', 470);
-      }
-    }
-  } else if (state === 'pview') {
-    bg('#2b2757', '#322d66', now);
-    button(14 - OX, 10, 130, 56, '◄ BACK', back, { size: 22 });
-    const d = pv.data, me = net.user && pv.name === net.user.username;
-    if (!d) {
-      txt(pv.loading ? 'LOADING...' : pv.err, W / 2, 300, 36, pv.loading ? '#fff' : '#FF4D4D', 'center', 740);
-      if (!pv.loading) button(300, 340, 200, 56, 'RETRY', () => openProfile(pv.name), { size: 24, fill: '#FFE14D' });
-    } else {
-      caos(110, 215, 8, { col: d.color, mood: 'happy' });
-      txt(d.username, 210, 110, 52, d.color, 'left', 560);
-      txt(d.rank ? t('RANK #{rank} · TOTAL {total}', { rank: d.rank, total: d.total }) : 'NOT RANKED YET', 210, 165, 28, '#fff', 'left', 370);
-      if (me) button(590, 150, 190, 50, 'FRIENDS', goFriends, { size: 22, fill: '#5CFF7A' });
-      else if (!net.user) button(560, 150, 220, 50, 'SIGN IN TO FOLLOW', goProfile, { size: 16, fill: '#FFE14D' });
-      else if (fr.list) {
-        const rl = frRel(d.uid), fol = !!(rl && rl.following), mut = fol && rl.followsMe;
-        button(590, 150, 190, 50, fr.busy ? '...' : mut ? '✓ FRIENDS' : fol ? 'FOLLOWING' : rl && rl.followsMe ? 'FOLLOW BACK' : 'FOLLOW', () => followToggle(d.uid, d.username), { size: 22, fill: fol ? '#FFE14D' : '#5CFF7A' });
-        if (rl && rl.followsMe && !fol) txt('FOLLOWS YOU', 685, 238, 15, '#5CFF7A', 'center', 190);
-      }
-      stars3(260, 210, Math.min(3, Math.round(d.totalStars / (STAGES.length * 3) * 3)), 18, 48);
-      txt(t('{stars}/{max} STARS · {unlocked}/{stages} UNLOCKED', { stars: d.totalStars, max: STAGES.length * 3, unlocked: d.unlocked, stages: STAGES.length }), 340, 210, 18, '#ddd', 'left', 440);
-      const cw = 146, ch = 112;
-      STAGES.forEach((s2, i) => {
-        const x = 24 + (i % 5) * (cw + 10), y = 262 + (i / 5 | 0) * (ch + 12), played2 = d.best[i] > 0 || d.stars[i] > 0;
-        box(x, y, cw, ch, played2 ? s2.bg[0] : '#5a5870', 4);
-        txt(t('STAGE {n}', { n: i + 1 }), x + 8, y + 14, 14, '#fff', 'left', cw - 40);
-        txt(played2 ? String(d.best[i]) : '-', x + cw / 2, y + 48, 30, '#fff', 'center', cw - 12);
-        stars3(x + cw / 2, y + 80, d.stars[i], 10, 28);
-        if (d.stageRanks[i]) txt('#' + d.stageRanks[i], x + cw - 8, y + 14, 15, '#FFE14D', 'right');
-      });
-      if (me) {
-        swatches(262, 548, 12, 34, net.user.color, pickColor);
-        txt('COLOUR', 24, 548, 17, '#fff', 'left');
-        button(414, 520, 186, 56, 'CHANGE NAME', openRename, { size: 18, fill: '#FFE14D' });
-        button(612, 520, 178, 56, 'LOG OUT', doLogout, { size: 22, fill: '#FF4D4D', col: '#fff' });
-      }
-    }
-    if (rn.on && me) {
-      btns = []; ctx.fillStyle = 'rgba(10,8,24,.8)'; ctx.fillRect(-OX, 0, VW, H);
-      box(150, 150, 500, 300, '#2b2757', 6);
-      txt('CHANGE NAME', W / 2, 195, 40, '#FFE14D');
-      txt('3-16 LETTERS, NUMBERS, _ -', W / 2, 232, 17, '#ddd');
-      button(215, 340, 170, 52, rn.busy ? '...' : 'SAVE', doRename, { size: 24, fill: '#5CFF7A' });
-      button(415, 340, 170, 52, 'CANCEL', closeRename, { size: 24 });
-      if (rn.msg) txt(rn.msg, W / 2, 418, 18, rn.msg === 'ONE MOMENT...' ? '#fff' : '#FF4D4D', 'center', 470);
-    }
   }
   vignette(state === 'play' ? .22 : .35);
   if (state !== 'play' && st < .3) {                    // slanted ink curtain wipes off to the right on every screen change
@@ -835,7 +586,7 @@ function render() {
 /* ───────────── input events ───────────── */
 addEventListener('keydown', e => {
   if (e.target && e.target.tagName === 'INPUT') { // typing in a profile field: don't leak keys into the game
-    if (e.target.id === 'in-code') { if (e.code === 'Enter') { e.preventDefault(); joinTyped(); } else if (e.code === 'Escape') e.target.blur(); return; }
+    if (e.target.id === 'in-code') { if (e.code === 'Enter') { e.preventDefault(); panasJoin(); } else if (e.code === 'Escape') e.target.blur(); return; }
     if (e.target.id === 'in-friend') { if (e.code === 'Enter') { e.preventDefault(); doAddFriend(); } else if (e.code === 'Escape') closeAddFriend(); return; }
     if (e.code === 'Enter') { e.preventDefault(); doRename(); }
     else if (e.code === 'Escape') closeRename();
@@ -847,48 +598,20 @@ addEventListener('keydown', e => {
   keys[e.code] = true;
   if (e.repeat) return;
   if (sh.on && e.code !== 'Escape') return;
+  if (kitInput() && kitKey(e)) return;
   const go = e.code === 'Enter' || e.code === 'Space';
   if (e.code === 'Escape') {
     if (sh.on) { sh.on = false; return; }
     if (rn.on) { closeRename(); return; }
     if (fr.add && state === 'friends') { closeAddFriend(); return; }
     if (mode === 'party' && (state === 'play' || (state === 'party' && party.view !== 'menu' && party.view !== 'lobby'))) return;   // no accidental leaving mid-match
-    if (state === 'party') { party.view === 'lobby' ? partyLeave('menu') : goTitle(); return; }
+    if (state === 'party') { party.view === 'lobby' ? partyLeave('menu') : partyHome(); return; }
     if (state === 'play' || state === 'inter' || state === 'stagein') exitPlay();
-    else if (state === 'worlds') goTitle(); else if (state === 'menu') goWorlds(); else if (state === 'practice') goMenu(); else if (state === 'coop') goPractice();
+    else if (state === 'coop') goPractice();
     else if (state === 'profile' || state === 'board' || state === 'pview' || state === 'friends') back();
     return;
   }
-  if (state === 'title' && go) { e.preventDefault(); titleGo(); }
-  else if (state === 'worlds') {
-    if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') worldChoice = 1 - worldChoice;
-    else if (e.code === 'Digit1') chooseClassic();
-    else if (e.code === 'Digit2') chooseVenezuela();
-    else if (go) { e.preventDefault(); worldChoice === 0 ? chooseClassic() : chooseVenezuela(); }
-  }
-  else if (state === 'title' && e.code === 'KeyA') goProfile();
-  else if (state === 'title' && e.code === 'KeyF') goParty('title');
-  else if (state === 'title' && e.code === 'KeyG') I18N.next();
-  else if (state === 'board') { if (e.code === 'ArrowRight') setTab(lb.tab + 1); else if (e.code === 'ArrowLeft') setTab(lb.tab - 1); }
-  else if (state === 'profile' && go) doGoogle();
-  else if (state === 'party' && go) { if (party.view === 'lobby') partyStart(); else if (party.view === 'end' && isHost() && st > .6) partyAgain(); }
-  else if (state === 'menu') {
-    const d = +e.key, mp = pageCount(STAGES.length, PER_MENU);
-    if (d >= 1 && d <= 6 && menuPage * PER_MENU + d - 1 < STAGES.length) startStage(menuPage * PER_MENU + d - 1);
-    else if (e.code === 'KeyP') goPractice();
-    else if (e.code === 'KeyC') goCoop();
-    else if (e.code === 'KeyL') goBoard();
-    else if (e.code === 'KeyA') goProfile();
-    else if (e.code === 'ArrowRight') menuPage = (menuPage + 1) % mp; else if (e.code === 'ArrowLeft') menuPage = (menuPage + mp - 1) % mp;
-  } else if (state === 'coop') {
-    const pp = pageCount(coopList().length, COOP_PER);
-    if (e.code === 'ArrowRight') COOP.page = (COOP.page + 1) % pp; else if (e.code === 'ArrowLeft') COOP.page = (COOP.page + pp - 1) % pp;
-  } else if (state === 'practice') {
-    const pp = pageCount(PREG.length, PER_PRACTICE);
-    if (e.code === 'ArrowRight') practicePage = (practicePage + 1) % pp; else if (e.code === 'ArrowLeft') practicePage = (practicePage + pp - 1) % pp;
-  }
-  else if (state === 'over' && go && st > .4) startStage(stageIdx);
-  else if (state === 'clear' && go && st > .5) afterClear();
+  if (state === 'party' && go) { if (party.view === 'lobby') partyStart(); else if (party.view === 'end' && isHost() && st > .6) partyAgain(); }
   if (state === 'play' && !outcome && pre <= 0 && cur.key) cur.key(e);
   else if (state === 'party' && party.view === 'wait') { partyGhostKey(e); partyWaitKey(e); }   // trap keys of an eliminated player (js/party-ghost.js) or of a finished one in VERSUS / TEAM (js/party-wait.js)
 });
@@ -949,14 +672,15 @@ cv.addEventListener('pointerdown', e => {
   interacted = true; pressing = true;
   if (e.pointerType === 'touch') gyroAsk();
   const p = pos(e); mouse = inGame(p); hp = p;
+  if (kitInput()) { if (!MCUI.stale(state)) MCUI.down(p); return; }
   const b = btns.find(b => p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h);
   if (b) { sfx.click(); b.fn(); return; }
   if (sh.on) return;
-  if (state === 'title') { titleGo(); return; }
   if (state === 'play' && !outcome && pre <= 0) { const g = inGame(p); sw = { x: g.x, y: g.y }; if (cur.move && !gyroLive()) cur.move(g); if (cur.down && !gyroLive()) cur.down(g); }
 });
 cv.addEventListener('pointermove', e => {
   const raw = pos(e), p = inGame(raw); mouse = p; hp = raw;
+  if (kitInput()) { MCUI.move(raw); return; }
   if (state !== 'play' || outcome) return;
   if (gyroLive() && e.pointerType === 'touch') return;
   if (cur.move) cur.move(p);
@@ -968,18 +692,20 @@ cv.addEventListener('pointermove', e => {
     }
   }
 });
-const endPtr = e => { pressing = false; if (e.pointerType === 'touch') hp = { x: -999, y: -999 }; if (state === 'play' && !outcome && pre <= 0 && cur.up) cur.up(inGame(pos(e))); sw = null; };
+const endPtr = e => { if (e.type === 'pointerup' && kitInput() && !MCUI.stale(state)) MCUI.up(pos(e)); pressing = false; if (e.pointerType === 'touch') hp = { x: -999, y: -999 }; if (state === 'play' && !outcome && pre <= 0 && cur.up) cur.up(inGame(pos(e))); sw = null; };
 cv.addEventListener('pointerup', endPtr);
 cv.addEventListener('pointercancel', endPtr);
+cv.addEventListener('wheel', e => { if (kitInput() && MCUI.wheel(e.deltaY)) e.preventDefault(); }, { passive: false });
 cv.addEventListener('pointerleave', () => { hp = { x: -999, y: -999 }; pressing = false; });
 
 let lastTs = 0, lastDt = 0;
 function loop(ts) {
   const dt = Math.min(.05, (ts - lastTs) / 1000 || 0); lastTs = ts; now += dt; lastDt = dt;
+  if (tallNow() !== TALL) fitScreen();                    // a kit menu in portrait gets the tall canvas; anything else the 800×600 one
   update(dt); updateFx(dt); syncMusic();
   EGGS.update(dt);
   if (state !== lastState) {                              // screen-change whoosh (not on every microgame)
-    if (['stagein', 'menu', 'practice', 'profile', 'board', 'pview', 'party', 'friends'].includes(state) || (state === 'inter' && mode === 'stage')) sfx.whoosh(true);
+    if (['stagein', 'menu', 'practice', 'profile', 'board', 'pview', 'party', 'friends', 'main', 'worlds', 'options'].includes(state) || (state === 'inter' && mode === 'stage')) sfx.whoosh(true);
     lastState = state;
   }
   cv.style.cursor = state === 'play' && mouse.touch === false && cur && !cur.noHand && !cur.partyHelper && !cur.partyScene ? 'none' : '';

@@ -1,0 +1,70 @@
+# ordaz_kit manifest
+
+Puerto Ordaz / Ciudad Guayana kit. Total tris: 9495. Origin = base centre at z=0 (water level for water pieces; quays deck z=2; bridge deck z=10), front faces -Y. Ship bow +X. Bridge pieces run along X (recto: x -12..12, pillars on x=-8,0,8 so segments chain every 24; pila: deck flush at x=-8 z=10, ramps down to z=1.4 at x=+8).
+
+| Part | tris | footprint (x by y) | height (z max) |
+|---|---|---|---|
+| alto_horno | 620 | 24.5 x 16.3 | 50.0 |
+| chimenea_a | 116 | 5.2 x 5.9 | 40.2 |
+| chimenea_b | 116 | 4.8 x 5.4 | 32.2 |
+| tanque_blanco_a | 138 | 15.2 x 15.4 | 12.0 |
+| tanque_blanco_b | 200 | 15.2 x 15.4 | 12.9 |
+| nave_a | 88 | 27.4 x 12.7 | 9.9 |
+| nave_b | 86 | 21.2 x 10.7 | 9.7 |
+| nave_c | 94 | 30.8 x 14.3 | 8.4 |
+| silo_a | 190 | 15.0 x 9.8 | 15.3 |
+| tuberia_pieza | 132 | 16.4 x 5.8 | 9.3 |
+| cinta_pieza | 122 | 20.0 x 3.4 | 9.0 |
+| grua_muelle | 282 | 8.4 x 25.1 | 18.9 |
+| contenedores_a | 180 | 17.9 x 5.9 | 7.2 |
+| contenedores_b | 210 | 23.9 x 5.9 | 9.6 |
+| contenedores_c | 110 | 17.9 x 5.9 | 7.2 |
+| pila_bobinas | 145 | 14.0 x 8.4 | 6.9 |
+| muelle_largo | 176 | 30.0 x 10.7 | 7.6 |
+| muelle_esquina | 190 | 16.6 x 16.6 | 7.6 |
+| buque_carga | 452 | 36.0 x 11.3 | 13.0 |
+| remolcador | 150 | 10.8 x 4.8 | 6.4 |
+| gabarra | 180 | 17.4 x 7.3 | 6.4 |
+| torre_oscura_a | 162 | 13.0 x 13.0 | 55.0 |
+| torre_oscura_b | 150 | 13.0 x 13.0 | 50.0 |
+| edif_gris_01 | 106 | 10.5 x 9.5 | 22.0 |
+| edif_gris_02 | 134 | 12.5 x 10.5 | 26.9 |
+| edif_gris_03 | 172 | 12.5 x 10.5 | 30.3 |
+| edif_gris_04 | 186 | 13.6 x 10.7 | 23.5 |
+| edif_gris_05 | 166 | 12.0 x 11.0 | 23.7 |
+| edif_gris_06 | 178 | 10.5 x 10.0 | 27.4 |
+| edif_terracota_01 | 106 | 11.5 x 9.5 | 20.0 |
+| edif_terracota_02 | 128 | 10.9 x 10.2 | 22.6 |
+| edif_terracota_03 | 132 | 13.5 x 11.5 | 22.7 |
+| edif_terracota_04 | 176 | 12.5 x 10.5 | 28.3 |
+| casa_og_01 | 79 | 10.8 x 13.5 | 7.0 |
+| casa_og_02 | 99 | 11.7 x 10.9 | 8.6 |
+| casa_og_03 | 95 | 10.8 x 13.4 | 5.8 |
+| casa_og_04 | 79 | 10.5 x 10.4 | 6.0 |
+| casa_og_05 | 99 | 11.4 x 10.1 | 5.8 |
+| casa_og_06 | 113 | 11.7 x 10.3 | 6.6 |
+| puente_ordaz_recto | 196 | 24.0 x 9.0 | 14.8 |
+| puente_ordaz_pila | 190 | 18.5 x 11.0 | 15.3 |
+| isla_rocosa_01 | 208 | 28.5 x 13.2 | 12.6 |
+| isla_rocosa_02 | 144 | 14.7 x 13.2 | 19.0 |
+| isla_rocosa_03 | 208 | 21.1 x 11.6 | 14.4 |
+| isla_rocosa_04 | 194 | 17.6 x 12.7 | 13.6 |
+| isla_rocosa_05 | 262 | 28.0 x 12.5 | 13.8 |
+| isla_rocosa_06 | 144 | 11.6 x 9.3 | 12.0 |
+| roca_rio_01 | 44 | 4.2 x 3.6 | 2.2 |
+| roca_rio_02 | 56 | 6.9 x 5.3 | 3.9 |
+| roca_rio_03 | 44 | 3.6 x 3.2 | 1.8 |
+| roca_rio_04 | 79 | 8.3 x 5.8 | 4.6 |
+| roca_rio_05 | 44 | 5.9 x 4.7 | 2.6 |
+| roca_rio_06 | 44 | 4.5 x 3.9 | 2.0 |
+| rapidos_pieza_a | 219 | 16.5 x 17.4 | 1.5 |
+| rapidos_pieza_b | 227 | 18.5 x 17.6 | 1.5 |
+| cascada_og | 196 | 15.0 x 11.2 | 13.6 |
+| palma_og_a | 80 | 4.7 x 5.3 | 7.7 |
+| palma_og_b | 120 | 7.3 x 7.4 | 11.0 |
+| palma_og_c | 110 | 10.1 x 9.5 | 15.3 |
+| arbol_og_a | 73 | 6.8 x 4.6 | 7.1 |
+| arbol_og_b | 73 | 9.0 x 5.3 | 7.8 |
+| arbol_og_c | 73 | 5.8 x 4.2 | 9.0 |
+| arbusto_og_a | 60 | 3.6 x 2.3 | 1.0 |
+| arbusto_og_b | 70 | 3.4 x 2.3 | 1.2 |

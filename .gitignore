@@ -4,9 +4,13 @@ node_modules/
 pocketbase/pocketbase
 pocketbase/pb_data/
 pocketbase/pb_public/
+pocketbase/pb_dev/
 pocketbase/pb.zip
 pocketbase/*.zip
 pocketbase/types.d.ts
+# LA FIESTA reducer copies (scripts/sync-fiesta-rules.sh; source: docs/style-lab)
+pocketbase/pb_hooks/fiesta-*.js
+pocketbase/pb_hooks/margarita-*.js
 .env
 
 # Local scratch / secrets
@@ -19,3 +23,4 @@ coverage/
 
 # Rendered marketing clips (scripts/marketing/clip.js)
 marketing-out/
+docs/style-lab/pruebas/out/

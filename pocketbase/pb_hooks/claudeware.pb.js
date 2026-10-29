@@ -46,6 +46,16 @@ routerUse((e) => {
 
 // PARTY mode (rooms with friends): every action is a POST that runs room logic in a transaction; clients watch the room via realtime.
 routerAdd("POST", "/api/party/{action}", (e) => require(`${__hooks}/party_routes.js`).handle(e, e.request.pathValue("action")));
+// Which kind of room a code belongs to, so one JOIN box in the menus can send LA FIESTA codes to its own page. Read-only; same answer as joining would give.
+// LA FIESTA rooms also say their board: tab 'margarita' or 'venezuela'.
+routerAdd("GET", "/api/party/kind/{code}", (e) => {
+  const code = String(e.request.pathValue("code") || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4);
+  let rec = null;
+  if (code.length === 4) { try { rec = $app.findFirstRecordByData("rooms", "code", code); } catch (_) { rec = null; } }
+  if (!rec) return e.json(404, { error: "Room not found" });
+  if (rec.getString("mode") !== "fiesta") return e.json(200, { kind: "party" });
+  return e.json(200, { kind: "fiesta", tab: require(`${__hooks}/party_routes.js`).boardTab(rec) || "venezuela" });
+});
 routerAdd("GET", "/r/{code}", (e) => require(`${__hooks}/party_routes.js`).invitePage(e));
 routerAdd("GET", "/r/{code}/og.png", (e) => require(`${__hooks}/party_routes.js`).ogImage(e));
 cronAdd("party_gc", "*/20 * * * *", () => { try { require(`${__hooks}/party_routes.js`).gc(); } catch (err) { console.log("[party] gc failed: " + err); } });

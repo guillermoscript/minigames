@@ -1,0 +1,330 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" font-family="system-ui,sans-serif">
+<rect width="1000" height="1000" fill="#bfe3f2"/>
+<polygon points="60,110 95,75 120,120 135,170 175,160 215,130 240,95 255,60 285,80 270,115 300,140 350,170 400,140 450,140 520,145 600,165 660,170 720,160 780,170 860,165 960,175 930,215 985,260 975,330 930,390 960,430 920,470 960,520 990,600 980,700 930,760 860,760 800,730 760,780 700,800 650,880 600,960 540,940 520,860 560,780 500,700 470,620 420,580 330,560 230,540 150,520 100,490 70,450 90,400 60,340 40,280 55,220 45,160" fill="#f1e6c8" stroke="#8a7a52" stroke-width="3" stroke-linejoin="round"/>
+<ellipse cx="775" cy="105" rx="70" ry="30" fill="#f1e6c8" stroke="#8a7a52" stroke-width="3"/>
+<ellipse cx="790" cy="155" rx="14" ry="8" fill="#f1e6c8" stroke="#8a7a52" stroke-width="3"/>
+<ellipse cx="592" cy="62" rx="50" ry="30" fill="#f1e6c8" stroke="#8a7a52" stroke-width="3"/>
+<polygon points="125,205 160,200 178,230 183,280 165,325 125,335 105,300 118,250" fill="#bfe3f2" stroke="#8a7a52" stroke-width="2"/>
+<polyline points="560,960 520,800 470,620 480,520 560,440 640,420 700,405 790,390 860,360 920,330 970,300" fill="none" stroke="#7cc0e0" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity=".8"/>
+<polyline points="190,505 320,490 430,470 520,455" fill="none" stroke="#7cc0e0" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity=".8"/>
+<polyline points="735,630 720,560 720,470 790,395" fill="none" stroke="#7cc0e0" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity=".8"/>
+<circle cx="515" cy="190" r="55" fill="#E8B400" opacity=".18"/>
+<circle cx="350" cy="200" r="55" fill="#7FB800" opacity=".18"/>
+<circle cx="150" cy="250" r="55" fill="#00A6A6" opacity=".18"/>
+<circle cx="200" cy="380" r="55" fill="#6C8EBF" opacity=".18"/>
+<circle cx="360" cy="420" r="55" fill="#C9A227" opacity=".18"/>
+<circle cx="720" cy="420" r="55" fill="#B5651D" opacity=".18"/>
+<circle cx="840" cy="640" r="55" fill="#2E8B57" opacity=".18"/>
+<circle cx="905" cy="310" r="55" fill="#8A4FFF" opacity=".18"/>
+<circle cx="770" cy="215" r="55" fill="#FF7F50" opacity=".18"/>
+<circle cx="780" cy="105" r="55" fill="#FF4F81" opacity=".18"/>
+<circle cx="590" cy="62" r="55" fill="#00BFFF" opacity=".18"/>
+<path d="M520,200 L500,215" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M500,215 L485,205" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M485,205 L470,215" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M470,215 L450,205" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M450,205 L420,215" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M450,205 L480,150" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M480,150 L465,130" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M465,130 L450,205" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M585,215 L565,212" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M565,212 L555,198" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M555,198 L545,182" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M545,182 L520,200" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M530,155 L480,150" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M420,215 L400,228" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M400,228 L365,240" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M400,228 L395,170" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M395,170 L385,145" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M385,145 L400,228" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M365,240 L355,195" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M365,240 L335,255" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M355,195 L325,165" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M325,165 L265,125" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M265,125 L215,148" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M335,255 L300,265" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M300,265 L285,268" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M300,265 L330,320" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M215,148 L165,170" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M165,170 L140,190" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M165,170 L185,215" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M115,195 L100,220" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M100,220 L110,245" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M110,245 L80,285" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M80,285 L95,325" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M95,325 L135,345" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M135,345 L150,360" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M185,215 L195,248" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M195,248 L200,282" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M200,282 L245,300" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M285,268 L245,300" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M245,300 L232,325" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M232,325 L220,345" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M220,345 L207,362" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M207,362 L185,380" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M185,380 L165,405" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M205,410 L230,430" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M230,430 L265,400" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M165,405 L120,440" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M120,440 L95,468" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M95,468 L190,505" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M150,360 L185,380" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M330,320 L300,355" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M300,355 L265,400" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M265,400 L300,445" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M300,445 L320,490" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M190,505 L320,490" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M320,490 L380,490" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M380,490 L430,470" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M430,470 L455,370" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M445,300 L455,370" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M455,370 L525,370" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M525,370 L610,335" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M610,335 L670,385" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M670,385 L690,410" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M565,430 L690,410" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M690,410 L740,400" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M690,410 L720,470" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M740,400 L790,395" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M720,470 L770,435" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M770,435 L790,395" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M790,395 L820,380" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M790,395 L805,460" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M820,380 L850,345" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M805,460 L840,510" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M840,510 L860,560" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M860,560 L880,610" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M880,610 L890,655" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M890,655 L905,720" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M905,720 L950,700" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M950,700 L850,700" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M850,700 L790,665" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M790,665 L735,630" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M735,630 L730,580" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M730,580 L700,540" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M850,345 L880,325" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M880,325 L910,350" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M880,325 L875,295" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M910,350 L935,325" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M875,295 L925,280" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M935,325 L925,280" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M960,295 L925,280" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M925,280 L895,265" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M895,265 L860,270" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M860,270 L820,300" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M820,300 L835,250" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M835,250 L865,205" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M865,205 L920,190" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M865,205 L780,195" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M920,190 L780,195" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M780,195 L745,180" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M745,180 L710,195" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M710,195 L690,215" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M690,215 L655,210" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M690,215 L610,335" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M655,210 L628,218" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M628,218 L605,222" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M605,222 L585,215" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M765,120 L745,100" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M745,100 L715,95" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M715,95 L778,78" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M778,78 L818,75" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M818,75 L808,100" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M808,100 L828,122" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M828,122 L805,132" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M805,132 L790,155" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M805,132 L765,120" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M560,62 L575,48" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M575,48 L600,52" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M600,52 L625,40" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M625,40 L612,75" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M612,75 L585,82" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M585,82 L555,85" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M555,85 L560,62" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M545,182 L530,155" fill="none" stroke="#333" stroke-width="2" stroke-dasharray="2 6" stroke-linecap="round" opacity=".9"/>
+<text x="537.5" y="164.5" font-size="9" font-weight="700" fill="#222" stroke="#fff" stroke-width="2.5" paint-order="stroke" text-anchor="middle">5</text>
+<path d="M465,130 Q512.5,36.0 560,62" fill="none" stroke="#888" stroke-width="2" stroke-dasharray="2 6" stroke-linecap="round" opacity=".9"/>
+<text x="512.5" y="92.0" font-size="9" font-weight="700" fill="#222" stroke="#fff" stroke-width="2.5" paint-order="stroke" text-anchor="middle">10</text>
+<path d="M465,130 Q635.0,71.0 805,132" fill="none" stroke="#888" stroke-width="2" stroke-dasharray="4 8" stroke-linecap="round" opacity=".9"/>
+<text x="635.0" y="127.0" font-size="9" font-weight="700" fill="#222" stroke="#fff" stroke-width="2.5" paint-order="stroke" text-anchor="middle">8</text>
+<path d="M465,130 Q597.5,295.0 730,580" fill="none" stroke="#888" stroke-width="2" stroke-dasharray="2 6" stroke-linecap="round" opacity=".9"/>
+<text x="597.5" y="351.0" font-size="9" font-weight="700" fill="#222" stroke="#fff" stroke-width="2.5" paint-order="stroke" text-anchor="middle">15</text>
+<path d="M465,130 Q290.0,102.5 115,195" fill="none" stroke="#888" stroke-width="2" stroke-dasharray="4 8" stroke-linecap="round" opacity=".9"/>
+<text x="290.0" y="158.5" font-size="9" font-weight="700" fill="#222" stroke="#fff" stroke-width="2.5" paint-order="stroke" text-anchor="middle">10</text>
+<path d="M400,228 L445,300" fill="none" stroke="#E8B400" stroke-width="3.0" stroke-dasharray="10 4" stroke-linecap="round" opacity=".9"/>
+<text x="422.5" y="260.0" font-size="9" font-weight="700" fill="#222" stroke="#fff" stroke-width="2.5" paint-order="stroke" text-anchor="middle">3</text>
+<path d="M385,145 L325,165" fill="none" stroke="#0077be" stroke-width="2" stroke-dasharray="6 6" stroke-linecap="round" opacity=".9"/>
+<text x="355.0" y="151.0" font-size="9" font-weight="700" fill="#222" stroke="#fff" stroke-width="2.5" paint-order="stroke" text-anchor="middle">3</text>
+<path d="M365,240 L300,265" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-dasharray="1 5" stroke-linecap="round" opacity=".9"/>
+<path d="M140,190 L115,195" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<text x="127.5" y="188.5" font-size="9" font-weight="700" fill="#222" stroke="#fff" stroke-width="2.5" paint-order="stroke" text-anchor="middle">1+</text>
+<path d="M115,195 Q290.0,102.5 465,130" fill="none" stroke="#888" stroke-width="2" stroke-dasharray="4 8" stroke-linecap="round" opacity=".9"/>
+<text x="290.0" y="158.5" font-size="9" font-weight="700" fill="#222" stroke="#fff" stroke-width="2.5" paint-order="stroke" text-anchor="middle">10</text>
+<path d="M220,345 Q242.5,312.5 265,400" fill="none" stroke="#8A4FFF" stroke-width="2" stroke-dasharray="1 6" stroke-linecap="round" opacity=".9"/>
+<path d="M185,380 L205,410" fill="none" stroke="#333" stroke-width="2" stroke-dasharray="2 6" stroke-linecap="round" opacity=".9"/>
+<text x="195.0" y="391.0" font-size="9" font-weight="700" fill="#222" stroke="#fff" stroke-width="2.5" paint-order="stroke" text-anchor="middle">8</text>
+<path d="M300,445 L430,470" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-dasharray="1 5" stroke-linecap="round" opacity=".9"/>
+<path d="M430,470 L565,430" fill="none" stroke="#0077be" stroke-width="2.4" stroke-dasharray="8 4" stroke-linecap="round" opacity=".9"/>
+<text x="497.5" y="446.0" font-size="9" font-weight="700" fill="#222" stroke="#fff" stroke-width="2.5" paint-order="stroke" text-anchor="middle">4</text>
+<path d="M690,410 Q710.0,435.0 730,580" fill="none" stroke="#888" stroke-width="2" stroke-dasharray="2 6" stroke-linecap="round" opacity=".9"/>
+<text x="710.0" y="491.0" font-size="9" font-weight="700" fill="#222" stroke="#fff" stroke-width="2.5" paint-order="stroke" text-anchor="middle">8</text>
+<path d="M735,630 Q727.5,490.0 720,470" fill="none" stroke="#8A4FFF" stroke-width="2" stroke-dasharray="1 6" stroke-linecap="round" opacity=".9"/>
+<path d="M730,580 Q597.5,295.0 465,130" fill="none" stroke="#888" stroke-width="2" stroke-dasharray="2 6" stroke-linecap="round" opacity=".9"/>
+<text x="597.5" y="351.0" font-size="9" font-weight="700" fill="#222" stroke="#fff" stroke-width="2.5" paint-order="stroke" text-anchor="middle">10</text>
+<path d="M700,540 L720,470" fill="none" stroke="#0077be" stroke-width="2" stroke-dasharray="4 4" stroke-linecap="round" opacity=".9"/>
+<path d="M935,325 L960,295" fill="none" stroke="#5b4636" stroke-width="3.5999999999999996" stroke-linecap="round" opacity=".9"/>
+<path d="M780,195 L765,120" fill="none" stroke="#0077be" stroke-width="2.4" stroke-dasharray="12 6" stroke-linecap="round" opacity=".9"/>
+<text x="772.5" y="153.5" font-size="9" font-weight="700" fill="#222" stroke="#fff" stroke-width="2.5" paint-order="stroke" text-anchor="middle">4</text>
+<path d="M710,195 L765,120" fill="none" stroke="#0077be" stroke-width="2.4" stroke-dasharray="12 6" stroke-linecap="round" opacity=".9"/>
+<text x="737.5" y="153.5" font-size="9" font-weight="700" fill="#222" stroke="#fff" stroke-width="2.5" paint-order="stroke" text-anchor="middle">5</text>
+<path d="M765,120 L710,195" fill="none" stroke="#0077be" stroke-width="2.4" stroke-dasharray="12 6" stroke-linecap="round" opacity=".9"/>
+<text x="737.5" y="153.5" font-size="9" font-weight="700" fill="#222" stroke="#fff" stroke-width="2.5" paint-order="stroke" text-anchor="middle">5</text>
+<path d="M765,120 L780,195" fill="none" stroke="#0077be" stroke-width="2.4" stroke-dasharray="12 6" stroke-linecap="round" opacity=".9"/>
+<text x="772.5" y="153.5" font-size="9" font-weight="700" fill="#222" stroke="#fff" stroke-width="2.5" paint-order="stroke" text-anchor="middle">4</text>
+<path d="M805,132 Q635.0,71.0 465,130" fill="none" stroke="#888" stroke-width="2" stroke-dasharray="4 8" stroke-linecap="round" opacity=".9"/>
+<text x="635.0" y="127.0" font-size="9" font-weight="700" fill="#222" stroke="#fff" stroke-width="2.5" paint-order="stroke" text-anchor="middle">8</text>
+<path d="M790,155 L765,120" fill="none" stroke="#0077be" stroke-width="2" stroke-dasharray="4 4" stroke-linecap="round" opacity=".9"/>
+<path d="M560,62 Q512.5,36.0 465,130" fill="none" stroke="#888" stroke-width="2" stroke-dasharray="2 6" stroke-linecap="round" opacity=".9"/>
+<text x="512.5" y="92.0" font-size="9" font-weight="700" fill="#222" stroke="#fff" stroke-width="2.5" paint-order="stroke" text-anchor="middle">10</text>
+<circle cx="520" cy="200" r="13" fill="#1f1f1f" stroke="#fff" stroke-width="2"><title>Plaza Bolívar (SALIDA) (salida)</title></circle>
+<circle cx="500" cy="215" r="9" fill="#f2c230" stroke="#fff" stroke-width="2"><title>Bulevar de Sabana Grande (banco)</title></circle>
+<circle cx="485" cy="205" r="9" fill="#2f6fdb" stroke="#ffd700" stroke-width="3.5"><title>Torres de Parque Central (azul)</title></circle>
+<text x="485" y="208.5" font-size="10" text-anchor="middle" fill="#ffd700">★</text>
+<circle cx="470" cy="215" r="9" fill="#00a6a6" stroke="#fff" stroke-width="2"><title>Metro de Caracas (transporte)</title></circle>
+<circle cx="450" cy="205" r="9" fill="#d93a3a" stroke="#fff" stroke-width="2"><title>Distribuidor La Araña (roja)</title></circle>
+<circle cx="480" cy="150" r="9" fill="#2f6fdb" stroke="#fff" stroke-width="2"><title>La Guaira (azul)</title></circle>
+<circle cx="465" cy="130" r="9" fill="#00a6a6" stroke="#fff" stroke-width="2"><title>Aeropuerto de Maiquetía (transporte)</title></circle>
+<circle cx="585" cy="215" r="9" fill="#d93a3a" stroke="#fff" stroke-width="2"><title>Redoma de Petare (roja)</title></circle>
+<circle cx="565" cy="212" r="9" fill="#2f6fdb" stroke="#fff" stroke-width="2"><title>Chacao (azul)</title></circle>
+<circle cx="555" cy="198" r="9" fill="#2f6fdb" stroke="#fff" stroke-width="2"><title>Plaza Altamira (azul)</title></circle>
+<circle cx="545" cy="182" r="9" fill="#00a6a6" stroke="#fff" stroke-width="2"><title>Teleférico Warairarepano (transporte)</title></circle>
+<circle cx="530" cy="155" r="9" fill="#9b5de5" stroke="#ffd700" stroke-width="3.5"><title>Galipán (fresas con crema) (evento)</title></circle>
+<text x="530" y="158.5" font-size="10" text-anchor="middle" fill="#ffd700">★</text>
+<circle cx="420" cy="215" r="9" fill="#d93a3a" stroke="#fff" stroke-width="2"><title>Las Tejerías (la cola de la ARC) (roja)</title></circle>
+<circle cx="400" cy="228" r="9" fill="#2f6fdb" stroke="#fff" stroke-width="2"><title>Maracay, Ciudad Jardín (azul)</title></circle>
+<circle cx="395" cy="170" r="9" fill="#9b5de5" stroke="#fff" stroke-width="2"><title>Curvas del Pittier (evento)</title></circle>
+<circle cx="385" cy="145" r="9" fill="#2f6fdb" stroke="#ffd700" stroke-width="3.5"><title>Puerto Colombia (Choroní) (azul)</title></circle>
+<text x="385" y="148.5" font-size="10" text-anchor="middle" fill="#ffd700">★</text>
+<circle cx="365" cy="240" r="9" fill="#2f6fdb" stroke="#fff" stroke-width="2"><title>Valencia (azul)</title></circle>
+<circle cx="355" cy="195" r="9" fill="#2f6fdb" stroke="#fff" stroke-width="2"><title>Puerto Cabello (azul)</title></circle>
+<circle cx="325" cy="165" r="9" fill="#ff4f81" stroke="#ffd700" stroke-width="3.5"><title>Cayo Sombrero (Morrocoy) (especial)</title></circle>
+<text x="325" y="168.5" font-size="10" text-anchor="middle" fill="#ffd700">★</text>
+<circle cx="265" cy="125" r="9" fill="#ff4f81" stroke="#fff" stroke-width="2"><title>Médanos de Coro (especial)</title></circle>
+<circle cx="335" cy="255" r="9" fill="#8bc34a" stroke="#fff" stroke-width="2"><title>San Felipe (vaina)</title></circle>
+<circle cx="300" cy="265" r="9" fill="#ff8a00" stroke="#fff" stroke-width="2"><title>Barquisimeto, Capital Musical (duelo)</title></circle>
+<circle cx="215" cy="148" r="9" fill="#d93a3a" stroke="#fff" stroke-width="2"><title>Carretera de Dabajuro (roja)</title></circle>
+<circle cx="165" cy="170" r="9" fill="#2f6fdb" stroke="#fff" stroke-width="2"><title>Los Puertos de Altagracia (azul)</title></circle>
+<circle cx="140" cy="190" r="9" fill="#6b4f3a" stroke="#fff" stroke-width="2"><title>Puente sobre el Lago (alcabala)</title></circle>
+<circle cx="115" cy="195" r="9" fill="#2f6fdb" stroke="#ffd700" stroke-width="3.5"><title>Maracaibo (azul)</title></circle>
+<text x="115" y="198.5" font-size="10" text-anchor="middle" fill="#ffd700">★</text>
+<circle cx="100" cy="220" r="9" fill="#9b5de5" stroke="#fff" stroke-width="2"><title>Feria de la Gaita (evento)</title></circle>
+<circle cx="110" cy="245" r="9" fill="#d93a3a" stroke="#fff" stroke-width="2"><title>San Francisco (40 °C a la sombra) (roja)</title></circle>
+<circle cx="80" cy="285" r="9" fill="#2f6fdb" stroke="#fff" stroke-width="2"><title>Machiques (queso y ganado) (azul)</title></circle>
+<circle cx="95" cy="325" r="9" fill="#ff4f81" stroke="#ffd700" stroke-width="3.5"><title>Relámpago del Catatumbo (especial)</title></circle>
+<text x="95" y="328.5" font-size="10" text-anchor="middle" fill="#ffd700">★</text>
+<circle cx="135" cy="345" r="9" fill="#2f6fdb" stroke="#fff" stroke-width="2"><title>Encontrados (azul)</title></circle>
+<circle cx="185" cy="215" r="9" fill="#2f6fdb" stroke="#fff" stroke-width="2"><title>Cabimas (los balancines) (azul)</title></circle>
+<circle cx="195" cy="248" r="9" fill="#ff4f81" stroke="#fff" stroke-width="2"><title>Ciudad Ojeda: Pozo en el Lago (especial)</title></circle>
+<circle cx="200" cy="282" r="13" fill="#111" stroke="#fff" stroke-width="2"><title>Lagunillas (villano)</title></circle>
+<circle cx="285" cy="268" r="9" fill="#2f6fdb" stroke="#fff" stroke-width="2"><title>Carora (cocuy y uvas) (azul)</title></circle>
+<circle cx="245" cy="300" r="9" fill="#2f6fdb" stroke="#fff" stroke-width="2"><title>Valera (azul)</title></circle>
+<circle cx="232" cy="325" r="9" fill="#d93a3a" stroke="#fff" stroke-width="2"><title>Timotes (roja)</title></circle>
+<circle cx="220" cy="345" r="9" fill="#ff4f81" stroke="#fff" stroke-width="2"><title>Pico El Águila (especial)</title></circle>
+<circle cx="207" cy="362" r="9" fill="#2f6fdb" stroke="#fff" stroke-width="2"><title>Mucuchíes (azul)</title></circle>
+<circle cx="185" cy="380" r="9" fill="#2f6fdb" stroke="#fff" stroke-width="2"><title>Mérida (azul)</title></circle>
+<circle cx="205" cy="410" r="9" fill="#ff4f81" stroke="#ffd700" stroke-width="3.5"><title>Pico Espejo (Mukumbarí) (especial)</title></circle>
+<text x="205" y="413.5" font-size="10" text-anchor="middle" fill="#ffd700">★</text>
+<circle cx="230" cy="430" r="9" fill="#2f6fdb" stroke="#fff" stroke-width="2"><title>Los Nevados (azul)</title></circle>
+<circle cx="165" cy="405" r="9" fill="#ff8a00" stroke="#fff" stroke-width="2"><title>Ejido (duelo)</title></circle>
+<circle cx="120" cy="440" r="9" fill="#9b5de5" stroke="#fff" stroke-width="2"><title>San Cristóbal (Feria de San Sebastián) (evento)</title></circle>
+<circle cx="95" cy="468" r="9" fill="#6b4f3a" stroke="#fff" stroke-width="2"><title>San Antonio (Casa de Cambio) (alcabala)</title></circle>
+<circle cx="150" cy="360" r="9" fill="#2f6fdb" stroke="#fff" stroke-width="2"><title>El Vigía (azul)</title></circle>
+<circle cx="330" cy="320" r="9" fill="#2f6fdb" stroke="#fff" stroke-width="2"><title>Acarigua (el granero) (azul)</title></circle>
+<circle cx="300" cy="355" r="9" fill="#c0c0c0" stroke="#fff" stroke-width="2"><title>Guanare (ahorita)</title></circle>
+<circle cx="265" cy="400" r="13" fill="#111" stroke="#fff" stroke-width="2"><title>Barinas (villano)</title></circle>
+<circle cx="300" cy="445" r="9" fill="#ff4f81" stroke="#fff" stroke-width="2"><title>Hato El Cariño (coleo) (especial)</title></circle>
+<circle cx="190" cy="505" r="9" fill="#2f6fdb" stroke="#fff" stroke-width="2"><title>Guasdualito (azul)</title></circle>
+<circle cx="320" cy="490" r="9" fill="#ff4f81" stroke="#fff" stroke-width="2"><title>Mantecal (la crecida) (especial)</title></circle>
+<circle cx="380" cy="490" r="9" fill="#2f6fdb" stroke="#ffd700" stroke-width="3.5"><title>Achaguas (chigüires) (azul)</title></circle>
+<text x="380" y="493.5" font-size="10" text-anchor="middle" fill="#ffd700">★</text>
+<circle cx="430" cy="470" r="9" fill="#2f6fdb" stroke="#fff" stroke-width="2"><title>San Fernando de Apure (azul)</title></circle>
+<circle cx="445" cy="300" r="9" fill="#2f6fdb" stroke="#fff" stroke-width="2"><title>San Juan de los Morros (azul)</title></circle>
+<circle cx="455" cy="370" r="9" fill="#9b5de5" stroke="#fff" stroke-width="2"><title>Calabozo (las anguilas) (evento)</title></circle>
+<circle cx="525" cy="370" r="9" fill="#ff8a00" stroke="#fff" stroke-width="2"><title>Valle de la Pascua (duelo)</title></circle>
+<circle cx="610" cy="335" r="9" fill="#ff4f81" stroke="#fff" stroke-width="2"><title>El Tigre: Pozo de la Faja (especial)</title></circle>
+<circle cx="670" cy="385" r="9" fill="#2f6fdb" stroke="#fff" stroke-width="2"><title>Puente Angostura (azul)</title></circle>
+<circle cx="565" cy="430" r="9" fill="#2f6fdb" stroke="#fff" stroke-width="2"><title>Caicara del Orinoco (azul)</title></circle>
+<circle cx="690" cy="410" r="9" fill="#2f6fdb" stroke="#fff" stroke-width="2"><title>Ciudad Bolívar (azul)</title></circle>
+<circle cx="740" cy="400" r="9" fill="#d93a3a" stroke="#fff" stroke-width="2"><title>Autopista Cdad. Bolívar–Pto. Ordaz (roja)</title></circle>
+<circle cx="720" cy="470" r="9" fill="#ff4f81" stroke="#fff" stroke-width="2"><title>Represa de Guri (especial)</title></circle>
+<circle cx="770" cy="435" r="9" fill="#2f6fdb" stroke="#ffd700" stroke-width="3.5"><title>Parque La Llovizna (azul)</title></circle>
+<text x="770" y="438.5" font-size="10" text-anchor="middle" fill="#ffd700">★</text>
+<circle cx="790" cy="395" r="9" fill="#f2c230" stroke="#fff" stroke-width="2"><title>Puerto Ordaz (Caroní + Orinoco) (banco)</title></circle>
+<circle cx="820" cy="380" r="9" fill="#8bc34a" stroke="#fff" stroke-width="2"><title>San Félix (vaina)</title></circle>
+<circle cx="805" cy="460" r="13" fill="#111" stroke="#fff" stroke-width="2"><title>Upata (villano)</title></circle>
+<circle cx="840" cy="510" r="9" fill="#9b5de5" stroke="#fff" stroke-width="2"><title>El Callao (calipso) (evento)</title></circle>
+<circle cx="860" cy="560" r="9" fill="#d93a3a" stroke="#fff" stroke-width="2"><title>Km 88 (La Escalera) (roja)</title></circle>
+<circle cx="880" cy="610" r="9" fill="#2f6fdb" stroke="#fff" stroke-width="2"><title>Quebrada de Jaspe (azul)</title></circle>
+<circle cx="890" cy="655" r="9" fill="#2f6fdb" stroke="#fff" stroke-width="2"><title>Salto Kamá (azul)</title></circle>
+<circle cx="905" cy="720" r="9" fill="#2f6fdb" stroke="#fff" stroke-width="2"><title>Santa Elena de Uairén (azul)</title></circle>
+<circle cx="950" cy="700" r="9" fill="#ff4f81" stroke="#ffd700" stroke-width="3.5"><title>Roraima: El Mundo Perdido (especial)</title></circle>
+<text x="950" y="703.5" font-size="10" text-anchor="middle" fill="#ffd700">★</text>
+<circle cx="850" cy="700" r="9" fill="#9b5de5" stroke="#fff" stroke-width="2"><title>Sabana de los Tepuyes (evento)</title></circle>
+<circle cx="790" cy="665" r="9" fill="#c0c0c0" stroke="#fff" stroke-width="2"><title>Cueva de Kavac (ahorita)</title></circle>
+<circle cx="735" cy="630" r="9" fill="#ff4f81" stroke="#fff" stroke-width="2"><title>Salto Ángel (Kerepakupai Merú) (especial)</title></circle>
+<circle cx="730" cy="580" r="9" fill="#00a6a6" stroke="#fff" stroke-width="2"><title>Laguna de Canaima (transporte)</title></circle>
+<circle cx="700" cy="540" r="9" fill="#9b5de5" stroke="#fff" stroke-width="2"><title>Curiara por el Carrao (evento)</title></circle>
+<circle cx="850" cy="345" r="9" fill="#8A4FFF" stroke="#fff" stroke-width="2"><title>El Puente que Ayer No Estaba (delta)</title></circle>
+<circle cx="880" cy="325" r="9" fill="#8A4FFF" stroke="#fff" stroke-width="2"><title>«Recalculando…» (delta)</title></circle>
+<circle cx="910" cy="350" r="9" fill="#8A4FFF" stroke="#fff" stroke-width="2"><title>Neblina de los Caños (delta)</title></circle>
+<circle cx="875" cy="295" r="9" fill="#8A4FFF" stroke="#fff" stroke-width="2"><title>Caño Donde Es Ayer (delta)</title></circle>
+<circle cx="935" cy="325" r="9" fill="#8A4FFF" stroke="#fff" stroke-width="2"><title>Caño Espejo (delta)</title></circle>
+<circle cx="960" cy="295" r="9" fill="#ff4f81" stroke="#ffd700" stroke-width="3.5"><title>La Isla que Aparece (especial)</title></circle>
+<text x="960" y="298.5" font-size="10" text-anchor="middle" fill="#ffd700">★</text>
+<circle cx="925" cy="280" r="9" fill="#8A4FFF" stroke="#fff" stroke-width="2"><title>Mercadito Paralelo (delta)</title></circle>
+<circle cx="895" cy="265" r="9" fill="#00a6a6" stroke="#fff" stroke-width="2"><title>Peñero Fantasma (transporte)</title></circle>
+<circle cx="860" cy="270" r="9" fill="#8A4FFF" stroke="#fff" stroke-width="2"><title>¿Salida? (delta)</title></circle>
+<circle cx="820" cy="300" r="9" fill="#2f6fdb" stroke="#fff" stroke-width="2"><title>Maturín (azul)</title></circle>
+<circle cx="835" cy="250" r="9" fill="#9b5de5" stroke="#fff" stroke-width="2"><title>Cueva del Guácharo (evento)</title></circle>
+<circle cx="865" cy="205" r="9" fill="#2f6fdb" stroke="#fff" stroke-width="2"><title>Carúpano (Carnaval) (azul)</title></circle>
+<circle cx="920" cy="190" r="9" fill="#2f6fdb" stroke="#ffd700" stroke-width="3.5"><title>Península de Paria (cacao) (azul)</title></circle>
+<text x="920" y="193.5" font-size="10" text-anchor="middle" fill="#ffd700">★</text>
+<circle cx="780" cy="195" r="9" fill="#2f6fdb" stroke="#fff" stroke-width="2"><title>Cumaná, la Primogénita (azul)</title></circle>
+<circle cx="745" cy="180" r="9" fill="#ff4f81" stroke="#ffd700" stroke-width="3.5"><title>Mochima: Playa Blanca (especial)</title></circle>
+<text x="745" y="183.5" font-size="10" text-anchor="middle" fill="#ffd700">★</text>
+<circle cx="710" cy="195" r="9" fill="#f2c230" stroke="#fff" stroke-width="2"><title>Puerto La Cruz (Paseo Colón) (banco)</title></circle>
+<circle cx="690" cy="215" r="9" fill="#d93a3a" stroke="#fff" stroke-width="2"><title>Barcelona (roja)</title></circle>
+<circle cx="655" cy="210" r="13" fill="#111" stroke="#fff" stroke-width="2"><title>Boca de Uchire (villano)</title></circle>
+<circle cx="628" cy="218" r="9" fill="#9b5de5" stroke="#fff" stroke-width="2"><title>Higuerote (Barlovento) (evento)</title></circle>
+<circle cx="605" cy="222" r="9" fill="#d93a3a" stroke="#fff" stroke-width="2"><title>Cola Guarenas–Guatire (roja)</title></circle>
+<circle cx="765" cy="120" r="9" fill="#00a6a6" stroke="#fff" stroke-width="2"><title>Punta de Piedras (ferry) (transporte)</title></circle>
+<circle cx="745" cy="100" r="9" fill="#9b5de5" stroke="#fff" stroke-width="2"><title>Laguna de La Restinga (evento)</title></circle>
+<circle cx="715" cy="95" r="9" fill="#2f6fdb" stroke="#fff" stroke-width="2"><title>Península de Macanao (azul)</title></circle>
+<circle cx="778" cy="78" r="9" fill="#2f6fdb" stroke="#fff" stroke-width="2"><title>Juan Griego (el atardecer) (azul)</title></circle>
+<circle cx="818" cy="75" r="9" fill="#2f6fdb" stroke="#ffd700" stroke-width="3.5"><title>Playa El Agua (azul)</title></circle>
+<text x="818" y="78.5" font-size="10" text-anchor="middle" fill="#ffd700">★</text>
+<circle cx="808" cy="100" r="9" fill="#ff8a00" stroke="#fff" stroke-width="2"><title>La Asunción (duelo)</title></circle>
+<circle cx="828" cy="122" r="9" fill="#9b5de5" stroke="#fff" stroke-width="2"><title>Castillo de Pampatar (evento)</title></circle>
+<circle cx="805" cy="132" r="9" fill="#2f6fdb" stroke="#fff" stroke-width="2"><title>Porlamar (Zona Libre) (azul)</title></circle>
+<circle cx="790" cy="155" r="9" fill="#2f6fdb" stroke="#fff" stroke-width="2"><title>Isla de Coche (azul)</title></circle>
+<circle cx="560" cy="62" r="9" fill="#00a6a6" stroke="#fff" stroke-width="2"><title>Gran Roque (la pista) (transporte)</title></circle>
+<circle cx="575" cy="48" r="9" fill="#2f6fdb" stroke="#fff" stroke-width="2"><title>Faro Holandés (azul)</title></circle>
+<circle cx="600" cy="52" r="9" fill="#2f6fdb" stroke="#fff" stroke-width="2"><title>Cayo Francisquí (azul)</title></circle>
+<circle cx="625" cy="40" r="9" fill="#2f6fdb" stroke="#ffd700" stroke-width="3.5"><title>Cayo de Agua (azul)</title></circle>
+<text x="625" y="43.5" font-size="10" text-anchor="middle" fill="#ffd700">★</text>
+<circle cx="612" cy="75" r="9" fill="#d93a3a" stroke="#fff" stroke-width="2"><title>Crasquí (langosta carísima) (roja)</title></circle>
+<circle cx="585" cy="82" r="9" fill="#9b5de5" stroke="#fff" stroke-width="2"><title>Madrisquí (evento)</title></circle>
+<circle cx="555" cy="85" r="9" fill="#ff4f81" stroke="#fff" stroke-width="2"><title>Noronquí: Spa del Caribe (especial)</title></circle>
+<text x="515" y="128" font-size="17" font-weight="800" text-anchor="middle" fill="#2b2b2b" stroke="#fff" stroke-width="4" paint-order="stroke" letter-spacing="1">CARACAS (HUB)</text>
+<text x="350" y="138" font-size="17" font-weight="800" text-anchor="middle" fill="#2b2b2b" stroke="#fff" stroke-width="4" paint-order="stroke" letter-spacing="1">CENTRO-OCCIDENTE</text>
+<text x="150" y="188" font-size="17" font-weight="800" text-anchor="middle" fill="#2b2b2b" stroke="#fff" stroke-width="4" paint-order="stroke" letter-spacing="1">ZULIA Y LAGO DE MARACAIBO</text>
+<text x="200" y="318" font-size="17" font-weight="800" text-anchor="middle" fill="#2b2b2b" stroke="#fff" stroke-width="4" paint-order="stroke" letter-spacing="1">LOS ANDES</text>
+<text x="360" y="358" font-size="17" font-weight="800" text-anchor="middle" fill="#2b2b2b" stroke="#fff" stroke-width="4" paint-order="stroke" letter-spacing="1">LLANOS Y APURE</text>
+<text x="720" y="358" font-size="17" font-weight="800" text-anchor="middle" fill="#2b2b2b" stroke="#fff" stroke-width="4" paint-order="stroke" letter-spacing="1">GUAYANA</text>
+<text x="840" y="578" font-size="17" font-weight="800" text-anchor="middle" fill="#2b2b2b" stroke="#fff" stroke-width="4" paint-order="stroke" letter-spacing="1">CANAIMA Y GRAN SABANA</text>
+<text x="905" y="248" font-size="17" font-weight="800" text-anchor="middle" fill="#2b2b2b" stroke="#fff" stroke-width="4" paint-order="stroke" letter-spacing="1">DELTAMACURA</text>
+<text x="770" y="153" font-size="17" font-weight="800" text-anchor="middle" fill="#2b2b2b" stroke="#fff" stroke-width="4" paint-order="stroke" letter-spacing="1">ORIENTE Y MOCHIMA</text>
+<text x="780" y="43" font-size="17" font-weight="800" text-anchor="middle" fill="#2b2b2b" stroke="#fff" stroke-width="4" paint-order="stroke" letter-spacing="1">MARGARITA</text>
+<text x="590" y="0" font-size="17" font-weight="800" text-anchor="middle" fill="#2b2b2b" stroke="#fff" stroke-width="4" paint-order="stroke" letter-spacing="1">LOS ROQUES</text>
+<text x="500" y="935" font-size="14" fill="#8a7a52" text-anchor="middle" font-style="italic">Amazonas: próximamente</text>
+</svg>

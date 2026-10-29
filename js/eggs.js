@@ -25,7 +25,7 @@ const EGGS = (() => {
   };
   /* which games count as what: the app's ids, then the lab's */
   const HIT = new Set(['whack', 'swat', 'mv_punch', 'gc_rhino', 'gc_nail', 'ap_mosquito', 'du_shield', 'dodge', 'chancla', 'zancudo', 'cucaracha']);
-  const DODGE = new Set(['dodge', 'gc_sole', 'gc_rhino', 'sw_limbo', 'chancla', 'hueco']);
+  const DODGE = new Set(['dodge', 'gc_sole', 'gc_rhino', 'sw_limbo', 'chancla']);
   const CATCH = new Set(['catch', 'du_catch', 'pt_grab', 'cc_claw', 'gc_trap', 'tequenos', 'cava']);
   const RUN = new Set(['sw_run', 'race', 'cc_dog', 'paga']);
   const DARK = new Set(['ap_switch', 'ap_fridge', 'ap_mosquito', 'ap_battery', 'ap_arepa', 'ap_grita', 'switch', 'nevera', 'zancudo', 'enchufa', 'voltea', 'llego', 'transformador']);

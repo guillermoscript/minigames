@@ -1152,22 +1152,25 @@ function mkParada(){
    Nivel 2: 3 chancletazos, y uno (nunca el primero) viene con amago: mamá carga, amaga, se aguanta .45 s con la chancla en la mano y la sonrisita, y ahí sí la suelta.
    Nivel 3: 4 chancletazos (uno con amago), y otro rebota en la pared de atrás («¡BOING!») y vuelve por la espalda a la misma altura: ese hay que esquivarlo dos veces. */
 function mkChancla(){
-  const N=NV(),NT=N+1,rs=Math.sqrt(SP),FT=.5/rs,names=['¡JOSÉ GREGORIO!','¡LUIS ALFREDO!','¡MIGUEL ÁNGEL!','¡YORMAN JESÚS!','¡CARLOS EDUARDO!'];
+  const touch='ontouchstart' in window||navigator.maxTouchPoints>0;
+  const N=NV(),NT=N+1,rs=Math.sqrt(SP),FT=(touch?.85:.5)/rs,names=['¡JOSÉ GREGORIO!','¡LUIS ALFREDO!','¡MIGUEL ÁNGEL!','¡YORMAN JESÚS!','¡CARLOS EDUARDO!'];
   const nm=names[Math.floor(Math.random()*names.length)];
   const kinds=[Math.random()<.5?'hi':'lo'];for(let i=1;i<NT;i++)kinds.push(Math.random()<.65?(kinds[i-1]==='hi'?'lo':'hi'):kinds[i-1]);
   /* FI: el tiro del amago · BI: el que rebota (ninguno es el primero, y no son el mismo) */
   const FI=N>=2?1+Math.floor(Math.random()*(NT-1)):-1,BI=N>=3?[1,2,3].filter(i=>i!==FI)[Math.floor(Math.random()*2)]:-1;
   /* horario en centésimas (el nivel 1 queda igualito: carga .95 / suelta 1.3, brinco 1.75-2.2, carga 2.25 / suelta 2.6). fk = momento del amago; tras el rebote hay medio segundo más de aire */
-  const T=[],HOPS=[];for(let i=0,c=95;i<NT;i++){const f=i===FI?45:0;T.push({wind:c/100/rs,fk:f?(c+35)/100/rs:0,rel:(c+35+f)/100/rs,fd:0});c+=35+f;if(i<NT-1)HOPS.push([(c+45)/100/rs,(c+90)/100/rs]);c+=95+(i===BI?50:0);}
-  const WALL={hi:gameLeft()+150,lo:gameLeft()+120},TY={hi:335,lo:505},HB=.16/rs,RB=.54/rs;
-  const KX=gameLeft()+250,KFEET=548,MX=gameRight()-150,MY=262,MS=1.5,ARML=95,JD=.55;
+  const T=[],HOPS=[];for(let i=0,c=95;i<NT;i++){const f=i===FI?45:0;T.push({wind:c/100/rs,fk:f?(c+35)/100/rs:0,rel:(c+35+f)/100/rs,fd:0});c+=35+f;if(i<NT-1)HOPS.push([(c+45)/100/rs,(c+90)/100/rs]);c+=95+(i===BI?(touch?100:50):0);}
+  const WALL={hi:gameLeft()+150,lo:gameLeft()+120},TY={hi:335,lo:505},HB=.16/rs,RB=(touch?.72:.54)/rs;
+  const KX=gameLeft()+(touch?230:250),KFEET=548,MX=gameRight()-(touch?150:150),MY=262,MS=touch?1.2:1.5,ARML=95,JD=touch?.75:.55;
   let jumpT=0,duckT=0;
   const th=kinds.map((k,i)=>({kind:k,i,state:'idle',x:0,y:0,rot:0,sx:0,sy:0,tt:0}));
   const broke={tv:false,vase:false};
   const handAt=a=>[MX-MS*(42+ARML*Math.sin(a)),MY+MS*(4+ARML*Math.cos(a))];
   const REL={hi:1.7,lo:1.3},WIND={hi:3.5,lo:-1.0};
-  const g={get impact(){return this.result==='lose'?clamp(1-this.endT/.5,0,1):clamp(this.shock/.5,0,1);},kinds,T,t:0,dur:(N>=3?7.4:N>=2?6:4.6)/rs,result:null,why:'',endT:0,boing:0,bx:0,by:0,cmd:'¡ESQUIVA!',hint:'↑ / TOCA ARRIBA: SALTA (tiro bajo) · ↓ / TOCA ABAJO: AGÁCHATE (tiro alto)',lastBroke:'',shock:0,
-    press(k){if(g.result)return;if(k==='up'||k==='any'){if(jumpT<=0&&duckT<=.1){jumpT=JD;sfx.boing();}}else if(k==='down'){if(duckT<=0&&jumpT<=.1){duckT=.62;sfx.whoosh();}}},
+  const g={get impact(){return this.result==='lose'?clamp(1-this.endT/.5,0,1):clamp(this.shock/.5,0,1);},kinds,T,t:0,dur:((N>=3?7.4:N>=2?6:4.6)+(touch?.8:0))/rs,result:null,why:'',endT:0,boing:0,bx:0,by:0,cmd:'¡ESQUIVA!',hint:'↑ / TOCA ARRIBA: SALTA (tiro bajo) · ↓ / TOCA ABAJO: AGÁCHATE (tiro alto)',lastBroke:'',shock:0,
+    press(k){if(g.result)return;
+      if(k==='up'||k==='any'){if(touch||jumpT<=0&&duckT<=.1){if(touch)duckT=0;jumpT=JD;sfx.boing();}}
+      else if(k==='down'){if(touch||duckT<=0&&jumpT<=.1){if(touch)jumpT=0;duckT=touch?.85:.62;sfx.whoosh();}}},
     jumpH(){return jumpT>0?Math.sin((1-jumpT/JD)*Math.PI)*125:0;},
     update(dt){g.t+=dt;jumpT=Math.max(0,jumpT-dt);duckT=Math.max(0,duckT-dt);g.shock=Math.max(0,g.shock-dt);g.boing=Math.max(0,g.boing-dt);
       for(const h of th){const tm=T[h.i];
@@ -1226,7 +1229,7 @@ function mkChancla(){
         arms:g.result==='win'?[{side:1,a:2.5,len:64,w:22},{side:-1,a:-2.5,len:64,w:22}]
           :[{side:1,a:a,len:ARML,w:23,hand:holding?(x,y)=>chanclaP(x,y-12,.3,1.2):null},{side:-1,a:-.9,len:62,w:23}]});
       /* globo con el nombre */
-      if(t>.25&&t<1.5/rs){const k=clamp((t-.25)/.18,0,1);ctx.save();ctx.translate(430,210);ctx.scale(.6+.4*k+Math.sin(now*30)*.02,.6+.4*k);bubble(0,0,nm,30,150,40,'#fff');ctx.restore();}
+      if(t>.25&&t<(touch?T[0].rel-.12:1.5/rs)){const k=clamp((t-.25)/.18,0,1);ctx.save();ctx.translate(430,210);ctx.scale(.6+.4*k+Math.sin(now*30)*.02,.6+.4*k);bubble(0,0,nm,30,150,40,'#fff');ctx.restore();}
       if(hj>=1&&!g.result)bubble(455,172,'¡TENGO MÁS!',20,640,255);
       if(g.result==='win'&&g.endT>.2)bubble(430,210,g.lastBroke,32,650,260);
       if(g.result==='lose'&&g.endT>.3)bubble(430,210,'¡TE LO DIJE!',32,650,260);
@@ -1278,7 +1281,9 @@ function hud(){
   rr(250,70,300,12,6,'#ffffff',3);if(p<1)rr(252,72,Math.max(6,296*(1-p)),8,4,'#ff8a3d',0);
 }
 let last=performance.now(),lastPaint=-9;
-function postSNES(){const id=s2ctx.getImageData(0,0,S2W,S2H),d=id.data,B=[0,2,3,1];const L=[6,7,5];
+function postSNES(){const v3=!!(window.FIESTA&&FIESTA.V3&&FIESTA.V3.cuadro(OUTX));   // fiesta-3d.js: hubo escena 3D este cuadro -> va debajo; s2 encima sin trama y con su transparencia
+  if(v3||window.FIESTA&&FIESTA.PX&&FIESTA.PX.puro){sceneTransform(OUTX,OUTX.canvas.width/GAME_VIEW.width,1);OUTX.imageSmoothingEnabled=false;OUTX.drawImage(s2,gameLeft(),0,GAME_VIEW.width,H);return;}   // ?pixel=1: la paleta del tablero de Margarita va tal cual, sin trama ni cuantizar
+  const id=s2ctx.getImageData(0,0,S2W,S2H),d=id.data,B=[0,2,3,1];const L=[6,7,5];
   for(let y=0;y<S2H;y++)for(let x=0;x<S2W;x++){const i=(y*S2W+x)*4,o=(B[(y&1)*2+(x&1)]-1.5)*7;
     for(let c=0;c<3;c++){const n=L[c]-1,v=clamp(d[i+c]+o,0,255);d[i+c]=Math.round(v/255*n)*255/n;}d[i+3]=255;}
   s2ctx.putImageData(id,0,0);sceneTransform(OUTX,OUTX.canvas.width/GAME_VIEW.width,1);OUTX.imageSmoothingEnabled=false;OUTX.drawImage(s2,gameLeft(),0,GAME_VIEW.width,H);}

@@ -1,0 +1,93 @@
+{
+ "section": "llanos",
+ "rect": [
+  850,
+  690,
+  1250,
+  1090
+ ],
+ "landmarks": [
+  {
+   "id": "lla_hato",
+   "name": "Hato El Cariño (coleo)",
+   "type": "especial",
+   "region": "lla",
+   "kind": "hacienda",
+   "x": 975,
+   "y": 850,
+   "z": 3.71
+  },
+  {
+   "id": "lla_acarigua",
+   "name": "Acarigua (el granero)",
+   "type": "azul",
+   "region": "lla",
+   "kind": "town",
+   "x": 1040,
+   "y": 745,
+   "z": 3.46
+  },
+  {
+   "id": "lla_guanare",
+   "name": "Guanare",
+   "type": "ahorita",
+   "region": "lla",
+   "kind": "town",
+   "x": 910,
+   "y": 770,
+   "z": 2.52
+  },
+  {
+   "id": "lla_barinas",
+   "name": "Barinas",
+   "type": "villano",
+   "region": "lla",
+   "kind": "town",
+   "x": 920,
+   "y": 985,
+   "z": 2.5
+  },
+  {
+   "id": "lla_mantecal",
+   "name": "Mantecal (la crecida)",
+   "type": "especial",
+   "region": "lla",
+   "kind": "wetland",
+   "x": 1105,
+   "y": 1030,
+   "z": 2.39
+  },
+  {
+   "id": "lla_achaguas",
+   "name": "Achaguas (chigüires)",
+   "type": "azul",
+   "region": "lla",
+   "kind": "wetland",
+   "x": 1205,
+   "y": 975,
+   "z": 2.56
+  }
+ ],
+ "roads": [
+  [
+   "lla_acarigua",
+   "lla_guanare"
+  ],
+  [
+   "lla_achaguas",
+   "lla_mantecal"
+  ],
+  [
+   "lla_barinas",
+   "lla_guanare"
+  ],
+  [
+   "lla_barinas",
+   "lla_hato"
+  ],
+  [
+   "lla_hato",
+   "lla_mantecal"
+  ]
+ ]
+}
